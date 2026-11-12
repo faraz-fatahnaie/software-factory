@@ -37,19 +37,6 @@
   },
   "nodes": [
     {
-      "id": "plugin_engine_config_config",
-      "label": "Config",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "pipeline.ts",
-      "file_type": "code",
-      "norm_label": "config",
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L11"
-    },
-    {
       "id": "plugin_engine_events_factoryevent",
       "label": "FactoryEvent",
       "_callable": true,
@@ -159,8 +146,8 @@
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 2,
-      "community_name": "cli.ts",
+      "community": 4,
+      "community_name": "factory.test.ts",
       "file_type": "code",
       "norm_label": "item",
       "source_file": "plugin/engine/backlog.ts",
@@ -172,12 +159,25 @@
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 2,
-      "community_name": "cli.ts",
+      "community": 4,
+      "community_name": "factory.test.ts",
       "file_type": "code",
       "norm_label": "section",
       "source_file": "plugin/engine/backlog.ts",
       "source_location": "L3"
+    },
+    {
+      "id": "plugin_engine_config_config",
+      "label": "Config",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "config",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L11"
     },
     {
       "id": "plugin_engine_config_role",
@@ -219,7 +219,7 @@
       "source_location": "L8"
     },
     {
-      "id": "plugin_gui_app_act",
+      "id": "gui_app_act",
       "label": "Act",
       "_callable": true,
       "_callable_class": true,
@@ -228,11 +228,11 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "act",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L9"
+      "source_file": "gui/app.tsx",
+      "source_location": "L7"
     },
     {
-      "id": "plugin_gui_app_backlog",
+      "id": "gui_data_backlog",
       "label": "Backlog",
       "_callable": true,
       "_callable_class": true,
@@ -241,11 +241,11 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "backlog",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L7"
+      "source_file": "gui/data.ts",
+      "source_location": "L6"
     },
     {
-      "id": "plugin_gui_app_item",
+      "id": "gui_data_item",
       "label": "Item",
       "_callable": true,
       "_callable_class": true,
@@ -254,76 +254,24 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "item",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L6"
+      "source_file": "gui/data.ts",
+      "source_location": "L5"
     },
     {
-      "id": "plugin_gui_app_roleconfig",
-      "label": "RoleConfig",
+      "id": "gui_data_link",
+      "label": "Link",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "app.tsx",
       "file_type": "code",
-      "norm_label": "roleconfig",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L8"
-    },
-    {
-      "id": "plugin_gui_state_costrow",
-      "label": "CostRow",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "app.tsx",
-      "file_type": "code",
-      "norm_label": "costrow",
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L70"
-    },
-    {
-      "id": "plugin_gui_state_ev",
-      "label": "Ev",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "app.tsx",
-      "file_type": "code",
-      "norm_label": "ev",
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L3"
-    },
-    {
-      "id": "plugin_gui_state_stagestate",
-      "label": "StageState",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "app.tsx",
-      "file_type": "code",
-      "norm_label": "stagestate",
-      "source_file": "plugin/gui/state.ts",
+      "norm_label": "link",
+      "source_file": "gui/data.ts",
       "source_location": "L7"
     },
     {
-      "id": "plugin_gui_state_taskrun",
-      "label": "TaskRun",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "app.tsx",
-      "file_type": "code",
-      "norm_label": "taskrun",
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "plugin_gui_views_doc",
+      "id": "gui_views_doc",
       "label": "Doc",
       "_callable": true,
       "_callable_class": true,
@@ -332,11 +280,11 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "doc",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L142"
+      "source_file": "gui/views.tsx",
+      "source_location": "L145"
     },
     {
-      "id": "plugin_gui_views_found",
+      "id": "gui_views_found",
       "label": "Found",
       "_callable": true,
       "_callable_class": true,
@@ -345,11 +293,24 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "found",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L80"
+      "source_file": "gui/views.tsx",
+      "source_location": "L83"
     },
     {
-      "id": "plugin_gui_views_seterror",
+      "id": "gui_views_roleconfig",
+      "label": "RoleConfig",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "roleconfig",
+      "source_file": "gui/views.tsx",
+      "source_location": "L203"
+    },
+    {
+      "id": "gui_views_seterror",
       "label": "SetError",
       "_callable": true,
       "_callable_class": true,
@@ -358,11 +319,11 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "seterror",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L4"
+      "source_file": "gui/views.tsx",
+      "source_location": "L6"
     },
     {
-      "id": "plugin_gui_views_worktree",
+      "id": "gui_views_worktree",
       "label": "Worktree",
       "_callable": true,
       "_callable_class": true,
@@ -371,8 +332,73 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "worktree",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L41"
+      "source_file": "gui/views.tsx",
+      "source_location": "L44"
+    },
+    {
+      "id": "plugin_engine_state_bucket",
+      "label": "Bucket",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "bucket",
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L93"
+    },
+    {
+      "id": "plugin_engine_state_costrow",
+      "label": "CostRow",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "costrow",
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L71"
+    },
+    {
+      "id": "plugin_engine_state_ev",
+      "label": "Ev",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "ev",
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L3"
+    },
+    {
+      "id": "plugin_engine_state_stagestate",
+      "label": "StageState",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "stagestate",
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L7"
+    },
+    {
+      "id": "plugin_engine_state_taskrun",
+      "label": "TaskRun",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "taskrun",
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L8"
     },
     {
       "id": "plugin_engine_claude_agentevents",
@@ -459,30 +485,6 @@
       "source_location": "L59"
     },
     {
-      "id": "plugin_engine_pipeline_shellgate",
-      "label": "shellGate()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "pipeline.ts",
-      "file_type": "code",
-      "norm_label": "shellgate()",
-      "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L33"
-    },
-    {
-      "id": "plugin_engine_pipeline_stopall",
-      "label": "stopAll()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "pipeline.ts",
-      "file_type": "code",
-      "norm_label": "stopall()",
-      "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L27"
-    },
-    {
       "id": "plugin_engine_pipeline_stubrunner",
       "label": "stubRunner()",
       "_callable": true,
@@ -507,40 +509,16 @@
       "source_location": "L21"
     },
     {
-      "id": "plugin_engine_backlog_add",
-      "label": "add()",
+      "id": "plugin_engine_skills_roleskills",
+      "label": "roleSkills()",
       "_callable": true,
       "_origin": "ast",
-      "community": 2,
-      "community_name": "cli.ts",
+      "community": 1,
+      "community_name": "pipeline.ts",
       "file_type": "code",
-      "norm_label": "add()",
-      "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L46"
-    },
-    {
-      "id": "plugin_engine_backlog_endof",
-      "label": "endOf()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "endof()",
-      "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L23"
-    },
-    {
-      "id": "plugin_engine_backlog_move",
-      "label": "move()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "move()",
-      "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L33"
+      "norm_label": "roleskills()",
+      "source_file": "plugin/engine/skills.ts",
+      "source_location": "L25"
     },
     {
       "id": "plugin_engine_cli_commitpaths",
@@ -591,6 +569,18 @@
       "source_location": "L73"
     },
     {
+      "id": "plugin_engine_cli_openevents",
+      "label": "openEvents()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "openevents()",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L46"
+    },
+    {
       "id": "plugin_engine_cli_readitems",
       "label": "readItems()",
       "_callable": true,
@@ -603,64 +593,40 @@
       "source_location": "L15"
     },
     {
-      "id": "plugin_engine_config_loadconfig",
-      "label": "loadConfig()",
+      "id": "plugin_engine_pipeline_shellgate",
+      "label": "shellGate()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "cli.ts",
       "file_type": "code",
-      "norm_label": "loadconfig()",
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L43"
+      "norm_label": "shellgate()",
+      "source_file": "plugin/engine/pipeline.ts",
+      "source_location": "L33"
     },
     {
-      "id": "plugin_engine_init_detect",
-      "label": "detect()",
+      "id": "plugin_engine_pipeline_stopall",
+      "label": "stopAll()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "cli.ts",
       "file_type": "code",
-      "norm_label": "detect()",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L19"
+      "norm_label": "stopall()",
+      "source_file": "plugin/engine/pipeline.ts",
+      "source_location": "L27"
     },
     {
-      "id": "plugin_engine_init_doctor",
-      "label": "doctor()",
+      "id": "plugin_engine_skills_setskill",
+      "label": "setSkill()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "cli.ts",
       "file_type": "code",
-      "norm_label": "doctor()",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L80"
-    },
-    {
-      "id": "plugin_engine_init_init",
-      "label": "init()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "init()",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L47"
-    },
-    {
-      "id": "plugin_engine_init_read",
-      "label": "read()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "read()",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L12"
+      "norm_label": "setskill()",
+      "source_file": "plugin/engine/skills.ts",
+      "source_location": "L62"
     },
     {
       "id": "plugin_engine_worktree_branchof",
@@ -759,6 +725,42 @@
       "source_location": "L6"
     },
     {
+      "id": "plugin_engine_backlog_add",
+      "label": "add()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "add()",
+      "source_file": "plugin/engine/backlog.ts",
+      "source_location": "L46"
+    },
+    {
+      "id": "plugin_engine_backlog_endof",
+      "label": "endOf()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "endof()",
+      "source_file": "plugin/engine/backlog.ts",
+      "source_location": "L23"
+    },
+    {
+      "id": "plugin_engine_backlog_move",
+      "label": "move()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "move()",
+      "source_file": "plugin/engine/backlog.ts",
+      "source_location": "L33"
+    },
+    {
       "id": "plugin_engine_backlog_parse",
       "label": "parse()",
       "_callable": true,
@@ -769,18 +771,6 @@
       "norm_label": "parse()",
       "source_file": "plugin/engine/backlog.ts",
       "source_location": "L8"
-    },
-    {
-      "id": "plugin_engine_cli_openevents",
-      "label": "openEvents()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "openevents()",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L46"
     },
     {
       "id": "plugin_engine_config_ismodel",
@@ -817,6 +807,18 @@
       "norm_label": "isstrlist()",
       "source_file": "plugin/engine/config.ts",
       "source_location": "L16"
+    },
+    {
+      "id": "plugin_engine_config_loadconfig",
+      "label": "loadConfig()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "loadconfig()",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L43"
     },
     {
       "id": "plugin_engine_config_parseconfig",
@@ -867,6 +869,66 @@
       "source_location": "L27"
     },
     {
+      "id": "plugin_engine_init_detect",
+      "label": "detect()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "detect()",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L19"
+    },
+    {
+      "id": "plugin_engine_init_doctor",
+      "label": "doctor()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "doctor()",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L80"
+    },
+    {
+      "id": "plugin_engine_init_init",
+      "label": "init()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "init()",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L47"
+    },
+    {
+      "id": "plugin_engine_init_read",
+      "label": "read()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "read()",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L12"
+    },
+    {
+      "id": "plugin_engine_server_buildgui",
+      "label": "buildGui()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "buildgui()",
+      "source_file": "plugin/engine/server.ts",
+      "source_location": "L17"
+    },
+    {
       "id": "plugin_engine_server_json",
       "label": "json()",
       "_callable": true,
@@ -876,7 +938,7 @@
       "file_type": "code",
       "norm_label": "json()",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L12"
+      "source_location": "L11"
     },
     {
       "id": "plugin_engine_server_serve",
@@ -888,7 +950,7 @@
       "file_type": "code",
       "norm_label": "serve()",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L15"
+      "source_location": "L25"
     },
     {
       "id": "plugin_engine_skills_addskill",
@@ -939,30 +1001,6 @@
       "source_location": "L39"
     },
     {
-      "id": "plugin_engine_skills_roleskills",
-      "label": "roleSkills()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "roleskills()",
-      "source_file": "plugin/engine/skills.ts",
-      "source_location": "L25"
-    },
-    {
-      "id": "plugin_engine_skills_setskill",
-      "label": "setSkill()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "setskill()",
-      "source_file": "plugin/engine/skills.ts",
-      "source_location": "L62"
-    },
-    {
       "id": "tests_fixture_repo",
       "label": "repo()",
       "_callable": true,
@@ -987,7 +1025,7 @@
       "source_location": "L11"
     },
     {
-      "id": "plugin_gui_app_app",
+      "id": "gui_app_app",
       "label": "App()",
       "_callable": true,
       "_origin": "ast",
@@ -995,11 +1033,23 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "app()",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L272"
+      "source_file": "gui/app.tsx",
+      "source_location": "L409"
     },
     {
-      "id": "plugin_gui_app_card",
+      "id": "gui_app_board",
+      "label": "Board()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "board()",
+      "source_file": "gui/app.tsx",
+      "source_location": "L360"
+    },
+    {
+      "id": "gui_app_card",
       "label": "Card()",
       "_callable": true,
       "_origin": "ast",
@@ -1007,11 +1057,11 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "card()",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L74"
+      "source_file": "gui/app.tsx",
+      "source_location": "L253"
     },
     {
-      "id": "plugin_gui_app_detail",
+      "id": "gui_app_detail",
       "label": "Detail()",
       "_callable": true,
       "_origin": "ast",
@@ -1019,11 +1069,11 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "detail()",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L147"
+      "source_file": "gui/app.tsx",
+      "source_location": "L302"
     },
     {
-      "id": "plugin_gui_app_diff",
+      "id": "gui_app_diff",
       "label": "Diff()",
       "_callable": true,
       "_origin": "ast",
@@ -1031,23 +1081,47 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "diff()",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L132"
+      "source_file": "gui/app.tsx",
+      "source_location": "L287"
     },
     {
-      "id": "plugin_gui_app_gauge",
-      "label": "Gauge()",
+      "id": "gui_app_feed",
+      "label": "Feed()",
       "_callable": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "app.tsx",
       "file_type": "code",
-      "norm_label": "gauge()",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L256"
+      "norm_label": "feed()",
+      "source_file": "gui/app.tsx",
+      "source_location": "L153"
     },
     {
-      "id": "plugin_gui_app_logline",
+      "id": "gui_app_kpi",
+      "label": "Kpi()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "kpi()",
+      "source_file": "gui/app.tsx",
+      "source_location": "L67"
+    },
+    {
+      "id": "gui_app_line",
+      "label": "Line()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "line()",
+      "source_file": "gui/app.tsx",
+      "source_location": "L122"
+    },
+    {
+      "id": "gui_app_logline",
       "label": "logLine()",
       "_callable": true,
       "_origin": "ast",
@@ -1055,23 +1129,35 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "logline()",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L108"
+      "source_file": "gui/app.tsx",
+      "source_location": "L30"
     },
     {
-      "id": "plugin_gui_app_models",
-      "label": "MODELS",
+      "id": "gui_app_overview",
+      "label": "Overview()",
       "_callable": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "app.tsx",
       "file_type": "code",
-      "norm_label": "models",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L13"
+      "norm_label": "overview()",
+      "source_file": "gui/app.tsx",
+      "source_location": "L181"
     },
     {
-      "id": "plugin_gui_app_stagestrip",
+      "id": "gui_app_spark",
+      "label": "Spark()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "spark()",
+      "source_file": "gui/app.tsx",
+      "source_location": "L57"
+    },
+    {
+      "id": "gui_app_stagestrip",
       "label": "StageStrip()",
       "_callable": true,
       "_origin": "ast",
@@ -1079,71 +1165,23 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "stagestrip()",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L58"
+      "source_file": "gui/app.tsx",
+      "source_location": "L13"
     },
     {
-      "id": "plugin_gui_app_usebacklog",
-      "label": "useBacklog()",
+      "id": "gui_app_throughput",
+      "label": "Throughput()",
       "_callable": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "app.tsx",
       "file_type": "code",
-      "norm_label": "usebacklog()",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L36"
+      "norm_label": "throughput()",
+      "source_file": "gui/app.tsx",
+      "source_location": "L81"
     },
     {
-      "id": "plugin_gui_app_useevents",
-      "label": "useEvents()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "app.tsx",
-      "file_type": "code",
-      "norm_label": "useevents()",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L17"
-    },
-    {
-      "id": "plugin_gui_app_usenow",
-      "label": "useNow()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "app.tsx",
-      "file_type": "code",
-      "norm_label": "usenow()",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L48"
-    },
-    {
-      "id": "plugin_gui_state_costs",
-      "label": "costs()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "app.tsx",
-      "file_type": "code",
-      "norm_label": "costs()",
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L73"
-    },
-    {
-      "id": "plugin_gui_state_elapsed",
-      "label": "elapsed()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "app.tsx",
-      "file_type": "code",
-      "norm_label": "elapsed()",
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L65"
-    },
-    {
-      "id": "plugin_gui_state_post",
+      "id": "gui_data_post",
       "label": "post()",
       "_callable": true,
       "_origin": "ast",
@@ -1151,35 +1189,83 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "post()",
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L92"
+      "source_file": "gui/data.ts",
+      "source_location": "L9"
     },
     {
-      "id": "plugin_gui_state_summarize",
-      "label": "summarize()",
+      "id": "gui_data_usebacklog",
+      "label": "useBacklog()",
       "_callable": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "app.tsx",
       "file_type": "code",
-      "norm_label": "summarize()",
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L23"
+      "norm_label": "usebacklog()",
+      "source_file": "gui/data.ts",
+      "source_location": "L52"
     },
     {
-      "id": "plugin_gui_state_toolline",
-      "label": "toolLine()",
+      "id": "gui_data_useevents",
+      "label": "useEvents()",
       "_callable": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "app.tsx",
       "file_type": "code",
-      "norm_label": "toolline()",
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L59"
+      "norm_label": "useevents()",
+      "source_file": "gui/data.ts",
+      "source_location": "L20"
     },
     {
-      "id": "plugin_gui_views_cost",
+      "id": "gui_data_usehash",
+      "label": "useHash()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "usehash()",
+      "source_file": "gui/data.ts",
+      "source_location": "L97"
+    },
+    {
+      "id": "gui_data_usenow",
+      "label": "useNow()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "usenow()",
+      "source_file": "gui/data.ts",
+      "source_location": "L73"
+    },
+    {
+      "id": "gui_data_usetheme",
+      "label": "useTheme()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "usetheme()",
+      "source_file": "gui/data.ts",
+      "source_location": "L85"
+    },
+    {
+      "id": "gui_views_agents",
+      "label": "Agents()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "agents()",
+      "source_file": "gui/views.tsx",
+      "source_location": "L263"
+    },
+    {
+      "id": "gui_views_cost",
       "label": "Cost()",
       "_callable": true,
       "_origin": "ast",
@@ -1187,11 +1273,35 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "cost()",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L7"
+      "source_file": "gui/views.tsx",
+      "source_location": "L9"
     },
     {
-      "id": "plugin_gui_views_roleskills",
+      "id": "gui_views_logs",
+      "label": "Logs()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "logs()",
+      "source_file": "gui/views.tsx",
+      "source_location": "L300"
+    },
+    {
+      "id": "gui_views_models",
+      "label": "MODELS",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "models",
+      "source_file": "gui/views.tsx",
+      "source_location": "L204"
+    },
+    {
+      "id": "gui_views_roleskills",
       "label": "RoleSkills()",
       "_callable": true,
       "_origin": "ast",
@@ -1199,11 +1309,11 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "roleskills()",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L83"
+      "source_file": "gui/views.tsx",
+      "source_location": "L86"
     },
     {
-      "id": "plugin_gui_views_studio",
+      "id": "gui_views_studio",
       "label": "Studio()",
       "_callable": true,
       "_origin": "ast",
@@ -1211,11 +1321,11 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "studio()",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L145"
+      "source_file": "gui/views.tsx",
+      "source_location": "L148"
     },
     {
-      "id": "plugin_gui_views_worktrees",
+      "id": "gui_views_worktrees",
       "label": "Worktrees()",
       "_callable": true,
       "_origin": "ast",
@@ -1223,8 +1333,92 @@
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "worktrees()",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L43"
+      "source_file": "gui/views.tsx",
+      "source_location": "L46"
+    },
+    {
+      "id": "plugin_engine_state_costs",
+      "label": "costs()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "costs()",
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L74"
+    },
+    {
+      "id": "plugin_engine_state_elapsed",
+      "label": "elapsed()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "elapsed()",
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L66"
+    },
+    {
+      "id": "plugin_engine_state_passrates",
+      "label": "passRates()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "passrates()",
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L111"
+    },
+    {
+      "id": "plugin_engine_state_roster",
+      "label": "roster()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "roster()",
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L121"
+    },
+    {
+      "id": "plugin_engine_state_series",
+      "label": "series()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "series()",
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L96"
+    },
+    {
+      "id": "plugin_engine_state_summarize",
+      "label": "summarize()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "summarize()",
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L23"
+    },
+    {
+      "id": "plugin_engine_state_toolline",
+      "label": "toolLine()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "toolline()",
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L60"
     },
     {
       "id": "plugin_engine_claude",
@@ -1556,28 +1750,6 @@
       "source_location": "L1"
     },
     {
-      "id": "plugin_engine_backlog",
-      "label": "backlog.ts",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "backlog.ts",
-      "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "plugin_engine_backlog_sections",
-      "label": "SECTIONS",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "sections",
-      "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L2"
-    },
-    {
       "id": "plugin_engine_cli",
       "label": "cli.ts",
       "_origin": "ast",
@@ -1609,39 +1781,6 @@
       "norm_label": "root",
       "source_file": "plugin/engine/cli.ts",
       "source_location": "L13"
-    },
-    {
-      "id": "plugin_engine_init",
-      "label": "init.ts",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "init.ts",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "plugin_engine_init_ignored",
-      "label": "IGNORED",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "ignored",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L10"
-    },
-    {
-      "id": "plugin_engine_init_templates",
-      "label": "TEMPLATES",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "templates",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L8"
     },
     {
       "id": "plugin_engine_worktree",
@@ -1964,17 +2103,6 @@
       "source_location": "L3"
     },
     {
-      "id": "ref_react",
-      "label": "react",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "package.json",
-      "file_type": "concept",
-      "norm_label": "react",
-      "source_file": "package.json",
-      "source_location": "L13"
-    },
-    {
       "id": "ref_react_dom",
       "label": "react-dom",
       "_origin": "ast",
@@ -2052,15 +2180,26 @@
       "source_location": "L11"
     },
     {
-      "id": "e2e_gui_e2e_server",
-      "label": "server",
+      "id": "plugin_engine_backlog",
+      "label": "backlog.ts",
       "_origin": "ast",
       "community": 4,
       "community_name": "factory.test.ts",
       "file_type": "code",
-      "norm_label": "server",
-      "source_file": "e2e/gui.e2e.ts",
-      "source_location": "L12"
+      "norm_label": "backlog.ts",
+      "source_file": "plugin/engine/backlog.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "plugin_engine_backlog_sections",
+      "label": "SECTIONS",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "sections",
+      "source_file": "plugin/engine/backlog.ts",
+      "source_location": "L2"
     },
     {
       "id": "plugin_engine_config",
@@ -2118,6 +2257,39 @@
       "source_location": "L1"
     },
     {
+      "id": "plugin_engine_init",
+      "label": "init.ts",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "init.ts",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "plugin_engine_init_ignored",
+      "label": "IGNORED",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "ignored",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L10"
+    },
+    {
+      "id": "plugin_engine_init_templates",
+      "label": "TEMPLATES",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "templates",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L8"
+    },
+    {
       "id": "plugin_engine_server",
       "label": "server.ts",
       "_origin": "ast",
@@ -2137,7 +2309,29 @@
       "file_type": "code",
       "norm_label": "cli",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L10"
+      "source_location": "L9"
+    },
+    {
+      "id": "plugin_engine_server_dist",
+      "label": "DIST",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "dist",
+      "source_file": "plugin/engine/server.ts",
+      "source_location": "L15"
+    },
+    {
+      "id": "plugin_engine_server_source",
+      "label": "SOURCE",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "source",
+      "source_file": "plugin/engine/server.ts",
+      "source_location": "L16"
     },
     {
       "id": "plugin_engine_skills",
@@ -2371,81 +2565,136 @@
       "source_location": "L19"
     },
     {
-      "id": "plugin_gui_app",
+      "id": "gui_app",
       "label": "app.tsx",
       "_origin": "ast",
       "community": 7,
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "app.tsx",
-      "source_file": "plugin/gui/app.tsx",
+      "source_file": "gui/app.tsx",
       "source_location": "L1"
     },
     {
-      "id": "plugin_gui_app_efforts",
-      "label": "EFFORTS",
+      "id": "gui_app_link_text",
+      "label": "LINK_TEXT",
       "_origin": "ast",
       "community": 7,
       "community_name": "app.tsx",
       "file_type": "code",
-      "norm_label": "efforts",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L14"
+      "norm_label": "link_text",
+      "source_file": "gui/app.tsx",
+      "source_location": "L11"
     },
     {
-      "id": "plugin_gui_app_sections",
+      "id": "gui_app_sections",
       "label": "SECTIONS",
       "_origin": "ast",
       "community": 7,
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "sections",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L12"
+      "source_file": "gui/app.tsx",
+      "source_location": "L10"
     },
     {
-      "id": "plugin_gui_app_views",
+      "id": "gui_app_views",
       "label": "VIEWS",
       "_origin": "ast",
       "community": 7,
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "views",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L11"
+      "source_file": "gui/app.tsx",
+      "source_location": "L9"
     },
     {
-      "id": "plugin_gui_state",
-      "label": "state.ts",
+      "id": "gui_app_windows",
+      "label": "WINDOWS",
       "_origin": "ast",
       "community": 7,
       "community_name": "app.tsx",
       "file_type": "code",
-      "norm_label": "state.ts",
-      "source_file": "plugin/gui/state.ts",
+      "norm_label": "windows",
+      "source_file": "gui/app.tsx",
+      "source_location": "L78"
+    },
+    {
+      "id": "gui_data",
+      "label": "data.ts",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "data.ts",
+      "source_file": "gui/data.ts",
       "source_location": "L1"
     },
     {
-      "id": "plugin_gui_state_stages",
-      "label": "STAGES",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "app.tsx",
-      "file_type": "code",
-      "norm_label": "stages",
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L20"
-    },
-    {
-      "id": "plugin_gui_views",
+      "id": "gui_views",
       "label": "views.tsx",
       "_origin": "ast",
       "community": 7,
       "community_name": "app.tsx",
       "file_type": "code",
       "norm_label": "views.tsx",
-      "source_file": "plugin/gui/views.tsx",
+      "source_file": "gui/views.tsx",
       "source_location": "L1"
+    },
+    {
+      "id": "gui_views_efforts",
+      "label": "EFFORTS",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "efforts",
+      "source_file": "gui/views.tsx",
+      "source_location": "L205"
+    },
+    {
+      "id": "gui_views_kinds",
+      "label": "KINDS",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "kinds",
+      "source_file": "gui/views.tsx",
+      "source_location": "L291"
+    },
+    {
+      "id": "plugin_engine_state",
+      "label": "state.ts",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "state.ts",
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "plugin_engine_state_stages",
+      "label": "STAGES",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "code",
+      "norm_label": "stages",
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L20"
+    },
+    {
+      "id": "ref_react",
+      "label": "react",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "app.tsx",
+      "file_type": "concept",
+      "norm_label": "react",
+      "source_file": "package.json",
+      "source_location": "L13"
     },
     {
       "id": "docs_plugin",
@@ -2493,7 +2742,7 @@
       "node_kind": "heading",
       "norm_label": "developing and testing",
       "source_file": "docs/PLUGIN.md",
-      "source_location": "L87"
+      "source_location": "L95"
     },
     {
       "id": "docs_plugin_known_gaps",
@@ -2505,7 +2754,7 @@
       "node_kind": "heading",
       "norm_label": "known gaps",
       "source_file": "docs/PLUGIN.md",
-      "source_location": "L119"
+      "source_location": "L127"
     },
     {
       "id": "docs_plugin_layout",
@@ -2529,7 +2778,7 @@
       "node_kind": "heading",
       "norm_label": "release checklist",
       "source_file": "docs/PLUGIN.md",
-      "source_location": "L100"
+      "source_location": "L108"
     },
     {
       "id": "docs_plugin_rules_that_come_from_how_plugins_work",
@@ -2554,6 +2803,18 @@
       "norm_label": "scopes",
       "source_file": "docs/PLUGIN.md",
       "source_location": "L80"
+    },
+    {
+      "id": "docs_plugin_the_gui_is_source_outside_build_inside",
+      "label": "The GUI is source outside, build inside",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "Building and publishing the plugin",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "the gui is source outside, build inside",
+      "source_file": "docs/PLUGIN.md",
+      "source_location": "L87"
     },
     {
       "id": "docs_plugin_two_things_in_one_repository",
@@ -2589,7 +2850,7 @@
       "node_kind": "heading",
       "norm_label": "configuration",
       "source_file": "README.md",
-      "source_location": "L68"
+      "source_location": "L69"
     },
     {
       "id": "readme_control_plane",
@@ -2625,7 +2886,7 @@
       "node_kind": "heading",
       "norm_label": "layout",
       "source_file": "README.md",
-      "source_location": "L125"
+      "source_location": "L126"
     },
     {
       "id": "readme_quick_start",
@@ -2661,7 +2922,7 @@
       "node_kind": "heading",
       "norm_label": "safety model",
       "source_file": "README.md",
-      "source_location": "L91"
+      "source_location": "L92"
     },
     {
       "id": "readme_software_factory",
@@ -2685,7 +2946,7 @@
       "node_kind": "heading",
       "norm_label": "tests",
       "source_file": "README.md",
-      "source_location": "L117"
+      "source_location": "L118"
     },
     {
       "id": "agents_control_plane_gui",
@@ -3064,6 +3325,318 @@
     }
   ],
   "links": [
+    {
+      "source": "gui_app_app",
+      "target": "gui_data_useevents",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L410",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_app",
+      "target": "plugin_engine_state_summarize",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L411",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_app",
+      "target": "gui_data_usebacklog",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L412",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_app",
+      "target": "gui_data_usehash",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L413",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_app",
+      "target": "gui_data_usetheme",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L414",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_app",
+      "target": "gui_data_post",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L421",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_board",
+      "target": "gui_data_usenow",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L364",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_card",
+      "target": "plugin_engine_state_elapsed",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L268",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_detail",
+      "target": "plugin_engine_state_summarize",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L311",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_detail",
+      "target": "gui_app_logline",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L348",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_feed",
+      "target": "gui_app_logline",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L155",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_logline",
+      "target": "plugin_engine_state_toolline",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_overview",
+      "target": "plugin_engine_state_roster",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L182",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_overview",
+      "target": "gui_data_usenow",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L183",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_overview",
+      "target": "plugin_engine_state_series",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L184",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_overview",
+      "target": "plugin_engine_state_passrates",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L185",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_overview",
+      "target": "plugin_engine_state_elapsed",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L223",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_throughput",
+      "target": "plugin_engine_state_series",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L85",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views_agents",
+      "target": "plugin_engine_state_roster",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/views.tsx",
+      "source_location": "L264",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views_agents",
+      "target": "gui_data_usenow",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/views.tsx",
+      "source_location": "L265",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views_agents",
+      "target": "plugin_engine_state_elapsed",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/views.tsx",
+      "source_location": "L278",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views_cost",
+      "target": "plugin_engine_state_costs",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/views.tsx",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views_logs",
+      "target": "gui_app_logline",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/views.tsx",
+      "source_location": "L304",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views_models",
+      "target": "gui_data_post",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/views.tsx",
+      "source_location": "L217",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views_roleskills",
+      "target": "gui_data_post",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/views.tsx",
+      "source_location": "L96",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views_studio",
+      "target": "gui_data_post",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/views.tsx",
+      "source_location": "L165",
+      "weight": 1.0
+    },
     {
       "source": "plugin_engine_backlog_add",
       "target": "plugin_engine_backlog_parse",
@@ -3630,6 +4203,18 @@
     },
     {
       "source": "plugin_engine_server_serve",
+      "target": "plugin_engine_worktree_listworktrees",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/server.ts",
+      "source_location": "L104",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_server_serve",
       "target": "plugin_engine_skills_roleskills",
       "relation": "calls",
       "_origin": "ast",
@@ -3637,7 +4222,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L110",
+      "source_location": "L120",
       "weight": 1.0
     },
     {
@@ -3649,7 +4234,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L115",
+      "source_location": "L125",
       "weight": 1.0
     },
     {
@@ -3661,7 +4246,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L155",
+      "source_location": "L170",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_server_serve",
+      "target": "plugin_engine_server_buildgui",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/server.ts",
+      "source_location": "L26",
       "weight": 1.0
     },
     {
@@ -3673,7 +4270,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L17",
+      "source_location": "L28",
       "weight": 1.0
     },
     {
@@ -3685,7 +4282,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L19",
+      "source_location": "L30",
       "weight": 1.0
     },
     {
@@ -3697,7 +4294,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L29",
+      "source_location": "L40",
       "weight": 1.0
     },
     {
@@ -3709,19 +4306,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L73",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_server_serve",
-      "target": "plugin_engine_worktree_listworktrees",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/server.ts",
-      "source_location": "L94",
+      "source_location": "L83",
       "weight": 1.0
     },
     {
@@ -3869,174 +4454,6 @@
       "weight": 1.0
     },
     {
-      "source": "plugin_gui_app_app",
-      "target": "plugin_gui_app_useevents",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L273",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app_app",
-      "target": "plugin_gui_state_summarize",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L274",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app_app",
-      "target": "plugin_gui_app_usebacklog",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L275",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app_app",
-      "target": "plugin_gui_app_usenow",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L282",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app_app",
-      "target": "plugin_gui_state_post",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L287",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app_card",
-      "target": "plugin_gui_state_elapsed",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L89",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app_detail",
-      "target": "plugin_gui_state_summarize",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L156",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app_detail",
-      "target": "plugin_gui_app_logline",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L191",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app_logline",
-      "target": "plugin_gui_state_toolline",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L113",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app_models",
-      "target": "plugin_gui_state_post",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L213",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views_cost",
-      "target": "plugin_gui_state_costs",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L8",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views_roleskills",
-      "target": "plugin_gui_state_post",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L93",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views_studio",
-      "target": "plugin_gui_state_post",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L162",
-      "weight": 1.0
-    },
-    {
-      "source": "tests_factory_test",
-      "target": "plugin_gui_state_post",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "tests/factory.test.ts",
-      "source_location": "L210",
-      "weight": 1.0
-    },
-    {
       "source": "tests_fixture_repo",
       "target": "tests_fixture_tmp",
       "relation": "calls",
@@ -4062,7 +4479,7 @@
     },
     {
       "source": "plugin_engine_cli_main",
-      "target": "plugin_gui_state",
+      "target": "plugin_engine_state",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -4108,6 +4525,402 @@
       "context": "import",
       "source_file": "e2e/gui.e2e.ts",
       "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "plugin_engine_state_elapsed",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "plugin_engine_state_ev",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "plugin_engine_state_passrates",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "plugin_engine_state_roster",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "plugin_engine_state_series",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "plugin_engine_state_stages",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "plugin_engine_state_summarize",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "plugin_engine_state_taskrun",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "plugin_engine_state_toolline",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_data_backlog",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_data_item",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_data_link",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_data_post",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_data_usebacklog",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_data_useevents",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_data_usehash",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_data_usenow",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_data_usetheme",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_views_agents",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_views_logs",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_views_studio",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_views_worktrees",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_data",
+      "target": "plugin_engine_state_ev",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/data.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "plugin_engine_state_costrow",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/views.tsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "plugin_engine_state_costs",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/views.tsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "plugin_engine_state_elapsed",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/views.tsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "plugin_engine_state_ev",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/views.tsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "plugin_engine_state_roster",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/views.tsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "plugin_engine_state_taskrun",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/views.tsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_app_feed",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/views.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_app_logline",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/views.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_data_post",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/views.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_data_usenow",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/views.tsx",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -4635,7 +5448,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L5",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -4647,7 +5460,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L5",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -4659,7 +5472,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L5",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -4671,7 +5484,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L6",
+      "source_location": "L5",
       "weight": 1.0
     },
     {
@@ -4683,7 +5496,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L7",
+      "source_location": "L6",
       "weight": 1.0
     },
     {
@@ -4695,7 +5508,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L7",
+      "source_location": "L6",
       "weight": 1.0
     },
     {
@@ -4707,7 +5520,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L7",
+      "source_location": "L6",
       "weight": 1.0
     },
     {
@@ -4719,7 +5532,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L8",
+      "source_location": "L7",
       "weight": 1.0
     },
     {
@@ -4744,174 +5557,6 @@
       "context": "import",
       "source_file": "plugin/engine/skills.ts",
       "source_location": "L3",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_state_elapsed",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L3",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_state_ev",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L3",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_state_post",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L3",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_state_stages",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L3",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_state_summarize",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L3",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_state_taskrun",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L3",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_state_toolline",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L3",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_views_cost",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L4",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_views_studio",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L4",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_views_worktrees",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L4",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views",
-      "target": "plugin_gui_state_costrow",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L2",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views",
-      "target": "plugin_gui_state_costs",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L2",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views",
-      "target": "plugin_gui_state_ev",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L2",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views",
-      "target": "plugin_gui_state_post",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L2",
       "weight": 1.0
     },
     {
@@ -5012,7 +5657,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_gui_state_costs",
+      "target": "plugin_engine_state_costs",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -5024,7 +5669,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_gui_state_elapsed",
+      "target": "plugin_engine_state_elapsed",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -5036,7 +5681,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_gui_state_ev",
+      "target": "plugin_engine_state_ev",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -5048,7 +5693,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_gui_state_summarize",
+      "target": "plugin_engine_state_passrates",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -5060,7 +5705,43 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_gui_state_toolline",
+      "target": "plugin_engine_state_roster",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_state_series",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_state_summarize",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_state_toolline",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -5368,6 +6049,115 @@
       "context": "import",
       "source_file": "e2e/gui.e2e.ts",
       "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "plugin_engine_state",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_data",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_views",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/app.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_data",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/data.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_data",
+      "target": "plugin_engine_state",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/data.ts",
+      "source_location": "L3",
+      "type_only": true,
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/views.tsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "plugin_engine_state",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/views.tsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_data",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "gui/views.tsx",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -5765,7 +6555,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L5",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -5777,7 +6567,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L6",
+      "source_location": "L5",
       "weight": 1.0
     },
     {
@@ -5789,7 +6579,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L7",
+      "source_location": "L6",
       "weight": 1.0
     },
     {
@@ -5801,7 +6591,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L8",
+      "source_location": "L7",
       "weight": 1.0
     },
     {
@@ -5865,66 +6655,6 @@
       "weight": 1.0
     },
     {
-      "source": "plugin_gui_app",
-      "target": "ref_react",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L1",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_state",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L3",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_views",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L4",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views",
-      "target": "ref_react",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L1",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views",
-      "target": "plugin_gui_state",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L2",
-      "weight": 1.0
-    },
-    {
       "source": "tests_factory_test",
       "target": "ref_bun_test",
       "relation": "imports_from",
@@ -5974,7 +6704,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_gui_state",
+      "target": "plugin_engine_state",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6172,7 +6902,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/PLUGIN.md",
-      "source_location": "L100",
+      "source_location": "L108",
       "weight": 1.0
     },
     {
@@ -6194,7 +6924,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/PLUGIN.md",
-      "source_location": "L119",
+      "source_location": "L127",
       "weight": 1.0
     },
     {
@@ -6243,13 +6973,24 @@
     },
     {
       "source": "docs_plugin_building_and_publishing_the_plugin",
-      "target": "docs_plugin_developing_and_testing",
+      "target": "docs_plugin_the_gui_is_source_outside_build_inside",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/PLUGIN.md",
       "source_location": "L87",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_plugin_building_and_publishing_the_plugin",
+      "target": "docs_plugin_developing_and_testing",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PLUGIN.md",
+      "source_location": "L95",
       "weight": 1.0
     },
     {
@@ -6264,14 +7005,454 @@
       "weight": 1.0
     },
     {
-      "source": "e2e_gui_e2e",
-      "target": "e2e_gui_e2e_server",
+      "source": "gui_app",
+      "target": "gui_app_sections",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
-      "source_file": "e2e/gui.e2e.ts",
-      "source_location": "L12",
+      "source_file": "gui/app.tsx",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_link_text",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_line",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L122",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_stagestrip",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_feed",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L153",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_overview",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L181",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_card",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L253",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_diff",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L287",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_logline",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_detail",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L302",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_board",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L360",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_app",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L409",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_spark",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L57",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_kpi",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L67",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_act",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_windows",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L78",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_throughput",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L81",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app",
+      "target": "gui_app_views",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/app.tsx",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_data",
+      "target": "gui_data_useevents",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/data.ts",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_data",
+      "target": "gui_data_item",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/data.ts",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_data",
+      "target": "gui_data_usebacklog",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/data.ts",
+      "source_location": "L52",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_data",
+      "target": "gui_data_backlog",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/data.ts",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_data",
+      "target": "gui_data_link",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/data.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_data",
+      "target": "gui_data_usenow",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/data.ts",
+      "source_location": "L73",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_data",
+      "target": "gui_data_usetheme",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/data.ts",
+      "source_location": "L85",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_data",
+      "target": "gui_data_post",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/data.ts",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_data",
+      "target": "gui_data_usehash",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/data.ts",
+      "source_location": "L97",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_views_doc",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/views.tsx",
+      "source_location": "L145",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_views_studio",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/views.tsx",
+      "source_location": "L148",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_views_roleconfig",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/views.tsx",
+      "source_location": "L203",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_views_efforts",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/views.tsx",
+      "source_location": "L205",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_views_models",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/views.tsx",
+      "source_location": "L207",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_views_agents",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/views.tsx",
+      "source_location": "L263",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_views_kinds",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/views.tsx",
+      "source_location": "L291",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_views_logs",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/views.tsx",
+      "source_location": "L300",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_views_worktree",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/views.tsx",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_views_worktrees",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/views.tsx",
+      "source_location": "L46",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_views_seterror",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/views.tsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_views_found",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/views.tsx",
+      "source_location": "L83",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_views_roleskills",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/views.tsx",
+      "source_location": "L86",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_views",
+      "target": "gui_views_cost",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/views.tsx",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
@@ -7123,24 +8304,46 @@
     },
     {
       "source": "plugin_engine_server",
-      "target": "plugin_engine_server_cli",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/engine/server.ts",
-      "source_location": "L10",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_server",
       "target": "plugin_engine_server_json",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L12",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_server",
+      "target": "plugin_engine_server_dist",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/server.ts",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_server",
+      "target": "plugin_engine_server_source",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/server.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_server",
+      "target": "plugin_engine_server_buildgui",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/server.ts",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -7151,7 +8354,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/server.ts",
-      "source_location": "L15",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_server",
+      "target": "plugin_engine_server_cli",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/server.ts",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
@@ -7229,6 +8443,149 @@
       "confidence_score": 1.0,
       "source_file": "plugin/engine/skills.ts",
       "source_location": "L62",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_state",
+      "target": "plugin_engine_state_passrates",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L111",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_state",
+      "target": "plugin_engine_state_roster",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L121",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_state",
+      "target": "plugin_engine_state_stages",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_state",
+      "target": "plugin_engine_state_summarize",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_state",
+      "target": "plugin_engine_state_ev",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_state",
+      "target": "plugin_engine_state_toolline",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L60",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_state",
+      "target": "plugin_engine_state_elapsed",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L66",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_state",
+      "target": "plugin_engine_state_stagestate",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_state",
+      "target": "plugin_engine_state_costrow",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L71",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_state",
+      "target": "plugin_engine_state_costs",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L74",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_state",
+      "target": "plugin_engine_state_taskrun",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_state",
+      "target": "plugin_engine_state_bucket",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L93",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_state",
+      "target": "plugin_engine_state_series",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/state.ts",
+      "source_location": "L96",
       "weight": 1.0
     },
     {
@@ -7317,402 +8674,6 @@
       "confidence_score": 1.0,
       "source_file": "plugin/engine/worktree.ts",
       "source_location": "L8",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_logline",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L108",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_views",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L11",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_sections",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L12",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_diff",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L132",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_efforts",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L14",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_detail",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L147",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_useevents",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L17",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_models",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L203",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_gauge",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L256",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_app",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L272",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_usebacklog",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L36",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_usenow",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L48",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_stagestrip",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L58",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_item",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L6",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_backlog",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L7",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_card",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L74",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_roleconfig",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L8",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_app",
-      "target": "plugin_gui_app_act",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/app.tsx",
-      "source_location": "L9",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_state",
-      "target": "plugin_gui_state_stages",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L20",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_state",
-      "target": "plugin_gui_state_summarize",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L23",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_state",
-      "target": "plugin_gui_state_ev",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L3",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_state",
-      "target": "plugin_gui_state_toolline",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L59",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_state",
-      "target": "plugin_gui_state_elapsed",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L65",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_state",
-      "target": "plugin_gui_state_stagestate",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L7",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_state",
-      "target": "plugin_gui_state_costrow",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L70",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_state",
-      "target": "plugin_gui_state_costs",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L73",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_state",
-      "target": "plugin_gui_state_taskrun",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L8",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_state",
-      "target": "plugin_gui_state_post",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/state.ts",
-      "source_location": "L92",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views",
-      "target": "plugin_gui_views_doc",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L142",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views",
-      "target": "plugin_gui_views_studio",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L145",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views",
-      "target": "plugin_gui_views_seterror",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L4",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views",
-      "target": "plugin_gui_views_worktree",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L41",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views",
-      "target": "plugin_gui_views_worktrees",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L43",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views",
-      "target": "plugin_gui_views_cost",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L7",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views",
-      "target": "plugin_gui_views_found",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L80",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_gui_views",
-      "target": "plugin_gui_views_roleskills",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/gui/views.tsx",
-      "source_location": "L83",
       "weight": 1.0
     },
     {
@@ -7833,7 +8794,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L117",
+      "source_location": "L118",
       "weight": 1.0
     },
     {
@@ -7844,7 +8805,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L125",
+      "source_location": "L126",
       "weight": 1.0
     },
     {
@@ -7888,7 +8849,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L68",
+      "source_location": "L69",
       "weight": 1.0
     },
     {
@@ -7899,7 +8860,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L91",
+      "source_location": "L92",
       "weight": 1.0
     },
     {
@@ -8100,7 +9061,7 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_gui_state",
+      "target": "plugin_engine_state",
       "relation": "dynamic_import",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -8516,5 +9477,5 @@
       "source_file": "AGENTS.md"
     }
   ],
-  "built_at_commit": "22f6e2f113b734596142c503621b21a4bca25b18"
+  "built_at_commit": "04c225cf3cc8b013d49f21fac6801dd1938dcb0c"
 }

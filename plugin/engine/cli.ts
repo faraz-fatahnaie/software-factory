@@ -89,7 +89,7 @@ async function main([cmd, ...args]: string[]) {
   if (cmd === "serve") {
     // Imported here so every other command works without the GUI and its dependencies.
     const { serve } = await import("./server");
-    const server = serve(root, args[0] === undefined ? 4400 : Number(args[0]));
+    const server = await serve(root, args[0] === undefined ? 4400 : Number(args[0]));
     return console.log(`factory control plane: http://127.0.0.1:${server.port}`);
   }
 
@@ -125,7 +125,7 @@ async function main([cmd, ...args]: string[]) {
   }
 
   if (cmd === "status") {
-    const { summarize } = await import("../gui/state");
+    const { summarize } = await import("./state");
     const store = openEvents();
     const events = [];
     for (let rows = store.since(0); rows.length; rows = store.since(rows.at(-1)!.seq)) events.push(...rows);

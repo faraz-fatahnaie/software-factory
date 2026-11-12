@@ -9,7 +9,7 @@ import { repo } from "../tests/fixture";
 import { serve } from "../plugin/engine/server";
 
 const { dir, sh, section } = repo();
-const server = serve(dir, 0);
+const server = await serve(dir, 0);
 const browser = await chromium.launch({ channel: "chrome", headless: true });
 try {
   const page = await browser.newPage();
@@ -20,6 +20,11 @@ try {
   await page.goto(`http://127.0.0.1:${server.port}/`);
   const card = (column: string, id: string) => page.locator(`section[aria-label="${column}"] .card`, { hasText: id });
   const view = (name: string) => page.getByRole("button", { name, exact: true }).click();
+
+  // Overview is the landing view: the connection is live and the pipeline shows the two Ready items.
+  await page.locator(".link.live").waitFor();
+  await page.locator(".line li", { hasText: "Queued" }).locator(".chip-id", { hasText: "F-001" }).waitFor();
+  await view("Backlog");
 
   // Backlog: add an item, promote it.
   await page.getByLabel("New backlog item").fill("Ship the thing");
@@ -51,7 +56,7 @@ try {
   assert.ok(!existsSync(join(dir, ".worktrees/F-001")), "the worktree is removed");
 
   // Models: a change is validated and written to the config file.
-  await view("Models");
+  await view("Agents");
   await page.getByLabel("builder model").selectOption("opus");
   await page.getByRole("button", { name: "Save" }).click();
   await page.getByText("Saved to factory.config.json").waitFor();
@@ -70,8 +75,15 @@ try {
   assert.equal(sh("git", "status", "--porcelain", "--", ".claude", "AGENTS.md").out, "", "nothing left uncommitted");
 
   // Cost and Worktrees render from the same data.
-  await view("Cost");
+  await view("Agents");
   await page.getByText("By model").waitFor();
+  await view("Logs");
+  await page.locator(".logs .feed li", { hasText: "Landed" }).waitFor();
+  // The theme switch flips the page and is remembered.
+  const before = await page.evaluate(() => document.documentElement.dataset.theme);
+  await page.getByRole("button", { name: /Switch to (light|dark) theme/ }).click();
+  assert.notEqual(await page.evaluate(() => document.documentElement.dataset.theme), before);
+  assert.equal(await page.evaluate(() => localStorage.getItem("factory-theme")), before === "dark" ? "light" : "dark");
   await view("Worktrees");
   await page.getByText("No task worktrees").waitFor();
 

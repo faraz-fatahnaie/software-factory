@@ -1,7 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { basename, join } from "node:path";
 import { parse } from "./backlog";
-import gui from "../gui/index.html";
 import { loadConfig, parseConfig, ROLES } from "./config";
 import { openStore } from "./events";
 import { parseFind, roleSkills, SKILLS_CLI } from "./skills";
@@ -11,8 +10,20 @@ const CLI = join(import.meta.dir, "cli.ts");
 const ID = /^F-\d+$/;
 const json = (body: unknown, status = 200) => Response.json(body, { status });
 
+// The page ships prebuilt in dist/, so an installed plugin needs no dependencies. The source
+// lives outside the plugin folder; where it is present (this repository), it is rebuilt on start.
+const DIST = join(import.meta.dir, "..", "dist");
+const SOURCE = join(import.meta.dir, "..", "..", "gui", "index.html");
+async function buildGui() {
+  if (!existsSync(SOURCE)) return;
+  rmSync(DIST, { recursive: true, force: true }); // chunk names carry a content hash, so old ones would pile up
+  const result = await Bun.build({ entrypoints: [SOURCE], outdir: DIST, minify: true, define: { "process.env.NODE_ENV": '"production"' } });
+  if (!result.success) throw new Error(`GUI build failed:\n${result.logs.join("\n")}`);
+}
+
 /** Local control plane: a live event stream plus endpoints that run the same CLI a person would. */
-export function serve(root: string, port = 4400) {
+export async function serve(root: string, port = 4400) {
+  await buildGui();
   mkdirSync(join(root, ".factory"), { recursive: true });
   const store = openStore(join(root, ".factory", "events.db"));
   const running = new Map<string, { kill(signal?: number | NodeJS.Signals): void }>();
@@ -61,7 +72,6 @@ export function serve(root: string, port = 4400) {
     hostname: "127.0.0.1", // never reachable from another machine
     port,
     idleTimeout: 0, // event streams stay open
-    routes: { "/": gui }, // Bun bundles the page's TypeScript and CSS on request; there is no build step
     async fetch(req) {
       const url = new URL(req.url);
       const origins = [`http://127.0.0.1:${server.port}`, `http://localhost:${server.port}`];
@@ -113,6 +123,11 @@ export function serve(root: string, port = 4400) {
         const q = url.searchParams.get("q") ?? "";
         if (!/^\w[\w .-]{1,59}$/.test(q)) return json({ error: "search: 2 to 60 letters, digits or spaces" }, 400);
         return json(parseFind((await sh("npx", "-y", SKILLS_CLI, "find", q)).out)); // asks skills.sh
+      }
+      if (req.method === "GET" && !url.pathname.startsWith("/api/")) {
+        // Static page files. Only the file name is used, so a request cannot reach outside dist/.
+        const file = Bun.file(join(DIST, url.pathname === "/" ? "index.html" : basename(url.pathname)));
+        return (await file.exists()) ? new Response(file, { headers: { "cache-control": "no-cache" } }) : json({ error: "not found" }, 404);
       }
       if (req.method !== "POST") return json({ error: "not found" }, 404);
 

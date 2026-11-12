@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { costs, post, type CostRow, type Ev } from "./state";
+import { costs, elapsed, roster, type CostRow, type Ev, type TaskRun } from "../plugin/engine/state";
+import { Feed, logLine } from "./app";
+import { post, useNow } from "./data";
 
 type SetError = (e: string) => void;
 
 /** Spend, tokens and stage pass rate, cut by model, role and task. All derived from the event log. */
-export function Cost({ events }: { events: Ev[] }) {
+function Cost({ events }: { events: Ev[] }) {
   const by = useMemo(() => costs(events), [events]);
   const total = [...by.model.values()].reduce((sum, r) => sum + r.cost, 0);
   const table = (title: string, rows: Map<string, CostRow>) => (
@@ -27,9 +29,10 @@ export function Cost({ events }: { events: Ev[] }) {
       </tbody>
     </table>
   );
-  if (!by.model.size) return <p className="empty">No model stages recorded yet.</p>;
+  if (!by.model.size) return <p className="empty">No model stages recorded yet. Spend and pass rates appear after the first run.</p>;
   return (
-    <section className="page">
+    <section className="tile wide">
+      <header><h2>Spend and pass rate</h2></header>
       <p className="total">Total ${total.toFixed(4)} <small>at list prices, as reported by the Claude CLI. On a subscription this is an equivalent, not a charge.</small></p>
       {table("By model", by.model)}
       {table("By role", by.role)}
@@ -51,7 +54,7 @@ export function Worktrees({ open, discard }: { open: (id: string) => void; disca
   if (!rows) return <p className="empty">Loading…</p>;
   if (!rows.length) return <p className="empty">No task worktrees. Each run creates one under .worktrees/.</p>;
   return (
-    <section className="page">
+    <section className="tile wide page">
       <table>
         <caption>One git worktree and branch per task. Discard deletes both, including uncommitted work.</caption>
         <thead>
@@ -179,7 +182,7 @@ export function Studio({ setError }: { setError: SetError }) {
       {!doc ? <p className="empty">Pick a file. Rules, role prompts and skills are editable here; every save is a commit.</p> : (
         <div>
           {role && <RoleSkills role={role} changed={() => { loadFiles(); open(path); }} setError={setError} />}
-          <p className="bar">
+          <p className="toolbar">
             <code>{path}</code>
             <label>Version{" "}
               <select value={rev} onChange={(e) => (!dirty || confirm("Discard unsaved changes?")) && open(path, e.target.value)}>
@@ -194,5 +197,123 @@ export function Studio({ setError }: { setError: SetError }) {
         </div>
       )}
     </section>
+  );
+}
+
+type RoleConfig = { runner: string; model: string; effort: string; fallback: string[] };
+const MODELS = ["fable", "opus", "sonnet", "haiku"];
+const EFFORTS = ["low", "medium", "high", "xhigh", "max"];
+
+function Models({ setError }: { setError: (e: string) => void }) {
+  const [config, setConfig] = useState<{ roles: Record<string, RoleConfig> } | null>(null);
+  const [saved, setSaved] = useState(false);
+  useEffect(() => { fetch("/api/config").then((r) => r.json()).then(setConfig); }, []);
+  if (!config) return <p className="empty">Loading…</p>;
+  const set = (role: string, patch: Partial<RoleConfig>) => {
+    setSaved(false);
+    setConfig({ ...config, roles: { ...config.roles, [role]: { ...config.roles[role]!, ...patch } } });
+  };
+  const save = async () => {
+    const r = await post("/api/config", { roles: config.roles });
+    setError(r.ok ? "" : r.error);
+    setSaved(r.ok);
+  };
+  return (
+    <section className="tile wide models">
+      <header><h2>Models per role</h2></header>
+      <table>
+        <caption>Model, effort and fallback chain per role. Changes apply to the next stage that starts.</caption>
+        <thead>
+          <tr><th scope="col">Role</th><th scope="col">Model</th><th scope="col">Effort</th><th scope="col">Fallback chain (on rate limit)</th></tr>
+        </thead>
+        <tbody>
+          {Object.entries(config.roles).map(([role, r]) => (
+            <tr key={role}>
+              <th scope="row">{role}</th>
+              <td>
+                <select aria-label={`${role} model`} value={r.model} onChange={(e) => set(role, { model: e.target.value })}>
+                  {[...new Set([...MODELS, r.model])].map((m) => <option key={m}>{m}</option>)}
+                </select>
+              </td>
+              <td>
+                <select aria-label={`${role} effort`} value={r.effort} onChange={(e) => set(role, { effort: e.target.value })}>
+                  {EFFORTS.map((x) => <option key={x}>{x}</option>)}
+                </select>
+              </td>
+              <td>
+                <input
+                  aria-label={`${role} fallback models, comma separated`}
+                  value={r.fallback.join(", ")}
+                  placeholder="none"
+                  onChange={(e) => set(role, { fallback: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <button className="primary" onClick={save}>Save</button>
+      {saved && <span role="status"> Saved to factory.config.json</span>}
+    </section>
+  );
+}
+
+
+/** Who is working, which model each role uses, and what it has cost. */
+export function Agents(p: { events: Ev[]; tasks: Map<string, TaskRun>; setError: SetError; open: (id: string) => void }) {
+  const working = useMemo(() => roster(p.tasks), [p.tasks]);
+  const now = useNow(working.length > 0);
+  return (
+    <main className="stack">
+      <section className="tile wide">
+        <header><h2>Working now</h2></header>
+        {working.length === 0 ? <p className="empty">No agents are running. Each stage of a task starts one, on the model set for its role below.</p> : (
+          <table>
+            <thead><tr><th scope="col">Task</th><th scope="col">Stage</th><th scope="col">Role</th><th scope="col">Model</th><th scope="col">Running for</th></tr></thead>
+            <tbody>
+              {working.map((w) => (
+                <tr key={w.task}>
+                  <td><button className="chip-id" onClick={() => p.open(w.task)}>{w.task}</button></td>
+                  <td>{w.stage}</td><td>{w.role}</td><td><code>{w.model || "none (gate)"}</code></td>
+                  <td className="num">{elapsed(w.since, now)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+      <Models setError={p.setError} />
+      <Cost events={p.events} />
+    </main>
+  );
+}
+
+const KINDS: Record<string, (cls: string) => boolean> = {
+  All: () => true,
+  Stages: (c) => c === "head" || c === "ok",
+  Tools: (c) => c === "tool",
+  Messages: (c) => c === "msg",
+  Problems: (c) => c === "bad" || c === "warn",
+};
+
+/** Every event from every task, filterable. The task panel in Backlog shows one task with replay. */
+export function Logs({ events }: { events: Ev[] }) {
+  const [kind, setKind] = useState("All");
+  const [task, setTask] = useState("");
+  const ids = useMemo(() => [...new Set(events.map((e) => e.task).filter((t) => /^F-\d+$/.test(t)))], [events]);
+  const shown = useMemo(() => events.filter((e) => (!task || e.task === task) && KINDS[kind]!(logLine(e)?.cls ?? "")), [events, kind, task]);
+  return (
+    <main className="stack">
+      <section className="tile wide logs">
+        <p className="toolbar">
+          <span className="pills" role="group" aria-label="Kind of event">
+            {Object.keys(KINDS).map((k) => <button key={k} aria-pressed={kind === k} onClick={() => setKind(k)}>{k}</button>)}
+          </span>
+          <label>Task <select value={task} onChange={(e) => setTask(e.target.value)}><option value="">all</option>{ids.map((id) => <option key={id}>{id}</option>)}</select></label>
+          <span className="note num">{shown.length} events</span>
+        </p>
+        <Feed events={shown} limit={500} />
+      </section>
+    </main>
   );
 }

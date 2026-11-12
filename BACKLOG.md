@@ -23,8 +23,10 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 - [ ] F-024 Show a skill's SKILL.md in the studio before installing it, not only its skills.sh page
 - [ ] F-025 Assign a local port per task worktree once tasks start dev servers
 
-- [ ] F-027 (P1) Phase 10: prebuilt GUI and multi-project view
-  Ship the page prebuilt so the plugin needs no dependencies; project registry in the plugin data folder; project switcher at user scope.
+- [ ] F-027 (P1) Multi-project view at user scope
+  Project registry in the plugin data folder; project switcher in the GUI.
+- [ ] F-032 (P2) Dashboard design refactor
+  The Phase 10 design works but can be improved; revisit with the user's notes.
 - [ ] F-028 (P1) Phase 11: brainstorming role
   A role that works out with the user what to build, for projects in any language. Design to be agreed first.
 - [ ] F-029 (P1) Phase 12: publish
@@ -57,3 +59,5 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Product moved into plugin/ with manifests, bin/factory, templates and MIT licence; engine runs from a copied install on any project; docs/PLUGIN.md.
 - [x] F-026 (P1) Phase 9: plugin commands as skills
   Eight skills over the engine; init with stack detection, gate trial and doctor; verified through --plugin-dir on a Python project.
+- [x] F-031 (P1) Phase 10: dashboard redesign and prebuilt GUI
+  Overview with KPIs, pipeline line, throughput chart, live feed and roster; dark and light themes; connection status; page shipped prebuilt in plugin/dist.

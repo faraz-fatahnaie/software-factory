@@ -10,7 +10,7 @@ model working here; `CLAUDE.md` only imports it.
 - `bun run e2e` — browser end-to-end test of the GUI with dry runs. Needs Chrome; not part of the gate.
 - `bun run factory run [F-id...] [--parallel N] [--stub]` — run the top Ready item(s) or the named ones, each in its own worktree. `--stub` makes no model calls.
 - `bun run factory approve <F-id>` / `discard <F-id>` — a person lands or throws away a finished task.
-- `bun run factory serve [port]` — local control plane on `127.0.0.1:4400`: the GUI (pipeline, models, cost, worktrees, studio, graph), a live event stream, and the endpoints behind them. Studio saves commit the edited file.
+- `bun run factory serve [port]` — local control plane on `127.0.0.1:4400`: the GUI (overview, backlog, agents, logs, worktrees, studio, graph), a live event stream, and the endpoints behind them. Studio saves commit the edited file.
 - `bun run factory add "<title>"` — add an item to Inbox.
 - `bun run factory skill add <owner/repo@skill> --role <role>` — install a skill for one role. `skill attach|detach <skill> --role <role>` for one already installed. Each is committed, because task worktrees branch from HEAD.
 
@@ -18,7 +18,7 @@ model working here; `CLAUDE.md` only imports it.
 
 - `plugin/` — **the product**, and the only folder users receive. Read `docs/PLUGIN.md` before changing its layout, adding a dependency or releasing.
 - `plugin/engine/` — orchestrator: `config`, `events` (SQLite log), `backlog`, `pipeline`, `claude` (headless runner), `worktree`, `hooks` (guard and gate), `server`, `skills`, `cli`.
-- `plugin/gui/` — the control plane page (React, bundled by Bun on request): `state.ts` folds the event log into what the page shows, `app.tsx` renders the pipeline and models, `views.tsx` the cost, worktree and studio views.
+- `gui/` — source of the control plane page (React, plain CSS): `data.ts` holds the hooks (event stream, polled backlog, theme), `app.tsx` the shell, Overview and Backlog, `views.tsx` the Agents, Logs, Worktrees and Studio views. It is built into `plugin/dist/`, which is committed. `plugin/engine/state.ts` folds the event log into what the page and `factory status` show.
 - `plugin/skills/` — the slash commands (`/software-factory:init`, `add`, `run`, `status`, `open`, `approve`, `discard`, `doctor`). Each is a thin wrapper over `factory`; put logic in the engine.
 - `plugin/templates/` — role files, rules, backlog and config that init writes into a project. `plugin/bin/factory` is the executable.
 - `tests/` — unit and HTTP tests. `e2e/` — the browser test. `tests/fixture.ts` builds the throwaway repo both test suites use.

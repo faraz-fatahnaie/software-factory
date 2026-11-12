@@ -32,7 +32,7 @@ plugin/
   skills/<name>/SKILL.md          the slash commands, invoked as /software-factory:<name>
   bin/factory                     on the Bash tool's PATH while the plugin is enabled
   engine/                         pipeline, runner, hooks, worktrees, event log, server
-  gui/                            the control-plane page
+  dist/                           the control-plane page, prebuilt (committed build output)
   templates/                      what `init` writes into a project
 ```
 
@@ -84,6 +84,14 @@ Users choose where the plugin is enabled: `--scope user` (every project, recorde
 collaborators are prompted to install it) or `local`. The product must work in all three. At
 user scope the GUI is meant to show every initialized project; at project scope, that one.
 
+## The GUI is source outside, build inside
+
+The page's source is `gui/` at the repository root (React and CSS, a dev dependency). Its
+build output is `plugin/dist/`, which is committed and is all a user receives. The server
+rebuilds `dist/` on start whenever the source folder exists, so in this repository it is always
+fresh; in an installed copy there is no source and it serves what shipped. **Run the tests (or
+`factory serve` once) before committing a GUI change, so the committed `dist/` matches the source.**
+
 ## Developing and testing
 
 ```sh
@@ -118,6 +126,4 @@ with the real maintainer before the first public release.
 
 ## Known gaps
 
-- The GUI still needs `react` from `node_modules`, so `factory serve` returns an error page
-  from a copied install. Shipping it prebuilt fixes this.
 - A skill that Claude invokes by itself is denied in headless (`claude -p`) sessions, because nobody is there to approve it. Typed as a slash command it runs. In an interactive session the user is asked once.

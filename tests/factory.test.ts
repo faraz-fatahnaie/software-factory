@@ -10,7 +10,7 @@ import { guard } from "../plugin/engine/hooks";
 import { detect, doctor, init } from "../plugin/engine/init";
 import { followUps, runTask, shellGate, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
-import { costs, elapsed, summarize, toolLine, type Ev } from "../plugin/gui/state";
+import { costs, elapsed, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
 import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
 
 const task = { id: "F-001", title: "First" };
@@ -201,7 +201,7 @@ test("claude: stream lines become provider-neutral agent events", () => {
 
 test("server: rejects foreign hosts and origins; streams events; runs, approves and discards over HTTP", async () => {
   const { dir, section } = repo();
-  const server = serve(dir, 0);
+  const server = await serve(dir, 0);
   const base = `http://127.0.0.1:${server.port}`;
   const post = (path: string, body: unknown, headers: Record<string, string> = {}) =>
     fetch(base + path, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body) });
@@ -217,6 +217,9 @@ test("server: rejects foreign hosts and origins; streams events; runs, approves 
     expect((await post("/api/promote", { id: "F-003" })).status).toBe(200);
     expect(section("F-003")).toBe("Ready");
     expect(await (await fetch(base + "/")).text()).toContain("<title>Software Factory</title>");
+    const script = (await (await fetch(base + "/")).text()).match(/src="\.?\/?([^"]+\.js)"/)![1];
+    expect((await fetch(`${base}/${script}`)).status).toBe(200); // the prebuilt page script
+    expect((await fetch(base + "/..%2f..%2fpackage.json")).status).toBe(404); // only files inside dist/
 
     const roles = { ...config.roles, builder: { ...role, model: "opus", fallback: [] } };
     expect((await post("/api/config", { roles: { ...roles, builder: { ...role, effort: "extreme" } } })).status).toBe(400);
@@ -292,13 +295,24 @@ test("gui state: folds events into stage states, cost and outputs; a rebuild cle
 
   log.push(ev("build", "stage.start", { model: "sonnet" }));
   const rebuilt = summarize(log);
-  expect(rebuilt.tasks.get("F-001")!.stages).toEqual({ spec: { state: "ok", model: "sonnet" }, build: { state: "active", model: "sonnet" } });
+  expect(rebuilt.tasks.get("F-001")!.stages).toMatchObject({ spec: { state: "ok", model: "sonnet" }, build: { state: "active", model: "sonnet" } });
+  expect(Object.keys(rebuilt.tasks.get("F-001")!.stages)).toEqual(["spec", "build"]); // the stale check is gone
   expect(rebuilt.rateLimit).toEqual({ status: "allowed" });
 
   log.push(ev("run", "run.failed", { data: "Error: stopped by request" }), { ...ev("run", "command.failed"), run: "", task: "F-009" });
   const done = summarize(log);
   expect(done.tasks.get("F-001")).toMatchObject({ status: "failed", error: "Error: stopped by request", stages: { build: { state: "failed" } } });
   expect(done.notice?.task).toBe("F-009");
+
+  // Dashboard folds: who is working, activity per time bucket, and pass rates.
+  expect(roster(rebuilt.tasks)).toEqual([{ task: "F-001", stage: "build", role: "gate", model: "sonnet", since: "2026-01-01T00:00:00.000Z" }]);
+  expect(roster(done.tasks)).toEqual([]);
+  const t0 = Date.parse("2026-01-01T00:00:00.000Z");
+  const buckets = series(log, t0 - 3_600_000, t0 + 3_600_000, 2);
+  expect(buckets.map((b) => [b.stages, b.failed, b.cost])).toEqual([[0, 0, 0], [2, 2, 0.75]]); // one failed check, one failed run
+  expect(series(log, t0 + 1, t0 + 2, 1)[0]).toMatchObject({ stages: 0, failed: 0 });
+  expect(passRates([...log, ev("check", "stage.ok"), ev("review", "stage.ok", { data: { output: "APPROVE" } }), ev("review", "stage.ok", { data: { output: "REQUEST_CHANGES" } })]))
+    .toEqual({ gate: { ok: 1, total: 2 }, review: { ok: 1, total: 2 } });
 
   const by = costs(log);
   expect(by.model.get("sonnet")).toMatchObject({ stages: 2, ok: 2, cost: 0.75 });

@@ -56,14 +56,15 @@ bun run factory approve F-026      # or: discard F-026
 
 | View | What it does |
 | --- | --- |
-| Pipeline | The backlog as a board. Cards show stage state, model, elapsed time and cost. A task panel has the live log with replay, the spec, the review and the diff, with Approve and Discard. |
-| Models | Model, effort and fallback chain per role. A change applies to the next stage that starts. |
-| Cost | Spend, tokens and stage pass rate by model, role and task. |
+| Overview | Agents working, backlog progress, Claude usage and gate pass rate; the pipeline as a line of five stations; throughput over 1 hour, 24 hours or 7 days; who is working now; live activity; what is waiting for you. |
+| Backlog | The backlog as a board. Cards show stage state, model, elapsed time and cost. A task panel has the live log with replay, the spec, the review and the diff, with Approve and Discard. |
+| Agents | Who is working, the model, effort and fallback chain per role, and spend and pass rate by model, role and task. |
+| Logs | Every event from every task, filterable by kind and task. |
 | Worktrees | Every task worktree with its branch and state. |
 | Studio | Edit `AGENTS.md`, role files and skills; each save is a commit and older versions can be restored. Attach, detach, search and install skills per role. |
 | Graph | The graphify knowledge graph of this repository. |
 
-The header shows your Claude five-hour and seven-day usage as of the last stage that ran.
+The header shows whether the live connection is up and switches between the dark and light themes.
 
 ## Configuration
 
@@ -128,7 +129,7 @@ bun run e2e         # drives the page in your installed Chrome with dry runs
 | --- | --- |
 | `plugin/` | The product: everything a user receives when installing the plugin |
 | `plugin/engine/` | Orchestrator: CLI, pipeline, Claude runner, worktrees, hooks, event log, server |
-| `plugin/gui/` | The control plane page (React, bundled by Bun on request) |
+| `gui/` | Source of the control plane page (React, plain CSS); built into `plugin/dist/` |
 | `plugin/templates/` | Role files, rules, backlog and config written into a project on init |
 | `tests/`, `e2e/` | Unit and HTTP tests; browser end-to-end test |
 | `docs/PLUGIN.md` | How the plugin is built, tested and released |

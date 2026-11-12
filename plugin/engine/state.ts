@@ -10,7 +10,7 @@ export type TaskRun = {
   started: string;
   ended?: string;
   status: "running" | "done" | "failed";
-  stages: Record<string, { state: StageState; model?: string }>;
+  stages: Record<string, { state: StageState; model?: string; role?: string; since?: string }>;
   outputs: Record<string, string>;
   error?: string;
   cost: number;
@@ -32,12 +32,13 @@ export function summarize(events: Ev[]) {
     if (!t) continue;
     t.events.push(e);
     if (e.type === "stage.start") {
-      t.stages[e.stage] = { state: "active", model: e.model };
+      t.stages[e.stage] = { state: "active", model: e.model, role: e.role, since: e.ts };
       // A rebuild invalidates what came after it: the old check and review no longer describe this build.
       for (const later of STAGES.slice(STAGES.indexOf(e.stage) + 1)) delete t.stages[later];
     } else if (e.type.startsWith("stage.")) {
       const kind = e.type.slice(6);
       t.stages[e.stage] = {
+        ...t.stages[e.stage],
         state: kind === "ok" ? "ok" : kind === "rate_limited" ? "limited" : "failed",
         model: e.model ?? t.stages[e.stage]?.model,
       };
@@ -89,8 +90,38 @@ export function costs(events: Ev[]) {
   return by;
 }
 
-export async function post(path: string, body: unknown): Promise<{ ok: boolean; error: string }> {
-  const res = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-  const data = await res.json().catch(() => ({}));
-  return { ok: res.ok && data.ok !== false, error: data.error ?? data.output ?? `request failed (${res.status})` };
+export type Bucket = { t: number; stages: number; finished: number; failed: number; cost: number };
+
+/** Activity in `n` equal time buckets between two instants: stages passed, tasks finished, failures, spend. */
+export function series(events: Ev[], from: number, to: number, n: number): Bucket[] {
+  const width = (to - from) / n;
+  const out: Bucket[] = Array.from({ length: n }, (_, i) => ({ t: from + i * width, stages: 0, finished: 0, failed: 0, cost: 0 }));
+  for (const e of events) {
+    const t = Date.parse(e.ts);
+    if (!(t >= from && t < to)) continue;
+    const b = out[Math.min(n - 1, Math.floor((t - from) / width))]!;
+    if (e.type === "stage.ok") { b.stages++; b.cost += e.data?.usage?.costUsd ?? 0; }
+    else if (e.type === "run.done") b.finished++;
+    else if (e.type === "run.failed" || e.type === "stage.failed" || e.type === "stage.error" || e.type === "stage.auth") b.failed++;
+  }
+  return out;
+}
+
+/** How often the gate passed, and how often a review approved. */
+export function passRates(events: Ev[]) {
+  const r = { gate: { ok: 0, total: 0 }, review: { ok: 0, total: 0 } };
+  for (const e of events) {
+    if (e.stage === "check" && (e.type === "stage.ok" || e.type === "stage.failed")) { r.gate.total++; if (e.type === "stage.ok") r.gate.ok++; }
+    if (e.stage === "review" && e.type === "stage.ok") { r.review.total++; if (/^APPROVE\b/.test(e.data?.output ?? "")) r.review.ok++; }
+  }
+  return r;
+}
+
+/** The agents working right now: one row per task with a stage in flight. */
+export function roster(tasks: Map<string, TaskRun>) {
+  return [...tasks].flatMap(([task, run]) => {
+    if (run.status !== "running") return [];
+    const active = Object.entries(run.stages).find(([, s]) => s.state === "active");
+    return active ? [{ task, stage: active[0], role: active[1].role ?? "gate", model: active[1].model ?? "", since: active[1].since ?? run.started }] : [];
+  });
 }
