@@ -18,6 +18,10 @@ export function attachSkill(md: string, skill: string): string {
   return `---\n${fm.join("\n")}\n---\n${md.slice(m[0].length)}`;
 }
 
+/** Skills attached to a role: the `  - name` items in its agent file's frontmatter. */
+export const roleSkills = (md: string): string[] =>
+  [...(md.match(/^---\n[\s\S]*?\n---\n/)?.[0] ?? "").matchAll(/^  - (.+)$/gm)].map((m) => m[1]!);
+
 /** Installs a skills.sh package at project level and attaches it to one role. */
 export function addSkill(cwd: string, pkg: string, role: string) {
   if (!PKG.test(pkg)) throw new Error(`skill must look like owner/repo@skill, got "${pkg}"`);

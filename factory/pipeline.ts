@@ -5,7 +5,8 @@ import type { Store } from "./events";
 
 export type Status = "ok" | "rate_limited" | "auth" | "error";
 export type Job = { role: Role; model: string; effort: string; stage: string; prompt: string; cwd: string };
-export type Runner = (job: Job) => Promise<{ status: Status; text: string }>;
+export type RunnerResult = { status: Status; text: string; usage?: unknown };
+export type Runner = (job: Job) => Promise<RunnerResult>;
 export type Gate = (cwd: string) => { ok: boolean; output: string };
 
 const MAX_BUILDS = 3;
@@ -22,7 +23,7 @@ export function shellGate(cmds: string[]): Gate {
   };
 }
 
-/** Placeholder until the Claude runner lands in Phase 2. */
+/** Canned runner for `factory run --stub` and tests: exercises the pipeline without a model. */
 export const stubRunner: Runner = async ({ stage }) => ({
   status: "ok",
   text: stage === "review" ? "APPROVE\n\nStub review." : `Stub ${stage} output.`,
@@ -56,12 +57,14 @@ export async function runTask(
         `Stage: ${name}. The task and earlier stage outputs are in ${dir}. Read them first.` +
         (feedback && `\n\nAddress this feedback:\n${feedback}`);
       const res = await o.runner({ role, model, effort: r.effort, stage: name, prompt, cwd: o.cwd });
-      emit(name, `stage.${res.status}`, { role, model });
+      const error = res.status === "ok" ? undefined : res.text.slice(0, 500);
+      // The output is logged too: files hold only the latest attempt, the log holds every one.
+      emit(name, `stage.${res.status}`, { role, model, data: { usage: res.usage, error, output: error ? undefined : res.text } });
       if (res.status === "ok") {
         writeFileSync(join(dir, `${name}.md`), res.text);
         return res.text;
       }
-      if (res.status !== "rate_limited") throw new Error(`${name} failed on ${model}: ${res.status}`);
+      if (res.status !== "rate_limited") throw new Error(`${name} failed on ${model}: ${res.status}: ${error}`);
     }
     throw new Error(`${name}: every model in the ${role} chain is rate limited`);
   };

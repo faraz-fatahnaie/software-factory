@@ -2,6 +2,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { add, move, parse, type Section } from "./backlog";
+import { claudeRunner } from "./claude";
 import { loadConfig } from "./config";
 import { openStore } from "./events";
 import { runTask, shellGate, stubRunner } from "./pipeline";
@@ -13,7 +14,7 @@ const backlogPath = join(cwd, "BACKLOG.md");
 const editBacklog = (fn: (text: string) => string) =>
   writeFileSync(backlogPath, fn(readFileSync(backlogPath, "utf8")));
 
-const USAGE = `factory run [F-id]                              run the top Ready item, or a specific one
+const USAGE = `factory run [F-id] [--stub]                     run the top Ready item, or a specific one (--stub: no model calls)
 factory add "<title>"                           add an item to Inbox
 factory skill add <owner/repo@skill> --role <r> install a skill and attach it to a role`;
 
@@ -31,17 +32,19 @@ async function main([cmd, ...args]: string[]) {
 
   if (cmd === "run") {
     const config = loadConfig(cwd);
+    const id = args.find((a) => !a.startsWith("--"));
+    const runner = args.includes("--stub") ? stubRunner : claudeRunner(config.gate);
     const items = parse(readFileSync(backlogPath, "utf8"));
-    const item = args[0] ? items.find((i) => i.id === args[0]) : items.find((i) => i.section === "Ready");
-    if (!item) throw new Error(args[0] ? `no item ${args[0]}` : "nothing under Ready");
+    const item = id ? items.find((i) => i.id === id) : items.find((i) => i.section === "Ready");
+    if (!item) throw new Error(id ? `no item ${id}` : "nothing under Ready");
     if (item.section === "Done" || item.section === "In progress")
       throw new Error(`${item.id} is already ${item.section.toLowerCase()}`);
 
     mkdirSync(join(cwd, ".factory"), { recursive: true });
     const store = openStore(join(cwd, ".factory", "events.db"));
     editBacklog((t) => move(t, item.id, "In progress"));
-    console.log(`${item.id} ${item.title} (stub runner; real models arrive in Phase 2)`);
-    const result = await runTask(item, { config, store, runner: stubRunner, gate: shellGate(config.gate), cwd });
+    console.log(`${item.id} ${item.title}`);
+    const result = await runTask(item, { config, store, runner, gate: shellGate(config.gate), cwd });
     store.close();
 
     const to: Section = result.ok ? "Done" : "Blocked";

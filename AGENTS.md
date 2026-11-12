@@ -7,15 +7,15 @@ model working here; `CLAUDE.md` only imports it.
 ## Commands
 
 - `bun test` and `bun run typecheck` — the gate. Both must pass before any stage is done.
-- `bun run factory run [F-id]` — run the top Ready backlog item, or a specific one.
+- `bun run factory run [F-id] [--stub]` — run the top Ready backlog item, or a specific one. `--stub` makes no model calls.
 - `bun run factory add "<title>"` — add an item to Inbox.
 - `bun run factory skill add <owner/repo@skill> --role <role>` — install a skill for one role.
 
 ## Layout
 
-- `factory/` — orchestrator: `config`, `events` (SQLite log), `backlog`, `pipeline`, `skills`, `cli`.
+- `factory/` — orchestrator: `config`, `events` (SQLite log), `backlog`, `pipeline`, `claude` (headless runner), `skills`, `cli`.
 - `factory.config.json` — model, effort and fallback chain per role. It owns model choice; agent files do not set `model`.
-- `.claude/agents/<role>.md` — role prompt, tools and skills.
+- `.claude/agents/<role>.md` — role prompt, tools and skills. Each stage runs as `claude -p --agent <role>` with project settings only; only the builder may change files.
 - `.factory/` — run artifacts and `events.db`. Not committed.
 - `graphify-out/` — knowledge graph of this repo.
 

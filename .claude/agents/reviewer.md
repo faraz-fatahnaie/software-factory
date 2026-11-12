@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: Reviews a build for correctness, security and scope against its spec.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, Skill
 skills:
   - security-review
   - verification-before-completion

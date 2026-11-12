@@ -3,10 +3,11 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { add, move, parse } from "./backlog";
+import { claudeArgs, classify } from "./claude";
 import { parseConfig, type Config } from "./config";
 import { openStore } from "./events";
 import { followUps, runTask, shellGate, type Runner } from "./pipeline";
-import { attachSkill } from "./skills";
+import { attachSkill, roleSkills } from "./skills";
 
 const role = { runner: "claude", model: "sonnet", effort: "medium", fallback: ["haiku"] };
 const config: Config = { gate: ["true"], roles: { triage: role, architect: role, builder: role, reviewer: role } };
@@ -63,12 +64,40 @@ test("pipeline: stops on auth errors, exhausted chains and build limit", async (
   expect(followUps("no heading\n- nope")).toEqual([]);
 });
 
+test("claude: classifies results from real CLI output shapes", () => {
+  const ok = JSON.stringify({ type: "result", subtype: "success", is_error: false, api_error_status: null, result: "the rate limit docs", total_cost_usd: 0.0004, num_turns: 1, usage: { input_tokens: 2, output_tokens: 4 },
+    permission_denials: [{ tool_name: "Bash", tool_input: { command: "rm x" } }, { tool_name: "Skill", tool_input: { skill: "tdd" } }] });
+  expect(classify(0, ok, "")).toMatchObject({ status: "ok", text: "the rate limit docs", usage: { costUsd: 0.0004, outputTokens: 4, denials: ["Bash rm x", "Skill tdd"] } });
+  const fail = (api: number | null, result: string) => classify(1, JSON.stringify({ type: "result", subtype: "success", is_error: true, api_error_status: api, result }), "").status;
+  expect(fail(404, "There's an issue with the selected model")).toBe("error");
+  expect(fail(429, "")).toBe("rate_limited");
+  expect(fail(529, "")).toBe("rate_limited");
+  expect(fail(null, "Claude usage limit reached")).toBe("rate_limited");
+  expect(fail(401, "")).toBe("auth");
+  expect(classify(1, "", "error: unknown option")).toEqual({ status: "error", text: "error: unknown option", usage: undefined });
+  expect(classify(0, ok.replace('"success"', '"error_max_turns"'), "").status).toBe("error");
+
+  const job = { role: "builder", model: "sonnet", effort: "medium", stage: "build", prompt: "Stage: build.", cwd: "." } as const;
+  const args = claudeArgs(job, ["bun test"], ["tdd", "review"]);
+  expect(args[2]).toStartWith("Stage: build.\n\nSkills attached to your role: tdd, review.");
+  expect(args).toContain("Bash(bun test:*)");
+  expect(args).toContain("Skill(review)");
+  expect(args.join(" ")).toContain("--agent builder --model sonnet --effort medium");
+  expect(args.join(" ")).toContain("--permission-mode acceptEdits");
+  expect(args.join(" ")).toContain("--setting-sources project");
+  const readOnly = claudeArgs({ ...job, role: "reviewer" }, []);
+  expect(readOnly[2]).toBe("Stage: build.");
+  expect(readOnly.join(" ")).toContain("--permission-mode dontAsk");
+});
+
 test("skills: attach is idempotent and creates the list when absent", () => {
   const md = "---\nname: builder\ntools: Read\n---\nBody\n";
   const once = attachSkill(md, "tdd");
   expect(once).toBe("---\nname: builder\ntools: Read\nskills:\n  - tdd\n---\nBody\n");
   expect(attachSkill(attachSkill(once, "review"), "tdd")).toContain("skills:\n  - tdd\n  - review\n---");
   expect(() => attachSkill("no frontmatter", "x")).toThrow();
+  expect(roleSkills(attachSkill(once, "review") + "  - not frontmatter\n")).toEqual(["tdd", "review"]);
+  expect(roleSkills(md)).toEqual([]);
 });
 
 test("cli: run moves the top Ready item to Done and records events", () => {
@@ -76,7 +105,7 @@ test("cli: run moves the top Ready item to Done and records events", () => {
   writeFileSync(join(dir, "BACKLOG.md"), BACKLOG);
   writeFileSync(join(dir, "factory.config.json"), JSON.stringify(config));
   const cli = (...args: string[]) => Bun.spawnSync(["bun", join(import.meta.dir, "cli.ts"), ...args], { cwd: dir });
-  expect(cli("run").exitCode).toBe(0);
+  expect(cli("run", "--stub").exitCode).toBe(0);
   expect(cli("add", "Later thing").exitCode).toBe(0);
   const items = parse(readFileSync(join(dir, "BACKLOG.md"), "utf8"));
   expect(items.find((i) => i.id === "F-001")?.section).toBe("Done");

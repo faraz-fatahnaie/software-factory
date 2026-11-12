@@ -1,7 +1,7 @@
 ---
 name: builder
 description: Implements one spec, tests first, until the gate passes.
-tools: Read, Edit, Write, Bash, Grep, Glob
+tools: Read, Edit, Write, Bash, Grep, Glob, Skill
 skills:
   - test-driven-development
   - verification-before-completion

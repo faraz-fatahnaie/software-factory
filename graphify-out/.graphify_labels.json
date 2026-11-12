@@ -1,1 +1,10 @@
-{"0": "Factory Rules and Pipeline", "1": "Pipeline, Events and Tests", "2": "Backlog and CLI", "3": "Package Manifest", "4": "Config and Skills", "5": "TypeScript Config", "6": "Phase 2 Claude Runner"}
+{
+  "0": "Software Factory (AGENTS.md)",
+  "1": "factory.test.ts",
+  "2": "cli.ts",
+  "3": "package.json",
+  "4": "config.ts",
+  "5": "compilerOptions",
+  "6": "F-002 Phase 2: Claude runner",
+  "7": "pipeline.ts"
+}

@@ -11,3 +11,5 @@ graphify-out/.graphify_root
 ruvector.db
 agentdb.rvf*
 .claude/proven-config.json
+graphify-out/20*/
+.proven-config-version

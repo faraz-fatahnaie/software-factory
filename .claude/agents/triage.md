@@ -1,7 +1,7 @@
 ---
 name: triage
 description: Sizes and clarifies one backlog item before any design work.
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, Bash, Skill
 ---
 You triage one backlog item. Read `task.md` in the run directory and `BACKLOG.md`.
 

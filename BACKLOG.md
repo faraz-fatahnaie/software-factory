@@ -4,12 +4,11 @@ The factory's intake queue. `factory run` takes the top item under Ready.
 Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
-- [ ] F-002 (P1) Phase 2: Claude runner
-  Headless `claude -p` runner, exit classification, failover between Claude models, spike of unverified headless flags.
 - [ ] F-003 (P1) Phase 3: worktrees, parallel builders, hooks, guard
   One git worktree per task, gate as a Stop hook, PreToolUse guard, backlog-only commits, PR stage behind approval.
 - [ ] F-004 (P1) Phase 4: server
   Bun.serve on 127.0.0.1:4400, event ingest, server-sent event stream, control endpoints.
+  Switch the runner to `--output-format stream-json`: it emits tool calls live and a `rate_limit_event` with five-hour and seven-day utilization and reset times.
 - [ ] F-005 (P1) Phase 5: GUI first tier
   Backlog and pipeline columns, logs, approval gates, model matrix.
 - [ ] F-006 (P1) Phase 6: GUI second tier
@@ -24,6 +23,9 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 - [ ] F-013 (P3) Multi-repo support once a second repo exists
 - [ ] F-014 (P3) Visual workflow editor for skills
 - [ ] F-015 (P3) Mid-turn steering if headless CLIs support message injection
+- [ ] F-016 Keep the user-level CLAUDE.md out of factory agents (project-only settings still load it)
+- [ ] F-017 Consider the CLI's native --fallback-model for overload, alongside the factory's own chain
+- [ ] F-018 Budget cap per stage with --max-budget-usd
 
 ## Ready
 
@@ -34,3 +36,5 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 ## Done
 - [x] F-001 (P1) Phase 1: foundation
   Rules files, config validation, event store, pipeline with stub runner, gate, backlog, per-role skills.
+- [x] F-002 (P1) Phase 2: Claude runner
+  Headless `claude -p --agent` runner isolated to project settings, result classification, failover, per-role permission modes, attached skills.
