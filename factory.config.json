@@ -1,0 +1,9 @@
+{
+  "gate": ["bun test", "bun run typecheck"],
+  "roles": {
+    "triage": { "runner": "claude", "model": "haiku", "effort": "low", "fallback": ["sonnet"] },
+    "architect": { "runner": "claude", "model": "opus", "effort": "high", "fallback": ["sonnet"] },
+    "builder": { "runner": "claude", "model": "sonnet", "effort": "medium", "fallback": ["haiku"] },
+    "reviewer": { "runner": "claude", "model": "opus", "effort": "high", "fallback": ["sonnet"] }
+  }
+}

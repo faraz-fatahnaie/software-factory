@@ -1,0 +1,13 @@
+node_modules/
+.factory/
+.worktrees/
+# graphify: keep the graph and report, skip machine-specific files
+graphify-out/cache/
+graphify-out/.graphify_python
+graphify-out/.graphify_root
+# written by the ruflo plugin, not by this project
+.claude-flow/
+.swarm/
+ruvector.db
+agentdb.rvf*
+.claude/proven-config.json

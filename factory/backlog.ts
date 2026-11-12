@@ -1,0 +1,54 @@
+// BACKLOG.md is the intake queue. Only the orchestrator writes it; agents never do.
+export const SECTIONS = ["Inbox", "Ready", "In progress", "Blocked", "Done"] as const;
+export type Section = (typeof SECTIONS)[number];
+export type Item = { id: string; prio?: string; title: string; section: string };
+
+const ITEM = /^- \[[ x]\] (F-\d+) (?:\((P\d)\) )?(.+)$/;
+
+export function parse(text: string): Item[] {
+  const items: Item[] = [];
+  let section = "";
+  for (const line of text.split("\n")) {
+    const h = line.match(/^## (.+)$/);
+    if (h) { section = h[1]!.trim(); continue; }
+    const m = line.match(ITEM);
+    if (!m) continue;
+    if (items.some((i) => i.id === m[1])) throw new Error(`BACKLOG.md: duplicate id ${m[1]}`);
+    items.push({ id: m[1]!, prio: m[2], title: m[3]!, section });
+  }
+  return items;
+}
+
+/** Index where a new line goes: the end of `section`, before trailing blank lines. */
+function endOf(lines: string[], section: Section): number {
+  const h = lines.indexOf(`## ${section}`);
+  if (h < 0) throw new Error(`BACKLOG.md: missing section "## ${section}"`);
+  let e = lines.findIndex((l, i) => i > h && l.startsWith("## "));
+  if (e < 0) e = lines.length;
+  while (e - 1 > h && lines[e - 1]!.trim() === "") e--;
+  return e;
+}
+
+/** Moves an item (and its indented detail lines) to the end of another section. */
+export function move(text: string, id: string, to: Section): string {
+  const lines = text.split("\n");
+  const i = lines.findIndex((l) => l.match(ITEM)?.[1] === id);
+  if (i < 0) throw new Error(`BACKLOG.md: no item ${id}`);
+  let j = i + 1;
+  while (j < lines.length && /^\s+\S/.test(lines[j]!)) j++;
+  const block = lines.splice(i, j - i);
+  block[0] = block[0]!.replace(/^- \[[ x]\]/, to === "Done" ? "- [x]" : "- [ ]");
+  lines.splice(endOf(lines, to), 0, ...block);
+  return lines.join("\n");
+}
+
+/** Appends a new item. Titles may come from model output, so they are flattened and capped. */
+export function add(text: string, title: string, to: Section = "Inbox"): { text: string; id: string } {
+  const clean = title.replace(/\s+/g, " ").trim().slice(0, 200);
+  if (!clean) throw new Error("backlog item needs a title");
+  const max = Math.max(0, ...parse(text).map((i) => Number(i.id.slice(2))));
+  const id = `F-${String(max + 1).padStart(3, "0")}`;
+  const lines = text.split("\n");
+  lines.splice(endOf(lines, to), 0, `- [ ] ${id} ${clean}`);
+  return { text: lines.join("\n"), id };
+}
