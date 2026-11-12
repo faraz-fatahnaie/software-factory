@@ -4,9 +4,6 @@ The factory's intake queue. `factory run` takes the top item under Ready.
 Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
-- [ ] F-004 (P1) Phase 4: server
-  Bun.serve on 127.0.0.1:4400, event ingest, server-sent event stream, control endpoints.
-  Switch the runner to `--output-format stream-json`: it emits tool calls live and a `rate_limit_event` with five-hour and seven-day utilization and reset times.
 - [ ] F-005 (P1) Phase 5: GUI first tier
   Backlog and pipeline columns, logs, approval gates, model matrix.
 - [ ] F-006 (P1) Phase 6: GUI second tier
@@ -27,6 +24,7 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 - [ ] F-019 Run builder stages inside an OS-level sandbox; the guard hook is a text match, not containment
 - [ ] F-020 Reject with feedback: send an awaiting-approval task back to Build with a person's comments
 - [ ] F-021 Rebase a task branch automatically when approve hits a merge conflict
+- [ ] F-022 Pause and resume a running task from the control plane
 
 ## Ready
 
@@ -43,3 +41,5 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Headless `claude -p --agent` runner isolated to project settings, result classification, failover, per-role permission modes, attached skills.
 - [x] F-003 (P1) Phase 3: worktrees, parallel builders, hooks, guard
   One git worktree per task, parallel runs, guard and gate hooks, backlog-only commits, approve and discard.
+- [x] F-004 (P1) Phase 4: server
+  Streaming runner with live tool-call and rate-limit events, event stream with replay, run, stop, approve, discard and add endpoints.
