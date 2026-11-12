@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Job, Runner, RunnerResult } from "./pipeline";
+import { track, type Job, type Runner, type RunnerResult } from "./pipeline";
 import { roleSkills } from "./skills";
 
 const TIMEOUT_MS = 30 * 60_000;
@@ -20,8 +20,8 @@ export function claudeArgs(job: Job, gate: string[], skills: string[] = []): str
     "--agent", job.role,
     "--model", job.model,
     "--effort", job.effort,
-    // ponytail: one JSON result per stage. Switch to stream-json when the GUI needs live tool calls (Phase 4).
-    "--output-format", "json",
+    // One JSON line per message, so tool calls reach the event log while the stage runs.
+    "--output-format", "stream-json", "--verbose",
     // Only the builder may change files. dontAsk still permits read-only shell commands
     // inside the project and the allow list below, and denies everything else.
     "--permission-mode", job.role === "builder" ? "acceptEdits" : "dontAsk",
@@ -51,7 +51,20 @@ function hookSettings(role: string): string {
   });
 }
 
-/** Maps a finished `claude -p --output-format json` process to a runner result. */
+/** Turns one stream-json line into the provider-neutral events the GUI shows. */
+export function agentEvents(msg: any): { type: string; data: unknown }[] {
+  if (msg?.type === "rate_limit_event") return [{ type: "agent.rate_limit", data: msg.rate_limit_info }];
+  if (msg?.type !== "assistant") return [];
+  return (msg.message?.content ?? []).flatMap((block: any) => {
+    if (block.type === "text" && block.text) return [{ type: "agent.message", data: { text: block.text } }];
+    if (block.type !== "tool_use") return [];
+    const input = JSON.stringify(block.input ?? {});
+    // A Write call carries the whole file: keep the log readable.
+    return [{ type: "agent.tool", data: { tool: block.name, input: input.length > 2000 ? `${input.slice(0, 2000)}…` : block.input } }];
+  });
+}
+
+/** Maps a finished run's final `result` line (plus exit code and stderr) to a runner result. */
 export function classify(exitCode: number, stdout: string, stderr: string): RunnerResult {
   let r: any;
   try { r = JSON.parse(stdout); } catch { /* not JSON: a crash or CLI usage error */ }
@@ -90,7 +103,7 @@ export function classify(exitCode: number, stdout: string, stderr: string): Runn
 export const claudeRunner = (gate: string[]): Runner => async (job) => {
   const agent = join(job.cwd, ".claude", "agents", `${job.role}.md`);
   const skills = existsSync(agent) ? roleSkills(readFileSync(agent, "utf8")) : [];
-  const p = Bun.spawn(claudeArgs(job, gate, skills), {
+  const p = track(Bun.spawn(claudeArgs(job, gate, skills), {
     cwd: job.cwd,
     // Read by hooks.ts: the task root to confine writes to, and the orchestrator's own copy of the gate.
     env: { ...process.env, FACTORY_ROOT: job.cwd, FACTORY_GATE: JSON.stringify(gate) },
@@ -98,7 +111,20 @@ export const claudeRunner = (gate: string[]): Runner => async (job) => {
     stdout: "pipe",
     stderr: "pipe",
     timeout: TIMEOUT_MS,
-  });
-  const [out, err, code] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
-  return classify(code, out, err);
+  }));
+  const stderr = new Response(p.stderr).text();
+  const decoder = new TextDecoder();
+  let buffer = "", result = "";
+  for await (const chunk of p.stdout) {
+    buffer += decoder.decode(chunk, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop()!;
+    for (const line of lines) {
+      let msg: any;
+      try { msg = JSON.parse(line); } catch { continue; }
+      if (msg.type === "result") result = line;
+      else for (const e of agentEvents(msg)) job.emit?.(e.type, e.data);
+    }
+  }
+  return classify(await p.exited, result || buffer, await stderr);
 };

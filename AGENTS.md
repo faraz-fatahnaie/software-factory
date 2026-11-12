@@ -9,12 +9,13 @@ model working here; `CLAUDE.md` only imports it.
 - `bun test` and `bun run typecheck` — the gate. Both must pass before any stage is done.
 - `bun run factory run [F-id...] [--parallel N] [--stub]` — run the top Ready item(s) or the named ones, each in its own worktree. `--stub` makes no model calls.
 - `bun run factory approve <F-id>` / `discard <F-id>` — a person lands or throws away a finished task.
+- `bun run factory serve [port]` — local control plane on `127.0.0.1:4400`: live event stream and run, stop, approve, discard, add endpoints.
 - `bun run factory add "<title>"` — add an item to Inbox.
 - `bun run factory skill add <owner/repo@skill> --role <role>` — install a skill for one role.
 
 ## Layout
 
-- `factory/` — orchestrator: `config`, `events` (SQLite log), `backlog`, `pipeline`, `claude` (headless runner), `worktree`, `hooks` (guard and gate), `skills`, `cli`.
+- `factory/` — orchestrator: `config`, `events` (SQLite log), `backlog`, `pipeline`, `claude` (headless runner), `worktree`, `hooks` (guard and gate), `server`, `skills`, `cli`.
 - `.worktrees/<F-id>/` — one git worktree and `factory/<F-id>` branch per task. Not committed.
 - `factory.config.json` — model, effort and fallback chain per role. It owns model choice; agent files do not set `model`.
 - `.claude/agents/<role>.md` — role prompt, tools and skills. Each stage runs as `claude -p --agent <role>` with project settings only; only the builder may change files.

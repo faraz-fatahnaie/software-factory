@@ -12,9 +12,9 @@
     "semantic_hash": ""
   },
   "factory/cli.ts": {
-    "mtime": 1794470508.945287,
-    "seen": 1794470609.9039948,
-    "ast_hash": "a9bc1b6164d9dd6447abca9eb9a46538",
+    "mtime": 1794470867.9307375,
+    "seen": 1794471114.716182,
+    "ast_hash": "9eca81456af63c8f73589e934c75a78e",
     "semantic_hash": ""
   },
   "factory/config.ts": {
@@ -24,21 +24,21 @@
     "semantic_hash": ""
   },
   "factory/events.ts": {
-    "mtime": 1794470167.3998559,
-    "seen": 1794470609.9039948,
-    "ast_hash": "6da323252db71c51c2b33e6bcc2b0ee7",
+    "mtime": 1794470867.9305568,
+    "seen": 1794471114.716183,
+    "ast_hash": "15f8be9936f1383ce83f0663788a871e",
     "semantic_hash": ""
   },
   "factory/factory.test.ts": {
-    "mtime": 1794470492.632896,
-    "seen": 1794470609.903996,
-    "ast_hash": "57caa049bddb012f392c5b5715fbd2a2",
+    "mtime": 1794470867.9308753,
+    "seen": 1794471114.716183,
+    "ast_hash": "a0b206c4c4521d7c5d31bdd446052692",
     "semantic_hash": ""
   },
   "factory/pipeline.ts": {
-    "mtime": 1794470166.9571276,
-    "seen": 1794470609.903997,
-    "ast_hash": "3cfa4bc4bf585e67d85ce131e478a598",
+    "mtime": 1794471113.2435818,
+    "seen": 1794471114.7161841,
+    "ast_hash": "759aaf64bea4598ed760f451a64f85d1",
     "semantic_hash": ""
   },
   "factory/skills.ts": {
@@ -90,15 +90,15 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1794470493.0434682,
-    "seen": 1794470609.904002,
-    "ast_hash": "0526a9145a5575b79954d3168339d2be",
+    "mtime": 1794471113.2438114,
+    "seen": 1794471114.716189,
+    "ast_hash": "d4a4a28fb4a2b4bb4f5b4ed8aaf497e9",
     "semantic_hash": ""
   },
   "BACKLOG.md": {
-    "mtime": 1794470493.9296181,
-    "seen": 1794470609.904002,
-    "ast_hash": "50d9c284e2e350e7b5a7d0ea7643a5f7",
+    "mtime": 1794471114.4083452,
+    "seen": 1794471114.716189,
+    "ast_hash": "8910879534b6624bfaf239db16f233a1",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -108,9 +108,9 @@
     "semantic_hash": "5c27369b226fcf2be8a6cfe52224e767"
   },
   "factory/claude.ts": {
-    "mtime": 1794470168.0055392,
-    "seen": 1794470609.903994,
-    "ast_hash": "0a5798931f2c77d97ff2fb76a46b5910",
+    "mtime": 1794470780.578792,
+    "seen": 1794471114.716181,
+    "ast_hash": "85fe7ac3a904e4b19b82a2371e639e4a",
     "semantic_hash": ""
   },
   "factory/hooks.ts": {
@@ -123,6 +123,12 @@
     "mtime": 1794470492.5315926,
     "seen": 1794470609.903998,
     "ast_hash": "652e6019eb64b679840edbc512958492",
+    "semantic_hash": ""
+  },
+  "factory/server.ts": {
+    "mtime": 1794470867.7991362,
+    "seen": 1794471114.716185,
+    "ast_hash": "3c1e391cf5255b46af2b78b69e8bdcad",
     "semantic_hash": ""
   }
 }

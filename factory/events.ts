@@ -10,6 +10,9 @@ export type FactoryEvent = {
   data?: unknown;
 };
 
+type Row = FactoryEvent & { seq: number; ts: string };
+const row = (r: any): Row => ({ ...r, data: r.data == null ? undefined : JSON.parse(r.data) });
+
 /** Append-only event log. Everything the GUI shows is derived from this table. */
 export function openStore(path: string) {
   const db = new Database(path, { create: true });
@@ -27,8 +30,9 @@ export function openStore(path: string) {
       const data = e.data === undefined ? null : JSON.stringify(e.data);
       insert.run(e.run, e.task, e.stage, e.type, e.role ?? null, e.model ?? null, data);
     },
-    list: (run: string) =>
-      db.query("SELECT * FROM events WHERE run = ? ORDER BY seq").all(run) as (FactoryEvent & { seq: number; ts: string })[],
+    list: (run: string) => db.query("SELECT * FROM events WHERE run = ? ORDER BY seq").all(run).map(row),
+    /** Events after a sequence number: what the live stream and replay read. */
+    since: (seq: number) => db.query("SELECT * FROM events WHERE seq > ? ORDER BY seq LIMIT 1000").all(seq).map(row),
     lastRun: (task: string) =>
       (db.query("SELECT run FROM events WHERE task = ? ORDER BY seq DESC LIMIT 1").get(task) as { run: string } | null)?.run,
     close: () => db.close(),

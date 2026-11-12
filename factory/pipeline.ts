@@ -4,19 +4,37 @@ import type { Config, Role } from "./config";
 import type { Store } from "./events";
 
 export type Status = "ok" | "rate_limited" | "auth" | "error";
-export type Job = { role: Role; model: string; effort: string; stage: string; prompt: string; cwd: string };
+export type Job = {
+  role: Role; model: string; effort: string; stage: string; prompt: string; cwd: string;
+  /** Live progress from inside the stage (tool calls, messages, rate limits). */
+  emit?: (type: string, data: unknown) => void;
+};
 export type RunnerResult = { status: Status; text: string; usage?: unknown };
 export type Runner = (job: Job) => Promise<RunnerResult>;
 export type Gate = (cwd: string) => Promise<{ ok: boolean; output: string }>;
 
 const MAX_BUILDS = 3;
 
+// Child processes of this orchestrator, so a stop request (Ctrl-C, or the GUI) can end them.
+const live = new Set<{ kill(): void }>();
+let stopping = false;
+export function track<T extends { kill(): void; exited: Promise<unknown> }>(p: T): T {
+  live.add(p);
+  p.exited.then(() => live.delete(p));
+  return p;
+}
+/** Kills every running stage and gate; tasks in flight then fail and move to Blocked. */
+export function stopAll() {
+  stopping = true;
+  for (const p of live) p.kill();
+}
+
 /** Deterministic checks (lint, types, tests). Same gate whichever model wrote the code. */
 export function shellGate(cmds: string[]): Gate {
   return async (cwd) => {
     for (const cmd of cmds) {
       // Async, so parallel tasks keep moving while one task's checks run.
-      const p = Bun.spawn(["sh", "-c", cmd], { cwd, stdout: "pipe", stderr: "pipe" });
+      const p = track(Bun.spawn(["sh", "-c", cmd], { cwd, stdout: "pipe", stderr: "pipe" }));
       const [out, err, code] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
       // Keep only the tail: it is fed back to the builder as a prompt.
       if (code !== 0) return { ok: false, output: `$ ${cmd}\n${out}${err}`.slice(-4000) };
@@ -54,12 +72,17 @@ export async function runTask(
   const stage = async (name: string, role: Role, feedback = "") => {
     const r = o.config.roles[role];
     for (const model of [r.model, ...r.fallback]) {
+      if (stopping) throw new Error("stopped");
       emit(name, "stage.start", { role, model });
       const prompt =
         `Stage: ${name}. The task and earlier stage outputs are in ${dir}. Read them first.` +
         (feedback && `\n\nAddress this feedback:\n${feedback}`);
-      const res = await o.runner({ role, model, effort: r.effort, stage: name, prompt, cwd: o.cwd });
+      const res = await o.runner({
+        role, model, effort: r.effort, stage: name, prompt, cwd: o.cwd,
+        emit: (type, data) => emit(name, type, { role, model, data }),
+      });
       const error = res.status === "ok" ? undefined : res.text.slice(0, 500);
+      if (error && stopping) throw new Error("stopped by request");
       // The output is logged too: files hold only the latest attempt, the log holds every one.
       emit(name, `stage.${res.status}`, { role, model, data: { usage: res.usage, error, output: error ? undefined : res.text } });
       if (res.status === "ok") {

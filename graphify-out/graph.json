@@ -37,82 +37,17 @@
   },
   "nodes": [
     {
-      "id": "factory_config_config",
-      "label": "Config",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "config",
-      "source_file": "factory/config.ts",
-      "source_location": "L11"
-    },
-    {
-      "id": "factory_events_factoryevent",
-      "label": "FactoryEvent",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "factoryevent",
-      "source_file": "factory/events.ts",
-      "source_location": "L3"
-    },
-    {
-      "id": "factory_events_store",
-      "label": "Store",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "store",
-      "source_file": "factory/events.ts",
-      "source_location": "L38"
-    },
-    {
-      "id": "factory_pipeline_gate",
-      "label": "Gate",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "gate",
-      "source_file": "factory/pipeline.ts",
-      "source_location": "L10"
-    },
-    {
-      "id": "factory_pipeline_job",
-      "label": "Job",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "job",
-      "source_file": "factory/pipeline.ts",
-      "source_location": "L7"
-    },
-    {
       "id": "factory_pipeline_runner",
       "label": "Runner",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 1,
-      "community_name": "factory.test.ts",
+      "community_name": "claude.ts",
       "file_type": "code",
       "norm_label": "runner",
       "source_file": "factory/pipeline.ts",
-      "source_location": "L9"
+      "source_location": "L13"
     },
     {
       "id": "factory_pipeline_runnerresult",
@@ -121,11 +56,50 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 1,
-      "community_name": "factory.test.ts",
+      "community_name": "claude.ts",
       "file_type": "code",
       "norm_label": "runnerresult",
       "source_file": "factory/pipeline.ts",
-      "source_location": "L8"
+      "source_location": "L12"
+    },
+    {
+      "id": "factory_config_config",
+      "label": "Config",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "pipeline.ts",
+      "file_type": "code",
+      "norm_label": "config",
+      "source_file": "factory/config.ts",
+      "source_location": "L11"
+    },
+    {
+      "id": "factory_pipeline_gate",
+      "label": "Gate",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "pipeline.ts",
+      "file_type": "code",
+      "norm_label": "gate",
+      "source_file": "factory/pipeline.ts",
+      "source_location": "L14"
+    },
+    {
+      "id": "factory_pipeline_job",
+      "label": "Job",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "pipeline.ts",
+      "file_type": "code",
+      "norm_label": "job",
+      "source_file": "factory/pipeline.ts",
+      "source_location": "L7"
     },
     {
       "id": "factory_pipeline_status",
@@ -133,12 +107,51 @@
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
+      "community": 10,
+      "community_name": "pipeline.ts",
       "file_type": "code",
       "norm_label": "status",
       "source_file": "factory/pipeline.ts",
       "source_location": "L6"
+    },
+    {
+      "id": "factory_events_factoryevent",
+      "label": "FactoryEvent",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "events.ts",
+      "file_type": "code",
+      "norm_label": "factoryevent",
+      "source_file": "factory/events.ts",
+      "source_location": "L3"
+    },
+    {
+      "id": "factory_events_row",
+      "label": "Row",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "events.ts",
+      "file_type": "code",
+      "norm_label": "row",
+      "source_file": "factory/events.ts",
+      "source_location": "L13"
+    },
+    {
+      "id": "factory_events_store",
+      "label": "Store",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "events.ts",
+      "file_type": "code",
+      "norm_label": "store",
+      "source_file": "factory/events.ts",
+      "source_location": "L42"
     },
     {
       "id": "factory_backlog_item",
@@ -199,11 +212,23 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 8,
-      "community_name": "hooks.ts",
+      "community_name": "ref_node_fs",
       "file_type": "code",
       "norm_label": "hookinput",
       "source_file": "factory/hooks.ts",
       "source_location": "L8"
+    },
+    {
+      "id": "factory_claude_agentevents",
+      "label": "agentEvents()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "claude.ts",
+      "file_type": "code",
+      "norm_label": "agentevents()",
+      "source_file": "factory/claude.ts",
+      "source_location": "L55"
     },
     {
       "id": "factory_claude_classify",
@@ -211,11 +236,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 1,
-      "community_name": "factory.test.ts",
+      "community_name": "claude.ts",
       "file_type": "code",
       "norm_label": "classify()",
       "source_file": "factory/claude.ts",
-      "source_location": "L55"
+      "source_location": "L68"
     },
     {
       "id": "factory_claude_claudeargs",
@@ -223,7 +248,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 1,
-      "community_name": "factory.test.ts",
+      "community_name": "claude.ts",
       "file_type": "code",
       "norm_label": "claudeargs()",
       "source_file": "factory/claude.ts",
@@ -235,11 +260,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 1,
-      "community_name": "factory.test.ts",
+      "community_name": "claude.ts",
       "file_type": "code",
       "norm_label": "clauderunner()",
       "source_file": "factory/claude.ts",
-      "source_location": "L90"
+      "source_location": "L103"
     },
     {
       "id": "factory_claude_hooksettings",
@@ -247,71 +272,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 1,
-      "community_name": "factory.test.ts",
+      "community_name": "claude.ts",
       "file_type": "code",
       "norm_label": "hooksettings()",
       "source_file": "factory/claude.ts",
       "source_location": "L38"
-    },
-    {
-      "id": "factory_factory_test_tmp",
-      "label": "tmp()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "tmp()",
-      "source_file": "factory/factory.test.ts",
-      "source_location": "L16"
-    },
-    {
-      "id": "factory_pipeline_followups",
-      "label": "followUps()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "followups()",
-      "source_file": "factory/pipeline.ts",
-      "source_location": "L35"
-    },
-    {
-      "id": "factory_pipeline_runtask",
-      "label": "runTask()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "runtask()",
-      "source_file": "factory/pipeline.ts",
-      "source_location": "L41"
-    },
-    {
-      "id": "factory_pipeline_stubrunner",
-      "label": "stubRunner()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "stubrunner()",
-      "source_file": "factory/pipeline.ts",
-      "source_location": "L29"
-    },
-    {
-      "id": "factory_skills_attachskill",
-      "label": "attachSkill()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "attachskill()",
-      "source_file": "factory/skills.ts",
-      "source_location": "L8"
     },
     {
       "id": "factory_skills_roleskills",
@@ -319,11 +284,47 @@
       "_callable": true,
       "_origin": "ast",
       "community": 1,
-      "community_name": "factory.test.ts",
+      "community_name": "claude.ts",
       "file_type": "code",
       "norm_label": "roleskills()",
       "source_file": "factory/skills.ts",
       "source_location": "L22"
+    },
+    {
+      "id": "factory_pipeline_shellgate",
+      "label": "shellGate()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "pipeline.ts",
+      "file_type": "code",
+      "norm_label": "shellgate()",
+      "source_file": "factory/pipeline.ts",
+      "source_location": "L33"
+    },
+    {
+      "id": "factory_pipeline_stubrunner",
+      "label": "stubRunner()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "pipeline.ts",
+      "file_type": "code",
+      "norm_label": "stubrunner()",
+      "source_file": "factory/pipeline.ts",
+      "source_location": "L47"
+    },
+    {
+      "id": "factory_pipeline_track",
+      "label": "track()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "pipeline.ts",
+      "file_type": "code",
+      "norm_label": "track()",
+      "source_file": "factory/pipeline.ts",
+      "source_location": "L21"
     },
     {
       "id": "factory_backlog_add",
@@ -383,7 +384,7 @@
       "file_type": "code",
       "norm_label": "editbacklog()",
       "source_file": "factory/cli.ts",
-      "source_location": "L18"
+      "source_location": "L17"
     },
     {
       "id": "factory_cli_find",
@@ -395,7 +396,7 @@
       "file_type": "code",
       "norm_label": "find()",
       "source_file": "factory/cli.ts",
-      "source_location": "L33"
+      "source_location": "L46"
     },
     {
       "id": "factory_cli_main",
@@ -407,7 +408,7 @@
       "file_type": "code",
       "norm_label": "main()",
       "source_file": "factory/cli.ts",
-      "source_location": "L47"
+      "source_location": "L61"
     },
     {
       "id": "factory_cli_openevents",
@@ -419,7 +420,7 @@
       "file_type": "code",
       "norm_label": "openevents()",
       "source_file": "factory/cli.ts",
-      "source_location": "L28"
+      "source_location": "L41"
     },
     {
       "id": "factory_cli_readitems",
@@ -431,7 +432,7 @@
       "file_type": "code",
       "norm_label": "readitems()",
       "source_file": "factory/cli.ts",
-      "source_location": "L14"
+      "source_location": "L15"
     },
     {
       "id": "factory_config_loadconfig",
@@ -455,19 +456,43 @@
       "file_type": "code",
       "norm_label": "openstore()",
       "source_file": "factory/events.ts",
-      "source_location": "L14"
+      "source_location": "L17"
     },
     {
-      "id": "factory_skills_addskill",
-      "label": "addSkill()",
+      "id": "factory_pipeline_stopall",
+      "label": "stopAll()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "cli.ts",
       "file_type": "code",
-      "norm_label": "addskill()",
-      "source_file": "factory/skills.ts",
-      "source_location": "L26"
+      "norm_label": "stopall()",
+      "source_file": "factory/pipeline.ts",
+      "source_location": "L27"
+    },
+    {
+      "id": "factory_server_json",
+      "label": "json()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "json()",
+      "source_file": "factory/server.ts",
+      "source_location": "L9"
+    },
+    {
+      "id": "factory_server_serve",
+      "label": "serve()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "serve()",
+      "source_file": "factory/server.ts",
+      "source_location": "L12"
     },
     {
       "id": "factory_config_isstr",
@@ -504,6 +529,30 @@
       "norm_label": "parseconfig()",
       "source_file": "factory/config.ts",
       "source_location": "L17"
+    },
+    {
+      "id": "factory_skills_addskill",
+      "label": "addSkill()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "config.ts",
+      "file_type": "code",
+      "norm_label": "addskill()",
+      "source_file": "factory/skills.ts",
+      "source_location": "L26"
+    },
+    {
+      "id": "factory_skills_attachskill",
+      "label": "attachSkill()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "config.ts",
+      "file_type": "code",
+      "norm_label": "attachskill()",
+      "source_file": "factory/skills.ts",
+      "source_location": "L8"
     },
     {
       "id": "factory_worktree_branchof",
@@ -595,7 +644,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 8,
-      "community_name": "hooks.ts",
+      "community_name": "ref_node_fs",
       "file_type": "code",
       "norm_label": "guard()",
       "source_file": "factory/hooks.ts",
@@ -607,30 +656,66 @@
       "_callable": true,
       "_origin": "ast",
       "community": 8,
-      "community_name": "hooks.ts",
+      "community_name": "ref_node_fs",
       "file_type": "code",
       "norm_label": "real()",
       "source_file": "factory/hooks.ts",
       "source_location": "L24"
     },
     {
-      "id": "factory_pipeline_shellgate",
-      "label": "shellGate()",
+      "id": "factory_factory_test_repo",
+      "label": "repo()",
       "_callable": true,
       "_origin": "ast",
-      "community": 8,
-      "community_name": "hooks.ts",
+      "community": 9,
+      "community_name": "factory.test.ts",
       "file_type": "code",
-      "norm_label": "shellgate()",
+      "norm_label": "repo()",
+      "source_file": "factory/factory.test.ts",
+      "source_location": "L22"
+    },
+    {
+      "id": "factory_factory_test_tmp",
+      "label": "tmp()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "tmp()",
+      "source_file": "factory/factory.test.ts",
+      "source_location": "L17"
+    },
+    {
+      "id": "factory_pipeline_followups",
+      "label": "followUps()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "followups()",
       "source_file": "factory/pipeline.ts",
-      "source_location": "L15"
+      "source_location": "L53"
+    },
+    {
+      "id": "factory_pipeline_runtask",
+      "label": "runTask()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "runtask()",
+      "source_file": "factory/pipeline.ts",
+      "source_location": "L59"
     },
     {
       "id": "factory_claude",
       "label": "claude.ts",
       "_origin": "ast",
       "community": 1,
-      "community_name": "factory.test.ts",
+      "community_name": "claude.ts",
       "file_type": "code",
       "norm_label": "claude.ts",
       "source_file": "factory/claude.ts",
@@ -641,76 +726,43 @@
       "label": "ALLOW",
       "_origin": "ast",
       "community": 1,
-      "community_name": "factory.test.ts",
+      "community_name": "claude.ts",
       "file_type": "code",
       "norm_label": "allow",
       "source_file": "factory/claude.ts",
       "source_location": "L10"
     },
     {
-      "id": "factory_events",
-      "label": "events.ts",
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "events.ts",
-      "source_file": "factory/events.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "factory_factory_test",
-      "label": "factory.test.ts",
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "factory.test.ts",
-      "source_file": "factory/factory.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "factory_factory_test_config",
-      "label": "config",
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "config",
-      "source_file": "factory/factory.test.ts",
-      "source_location": "L14"
-    },
-    {
-      "id": "factory_factory_test_role",
-      "label": "role",
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "role",
-      "source_file": "factory/factory.test.ts",
-      "source_location": "L13"
-    },
-    {
-      "id": "factory_factory_test_task",
-      "label": "task",
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "task",
-      "source_file": "factory/factory.test.ts",
-      "source_location": "L17"
-    },
-    {
       "id": "factory_pipeline",
       "label": "pipeline.ts",
       "_origin": "ast",
-      "community": 1,
-      "community_name": "factory.test.ts",
+      "community": 10,
+      "community_name": "pipeline.ts",
       "file_type": "code",
       "norm_label": "pipeline.ts",
       "source_file": "factory/pipeline.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "factory_pipeline_live",
+      "label": "live",
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "pipeline.ts",
+      "file_type": "code",
+      "norm_label": "live",
+      "source_file": "factory/pipeline.ts",
+      "source_location": "L19"
+    },
+    {
+      "id": "factory_events",
+      "label": "events.ts",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "events.ts",
+      "file_type": "code",
+      "norm_label": "events.ts",
+      "source_file": "factory/events.ts",
       "source_location": "L1"
     },
     {
@@ -755,7 +807,7 @@
       "file_type": "code",
       "norm_label": "backlogpath",
       "source_file": "factory/cli.ts",
-      "source_location": "L13"
+      "source_location": "L14"
     },
     {
       "id": "factory_cli_root",
@@ -766,7 +818,29 @@
       "file_type": "code",
       "norm_label": "root",
       "source_file": "factory/cli.ts",
-      "source_location": "L12"
+      "source_location": "L13"
+    },
+    {
+      "id": "factory_server",
+      "label": "server.ts",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "server.ts",
+      "source_file": "factory/server.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "factory_server_cli",
+      "label": "CLI",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "cli",
+      "source_file": "factory/server.ts",
+      "source_location": "L7"
     },
     {
       "id": "package",
@@ -1092,11 +1166,55 @@
       "label": "hooks.ts",
       "_origin": "ast",
       "community": 8,
-      "community_name": "hooks.ts",
+      "community_name": "ref_node_fs",
       "file_type": "code",
       "norm_label": "hooks.ts",
       "source_file": "factory/hooks.ts",
       "source_location": "L1"
+    },
+    {
+      "id": "factory_factory_test",
+      "label": "factory.test.ts",
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "factory.test.ts",
+      "source_file": "factory/factory.test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "factory_factory_test_config",
+      "label": "config",
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "config",
+      "source_file": "factory/factory.test.ts",
+      "source_location": "L15"
+    },
+    {
+      "id": "factory_factory_test_role",
+      "label": "role",
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "role",
+      "source_file": "factory/factory.test.ts",
+      "source_location": "L14"
+    },
+    {
+      "id": "factory_factory_test_task",
+      "label": "task",
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "task",
+      "source_file": "factory/factory.test.ts",
+      "source_location": "L35"
     },
     {
       "id": "agents_control_plane_gui",
@@ -1417,47 +1535,11 @@
       "id": "ref_bun_sqlite",
       "label": "ref_bun_sqlite",
       "_origin": "semantic",
-      "community": 1,
-      "community_name": "factory.test.ts",
+      "community": 11,
+      "community_name": "events.ts",
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_bun_sqlite",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "ref_bun_test",
-      "label": "ref_bun_test",
-      "_origin": "semantic",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_bun_test",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "ref_node_os",
-      "label": "ref_node_os",
-      "_origin": "semantic",
-      "community": 1,
-      "community_name": "factory.test.ts",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_node_os",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "ref_node_fs",
-      "label": "ref_node_fs",
-      "_origin": "semantic",
-      "community": 4,
-      "community_name": "config.ts",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_node_fs",
       "source_file": "",
       "type": "external"
     },
@@ -1470,6 +1552,42 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_node_path",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "ref_node_fs",
+      "label": "ref_node_fs",
+      "_origin": "semantic",
+      "community": 8,
+      "community_name": "ref_node_fs",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_node_fs",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "ref_bun_test",
+      "label": "ref_bun_test",
+      "_origin": "semantic",
+      "community": 9,
+      "community_name": "factory.test.ts",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_bun_test",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "ref_node_os",
+      "label": "ref_node_os",
+      "_origin": "semantic",
+      "community": 9,
+      "community_name": "factory.test.ts",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_node_os",
       "source_file": "",
       "type": "external"
     }
@@ -1525,18 +1643,6 @@
     },
     {
       "source": "factory_claude_clauderunner",
-      "target": "factory_claude_classify",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "factory/claude.ts",
-      "source_location": "L103",
-      "weight": 1.0
-    },
-    {
-      "source": "factory_claude_clauderunner",
       "target": "factory_skills_roleskills",
       "relation": "calls",
       "_origin": "ast",
@@ -1544,7 +1650,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/claude.ts",
-      "source_location": "L92",
+      "source_location": "L105",
       "weight": 1.0
     },
     {
@@ -1556,7 +1662,43 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/claude.ts",
-      "source_location": "L93",
+      "source_location": "L106",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_claude_clauderunner",
+      "target": "factory_pipeline_track",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "factory/claude.ts",
+      "source_location": "L106",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_claude_clauderunner",
+      "target": "factory_claude_agentevents",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "factory/claude.ts",
+      "source_location": "L126",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_claude_clauderunner",
+      "target": "factory_claude_classify",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "factory/claude.ts",
+      "source_location": "L129",
       "weight": 1.0
     },
     {
@@ -1568,7 +1710,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/cli.ts",
-      "source_location": "L34",
+      "source_location": "L47",
       "weight": 1.0
     },
     {
@@ -1580,7 +1722,31 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/cli.ts",
-      "source_location": "L34",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_cli_main",
+      "target": "factory_cli_readitems",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "factory/cli.ts",
+      "source_location": "L109",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_cli_main",
+      "target": "factory_worktree_ensureworktree",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "factory/cli.ts",
+      "source_location": "L121",
       "weight": 1.0
     },
     {
@@ -1592,7 +1758,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/cli.ts",
-      "source_location": "L100",
+      "source_location": "L122",
       "weight": 1.0
     },
     {
@@ -1604,7 +1770,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/cli.ts",
-      "source_location": "L102",
+      "source_location": "L124",
       "weight": 1.0
     },
     {
@@ -1616,7 +1782,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/cli.ts",
-      "source_location": "L105",
+      "source_location": "L127",
       "weight": 1.0
     },
     {
@@ -1628,7 +1794,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/cli.ts",
-      "source_location": "L49",
+      "source_location": "L63",
       "weight": 1.0
     },
     {
@@ -1640,7 +1806,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/cli.ts",
-      "source_location": "L50",
+      "source_location": "L64",
       "weight": 1.0
     },
     {
@@ -1652,7 +1818,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/cli.ts",
-      "source_location": "L55",
+      "source_location": "L69",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_cli_main",
+      "target": "factory_server_serve",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "factory/cli.ts",
+      "source_location": "L74",
       "weight": 1.0
     },
     {
@@ -1664,7 +1842,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/cli.ts",
-      "source_location": "L60",
+      "source_location": "L79",
       "weight": 1.0
     },
     {
@@ -1676,7 +1854,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/cli.ts",
-      "source_location": "L61",
+      "source_location": "L80",
       "weight": 1.0
     },
     {
@@ -1688,7 +1866,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/cli.ts",
-      "source_location": "L62",
+      "source_location": "L81",
       "weight": 1.0
     },
     {
@@ -1700,7 +1878,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/cli.ts",
-      "source_location": "L63",
+      "source_location": "L82",
       "weight": 1.0
     },
     {
@@ -1712,7 +1890,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/cli.ts",
-      "source_location": "L64",
+      "source_location": "L83",
       "weight": 1.0
     },
     {
@@ -1724,36 +1902,12 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/cli.ts",
-      "source_location": "L79",
+      "source_location": "L98",
       "weight": 1.0
     },
     {
       "source": "factory_cli_main",
       "target": "factory_claude_clauderunner",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "factory/cli.ts",
-      "source_location": "L80",
-      "weight": 1.0
-    },
-    {
-      "source": "factory_cli_main",
-      "target": "factory_cli_readitems",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "factory/cli.ts",
-      "source_location": "L90",
-      "weight": 1.0
-    },
-    {
-      "source": "factory_cli_main",
-      "target": "factory_worktree_ensureworktree",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -1772,7 +1926,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/cli.ts",
-      "source_location": "L30",
+      "source_location": "L43",
       "weight": 1.0
     },
     {
@@ -1784,7 +1938,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/cli.ts",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
@@ -1824,6 +1978,30 @@
       "weight": 1.0
     },
     {
+      "source": "factory_factory_test_repo",
+      "target": "factory_factory_test_tmp",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "factory/factory.test.ts",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_factory_test_repo",
+      "target": "factory_backlog_parse",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "factory/factory.test.ts",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
       "source": "factory_hooks_guard",
       "target": "factory_hooks_real",
       "relation": "calls",
@@ -1844,7 +2022,67 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/pipeline.ts",
-      "source_location": "L88",
+      "source_location": "L111",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_pipeline_shellgate",
+      "target": "factory_pipeline_track",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "factory/pipeline.ts",
+      "source_location": "L37",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_server_serve",
+      "target": "factory_events_openstore",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "factory/server.ts",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_server_serve",
+      "target": "factory_backlog_parse",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "factory/server.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_server_serve",
+      "target": "factory_server_json",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "factory/server.ts",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_server_serve",
+      "target": "factory_config_loadconfig",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "factory/server.ts",
+      "source_location": "L60",
       "weight": 1.0
     },
     {
@@ -1976,7 +2214,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "factory/factory.test.ts",
-      "source_location": "L16",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_factory_test",
+      "target": "factory_factory_test_repo",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "factory/factory.test.ts",
+      "source_location": "L22",
       "weight": 1.0
     },
     {
@@ -2017,6 +2267,18 @@
     },
     {
       "source": "factory_claude",
+      "target": "factory_pipeline_track",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "factory/claude.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_claude",
       "target": "factory_skills_roleskills",
       "relation": "imports",
       "_origin": "ast",
@@ -2029,7 +2291,7 @@
     },
     {
       "source": "factory_cli",
-      "target": "factory_worktree_commitall",
+      "target": "factory_skills_addskill",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -2037,6 +2299,18 @@
       "context": "import",
       "source_file": "factory/cli.ts",
       "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_cli",
+      "target": "factory_worktree_commitall",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "factory/cli.ts",
+      "source_location": "L11",
       "weight": 1.0
     },
     {
@@ -2048,7 +2322,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "factory/cli.ts",
-      "source_location": "L10",
+      "source_location": "L11",
       "weight": 1.0
     },
     {
@@ -2060,7 +2334,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "factory/cli.ts",
-      "source_location": "L10",
+      "source_location": "L11",
       "weight": 1.0
     },
     {
@@ -2072,7 +2346,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "factory/cli.ts",
-      "source_location": "L10",
+      "source_location": "L11",
       "weight": 1.0
     },
     {
@@ -2197,6 +2471,18 @@
     },
     {
       "source": "factory_cli",
+      "target": "factory_pipeline_stopall",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "factory/cli.ts",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_cli",
       "target": "factory_pipeline_stubrunner",
       "relation": "imports",
       "_origin": "ast",
@@ -2209,7 +2495,7 @@
     },
     {
       "source": "factory_cli",
-      "target": "factory_skills_addskill",
+      "target": "factory_server_serve",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -2269,7 +2555,7 @@
     },
     {
       "source": "factory_factory_test",
-      "target": "factory_skills_attachskill",
+      "target": "factory_server_serve",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -2281,6 +2567,18 @@
     },
     {
       "source": "factory_factory_test",
+      "target": "factory_skills_attachskill",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "factory/factory.test.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_factory_test",
       "target": "factory_skills_roleskills",
       "relation": "imports",
       "_origin": "ast",
@@ -2288,7 +2586,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "factory/factory.test.ts",
-      "source_location": "L11",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -2325,6 +2623,18 @@
       "context": "import",
       "source_file": "factory/factory.test.ts",
       "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_factory_test",
+      "target": "factory_claude_agentevents",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "factory/factory.test.ts",
+      "source_location": "L6",
       "weight": 1.0
     },
     {
@@ -2448,6 +2758,42 @@
       "weight": 1.0
     },
     {
+      "source": "factory_server",
+      "target": "factory_backlog_parse",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "factory/server.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_server",
+      "target": "factory_config_loadconfig",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "factory/server.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_server",
+      "target": "factory_events_openstore",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "factory/server.ts",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
       "source": "factory_skills",
       "target": "factory_config_role",
       "relation": "imports",
@@ -2529,7 +2875,6 @@
       "context": "import",
       "source_file": "factory/claude.ts",
       "source_location": "L3",
-      "type_only": true,
       "weight": 1.0
     },
     {
@@ -2546,7 +2891,7 @@
     },
     {
       "source": "factory_cli",
-      "target": "factory_worktree",
+      "target": "factory_skills",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -2554,6 +2899,18 @@
       "context": "import",
       "source_file": "factory/cli.ts",
       "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_cli",
+      "target": "factory_worktree",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "factory/cli.ts",
+      "source_location": "L11",
       "weight": 1.0
     },
     {
@@ -2642,7 +2999,7 @@
     },
     {
       "source": "factory_cli",
-      "target": "factory_skills",
+      "target": "factory_server",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -2714,7 +3071,7 @@
     },
     {
       "source": "factory_factory_test",
-      "target": "factory_skills",
+      "target": "factory_server",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -2722,6 +3079,18 @@
       "context": "import",
       "source_file": "factory/factory.test.ts",
       "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_factory_test",
+      "target": "factory_skills",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "factory/factory.test.ts",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -2907,6 +3276,66 @@
       "weight": 1.0
     },
     {
+      "source": "factory_server",
+      "target": "ref_node_fs",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "factory/server.ts",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_server",
+      "target": "ref_node_path",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "factory/server.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_server",
+      "target": "factory_backlog",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "factory/server.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_server",
+      "target": "factory_config",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "factory/server.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_server",
+      "target": "factory_events",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "factory/server.ts",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
       "source": "factory_skills",
       "target": "ref_node_fs",
       "relation": "imports_from",
@@ -3056,6 +3485,17 @@
     },
     {
       "source": "factory_claude",
+      "target": "factory_claude_clauderunner",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "factory/claude.ts",
+      "source_location": "L103",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_claude",
       "target": "factory_claude_claudeargs",
       "relation": "contains",
       "_origin": "ast",
@@ -3078,7 +3518,7 @@
     },
     {
       "source": "factory_claude",
-      "target": "factory_claude_classify",
+      "target": "factory_claude_agentevents",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -3089,13 +3529,13 @@
     },
     {
       "source": "factory_claude",
-      "target": "factory_claude_clauderunner",
+      "target": "factory_claude_classify",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/claude.ts",
-      "source_location": "L90",
+      "source_location": "L68",
       "weight": 1.0
     },
     {
@@ -3106,7 +3546,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/cli.ts",
-      "source_location": "L12",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -3117,7 +3557,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/cli.ts",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -3128,7 +3568,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/cli.ts",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
@@ -3139,7 +3579,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/cli.ts",
-      "source_location": "L18",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -3150,7 +3590,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/cli.ts",
-      "source_location": "L28",
+      "source_location": "L41",
       "weight": 1.0
     },
     {
@@ -3161,7 +3601,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/cli.ts",
-      "source_location": "L33",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -3172,7 +3612,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/cli.ts",
-      "source_location": "L47",
+      "source_location": "L61",
       "weight": 1.0
     },
     {
@@ -3287,13 +3727,24 @@
     },
     {
       "source": "factory_events",
-      "target": "factory_events_openstore",
+      "target": "factory_events_row",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/events.ts",
       "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_events",
+      "target": "factory_events_openstore",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "factory/events.ts",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -3315,7 +3766,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/events.ts",
-      "source_location": "L38",
+      "source_location": "L42",
       "weight": 1.0
     },
     {
@@ -3326,7 +3777,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/factory.test.ts",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -3337,7 +3788,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/factory.test.ts",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
@@ -3348,7 +3799,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/factory.test.ts",
-      "source_location": "L17",
+      "source_location": "L35",
       "weight": 1.0
     },
     {
@@ -3386,13 +3837,68 @@
     },
     {
       "source": "factory_pipeline",
+      "target": "factory_pipeline_runnerresult",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "factory/pipeline.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_pipeline",
+      "target": "factory_pipeline_runner",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "factory/pipeline.ts",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_pipeline",
       "target": "factory_pipeline_gate",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/pipeline.ts",
-      "source_location": "L10",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_pipeline",
+      "target": "factory_pipeline_live",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "factory/pipeline.ts",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_pipeline",
+      "target": "factory_pipeline_track",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "factory/pipeline.ts",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_pipeline",
+      "target": "factory_pipeline_stopall",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "factory/pipeline.ts",
+      "source_location": "L27",
       "weight": 1.0
     },
     {
@@ -3403,7 +3909,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/pipeline.ts",
-      "source_location": "L15",
+      "source_location": "L33",
       "weight": 1.0
     },
     {
@@ -3414,7 +3920,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/pipeline.ts",
-      "source_location": "L29",
+      "source_location": "L47",
       "weight": 1.0
     },
     {
@@ -3425,7 +3931,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/pipeline.ts",
-      "source_location": "L35",
+      "source_location": "L53",
       "weight": 1.0
     },
     {
@@ -3436,7 +3942,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "factory/pipeline.ts",
-      "source_location": "L41",
+      "source_location": "L59",
       "weight": 1.0
     },
     {
@@ -3462,24 +3968,35 @@
       "weight": 1.0
     },
     {
-      "source": "factory_pipeline",
-      "target": "factory_pipeline_runnerresult",
+      "source": "factory_server",
+      "target": "factory_server_serve",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
-      "source_file": "factory/pipeline.ts",
-      "source_location": "L8",
+      "source_file": "factory/server.ts",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
-      "source": "factory_pipeline",
-      "target": "factory_pipeline_runner",
+      "source": "factory_server",
+      "target": "factory_server_cli",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
-      "source_file": "factory/pipeline.ts",
+      "source_file": "factory/server.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_server",
+      "target": "factory_server_json",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "factory/server.ts",
       "source_location": "L9",
       "weight": 1.0
     },
@@ -3800,6 +4317,18 @@
       "confidence_score": 1.0,
       "source_file": "tsconfig.json",
       "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "factory_cli_main",
+      "target": "factory_pipeline_stopall",
+      "relation": "indirect_call",
+      "_origin": "ast",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "context": "argument",
+      "source_file": "factory/cli.ts",
+      "source_location": "L114",
       "weight": 1.0
     },
     {
@@ -4199,5 +4728,5 @@
       "source_file": "AGENTS.md"
     }
   ],
-  "built_at_commit": "430f5e9af36801e96ce7cbc55bbe3c84ce181010"
+  "built_at_commit": "956ea0096ae35141cbe346ca6c34f13642533b06"
 }

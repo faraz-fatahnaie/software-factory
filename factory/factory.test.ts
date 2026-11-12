@@ -3,17 +3,35 @@ import { existsSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, write
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { add, move, parse } from "./backlog";
-import { claudeArgs, classify } from "./claude";
+import { agentEvents, claudeArgs, classify } from "./claude";
 import { parseConfig, type Config } from "./config";
 import { openStore } from "./events";
 import { guard } from "./hooks";
 import { followUps, runTask, shellGate, type Runner } from "./pipeline";
+import { serve } from "./server";
 import { attachSkill, roleSkills } from "./skills";
 
 const role = { runner: "claude", model: "sonnet", effort: "medium", fallback: ["haiku"] };
 const config: Config = { gate: ["true"], roles: { triage: role, architect: role, builder: role, reviewer: role } };
 const BACKLOG = "# Backlog\n\n## Inbox\n\n## Ready\n- [ ] F-001 (P1) First\n  detail line\n- [ ] F-002 Second\n\n## In progress\n\n## Awaiting approval\n\n## Blocked\n\n## Done\n";
 const tmp = () => mkdtempSync(join(tmpdir(), "factory-"));
+// Commits made by the tests' throwaway repos must not depend on the machine's git identity.
+Object.assign(process.env, { GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.invalid", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.invalid" });
+
+/** A throwaway factory repo with two Ready items and a gate that always passes. */
+function repo() {
+  const dir = tmp();
+  const sh = (...argv: string[]) => {
+    const p = Bun.spawnSync(argv, { cwd: dir });
+    return { code: p.exitCode, out: `${p.stdout}${p.stderr}`.trim() };
+  };
+  writeFileSync(join(dir, "BACKLOG.md"), BACKLOG);
+  writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ ...config, setup: ["true"] }));
+  writeFileSync(join(dir, ".gitignore"), ".factory/\n.worktrees/\n");
+  sh("git", "init", "-q", "-b", "main"); sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "base");
+  const section = (id: string) => parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).find((i) => i.id === id)?.section;
+  return { dir, sh, section, cli: (...args: string[]) => sh("bun", join(import.meta.dir, "cli.ts"), ...args) };
+}
 const task = { id: "F-001", title: "First" };
 
 test("config: rejects bad input and names every problem", () => {
@@ -88,6 +106,7 @@ test("claude: classifies results from real CLI output shapes", () => {
   expect(args.join(" ")).toContain("--agent builder --model sonnet --effort medium");
   expect(args.join(" ")).toContain("--permission-mode acceptEdits");
   expect(args.join(" ")).toContain("--setting-sources project");
+  expect(args.join(" ")).toContain("--output-format stream-json --verbose");
   const readOnly = claudeArgs({ ...job, role: "reviewer" }, []);
   expect(readOnly[2]).toBe("Stage: build.");
   expect(readOnly.join(" ")).toContain("--permission-mode dontAsk");
@@ -140,18 +159,7 @@ test("hooks: guard fails closed; the stop gate sends the builder back once", () 
 });
 
 test("cli: parallel runs in worktrees, approve merges, discard cleans up", () => {
-  const dir = tmp();
-  const env = { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.invalid", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.invalid" };
-  const sh = (...argv: string[]) => {
-    const p = Bun.spawnSync(argv, { cwd: dir, env });
-    return { code: p.exitCode, out: `${p.stdout}${p.stderr}`.trim() };
-  };
-  const cli = (...args: string[]) => sh("bun", join(import.meta.dir, "cli.ts"), ...args);
-  const section = (id: string) => parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).find((i) => i.id === id)?.section;
-  writeFileSync(join(dir, "BACKLOG.md"), BACKLOG);
-  writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ ...config, setup: ["true"] }));
-  writeFileSync(join(dir, ".gitignore"), ".factory/\n.worktrees/\n");
-  sh("git", "init", "-q", "-b", "main"); sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "base");
+  const { dir, sh, section, cli } = repo();
 
   expect(cli("run", "--stub", "--parallel", "2")).toMatchObject({ code: 0 });
   expect([section("F-001"), section("F-002")]).toEqual(["Awaiting approval", "Awaiting approval"]);
@@ -175,4 +183,57 @@ test("cli: parallel runs in worktrees, approve merges, discard cleans up", () =>
   expect(cli("run", "F-002 F-003", "--stub").out).toMatch(/unknown argument/); // must not fall through to the top Ready item
   expect(section("F-002")).toBe("Ready");
   expect(cli("bogus").code).toBe(1);
+}, 60_000);
+
+test("claude: stream lines become provider-neutral agent events", () => {
+  const assistant = { type: "assistant", message: { content: [
+    { type: "thinking", thinking: "…" },
+    { type: "text", text: "Running the tests." },
+    { type: "tool_use", name: "Bash", input: { command: "bun test" } },
+    { type: "tool_use", name: "Write", input: { file_path: "a.ts", content: "x".repeat(5000) } },
+  ] } };
+  const events = agentEvents(assistant);
+  expect(events.slice(0, 2)).toEqual([
+    { type: "agent.message", data: { text: "Running the tests." } },
+    { type: "agent.tool", data: { tool: "Bash", input: { command: "bun test" } } },
+  ]);
+  expect((events[2]!.data as any).input.length).toBe(2001); // large inputs are cut for the log
+  expect(agentEvents({ type: "rate_limit_event", rate_limit_info: { status: "allowed" } })).toEqual([{ type: "agent.rate_limit", data: { status: "allowed" } }]);
+  expect(agentEvents({ type: "system", subtype: "init" })).toEqual([]);
+});
+
+test("server: rejects foreign hosts and origins; streams events; runs, approves and discards over HTTP", async () => {
+  const { dir, section } = repo();
+  const server = serve(dir, 0);
+  const base = `http://127.0.0.1:${server.port}`;
+  const post = (path: string, body: unknown, headers: Record<string, string> = {}) =>
+    fetch(base + path, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body) });
+  try {
+    expect((await server.fetch(new Request(`http://evil.example:${server.port}/api/backlog`))).status).toBe(403); // DNS rebinding
+    expect((await post("/api/add", { title: "x" }, { origin: "http://evil.example" })).status).toBe(403); // cross-site POST
+    expect((await fetch(base + "/api/add", { method: "POST", body: "title=x" })).status).toBe(415); // form post
+    expect((await post("/api/run", { ids: ["F-001; rm -rf /"] })).status).toBe(400);
+    expect((await post("/api/run", { parallel: 99 })).status).toBe(400);
+    expect((await post("/api/stop", { id: "F-001" })).status).toBe(404);
+    expect((await post("/api/add", { title: "From the GUI" })).status).toBe(200);
+    expect(section("F-003")).toBe("Inbox");
+
+    expect((await post("/api/run", { parallel: 2, stub: true })).status).toBe(202);
+    expect((await post("/api/run", { ids: ["F-001"], stub: true })).status).toBe(409); // already running
+    const reader = (await fetch(`${base}/api/events?after=0`)).body!.getReader();
+    let seen = "";
+    while ((seen.match(/"type":"run.done"/g) ?? []).length < 2) seen += new TextDecoder().decode((await reader.read()).value);
+    await reader.cancel();
+    expect(seen).toMatch(/^id: 1\ndata: \{/); // replay starts from the first event
+    const backlog = async () => (await (await fetch(`${base}/api/backlog`)).json()) as { running: string[] };
+    while ((await backlog()).running.length) await Bun.sleep(50);
+    expect([section("F-001"), section("F-002")]).toEqual(["Awaiting approval", "Awaiting approval"]);
+
+    expect((await post("/api/approve", { id: "F-001" })).status).toBe(200);
+    expect((await post("/api/discard", { id: "F-002" })).status).toBe(200);
+    expect(await (await post("/api/approve", { id: "F-002" })).json()).toMatchObject({ ok: false, output: expect.stringMatching(/expected Awaiting approval/) });
+    expect([section("F-001"), section("F-002")]).toEqual(["Done", "Ready"]);
+  } finally {
+    server.stop(true);
+  }
 }, 60_000);

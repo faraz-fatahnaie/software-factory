@@ -1,11 +1,12 @@
 #!/usr/bin/env bun
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { add, move, parse, type Item, type Section } from "./backlog";
 import { claudeRunner } from "./claude";
 import { loadConfig } from "./config";
 import { openStore } from "./events";
-import { runTask, shellGate, stubRunner } from "./pipeline";
+import { runTask, shellGate, stopAll, stubRunner } from "./pipeline";
+import { serve } from "./server";
 import { addSkill } from "./skills";
 import { commitAll, ensureWorktree, land, removeWorktree } from "./worktree";
 
@@ -13,16 +14,28 @@ const root = process.cwd();
 const backlogPath = join(root, "BACKLOG.md");
 const readItems = () => parse(readFileSync(backlogPath, "utf8"));
 
-// ponytail: one orchestrator process at a time writes the backlog. Add a lock file if two
-// `factory` commands ever need to run at once.
 function editBacklog(message: string, fn: (text: string) => string) {
-  // Re-read before every write: a person may edit the file while a run is in flight.
-  writeFileSync(backlogPath, fn(readFileSync(backlogPath, "utf8")));
-  // A backlog-only commit, so task branches never carry backlog changes. Skipped outside git.
-  Bun.spawnSync(["git", "add", "BACKLOG.md"], { cwd: root });
-  const p = Bun.spawnSync(["git", "commit", "-q", "-m", `backlog: ${message}`, "--", "BACKLOG.md"], { cwd: root, stderr: "pipe" });
-  const err = p.stderr.toString().trim();
-  if (p.exitCode !== 0 && err && !/not a git repository/.test(err)) console.error(`backlog commit skipped: ${err}`);
+  // Several factory commands can run at once (a run finishing while the GUI approves another
+  // task), so the read-modify-write is serialized with a lock directory.
+  const lock = join(root, ".factory", "backlog.lock");
+  mkdirSync(join(root, ".factory"), { recursive: true });
+  for (let waited = 0; ; waited += 20) {
+    try { mkdirSync(lock); break; } catch {
+      if (waited > 5000) rmSync(lock, { recursive: true, force: true }); // holder crashed: edits take milliseconds
+      Bun.sleepSync(20);
+    }
+  }
+  try {
+    // Re-read before every write: a person may edit the file while a run is in flight.
+    writeFileSync(backlogPath, fn(readFileSync(backlogPath, "utf8")));
+    // A backlog-only commit, so task branches never carry backlog changes. Skipped outside git.
+    Bun.spawnSync(["git", "add", "BACKLOG.md"], { cwd: root });
+    const p = Bun.spawnSync(["git", "commit", "-q", "-m", `backlog: ${message}`, "--", "BACKLOG.md"], { cwd: root, stderr: "pipe" });
+    const err = p.stderr.toString().trim();
+    if (p.exitCode !== 0 && err && !/not a git repository/.test(err)) console.error(`backlog commit skipped: ${err}`);
+  } finally {
+    rmSync(lock, { recursive: true, force: true });
+  }
 }
 
 function openEvents() {
@@ -41,6 +54,7 @@ function find(id: string | undefined, ...sections: Section[]): Item {
 const USAGE = `factory run [F-id...] [--parallel N] [--stub]   run the top Ready item(s) or the named ones, each in its own worktree
 factory approve <F-id>                          land an approved task: pull request if the repo has an origin, else a local merge
 factory discard <F-id>                          delete a task's worktree and branch, and return it to Ready
+factory serve [port]                            start the local control plane (default 127.0.0.1:4400)
 factory add "<title>"                           add an item to Inbox
 factory skill add <owner/repo@skill> --role <r> install a skill and attach it to a role`;
 
@@ -54,6 +68,11 @@ async function main([cmd, ...args]: string[]) {
   if (cmd === "skill" && args[0] === "add" && args[2] === "--role") {
     addSkill(root, args[1]!, args[3] ?? "");
     return console.log(`attached ${args[1]} to ${args[3]}`);
+  }
+
+  if (cmd === "serve") {
+    const server = serve(root, args[0] === undefined ? 4400 : Number(args[0]));
+    return console.log(`factory control plane: http://127.0.0.1:${server.port}`);
   }
 
   if (cmd === "approve") {
@@ -91,6 +110,9 @@ async function main([cmd, ...args]: string[]) {
     if (!chosen.length) throw new Error("nothing under Ready");
 
     const store = openEvents();
+    // Ctrl-C or a stop from the GUI: end the stages, then let each task settle into Blocked below.
+    process.on("SIGINT", stopAll);
+    process.on("SIGTERM", stopAll);
     const results = await Promise.all(chosen.map(async (item) => {
       editBacklog(`${item.id} → In progress`, (t) => move(t, item.id, "In progress"));
       console.log(`${item.id} ${item.title}`);
