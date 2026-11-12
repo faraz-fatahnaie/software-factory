@@ -3,9 +3,10 @@
   "1": "pipeline.ts",
   "2": "cli.ts",
   "3": "package.json",
-  "4": "server.ts",
+  "4": "factory.test.ts",
   "5": "compilerOptions",
   "6": "F-002 Phase 2: Claude runner",
   "7": "app.tsx",
-  "8": "factory.test.ts"
+  "8": "hooks.ts",
+  "9": "Software Factory"
 }

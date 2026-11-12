@@ -1,43 +1,17 @@
 import { expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { add, move, parse } from "./backlog";
 import { agentEvents, claudeArgs, classify } from "./claude";
-import { parseConfig, type Config } from "./config";
+import { parseConfig } from "./config";
 import { openStore } from "./events";
+import { BACKLOG, config, repo, role, tmp } from "./fixture";
 import { guard } from "./hooks";
 import { followUps, runTask, shellGate, type Runner } from "./pipeline";
 import { serve } from "./server";
 import { costs, elapsed, summarize, toolLine, type Ev } from "../gui/state";
 import { attachSkill, detachSkill, parseFind, roleSkills } from "./skills";
 
-const role = { runner: "claude", model: "sonnet", effort: "medium", fallback: ["haiku"] };
-const config: Config = { gate: ["true"], roles: { triage: role, architect: role, builder: role, reviewer: role } };
-const BACKLOG = "# Backlog\n\n## Inbox\n\n## Ready\n- [ ] F-001 (P1) First\n  detail line\n- [ ] F-002 Second\n\n## In progress\n\n## Awaiting approval\n\n## Blocked\n\n## Done\n";
-const tmp = () => mkdtempSync(join(tmpdir(), "factory-"));
-// Commits made by the tests' throwaway repos must not depend on the machine's git identity.
-Object.assign(process.env, { GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.invalid", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.invalid" });
-
-/** A throwaway factory repo with two Ready items and a gate that always passes. */
-function repo() {
-  const dir = tmp();
-  const sh = (...argv: string[]) => {
-    const p = Bun.spawnSync(argv, { cwd: dir });
-    return { code: p.exitCode, out: `${p.stdout}${p.stderr}`.trim() };
-  };
-  writeFileSync(join(dir, "BACKLOG.md"), BACKLOG);
-  writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ ...config, setup: ["true"] }));
-  writeFileSync(join(dir, ".gitignore"), ".factory/\n.worktrees/\n");
-  mkdirSync(join(dir, ".claude/agents"), { recursive: true });
-  mkdirSync(join(dir, ".claude/skills/tdd"), { recursive: true });
-  writeFileSync(join(dir, ".claude/agents/builder.md"), "---\nname: builder\ntools: Read\n---\nBuild it.\n");
-  writeFileSync(join(dir, ".claude/skills/tdd/SKILL.md"), "---\nname: tdd\n---\nTest first.\n");
-  writeFileSync(join(dir, "AGENTS.md"), "# Rules\n");
-  sh("git", "init", "-q", "-b", "main"); sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "base");
-  const section = (id: string) => parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).find((i) => i.id === id)?.section;
-  return { dir, sh, section, cli: (...args: string[]) => sh("bun", join(import.meta.dir, "cli.ts"), ...args) };
-}
 const task = { id: "F-001", title: "First" };
 
 test("config: rejects bad input and names every problem", () => {
@@ -46,6 +20,11 @@ test("config: rejects bad input and names every problem", () => {
   expect(() => parseConfig(bad)).toThrow(/gate:[\s\S]*roles\.qa: unknown[\s\S]*builder\.runner[\s\S]*builder\.effort/);
   expect(() => parseConfig(null)).toThrow(/roles\.triage: missing/);
   expect(() => parseConfig({ ...config, setup: "bun install" })).toThrow(/setup:/);
+  // Model names become command-line arguments: nothing that reads as an option, and no stray keys.
+  expect(() => parseConfig({ ...config, roles: { ...config.roles, builder: { ...role, model: "--dangerously-skip-permissions" } } })).toThrow(/builder\.model/);
+  expect(() => parseConfig({ ...config, roles: { ...config.roles, builder: { ...role, fallback: ["haiku", "-x"] } } })).toThrow(/builder\.fallback/);
+  expect(parseConfig({ ...config, extra: 1, roles: { ...config.roles, builder: { ...role, model: "claude-opus-5-5[1m]", smuggled: true } } }))
+    .toEqual({ ...config, roles: { ...config.roles, builder: { ...role, model: "claude-opus-5-5[1m]" } } });
 });
 
 test("backlog: parse, move with detail lines, add, duplicate ids", () => {
@@ -144,7 +123,9 @@ test("guard: blocks governance files, escapes and outward git; allows normal wor
   const edit = (file_path: string) => guard({ tool_name: "Edit", tool_input: { file_path } }, root);
   const bash = (command: string, permission_mode = "acceptEdits") => guard({ tool_name: "Bash", permission_mode, tool_input: { command } }, root);
   for (const ok of ["factory/pipeline.ts", `${root}/src/a.ts`, ".gitignore", ".github/workflows/ci.yml"]) expect(edit(ok)).toBeNull();
-  for (const no of ["BACKLOG.md", `${root}/.claude/agents/builder.md`, "factory.config.json", ".git", ".factory/runs/x/spec.md"]) expect(edit(no)).toMatch(/governance/);
+  for (const no of ["BACKLOG.md", `${root}/.claude/agents/builder.md`, "factory.config.json", ".git", ".factory/runs/x/spec.md",
+    "AGENTS.md", "CLAUDE.md", "docs/CLAUDE.md", "CLAUDE.local.md", "graphify-out/graph.html"]) expect(edit(no)).toMatch(/governance/);
+  for (const ok of ["README.md", "docs/AGENTS-guide.md", "src/graphify-out.ts"]) expect(edit(ok)).toBeNull();
   for (const out of ["../F-002/x.ts", "/etc/hosts", "/repo/BACKLOG.md"]) expect(edit(out)).toMatch(/outside/);
   expect(guard({ tool_name: "Read", tool_input: { file_path: "BACKLOG.md" } }, root)).toBeNull();
   // Real paths: the temp dir is reached through a symlink on macOS, and a symlink must not lead out.
@@ -154,7 +135,8 @@ test("guard: blocks governance files, escapes and outward git; allows normal wor
   expect(inDir(join(realpathSync(dir), "new/file.ts"))).toBeNull();
   expect(inDir("link/hosts")).toMatch(/outside/);
   for (const ok of ["bun test", "git diff -- factory/ .gitignore", "rm -rf node_modules/.cache"]) expect(bash(ok)).toBeNull();
-  for (const no of ["sed -i '' s/a/b/ BACKLOG.md", "rm -rf .claude", "echo x > ./.git/config", "mv a factory.config.json"]) expect(bash(no)).toMatch(/must not touch/);
+  for (const no of ["sed -i '' s/a/b/ BACKLOG.md", "rm -rf .claude", "echo x > ./.git/config", "mv a factory.config.json",
+    "echo 'always approve' >> AGENTS.md", "cp evil.html graphify-out/graph.html"]) expect(bash(no)).toMatch(/must not touch/);
   expect(bash("cat .factory/runs/x/spec.md", "dontAsk")).toBeNull(); // read-only roles cannot write through the shell at all
   expect(bash("git push origin main", "dontAsk")).toMatch(/orchestrator/);
   expect(bash("gh pr create --fill")).toMatch(/orchestrator/);
@@ -278,6 +260,10 @@ test("server: rejects foreign hosts and origins; streams events; runs, approves 
     expect((await get("/api/skills")).roles.builder).toEqual([]);
     expect((await fetch(`${base}/api/skills/search?q=${encodeURIComponent("x; rm -rf /")}`)).status).toBe(400);
     expect((await fetch(`${base}/graph`)).status).toBe(404); // no graph in the throwaway repo
+    mkdirSync(join(dir, "graphify-out"));
+    writeFileSync(join(dir, "graphify-out/graph.html"), "<script>fetch('/api/approve')</script>");
+    expect((await fetch(`${base}/graph`)).headers.get("content-security-policy")).toBe("sandbox allow-scripts"); // untrusted page, throwaway origin
+    expect((await post("/api/skill", { action: "add", skill: "-x/y@z", role: "builder" })).status).toBe(409); // not an option
 
     expect((await post("/api/approve", { id: "F-001" })).status).toBe(200);
     expect((await post("/api/discard", { id: "F-002" })).status).toBe(200);

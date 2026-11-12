@@ -18,6 +18,7 @@
   },
   "include": [
     "factory",
-    "gui"
+    "gui",
+    "e2e"
   ]
 }

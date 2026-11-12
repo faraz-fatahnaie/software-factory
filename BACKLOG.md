@@ -4,8 +4,6 @@ The factory's intake queue. `factory run` takes the top item under Ready.
 Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
-- [ ] F-007 (P1) Phase 7: hardening and Release 1
-  Security review, one end-to-end browser test, README.
 - [ ] F-008 (P2) Release 2: Codex CLI runner
 - [ ] F-009 (P2) Release 2: API key vault in the macOS Keychain
 - [ ] F-010 (P2) Release 2: Ollama through a per-role base URL
@@ -46,3 +44,5 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Backlog and pipeline board, live log, spec, review and diff panel with approve and discard, model matrix, usage gauge.
 - [x] F-006 (P1) Phase 6: GUI second tier
   Cost and pass rate by model, role and task; run replay; worktree manager; studio with versioned editing and per-role skills; graph viewer.
+- [x] F-007 (P1) Phase 7: hardening and Release 1
+  Security review and fixes, browser end-to-end test, README, version 1.0.0.

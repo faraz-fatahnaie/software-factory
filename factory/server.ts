@@ -4,7 +4,7 @@ import { parse } from "./backlog";
 import gui from "../gui/index.html";
 import { loadConfig, parseConfig, ROLES } from "./config";
 import { openStore } from "./events";
-import { parseFind, roleSkills } from "./skills";
+import { parseFind, roleSkills, SKILLS_CLI } from "./skills";
 import { listWorktrees } from "./worktree";
 
 const CLI = join(import.meta.dir, "cli.ts");
@@ -85,7 +85,11 @@ export function serve(root: string, port = 4400) {
       }
       if (route === "GET /graph") {
         const file = Bun.file(join(root, "graphify-out", "graph.html"));
-        return (await file.exists()) ? new Response(file) : new Response("No knowledge graph yet. Run /graphify .", { status: 404 });
+        // graph.html is generated from repository content, so it is treated as untrusted: the
+        // sandbox gives it a throwaway origin that cannot call this server's API as you.
+        return (await file.exists())
+          ? new Response(file, { headers: { "content-type": "text/html; charset=utf-8", "content-security-policy": "sandbox allow-scripts" } })
+          : new Response("No knowledge graph yet. Run /graphify .", { status: 404 });
       }
       if (route === "GET /api/worktrees") return json(listWorktrees(root));
       if (route === "GET /api/files") return json(editable());
@@ -107,8 +111,8 @@ export function serve(root: string, port = 4400) {
       }
       if (route === "GET /api/skills/search") {
         const q = url.searchParams.get("q") ?? "";
-        if (!/^[\w .-]{2,60}$/.test(q)) return json({ error: "search: 2 to 60 letters, digits or spaces" }, 400);
-        return json(parseFind((await sh("npx", "-y", "skills", "find", q)).out)); // asks skills.sh
+        if (!/^\w[\w .-]{1,59}$/.test(q)) return json({ error: "search: 2 to 60 letters, digits or spaces" }, 400);
+        return json(parseFind((await sh("npx", "-y", SKILLS_CLI, "find", q)).out)); // asks skills.sh
       }
       if (req.method !== "POST") return json({ error: "not found" }, 404);
 

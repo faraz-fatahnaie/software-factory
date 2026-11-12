@@ -314,7 +314,7 @@ function App() {
       {view === "Cost" && <Cost events={events} />}
       {view === "Worktrees" && <Worktrees open={(id) => { setSelected(id); setView("Pipeline"); }} discard={(id) => act("/api/discard", { id })} />}
       {view === "Studio" && <Studio setError={setError} />}
-      {view === "Graph" && <iframe className="graph" src="/graph" title="Knowledge graph of this repository" />}
+      {view === "Graph" && <iframe className="graph" src="/graph" sandbox="allow-scripts" title="Knowledge graph of this repository" />}
       {view === "Pipeline" && (
         <main className={item ? "split" : ""}>
           <div className="board">
