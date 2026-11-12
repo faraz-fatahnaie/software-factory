@@ -30,7 +30,25 @@ export function claudeArgs(job: Job, gate: string[], skills: string[] = []): str
     // (which breaks the reviewer's first-line verdict) and cost about six times the startup tokens.
     "--setting-sources", "project",
     "--strict-mcp-config",
+    "--settings", hookSettings(job.role),
   ];
+}
+
+/** Hooks for factory runs only, passed on the command line so your own sessions are unaffected. */
+function hookSettings(role: string): string {
+  const quoted = (s: string) => `'${s.replaceAll("'", `'\\''`)}'`;
+  const hook = (mode: string) => ({
+    type: "command",
+    command: `${quoted(process.execPath)} ${quoted(join(import.meta.dir, "hooks.ts"))} ${mode}`,
+    timeout: 600,
+  });
+  return JSON.stringify({
+    hooks: {
+      PreToolUse: [{ matcher: "Bash|Edit|Write|NotebookEdit", hooks: [hook("guard")] }],
+      // The builder cannot finish while the gate fails.
+      ...(role === "builder" && { Stop: [{ hooks: [hook("stop")] }] }),
+    },
+  });
 }
 
 /** Maps a finished `claude -p --output-format json` process to a runner result. */
@@ -74,6 +92,8 @@ export const claudeRunner = (gate: string[]): Runner => async (job) => {
   const skills = existsSync(agent) ? roleSkills(readFileSync(agent, "utf8")) : [];
   const p = Bun.spawn(claudeArgs(job, gate, skills), {
     cwd: job.cwd,
+    // Read by hooks.ts: the task root to confine writes to, and the orchestrator's own copy of the gate.
+    env: { ...process.env, FACTORY_ROOT: job.cwd, FACTORY_GATE: JSON.stringify(gate) },
     stdin: "ignore",
     stdout: "pipe",
     stderr: "pipe",

@@ -1,5 +1,5 @@
 // BACKLOG.md is the intake queue. Only the orchestrator writes it; agents never do.
-export const SECTIONS = ["Inbox", "Ready", "In progress", "Blocked", "Done"] as const;
+export const SECTIONS = ["Inbox", "Ready", "In progress", "Awaiting approval", "Blocked", "Done"] as const;
 export type Section = (typeof SECTIONS)[number];
 export type Item = { id: string; prio?: string; title: string; section: string };
 
@@ -29,15 +29,15 @@ function endOf(lines: string[], section: Section): number {
   return e;
 }
 
-/** Moves an item (and its indented detail lines) to the end of another section. */
-export function move(text: string, id: string, to: Section): string {
+/** Moves an item (and its indented detail lines) to the end of another section. `note` is appended to its title. */
+export function move(text: string, id: string, to: Section, note = ""): string {
   const lines = text.split("\n");
   const i = lines.findIndex((l) => l.match(ITEM)?.[1] === id);
   if (i < 0) throw new Error(`BACKLOG.md: no item ${id}`);
   let j = i + 1;
   while (j < lines.length && /^\s+\S/.test(lines[j]!)) j++;
   const block = lines.splice(i, j - i);
-  block[0] = block[0]!.replace(/^- \[[ x]\]/, to === "Done" ? "- [x]" : "- [ ]");
+  block[0] = block[0]!.replace(/^- \[[ x]\]/, to === "Done" ? "- [x]" : "- [ ]") + (note && ` (${note})`);
   lines.splice(endOf(lines, to), 0, ...block);
   return lines.join("\n");
 }

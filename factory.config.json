@@ -1,4 +1,5 @@
 {
+  "setup": ["bun install"],
   "gate": ["bun test", "bun run typecheck"],
   "roles": {
     "triage": { "runner": "claude", "model": "haiku", "effort": "low", "fallback": ["sonnet"] },

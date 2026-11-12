@@ -6,5 +6,6 @@
   "4": "config.ts",
   "5": "compilerOptions",
   "6": "F-002 Phase 2: Claude runner",
-  "7": "pipeline.ts"
+  "7": "worktree.ts",
+  "8": "hooks.ts"
 }

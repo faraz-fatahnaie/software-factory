@@ -1,44 +1,44 @@
 {
   "factory.config.json": {
-    "mtime": 1794468847.3956704,
-    "seen": 1794469077.3421068,
-    "ast_hash": "1149659f7a5102625bcdb076ca62185a",
-    "semantic_hash": "1149659f7a5102625bcdb076ca62185a"
+    "mtime": 1794470167.7826495,
+    "seen": 1794470609.9039922,
+    "ast_hash": "5083d8ab2505a3f126a7c29542f5c8c4",
+    "semantic_hash": ""
   },
   "factory/backlog.ts": {
-    "mtime": 1794468847.745768,
-    "seen": 1794469077.342112,
-    "ast_hash": "0d4a8921d8f38837ac1cd90da8986915",
-    "semantic_hash": "0d4a8921d8f38837ac1cd90da8986915"
+    "mtime": 1794470167.2739837,
+    "seen": 1794470609.9039931,
+    "ast_hash": "a3917e684ffbba3016e8fc402e726978",
+    "semantic_hash": ""
   },
   "factory/cli.ts": {
-    "mtime": 1794469491.0487108,
-    "seen": 1794469813.3339741,
-    "ast_hash": "5de99079e55e72f79ba13b3119847fc9",
+    "mtime": 1794470508.945287,
+    "seen": 1794470609.9039948,
+    "ast_hash": "a9bc1b6164d9dd6447abca9eb9a46538",
     "semantic_hash": ""
   },
   "factory/config.ts": {
-    "mtime": 1794468847.5034904,
-    "seen": 1794469077.342114,
-    "ast_hash": "53e723fea4f48cef361ceb876a4fd730",
-    "semantic_hash": "53e723fea4f48cef361ceb876a4fd730"
+    "mtime": 1794470167.6614819,
+    "seen": 1794470609.9039948,
+    "ast_hash": "ff3bf8b968ee0194508680644649c9ae",
+    "semantic_hash": ""
   },
   "factory/events.ts": {
-    "mtime": 1794468847.6146548,
-    "seen": 1794469077.3421152,
-    "ast_hash": "dd1162e19881437636f8390fabaea892",
-    "semantic_hash": "dd1162e19881437636f8390fabaea892"
+    "mtime": 1794470167.3998559,
+    "seen": 1794470609.9039948,
+    "ast_hash": "6da323252db71c51c2b33e6bcc2b0ee7",
+    "semantic_hash": ""
   },
   "factory/factory.test.ts": {
-    "mtime": 1794469792.723393,
-    "seen": 1794469813.333975,
-    "ast_hash": "56fa23fb4a7c167082192c6dd5e4cc92",
+    "mtime": 1794470492.632896,
+    "seen": 1794470609.903996,
+    "ast_hash": "57caa049bddb012f392c5b5715fbd2a2",
     "semantic_hash": ""
   },
   "factory/pipeline.ts": {
-    "mtime": 1794469741.5597959,
-    "seen": 1794469813.333976,
-    "ast_hash": "f59ab144ef82e9236f59253fb48134a9",
+    "mtime": 1794470166.9571276,
+    "seen": 1794470609.903997,
+    "ast_hash": "3cfa4bc4bf585e67d85ce131e478a598",
     "semantic_hash": ""
   },
   "factory/skills.ts": {
@@ -78,9 +78,9 @@
     "semantic_hash": ""
   },
   ".claude/agents/reviewer.md": {
-    "mtime": 1794469576.8823612,
-    "seen": 1794469813.3339782,
-    "ast_hash": "85360d27b9d479261d2dd3a41c4375bf",
+    "mtime": 1794470492.7462287,
+    "seen": 1794470609.904001,
+    "ast_hash": "5d73044e421063a83df1f4bf5a6b0261",
     "semantic_hash": ""
   },
   ".claude/agents/triage.md": {
@@ -90,15 +90,15 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1794469793.0465546,
-    "seen": 1794469813.333979,
-    "ast_hash": "b2708c63b4ec15d4609e63180aeff5c1",
+    "mtime": 1794470493.0434682,
+    "seen": 1794470609.904002,
+    "ast_hash": "0526a9145a5575b79954d3168339d2be",
     "semantic_hash": ""
   },
   "BACKLOG.md": {
-    "mtime": 1794469801.7191324,
-    "seen": 1794469813.333979,
-    "ast_hash": "dd41dc31c19fcacbf9192571efae90eb",
+    "mtime": 1794470493.9296181,
+    "seen": 1794470609.904002,
+    "ast_hash": "50d9c284e2e350e7b5a7d0ea7643a5f7",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -108,9 +108,21 @@
     "semantic_hash": "5c27369b226fcf2be8a6cfe52224e767"
   },
   "factory/claude.ts": {
-    "mtime": 1794469766.4928095,
-    "seen": 1794469813.333973,
-    "ast_hash": "602b72ec4e2e162f7f1aebabec504f25",
+    "mtime": 1794470168.0055392,
+    "seen": 1794470609.903994,
+    "ast_hash": "0a5798931f2c77d97ff2fb76a46b5910",
+    "semantic_hash": ""
+  },
+  "factory/hooks.ts": {
+    "mtime": 1794470273.5564628,
+    "seen": 1794470609.903996,
+    "ast_hash": "0a6cd81b129549abfecbf3cd287527d1",
+    "semantic_hash": ""
+  },
+  "factory/worktree.ts": {
+    "mtime": 1794470492.5315926,
+    "seen": 1794470609.903998,
+    "ast_hash": "652e6019eb64b679840edbc512958492",
     "semantic_hash": ""
   }
 }

@@ -7,8 +7,8 @@ skills:
   - verification-before-completion
   - playwright-cli
 ---
-You review one build. Read `spec.md` and `build.md` in the run directory, then the diff
-(`git diff` against the base branch).
+You review one build. Read `spec.md` and `build.md` in the run directory, then the change:
+`git status --short` and `git diff HEAD`, and read new files in full. Run the gate yourself.
 
 Check, in order: it does what the spec says; tests cover the listed cases; no security
 problem (injection, secrets, unvalidated input, unsafe file or shell use); nothing outside

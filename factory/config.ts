@@ -7,7 +7,8 @@ const RUNNERS = ["claude"];
 const EFFORTS = ["low", "medium", "high", "xhigh", "max"];
 
 export type RoleConfig = { runner: string; model: string; effort: string; fallback: string[] };
-export type Config = { gate: string[]; roles: Record<Role, RoleConfig> };
+/** `setup` runs once in each new task worktree (for example `bun install`); `gate` must pass before review. */
+export type Config = { setup?: string[]; gate: string[]; roles: Record<Role, RoleConfig> };
 
 const isStr = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
 const isStrList = (v: unknown): v is string[] => Array.isArray(v) && v.every(isStr);
@@ -17,6 +18,7 @@ export function parseConfig(raw: unknown): Config {
   const c = (raw ?? {}) as Record<string, any>;
   const errs: string[] = [];
   if (!isStrList(c.gate)) errs.push("gate: must be a list of commands");
+  if (c.setup !== undefined && !isStrList(c.setup)) errs.push("setup: must be a list of commands");
   for (const name of Object.keys(c.roles ?? {}))
     if (!ROLES.includes(name as Role)) errs.push(`roles.${name}: unknown role`);
   for (const role of ROLES) {

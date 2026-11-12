@@ -29,6 +29,8 @@ export function openStore(path: string) {
     },
     list: (run: string) =>
       db.query("SELECT * FROM events WHERE run = ? ORDER BY seq").all(run) as (FactoryEvent & { seq: number; ts: string })[],
+    lastRun: (task: string) =>
+      (db.query("SELECT run FROM events WHERE task = ? ORDER BY seq DESC LIMIT 1").get(task) as { run: string } | null)?.run,
     close: () => db.close(),
   };
 }

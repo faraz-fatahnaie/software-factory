@@ -1,17 +1,18 @@
 import { expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { add, move, parse } from "./backlog";
 import { claudeArgs, classify } from "./claude";
 import { parseConfig, type Config } from "./config";
 import { openStore } from "./events";
+import { guard } from "./hooks";
 import { followUps, runTask, shellGate, type Runner } from "./pipeline";
 import { attachSkill, roleSkills } from "./skills";
 
 const role = { runner: "claude", model: "sonnet", effort: "medium", fallback: ["haiku"] };
 const config: Config = { gate: ["true"], roles: { triage: role, architect: role, builder: role, reviewer: role } };
-const BACKLOG = "# Backlog\n\n## Inbox\n\n## Ready\n- [ ] F-001 (P1) First\n  detail line\n- [ ] F-002 Second\n\n## In progress\n\n## Blocked\n\n## Done\n";
+const BACKLOG = "# Backlog\n\n## Inbox\n\n## Ready\n- [ ] F-001 (P1) First\n  detail line\n- [ ] F-002 Second\n\n## In progress\n\n## Awaiting approval\n\n## Blocked\n\n## Done\n";
 const tmp = () => mkdtempSync(join(tmpdir(), "factory-"));
 const task = { id: "F-001", title: "First" };
 
@@ -20,6 +21,7 @@ test("config: rejects bad input and names every problem", () => {
   const bad = { gate: "bun test", roles: { ...config.roles, builder: { ...role, runner: "gemini", effort: "extreme" }, qa: role } };
   expect(() => parseConfig(bad)).toThrow(/gate:[\s\S]*roles\.qa: unknown[\s\S]*builder\.runner[\s\S]*builder\.effort/);
   expect(() => parseConfig(null)).toThrow(/roles\.triage: missing/);
+  expect(() => parseConfig({ ...config, setup: "bun install" })).toThrow(/setup:/);
 });
 
 test("backlog: parse, move with detail lines, add, duplicate ids", () => {
@@ -30,6 +32,7 @@ test("backlog: parse, move with detail lines, add, duplicate ids", () => {
   const added = add(done, "multi\nline   title");
   expect(added.id).toBe("F-003");
   expect(added.text).toContain("## Inbox\n- [ ] F-003 multi line title\n");
+  expect(move(BACKLOG, "F-002", "Done", "https://example.invalid/pr/1")).toContain("- [x] F-002 Second (https://example.invalid/pr/1)\n");
   expect(() => move(BACKLOG, "F-999", "Done")).toThrow(/no item/);
   expect(() => add(BACKLOG, "  ")).toThrow(/title/);
   expect(() => parse(BACKLOG + "- [ ] F-001 again\n")).toThrow(/duplicate/);
@@ -45,7 +48,7 @@ test("pipeline: fails over on rate limit, loops on gate failure and review, coll
     return { status: "ok", text: stage };
   };
   const dir = tmp();
-  const result = await runTask(task, { config, store, runner, gate: () => ({ ok: ++gates > 1, output: "test failed" }), cwd: dir });
+  const result = await runTask(task, { config, store, runner, gate: async () => ({ ok: ++gates > 1, output: "test failed" }), cwd: dir });
 
   expect(result).toMatchObject({ ok: true, followUps: ["Add retry metrics"] });
   expect(builds).toBe(3); // 1: gate fails, 2: review rejects, 3: approved
@@ -88,6 +91,9 @@ test("claude: classifies results from real CLI output shapes", () => {
   const readOnly = claudeArgs({ ...job, role: "reviewer" }, []);
   expect(readOnly[2]).toBe("Stage: build.");
   expect(readOnly.join(" ")).toContain("--permission-mode dontAsk");
+  const hooks = (a: string[]) => Object.keys(JSON.parse(a[a.indexOf("--settings") + 1]!).hooks);
+  expect(hooks(args)).toEqual(["PreToolUse", "Stop"]); // only the builder is held to the gate
+  expect(hooks(readOnly)).toEqual(["PreToolUse"]);
 });
 
 test("skills: attach is idempotent and creates the list when absent", () => {
@@ -100,16 +106,73 @@ test("skills: attach is idempotent and creates the list when absent", () => {
   expect(roleSkills(md)).toEqual([]);
 });
 
-test("cli: run moves the top Ready item to Done and records events", () => {
+test("guard: blocks governance files, escapes and outward git; allows normal work", () => {
+  const root = "/repo/.worktrees/F-001";
+  const edit = (file_path: string) => guard({ tool_name: "Edit", tool_input: { file_path } }, root);
+  const bash = (command: string, permission_mode = "acceptEdits") => guard({ tool_name: "Bash", permission_mode, tool_input: { command } }, root);
+  for (const ok of ["factory/pipeline.ts", `${root}/src/a.ts`, ".gitignore", ".github/workflows/ci.yml"]) expect(edit(ok)).toBeNull();
+  for (const no of ["BACKLOG.md", `${root}/.claude/agents/builder.md`, "factory.config.json", ".git", ".factory/runs/x/spec.md"]) expect(edit(no)).toMatch(/governance/);
+  for (const out of ["../F-002/x.ts", "/etc/hosts", "/repo/BACKLOG.md"]) expect(edit(out)).toMatch(/outside/);
+  expect(guard({ tool_name: "Read", tool_input: { file_path: "BACKLOG.md" } }, root)).toBeNull();
+  // Real paths: the temp dir is reached through a symlink on macOS, and a symlink must not lead out.
   const dir = tmp();
-  writeFileSync(join(dir, "BACKLOG.md"), BACKLOG);
-  writeFileSync(join(dir, "factory.config.json"), JSON.stringify(config));
-  const cli = (...args: string[]) => Bun.spawnSync(["bun", join(import.meta.dir, "cli.ts"), ...args], { cwd: dir });
-  expect(cli("run", "--stub").exitCode).toBe(0);
-  expect(cli("add", "Later thing").exitCode).toBe(0);
-  const items = parse(readFileSync(join(dir, "BACKLOG.md"), "utf8"));
-  expect(items.find((i) => i.id === "F-001")?.section).toBe("Done");
-  expect(items.find((i) => i.id === "F-003")).toMatchObject({ section: "Inbox", title: "Later thing" });
-  expect(cli("run", "F-001").exitCode).toBe(1); // already done
-  expect(cli("bogus").exitCode).toBe(1);
+  symlinkSync("/etc", join(dir, "link"));
+  const inDir = (file_path: string) => guard({ tool_name: "Write", tool_input: { file_path } }, dir);
+  expect(inDir(join(realpathSync(dir), "new/file.ts"))).toBeNull();
+  expect(inDir("link/hosts")).toMatch(/outside/);
+  for (const ok of ["bun test", "git diff -- factory/ .gitignore", "rm -rf node_modules/.cache"]) expect(bash(ok)).toBeNull();
+  for (const no of ["sed -i '' s/a/b/ BACKLOG.md", "rm -rf .claude", "echo x > ./.git/config", "mv a factory.config.json"]) expect(bash(no)).toMatch(/must not touch/);
+  expect(bash("cat .factory/runs/x/spec.md", "dontAsk")).toBeNull(); // read-only roles cannot write through the shell at all
+  expect(bash("git push origin main", "dontAsk")).toMatch(/orchestrator/);
+  expect(bash("gh pr create --fill")).toMatch(/orchestrator/);
 });
+
+test("hooks: guard fails closed; the stop gate sends the builder back once", () => {
+  const dir = tmp();
+  const hook = (mode: string, input: string, gate = "[]") =>
+    Bun.spawnSync(["bun", join(import.meta.dir, "hooks.ts"), mode], { stdin: Buffer.from(input), env: { ...process.env, FACTORY_ROOT: dir, FACTORY_GATE: gate } }).exitCode;
+  expect(hook("guard", JSON.stringify({ tool_name: "Write", tool_input: { file_path: "a.ts" } }))).toBe(0);
+  expect(hook("guard", JSON.stringify({ tool_name: "Write", tool_input: { file_path: "BACKLOG.md" } }))).toBe(2);
+  expect(hook("guard", "not json")).toBe(2);
+  expect(hook("stop", "{}", '["true"]')).toBe(0);
+  expect(hook("stop", "{}", '["false"]')).toBe(2);
+  expect(hook("stop", '{"stop_hook_active":true}', '["false"]')).toBe(0);
+});
+
+test("cli: parallel runs in worktrees, approve merges, discard cleans up", () => {
+  const dir = tmp();
+  const env = { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.invalid", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.invalid" };
+  const sh = (...argv: string[]) => {
+    const p = Bun.spawnSync(argv, { cwd: dir, env });
+    return { code: p.exitCode, out: `${p.stdout}${p.stderr}`.trim() };
+  };
+  const cli = (...args: string[]) => sh("bun", join(import.meta.dir, "cli.ts"), ...args);
+  const section = (id: string) => parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).find((i) => i.id === id)?.section;
+  writeFileSync(join(dir, "BACKLOG.md"), BACKLOG);
+  writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ ...config, setup: ["true"] }));
+  writeFileSync(join(dir, ".gitignore"), ".factory/\n.worktrees/\n");
+  sh("git", "init", "-q", "-b", "main"); sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "base");
+
+  expect(cli("run", "--stub", "--parallel", "2")).toMatchObject({ code: 0 });
+  expect([section("F-001"), section("F-002")]).toEqual(["Awaiting approval", "Awaiting approval"]);
+  expect(existsSync(join(dir, ".worktrees/F-001/STUB_BUILD.txt"))).toBe(true);
+  expect(existsSync(join(dir, "STUB_BUILD.txt"))).toBe(false); // the main checkout is untouched
+  expect(sh("git", "status", "--porcelain").out).toBe(""); // backlog moves were committed
+  expect(sh("git", "log", "--format=%s", "factory/F-001", "-1").out).toBe("F-001: First");
+  expect(cli("run", "F-001", "--stub").code).toBe(1); // already awaiting approval
+
+  expect(cli("approve", "F-001")).toMatchObject({ code: 0 });
+  expect(existsSync(join(dir, "STUB_BUILD.txt"))).toBe(true); // merged
+  expect(cli("discard", "F-002")).toMatchObject({ code: 0 });
+  expect(existsSync(join(dir, ".worktrees/F-001")) || existsSync(join(dir, ".worktrees/F-002"))).toBe(false);
+  expect(sh("git", "branch", "--list", "factory/*").out).toBe("");
+  expect([section("F-001"), section("F-002")]).toEqual(["Done", "Ready"]);
+
+  expect(cli("add", "Later thing").code).toBe(0);
+  expect(section("F-003")).toBe("Inbox");
+  expect(cli("approve", "F-002").code).toBe(1); // nothing to approve
+  expect(cli("run", "--parallel", "0").code).toBe(1);
+  expect(cli("run", "F-002 F-003", "--stub").out).toMatch(/unknown argument/); // must not fall through to the top Ready item
+  expect(section("F-002")).toBe("Ready");
+  expect(cli("bogus").code).toBe(1);
+}, 60_000);

@@ -7,27 +7,29 @@ export type Status = "ok" | "rate_limited" | "auth" | "error";
 export type Job = { role: Role; model: string; effort: string; stage: string; prompt: string; cwd: string };
 export type RunnerResult = { status: Status; text: string; usage?: unknown };
 export type Runner = (job: Job) => Promise<RunnerResult>;
-export type Gate = (cwd: string) => { ok: boolean; output: string };
+export type Gate = (cwd: string) => Promise<{ ok: boolean; output: string }>;
 
 const MAX_BUILDS = 3;
 
 /** Deterministic checks (lint, types, tests). Same gate whichever model wrote the code. */
 export function shellGate(cmds: string[]): Gate {
-  return (cwd) => {
+  return async (cwd) => {
     for (const cmd of cmds) {
-      const p = Bun.spawnSync(["sh", "-c", cmd], { cwd, stdout: "pipe", stderr: "pipe" });
+      // Async, so parallel tasks keep moving while one task's checks run.
+      const p = Bun.spawn(["sh", "-c", cmd], { cwd, stdout: "pipe", stderr: "pipe" });
+      const [out, err, code] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
       // Keep only the tail: it is fed back to the builder as a prompt.
-      if (p.exitCode !== 0) return { ok: false, output: `$ ${cmd}\n${p.stdout}${p.stderr}`.slice(-4000) };
+      if (code !== 0) return { ok: false, output: `$ ${cmd}\n${out}${err}`.slice(-4000) };
     }
     return { ok: true, output: "" };
   };
 }
 
 /** Canned runner for `factory run --stub` and tests: exercises the pipeline without a model. */
-export const stubRunner: Runner = async ({ stage }) => ({
-  status: "ok",
-  text: stage === "review" ? "APPROVE\n\nStub review." : `Stub ${stage} output.`,
-});
+export const stubRunner: Runner = async ({ stage, cwd }) => {
+  if (stage === "build") writeFileSync(join(cwd, "STUB_BUILD.txt"), `stub build ${new Date().toISOString()}\n`);
+  return { status: "ok", text: stage === "review" ? "APPROVE\n\nStub review." : `Stub ${stage} output.` };
+};
 
 /** Lines under a "## Follow-ups" heading: out-of-scope work an agent wants queued. */
 export function followUps(text: string): string[] {
@@ -77,7 +79,7 @@ export async function runTask(
     for (let attempt = 1; ; attempt++) {
       const build = await stage("build", "builder", feedback);
       emit("check", "stage.start");
-      const check = o.gate(o.cwd);
+      const check = await o.gate(o.cwd);
       emit("check", check.ok ? "stage.ok" : "stage.failed", { data: check.output });
       const review = check.ok ? await stage("review", "reviewer") : "";
       // Anything other than a leading APPROVE counts as changes requested.
