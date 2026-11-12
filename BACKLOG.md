@@ -4,8 +4,6 @@ The factory's intake queue. `factory run` takes the top item under Ready.
 Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
-- [ ] F-006 (P1) Phase 6: GUI second tier
-  Cost, replay, worktree manager, studio with per-role skill search, attach and detach.
 - [ ] F-007 (P1) Phase 7: hardening and Release 1
   Security review, one end-to-end browser test, README.
 - [ ] F-008 (P2) Release 2: Codex CLI runner
@@ -24,6 +22,7 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 - [ ] F-021 Rebase a task branch automatically when approve hits a merge conflict
 - [ ] F-022 Pause and resume a running task from the control plane
 - [ ] F-023 Model health test in the matrix: a one-token prompt per model
+- [ ] F-024 Show a skill's SKILL.md in the studio before installing it, not only its skills.sh page
 
 ## Ready
 
@@ -44,3 +43,5 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Streaming runner with live tool-call and rate-limit events, event stream with replay, run, stop, approve, discard and add endpoints.
 - [x] F-005 (P1) Phase 5: GUI first tier
   Backlog and pipeline board, live log, spec, review and diff panel with approve and discard, model matrix, usage gauge.
+- [x] F-006 (P1) Phase 6: GUI second tier
+  Cost and pass rate by model, role and task; run replay; worktree manager; studio with versioned editing and per-role skills; graph viewer.
