@@ -19,6 +19,7 @@ model working here; `CLAUDE.md` only imports it.
 - `plugin/` — **the product**, and the only folder users receive. Read `docs/PLUGIN.md` before changing its layout, adding a dependency or releasing.
 - `plugin/engine/` — orchestrator: `config`, `events` (SQLite log), `backlog`, `pipeline`, `claude` (headless runner), `worktree`, `hooks` (guard and gate), `server`, `skills`, `cli`.
 - `plugin/gui/` — the control plane page (React, bundled by Bun on request): `state.ts` folds the event log into what the page shows, `app.tsx` renders the pipeline and models, `views.tsx` the cost, worktree and studio views.
+- `plugin/skills/` — the slash commands (`/software-factory:init`, `add`, `run`, `status`, `open`, `approve`, `discard`, `doctor`). Each is a thin wrapper over `factory`; put logic in the engine.
 - `plugin/templates/` — role files, rules, backlog and config that init writes into a project. `plugin/bin/factory` is the executable.
 - `tests/` — unit and HTTP tests. `e2e/` — the browser test. `tests/fixture.ts` builds the throwaway repo both test suites use.
 - `.worktrees/<F-id>/` — one git worktree and `factory/<F-id>` branch per task. Not committed.

@@ -5,6 +5,7 @@ import { add, move, parse, type Item, type Section } from "./backlog";
 import { claudeRunner } from "./claude";
 import { loadConfig } from "./config";
 import { openStore } from "./events";
+import { detect, doctor, init } from "./init";
 import { runTask, shellGate, stopAll, stubRunner } from "./pipeline";
 import { addSkill, setSkill } from "./skills";
 import { commitAll, ensureWorktree, land, removeWorktree } from "./worktree";
@@ -55,7 +56,12 @@ function find(id: string | undefined, ...sections: Section[]): Item {
   return item;
 }
 
-const USAGE = `factory run [F-id...] [--parallel N] [--stub]   run the top Ready item(s) or the named ones, each in its own worktree
+const USAGE = `factory init [--setup <cmd>]... [--gate <cmd>]...  set this project up; without flags the commands are detected
+factory detect                                  show the setup and gate commands init would use
+factory gate ["<cmd>"...]                        run the configured gate here, or try the given commands
+factory doctor                                  check the machine and this project's setup
+factory status                                  what is ready, running, waiting for you or blocked
+factory run [F-id...] [--parallel N] [--stub]   run the top Ready item(s) or the named ones, each in its own worktree
 factory promote <F-id>                          move an Inbox item to Ready
 factory approve <F-id>                          land an approved task: pull request if the repo has an origin, else a local merge
 factory discard <F-id>                          delete a task's worktree and branch, and return it to Ready
@@ -85,6 +91,59 @@ async function main([cmd, ...args]: string[]) {
     const { serve } = await import("./server");
     const server = serve(root, args[0] === undefined ? 4400 : Number(args[0]));
     return console.log(`factory control plane: http://127.0.0.1:${server.port}`);
+  }
+
+  if (cmd === "detect") return console.log(JSON.stringify(detect(root), null, 2));
+
+  if (cmd === "init") {
+    if (Bun.spawnSync(["git", "rev-parse", "--is-inside-work-tree"], { cwd: root }).exitCode !== 0)
+      throw new Error("not a git repository. Run `git init` first: the factory works in git worktrees.");
+    const flag = (name: string) => args.flatMap((a, i) => (a === name && args[i + 1] !== undefined ? [args[i + 1]!] : []));
+    const unknown = args.filter((a, i) => a !== "--setup" && a !== "--gate" && args[i - 1] !== "--setup" && args[i - 1] !== "--gate");
+    if (unknown.length) throw new Error(`unknown argument: ${unknown.join(" ")}`);
+    const r = init(root, { ...(args.includes("--setup") && { setup: flag("--setup") }), ...(args.includes("--gate") && { gate: flag("--gate") }) });
+    // Committed, because task worktrees branch from HEAD.
+    if (r.paths.length) commitPaths("software-factory: initialize", ...r.paths);
+    console.log([`Stack: ${r.stack}`, ...r.done, `setup: ${r.config.setup?.join(" ; ") || "(none)"}`, `gate:  ${r.config.gate.join(" ; ") || "(none: only the reviewer will check a build)"}`,
+      "Next: factory add \"<what to build>\", factory promote <F-id>, factory run"].join("\n"));
+    return;
+  }
+
+  if (cmd === "gate") {
+    // With commands: try them here, before they go into the config. Without: run the configured gate.
+    const result = await shellGate(args.length ? args : loadConfig(root).gate)(root);
+    console.log(result.ok ? "gate passed" : `gate failed\n${result.output}`);
+    if (!result.ok) process.exitCode = 1;
+    return;
+  }
+
+  if (cmd === "doctor") {
+    const r = doctor(root);
+    console.log(r.lines.join("\n"));
+    if (!r.ok) process.exitCode = 1;
+    return;
+  }
+
+  if (cmd === "status") {
+    const { summarize } = await import("../gui/state");
+    const store = openEvents();
+    const events = [];
+    for (let rows = store.since(0); rows.length; rows = store.since(rows.at(-1)!.seq)) events.push(...rows);
+    const { tasks } = summarize(events as any);
+    const items = readItems();
+    for (const section of ["In progress", "Awaiting approval", "Blocked", "Ready"] as const) {
+      const here = items.filter((i) => i.section === section);
+      if (!here.length) continue;
+      console.log(`${section}:`);
+      for (const i of here) {
+        const run = tasks.get(i.id);
+        const active = Object.entries(run?.stages ?? {}).find(([, st]) => st.state === "active");
+        const note = section === "In progress" && active ? `  [${active[0]} on ${active[1].model ?? "gate"}]` : section === "Blocked" && run?.error ? `  [${run.error.slice(0, 120)}]` : "";
+        console.log(`  ${i.id} ${i.title}${run?.cost ? `  $${run.cost.toFixed(3)}` : ""}${note}`);
+      }
+    }
+    const count = (s: string) => items.filter((i) => i.section === s).length;
+    return console.log(`Inbox ${count("Inbox")} · Ready ${count("Ready")} · In progress ${count("In progress")} · Awaiting approval ${count("Awaiting approval")} · Blocked ${count("Blocked")} · Done ${count("Done")}`);
   }
 
   if (cmd === "promote") {

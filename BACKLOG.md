@@ -23,8 +23,6 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 - [ ] F-024 Show a skill's SKILL.md in the studio before installing it, not only its skills.sh page
 - [ ] F-025 Assign a local port per task worktree once tasks start dev servers
 
-- [ ] F-026 (P1) Phase 9: plugin commands as skills
-  init (stack detection, templates), add, run, status, open, approve, discard, doctor; tested through --plugin-dir on a non-JavaScript project.
 - [ ] F-027 (P1) Phase 10: prebuilt GUI and multi-project view
   Ship the page prebuilt so the plugin needs no dependencies; project registry in the plugin data folder; project switcher at user scope.
 - [ ] F-028 (P1) Phase 11: brainstorming role
@@ -57,3 +55,5 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Security review and fixes, browser end-to-end test, README, version 1.0.0.
 - [x] F-030 (P1) Phase 8: plugin layout
   Product moved into plugin/ with manifests, bin/factory, templates and MIT licence; engine runs from a copied install on any project; docs/PLUGIN.md.
+- [x] F-026 (P1) Phase 9: plugin commands as skills
+  Eight skills over the engine; init with stack detection, gate trial and doctor; verified through --plugin-dir on a Python project.

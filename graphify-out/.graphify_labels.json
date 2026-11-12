@@ -15,5 +15,13 @@
   "13": "architect.md",
   "14": "builder.md",
   "15": "reviewer.md",
-  "16": "triage.md"
+  "16": "triage.md",
+  "17": "add/SKILL.md",
+  "18": "approve/SKILL.md",
+  "19": "discard/SKILL.md",
+  "20": "doctor/SKILL.md",
+  "21": "init/SKILL.md",
+  "22": "open/SKILL.md",
+  "23": "run/SKILL.md",
+  "24": "status/SKILL.md"
 }

@@ -60,6 +60,23 @@ plugin/
    changes, so every release must bump it. Without it, every commit counts as an update.
 10. **Bun is a prerequisite on the user's machine.** `bin/factory` says so when it is missing.
 
+## Commands
+
+Each command is a thin skill that calls `factory`; the logic stays in the engine, where it is tested.
+
+| Command | Runs | Claude may invoke it unasked |
+| --- | --- | --- |
+| `/software-factory:init` | `factory detect`, `factory gate`, `factory init`, `factory doctor` | No |
+| `/software-factory:add` | `factory add` | Yes |
+| `/software-factory:run` | `factory run` | No |
+| `/software-factory:status` | `factory status` | Yes |
+| `/software-factory:open` | `factory serve` | Yes |
+| `/software-factory:approve`, `:discard` | `factory approve`, `factory discard` | No |
+| `/software-factory:doctor` | `factory doctor` | Yes |
+
+Commands that spend model usage, land work or delete it set `disable-model-invocation: true`,
+so only a person can start them. Every skill is limited to `allowed-tools: Bash(factory *)`.
+
 ## Scopes
 
 Users choose where the plugin is enabled: `--scope user` (every project, recorded in
@@ -103,4 +120,4 @@ with the real maintainer before the first public release.
 
 - The GUI still needs `react` from `node_modules`, so `factory serve` returns an error page
   from a copied install. Shipping it prebuilt fixes this.
-- There are no skills yet; the commands exist only as `factory <command>`.
+- A skill that Claude invokes by itself is denied in headless (`claude -p`) sessions, because nobody is there to approve it. Typed as a slash command it runs. In an interactive session the user is asked once.

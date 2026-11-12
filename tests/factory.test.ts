@@ -7,6 +7,7 @@ import { parseConfig } from "../plugin/engine/config";
 import { openStore } from "../plugin/engine/events";
 import { BACKLOG, config, repo, role, tmp } from "./fixture";
 import { guard } from "../plugin/engine/hooks";
+import { detect, doctor, init } from "../plugin/engine/init";
 import { followUps, runTask, shellGate, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
 import { costs, elapsed, summarize, toolLine, type Ev } from "../plugin/gui/state";
@@ -308,3 +309,53 @@ test("gui state: folds events into stage states, cost and outputs; a rebuild cle
   expect(toolLine({ tool: "Read", input: { file_path: "a.ts" } })).toBe("Read  a.ts");
   expect(elapsed("2026-01-01T00:00:00.000Z", Date.parse("2026-01-01T00:01:05.000Z"))).toBe("1m 05s");
 });
+
+test("init: detects the stack, writes without overwriting, and doctor confirms the setup", () => {
+  const project = (files: Record<string, string>) => {
+    const dir = tmp();
+    for (const [name, content] of Object.entries(files)) writeFileSync(join(dir, name), content);
+    return dir;
+  };
+  expect(detect(project({ "package.json": JSON.stringify({ scripts: { test: "vitest", lint: "eslint .", build: "tsc" } }), "pnpm-lock.yaml": "" })))
+    .toEqual({ stack: "JavaScript/TypeScript (pnpm)", setup: ["pnpm install"], gate: ["pnpm run test", "pnpm run lint"] });
+  expect(detect(project({ "package.json": JSON.stringify({ scripts: { test: 'echo "Error: no test specified" && exit 1' } }) })).gate).toEqual([]);
+  expect(detect(project({ "pyproject.toml": "[tool.ruff]\n[tool.pytest.ini_options]\n", "uv.lock": "" })))
+    .toEqual({ stack: "Python", setup: ["uv sync"], gate: ["uv run ruff check .", "uv run pytest -q"] });
+  expect(detect(project({ "go.mod": "module x" })).gate).toEqual(["go vet ./...", "go test ./..."]);
+  expect(detect(project({ "Cargo.toml": "" })).stack).toBe("Rust");
+  expect(detect(project({ Makefile: "build:\n\tcc x.c\ntest:\n\t./run\n" })).gate).toEqual(["make test"]);
+  expect(detect(project({ "notes.txt": "" }))).toEqual({ stack: "unknown", setup: [], gate: [] });
+
+  // A Go project that already has its own rules file and one customised role.
+  const dir = project({ "go.mod": "module x", "AGENTS.md": "# House rules\n\nTabs.", ".gitignore": "bin/\n" });
+  const git = (...argv: string[]) => Bun.spawnSync(["git", ...argv], { cwd: dir }).stdout.toString().trim();
+  git("init", "-q", "-b", "main");
+  mkdirSync(join(dir, ".claude/agents"), { recursive: true });
+  writeFileSync(join(dir, ".claude/agents/builder.md"), "---\nname: builder\n---\nMine.\n");
+  expect(doctor(dir).ok).toBe(false);
+
+  const cli = (...args: string[]) => { const p = Bun.spawnSync([join(import.meta.dir, "../plugin/bin/factory"), ...args], { cwd: dir }); return { code: p.exitCode, out: `${p.stdout}${p.stderr}` }; };
+  expect(cli("init", "--bogus").out).toMatch(/unknown argument/);
+  const first = cli("init", "--gate", "go test ./...");
+  expect(first.out).toMatch(/Stack: Go[\s\S]*created  factory.config.json[\s\S]*kept     .claude\/agents\/builder.md[\s\S]*updated  AGENTS.md/);
+  expect(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8"))).toMatchObject({ setup: [], gate: ["go test ./..."], roles: { builder: { model: "sonnet" } } });
+  expect(readFileSync(join(dir, "AGENTS.md"), "utf8")).toStartWith("# House rules\n\nTabs.\n\n## Software Factory rules\n"); // appended, not replaced
+  expect(readFileSync(join(dir, ".claude/agents/builder.md"), "utf8")).toContain("Mine."); // never overwritten
+  expect(readFileSync(join(dir, ".gitignore"), "utf8")).toBe("bin/\n.factory/\n.worktrees/\n");
+  expect(readFileSync(join(dir, "CLAUDE.md"), "utf8")).toBe("@AGENTS.md\n");
+  expect(git("log", "--format=%s")).toBe("software-factory: initialize");
+
+  // Running it again changes nothing, and the setup now checks out.
+  expect(init(dir).paths).toEqual([]);
+  const health = doctor(dir);
+  expect(health.lines.filter((l) => l.startsWith("✗"))).toEqual([]);
+  expect(cli("status").out).toMatch(/Inbox 0 · Ready 0/);
+  expect(cli("add", "First thing").code).toBe(0);
+  expect(cli("promote", "F-001").code).toBe(0);
+  expect(cli("status").out).toMatch(/Ready:\n  F-001 First thing\nInbox 0 · Ready 1/);
+  expect(cli("init").code).toBe(0);
+  expect(cli("gate", "true")).toMatchObject({ code: 0, out: "gate passed\n" });
+  expect(cli("gate", "echo boom; false")).toMatchObject({ code: 1, out: expect.stringMatching(/gate failed[\s\S]*boom/) });
+  const outside = tmp();
+  expect(Bun.spawnSync([join(import.meta.dir, "../plugin/bin/factory"), "init"], { cwd: outside }).exitCode).toBe(1); // not a git repository
+}, 60_000);
