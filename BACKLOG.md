@@ -25,6 +25,7 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 - [ ] F-017 Consider the CLI's native --fallback-model for overload, alongside the factory's own chain
 - [ ] F-018 Budget cap per stage with --max-budget-usd
 - [ ] F-019 Run builder stages inside an OS-level sandbox; the guard hook is a text match, not containment
+- [ ] F-020 Reject with feedback: send an awaiting-approval task back to Build with a person's comments
 
 ## Ready
 
