@@ -66,3 +66,31 @@ export function elapsed(fromIso: string, toMs: number): string {
   const s = Math.max(0, Math.round((toMs - Date.parse(fromIso)) / 1000));
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
 }
+
+export type CostRow = { stages: number; ok: number; cost: number; input: number; output: number };
+
+/** Spend, tokens and pass rate of model stages, grouped by model, role and task. */
+export function costs(events: Ev[]) {
+  const by = { model: new Map<string, CostRow>(), role: new Map<string, CostRow>(), task: new Map<string, CostRow>() };
+  for (const e of events) {
+    // Finished model stages only: the check stage has no model, and agent.* events carry no usage.
+    if (!e.type.startsWith("stage.") || e.type === "stage.start" || !e.model) continue;
+    const u = e.data?.usage ?? {};
+    for (const [dim, key] of [["model", e.model], ["role", e.role ?? "?"], ["task", e.task]] as const) {
+      const row = by[dim].get(key) ?? { stages: 0, ok: 0, cost: 0, input: 0, output: 0 };
+      row.stages++;
+      if (e.type === "stage.ok") row.ok++;
+      row.cost += u.costUsd ?? 0;
+      row.input += (u.inputTokens ?? 0) + (u.cacheWriteTokens ?? 0) + (u.cacheReadTokens ?? 0);
+      row.output += u.outputTokens ?? 0;
+      by[dim].set(key, row);
+    }
+  }
+  return by;
+}
+
+export async function post(path: string, body: unknown): Promise<{ ok: boolean; error: string }> {
+  const res = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok && data.ok !== false, error: data.error ?? data.output ?? `request failed (${res.status})` };
+}

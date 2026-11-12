@@ -19,6 +19,22 @@ export function ensureWorktree(root: string, id: string): string {
   return dir;
 }
 
+/** Every task worktree, with how far its branch is ahead and how much is uncommitted. */
+export function listWorktrees(root: string) {
+  return git(root, "worktree", "list", "--porcelain").split("\n\n").flatMap((block) => {
+    const path = block.match(/^worktree (.+)$/m)?.[1];
+    const id = block.match(/^branch refs\/heads\/factory\/(F-\d+)$/m)?.[1];
+    if (!path || !id) return [];
+    return [{
+      id,
+      path,
+      branch: branchOf(id),
+      ahead: Number(git(root, "rev-list", "--count", `HEAD..${branchOf(id)}`)),
+      uncommitted: git(path, "status", "--porcelain").split("\n").filter(Boolean).length,
+    }];
+  });
+}
+
 /** Commits everything in the worktree. Agents never run git writes; the orchestrator does. */
 export function commitAll(dir: string, message: string): boolean {
   git(dir, "add", "-A");

@@ -1,9 +1,11 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "./backlog";
 import gui from "../gui/index.html";
-import { loadConfig, parseConfig } from "./config";
+import { loadConfig, parseConfig, ROLES } from "./config";
 import { openStore } from "./events";
+import { parseFind, roleSkills } from "./skills";
+import { listWorktrees } from "./worktree";
 
 const CLI = join(import.meta.dir, "cli.ts");
 const ID = /^F-\d+$/;
@@ -16,12 +18,21 @@ export function serve(root: string, port = 4400) {
   const running = new Map<string, { kill(signal?: number | NodeJS.Signals): void }>();
   const items = () => parse(readFileSync(join(root, "BACKLOG.md"), "utf8"));
 
-  // Short commands (add, approve, discard): wait and return what the CLI printed.
-  const cli = async (...args: string[]) => {
-    const p = Bun.spawn([process.execPath, CLI, ...args], { cwd: root, stdout: "pipe", stderr: "pipe" });
+  const sh = async (...argv: string[]) => {
+    const p = Bun.spawn(argv, { cwd: root, stdout: "pipe", stderr: "pipe", timeout: 120_000, env: { ...process.env, NO_COLOR: "1" } });
     const [out, err, code] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
-    return json({ ok: code === 0, output: `${out}${err}`.trim() }, code === 0 ? 200 : 409);
+    return { out, err, code };
   };
+  // Short commands (add, approve, discard, skills): wait and return what the CLI printed.
+  const cli = async (...args: string[]) => {
+    const r = await sh(process.execPath, CLI, ...args);
+    return json({ ok: r.code === 0, output: `${r.out}${r.err}`.trim() }, r.code === 0 ? 200 : 409);
+  };
+  // The only files the studio may read or write. Paths are matched against this list, never joined blindly.
+  const editable = () =>
+    ["AGENTS.md", "CLAUDE.md", ...new Bun.Glob(".claude/agents/*.md").scanSync({ cwd: root, dot: true }), ...new Bun.Glob(".claude/skills/*/SKILL.md").scanSync({ cwd: root, dot: true })]
+      .filter((f) => existsSync(join(root, f)))
+      .sort();
 
   // Server-sent events from the event log. `after` is a sequence number, so a reconnect
   // (Last-Event-ID) resumes where it left off and `after=0` replays everything.
@@ -67,11 +78,37 @@ export function serve(root: string, port = 4400) {
       if (route === "GET /api/diff") {
         const id = url.searchParams.get("id") ?? "";
         if (!ID.test(id)) return json({ error: "bad id" }, 400);
-        const p = Bun.spawn(["git", "diff", `HEAD...factory/${id}`], { cwd: root, stdout: "pipe", stderr: "ignore" });
-        const [diff, code] = await Promise.all([new Response(p.stdout).text(), p.exited]);
-        return code === 0
-          ? new Response(diff.slice(0, 500_000), { headers: { "content-type": "text/plain; charset=utf-8" } })
+        const diff = await sh("git", "diff", `HEAD...factory/${id}`);
+        return diff.code === 0
+          ? new Response(diff.out.slice(0, 500_000), { headers: { "content-type": "text/plain; charset=utf-8" } })
           : json({ error: "no branch for that task" }, 404);
+      }
+      if (route === "GET /graph") {
+        const file = Bun.file(join(root, "graphify-out", "graph.html"));
+        return (await file.exists()) ? new Response(file) : new Response("No knowledge graph yet. Run /graphify .", { status: 404 });
+      }
+      if (route === "GET /api/worktrees") return json(listWorktrees(root));
+      if (route === "GET /api/files") return json(editable());
+      if (route === "GET /api/file") {
+        const path = url.searchParams.get("path") ?? "", rev = url.searchParams.get("rev");
+        if (!editable().includes(path)) return json({ error: "not an editable file" }, 400);
+        if (rev && !/^[0-9a-f]{7,40}$/.test(rev)) return json({ error: "bad revision" }, 400);
+        // Version history is git history: every studio save is a commit of that one file.
+        const log = await sh("git", "log", "-15", "--format=%h%x09%cs%x09%s", "--", path);
+        const history = log.out.split("\n").filter(Boolean).map((l) => { const [sha, date, subject] = l.split("\t"); return { sha, date, subject }; });
+        const content = rev ? (await sh("git", "show", `${rev}:${path}`)).out : readFileSync(join(root, path), "utf8");
+        return json({ content, history });
+      }
+      if (route === "GET /api/skills") {
+        const dir = join(root, ".claude", "skills");
+        const installed = existsSync(dir) ? [...new Bun.Glob("*/SKILL.md").scanSync({ cwd: dir })].map((f) => f.split("/")[0]!).sort() : [];
+        const agent = (role: string) => join(root, ".claude", "agents", `${role}.md`);
+        return json({ installed, roles: Object.fromEntries(ROLES.map((r) => [r, existsSync(agent(r)) ? roleSkills(readFileSync(agent(r), "utf8")) : []])) });
+      }
+      if (route === "GET /api/skills/search") {
+        const q = url.searchParams.get("q") ?? "";
+        if (!/^[\w .-]{2,60}$/.test(q)) return json({ error: "search: 2 to 60 letters, digits or spaces" }, 400);
+        return json(parseFind((await sh("npx", "-y", "skills", "find", q)).out)); // asks skills.sh
       }
       if (req.method !== "POST") return json({ error: "not found" }, 404);
 
@@ -90,6 +127,24 @@ export function serve(root: string, port = 4400) {
           : json({ error: "title: 1 to 500 characters" }, 400);
       if (["POST /api/approve", "POST /api/discard", "POST /api/promote"].includes(route))
         return ids.length === 1 ? cli(url.pathname.slice(5), ids[0]!) : json({ error: "one id required" }, 400);
+      if (route === "POST /api/skill") {
+        const { action, skill, role } = body;
+        const ok = ["add", "attach", "detach"].includes(action as string) && typeof skill === "string" && /^[\w./@:-]{1,120}$/.test(skill) && typeof role === "string";
+        return ok ? cli("skill", action as string, skill as string, "--role", role as string) : json({ error: "action, skill and role required" }, 400);
+      }
+      if (route === "POST /api/file") {
+        const { path, content } = body;
+        if (typeof path !== "string" || !editable().includes(path)) return json({ error: "not an editable file" }, 400);
+        if (typeof content !== "string" || content.length > 200_000) return json({ error: "content: text up to 200,000 characters" }, 400);
+        // A role file with broken frontmatter fails only when a run reaches it, so catch it here.
+        if (path.startsWith(".claude/agents/") && !/^---\n[\s\S]*?^name: \S+[\s\S]*?\n---\n/m.test(content))
+          return json({ error: "a role file must start with frontmatter (--- … ---) that has a name" }, 400);
+        writeFileSync(join(root, path), content);
+        // Committed, because task worktrees branch from HEAD: an uncommitted rule or role edit never reaches a run.
+        await sh("git", "add", "--", path);
+        const commit = await sh("git", "commit", "-q", "-m", `studio: edit ${path}`, "--", path);
+        return json({ ok: true, committed: commit.code === 0 });
+      }
       if (route === "POST /api/config") {
         // The model matrix: only `roles` can change here, and only if the whole file still validates.
         try {

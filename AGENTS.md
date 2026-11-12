@@ -9,14 +9,14 @@ model working here; `CLAUDE.md` only imports it.
 - `bun test` and `bun run typecheck` — the gate. Both must pass before any stage is done.
 - `bun run factory run [F-id...] [--parallel N] [--stub]` — run the top Ready item(s) or the named ones, each in its own worktree. `--stub` makes no model calls.
 - `bun run factory approve <F-id>` / `discard <F-id>` — a person lands or throws away a finished task.
-- `bun run factory serve [port]` — local control plane on `127.0.0.1:4400`: the GUI, a live event stream, and run, stop, approve, discard, promote, add and model-config endpoints.
+- `bun run factory serve [port]` — local control plane on `127.0.0.1:4400`: the GUI (pipeline, models, cost, worktrees, studio, graph), a live event stream, and the endpoints behind them. Studio saves commit the edited file.
 - `bun run factory add "<title>"` — add an item to Inbox.
-- `bun run factory skill add <owner/repo@skill> --role <role>` — install a skill for one role.
+- `bun run factory skill add <owner/repo@skill> --role <role>` — install a skill for one role. `skill attach|detach <skill> --role <role>` for one already installed. Each is committed, because task worktrees branch from HEAD.
 
 ## Layout
 
 - `factory/` — orchestrator: `config`, `events` (SQLite log), `backlog`, `pipeline`, `claude` (headless runner), `worktree`, `hooks` (guard and gate), `server`, `skills`, `cli`.
-- `gui/` — the control plane page (React, bundled by Bun on request): `state.ts` folds the event log into what the page shows, `app.tsx` renders it.
+- `gui/` — the control plane page (React, bundled by Bun on request): `state.ts` folds the event log into what the page shows, `app.tsx` renders the pipeline and models, `views.tsx` the cost, worktree and studio views.
 - `.worktrees/<F-id>/` — one git worktree and `factory/<F-id>` branch per task. Not committed.
 - `factory.config.json` — model, effort and fallback chain per role. It owns model choice; agent files do not set `model`.
 - `.claude/agents/<role>.md` — role prompt, tools and skills. Each stage runs as `claude -p --agent <role>` with project settings only; only the builder may change files.

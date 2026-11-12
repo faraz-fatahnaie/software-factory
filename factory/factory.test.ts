@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { add, move, parse } from "./backlog";
@@ -9,8 +9,8 @@ import { openStore } from "./events";
 import { guard } from "./hooks";
 import { followUps, runTask, shellGate, type Runner } from "./pipeline";
 import { serve } from "./server";
-import { elapsed, summarize, toolLine, type Ev } from "../gui/state";
-import { attachSkill, roleSkills } from "./skills";
+import { costs, elapsed, summarize, toolLine, type Ev } from "../gui/state";
+import { attachSkill, detachSkill, parseFind, roleSkills } from "./skills";
 
 const role = { runner: "claude", model: "sonnet", effort: "medium", fallback: ["haiku"] };
 const config: Config = { gate: ["true"], roles: { triage: role, architect: role, builder: role, reviewer: role } };
@@ -29,6 +29,11 @@ function repo() {
   writeFileSync(join(dir, "BACKLOG.md"), BACKLOG);
   writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ ...config, setup: ["true"] }));
   writeFileSync(join(dir, ".gitignore"), ".factory/\n.worktrees/\n");
+  mkdirSync(join(dir, ".claude/agents"), { recursive: true });
+  mkdirSync(join(dir, ".claude/skills/tdd"), { recursive: true });
+  writeFileSync(join(dir, ".claude/agents/builder.md"), "---\nname: builder\ntools: Read\n---\nBuild it.\n");
+  writeFileSync(join(dir, ".claude/skills/tdd/SKILL.md"), "---\nname: tdd\n---\nTest first.\n");
+  writeFileSync(join(dir, "AGENTS.md"), "# Rules\n");
   sh("git", "init", "-q", "-b", "main"); sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "base");
   const section = (id: string) => parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).find((i) => i.id === id)?.section;
   return { dir, sh, section, cli: (...args: string[]) => sh("bun", join(import.meta.dir, "cli.ts"), ...args) };
@@ -124,6 +129,14 @@ test("skills: attach is idempotent and creates the list when absent", () => {
   expect(() => attachSkill("no frontmatter", "x")).toThrow();
   expect(roleSkills(attachSkill(once, "review") + "  - not frontmatter\n")).toEqual(["tdd", "review"]);
   expect(roleSkills(md)).toEqual([]);
+  expect(detachSkill(attachSkill(once, "review"), "tdd")).toBe("---\nname: builder\ntools: Read\nskills:\n  - review\n---\nBody\n");
+  expect(detachSkill(once, "tdd")).toBe(md); // the empty list goes too
+  expect(detachSkill(md, "absent")).toBe(md);
+  const found = parseFind("\nInstall with npx skills add <owner/repo@skill>\n\n\x1b[1mobra/superpowers@test-driven-development\x1b[0m 276.6K installs\n└ https://skills.sh/obra/superpowers/test-driven-development\n\nobra/superpowers-skills@Using Git Worktrees 534 installs\n");
+  expect(found).toEqual([
+    { pkg: "obra/superpowers@test-driven-development", installs: "276.6K", url: "https://skills.sh/obra/superpowers/test-driven-development" },
+    { pkg: "obra/superpowers-skills@Using Git Worktrees", installs: "534", url: "" },
+  ]);
 });
 
 test("guard: blocks governance files, escapes and outward git; allows normal work", () => {
@@ -242,6 +255,30 @@ test("server: rejects foreign hosts and origins; streams events; runs, approves 
     expect(await (await fetch(`${base}/api/diff?id=F-001`)).text()).toContain("+stub build");
     expect((await fetch(`${base}/api/diff?id=F-999`)).status).toBe(404);
     expect((await fetch(`${base}/api/diff?id=../../etc`)).status).toBe(400);
+    const get = async (path: string) => (await fetch(base + path)).json() as Promise<any>;
+    expect((await get("/api/worktrees")).map((w: any) => [w.id, w.branch, w.ahead, w.uncommitted])).toEqual([["F-001", "factory/F-001", 1, 0], ["F-002", "factory/F-002", 1, 0]]);
+
+    // Studio: only listed files, every save is a commit, old versions stay readable.
+    expect(await get("/api/files")).toEqual([".claude/agents/builder.md", ".claude/skills/tdd/SKILL.md", "AGENTS.md"]);
+    expect((await fetch(`${base}/api/file?path=../../etc/passwd`)).status).toBe(400);
+    expect((await post("/api/file", { path: "factory.config.json", content: "{}" })).status).toBe(400);
+    expect((await post("/api/file", { path: ".claude/agents/builder.md", content: "no frontmatter" })).status).toBe(400);
+    expect(await (await post("/api/file", { path: "AGENTS.md", content: "# Rules\n\n1. Be brief.\n" })).json()).toEqual({ ok: true, committed: true });
+    const doc = await get("/api/file?path=AGENTS.md");
+    expect(doc).toMatchObject({ content: "# Rules\n\n1. Be brief.\n", history: [{ subject: "studio: edit AGENTS.md" }, { subject: "base" }] });
+    expect((await get(`/api/file?path=AGENTS.md&rev=${doc.history[1].sha}`)).content).toBe("# Rules\n");
+
+    // Per-role skills: attach and detach an installed skill; both are committed.
+    expect(await get("/api/skills")).toMatchObject({ installed: ["tdd"], roles: { builder: [], reviewer: [] } });
+    expect((await post("/api/skill", { action: "attach", skill: "tdd", role: "builder" })).status).toBe(200);
+    expect((await get("/api/skills")).roles.builder).toEqual(["tdd"]);
+    expect((await post("/api/skill", { action: "attach", skill: "not-installed", role: "builder" })).status).toBe(409);
+    expect((await post("/api/skill", { action: "attach", skill: "tdd", role: "janitor" })).status).toBe(409);
+    expect((await post("/api/skill", { action: "detach", skill: "tdd", role: "builder" })).status).toBe(200);
+    expect((await get("/api/skills")).roles.builder).toEqual([]);
+    expect((await fetch(`${base}/api/skills/search?q=${encodeURIComponent("x; rm -rf /")}`)).status).toBe(400);
+    expect((await fetch(`${base}/graph`)).status).toBe(404); // no graph in the throwaway repo
+
     expect((await post("/api/approve", { id: "F-001" })).status).toBe(200);
     expect((await post("/api/discard", { id: "F-002" })).status).toBe(200);
     expect(await (await post("/api/approve", { id: "F-002" })).json()).toMatchObject({ ok: false, output: expect.stringMatching(/expected Awaiting approval/) });
@@ -275,6 +312,11 @@ test("gui state: folds events into stage states, cost and outputs; a rebuild cle
   const done = summarize(log);
   expect(done.tasks.get("F-001")).toMatchObject({ status: "failed", error: "Error: stopped by request", stages: { build: { state: "failed" } } });
   expect(done.notice?.task).toBe("F-009");
+
+  const by = costs(log);
+  expect(by.model.get("sonnet")).toMatchObject({ stages: 2, ok: 2, cost: 0.75 });
+  expect(by.model.get("opus")).toMatchObject({ stages: 1, ok: 0, cost: 0 }); // the rate-limited attempt counts against opus
+  expect([...by.task.keys()]).toEqual(["F-001"]);
 
   expect(toolLine({ tool: "Bash", input: { command: "bun   test\n --watch" } })).toBe("Bash  bun test --watch");
   expect(toolLine({ tool: "Read", input: { file_path: "a.ts" } })).toBe("Read  a.ts");

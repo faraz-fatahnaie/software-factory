@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { add, move, parse, type Item, type Section } from "./backlog";
 import { claudeRunner } from "./claude";
@@ -7,12 +7,20 @@ import { loadConfig } from "./config";
 import { openStore } from "./events";
 import { runTask, shellGate, stopAll, stubRunner } from "./pipeline";
 import { serve } from "./server";
-import { addSkill } from "./skills";
+import { addSkill, setSkill } from "./skills";
 import { commitAll, ensureWorktree, land, removeWorktree } from "./worktree";
 
 const root = process.cwd();
 const backlogPath = join(root, "BACKLOG.md");
 const readItems = () => parse(readFileSync(backlogPath, "utf8"));
+
+/** Commits only the given paths, leaving anything else you have staged alone. Skipped outside git. */
+function commitPaths(message: string, ...paths: string[]) {
+  Bun.spawnSync(["git", "add", "--", ...paths], { cwd: root });
+  const p = Bun.spawnSync(["git", "commit", "-q", "-m", message, "--", ...paths], { cwd: root, stdout: "pipe", stderr: "pipe" });
+  const err = p.stderr.toString().trim();
+  if (p.exitCode !== 0 && err && !/not a git repository/.test(err)) console.error(`commit skipped: ${err}`);
+}
 
 function editBacklog(message: string, fn: (text: string) => string) {
   // Several factory commands can run at once (a run finishing while the GUI approves another
@@ -28,11 +36,8 @@ function editBacklog(message: string, fn: (text: string) => string) {
   try {
     // Re-read before every write: a person may edit the file while a run is in flight.
     writeFileSync(backlogPath, fn(readFileSync(backlogPath, "utf8")));
-    // A backlog-only commit, so task branches never carry backlog changes. Skipped outside git.
-    Bun.spawnSync(["git", "add", "BACKLOG.md"], { cwd: root });
-    const p = Bun.spawnSync(["git", "commit", "-q", "-m", `backlog: ${message}`, "--", "BACKLOG.md"], { cwd: root, stderr: "pipe" });
-    const err = p.stderr.toString().trim();
-    if (p.exitCode !== 0 && err && !/not a git repository/.test(err)) console.error(`backlog commit skipped: ${err}`);
+    // A backlog-only commit, so task branches never carry backlog changes.
+    commitPaths(`backlog: ${message}`, "BACKLOG.md");
   } finally {
     rmSync(lock, { recursive: true, force: true });
   }
@@ -57,7 +62,8 @@ factory approve <F-id>                          land an approved task: pull requ
 factory discard <F-id>                          delete a task's worktree and branch, and return it to Ready
 factory serve [port]                            start the local control plane (default 127.0.0.1:4400)
 factory add "<title>"                           add an item to Inbox
-factory skill add <owner/repo@skill> --role <r> install a skill and attach it to a role`;
+factory skill add <owner/repo@skill> --role <r> install a skill and attach it to a role
+factory skill attach|detach <skill> --role <r>  attach or detach a skill that is already installed`;
 
 async function main([cmd, ...args]: string[]) {
   if (cmd === "add" && args[0]) {
@@ -66,9 +72,13 @@ async function main([cmd, ...args]: string[]) {
     return console.log(`added ${added.id} to Inbox`);
   }
 
-  if (cmd === "skill" && args[0] === "add" && args[2] === "--role") {
-    addSkill(root, args[1]!, args[3] ?? "");
-    return console.log(`attached ${args[1]} to ${args[3]}`);
+  if (cmd === "skill" && ["add", "attach", "detach"].includes(args[0]!) && args[1] && args[2] === "--role") {
+    const [action, skill, , role = ""] = args as ["add" | "attach" | "detach", string, string, string];
+    if (action === "add") addSkill(root, skill, role);
+    else setSkill(root, action, skill, role);
+    // Committed, because task worktrees branch from HEAD: an uncommitted skill or role file never reaches a run.
+    commitPaths(`skills: ${action} ${skill} for ${role}`, ".claude", ...(existsSync(join(root, "skills-lock.json")) ? ["skills-lock.json"] : []));
+    return console.log(`${action === "detach" ? "detached" : "attached"} ${skill} ${action === "detach" ? "from" : "to"} ${role}`);
   }
 
   if (cmd === "serve") {

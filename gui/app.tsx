@@ -1,21 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { elapsed, STAGES, summarize, toolLine, type Ev, type TaskRun } from "./state";
+import { elapsed, post, STAGES, summarize, toolLine, type Ev, type TaskRun } from "./state";
+import { Cost, Studio, Worktrees } from "./views";
 
 type Item = { id: string; prio?: string; title: string; section: string };
 type Backlog = { items: Item[]; running: string[] };
 type RoleConfig = { runner: string; model: string; effort: string; fallback: string[] };
 type Act = (path: string, body: unknown) => Promise<boolean>;
 
+const VIEWS = ["Pipeline", "Models", "Cost", "Worktrees", "Studio", "Graph"] as const;
 const SECTIONS = ["Inbox", "Ready", "In progress", "Awaiting approval", "Blocked", "Done"];
 const MODELS = ["fable", "opus", "sonnet", "haiku"];
 const EFFORTS = ["low", "medium", "high", "xhigh", "max"];
-
-async function post(path: string, body: unknown): Promise<{ ok: boolean; error: string }> {
-  const res = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-  const data = await res.json().catch(() => ({}));
-  return { ok: res.ok && data.ok !== false, error: data.error ?? data.output ?? `request failed (${res.status})` };
-}
 
 /** The whole event log, live. EventSource reconnects by itself and resumes from the last event id. */
 function useEvents(): Ev[] {
@@ -153,7 +149,12 @@ function Detail(p: { item: Item; run?: TaskRun; act: Act; close: () => void }) {
   const awaiting = item.section === "Awaiting approval";
   const [tab, setTab] = useState(awaiting ? "Diff" : "Log");
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (tab === "Log") end.current?.scrollIntoView({ block: "nearest" }); }, [run?.events.length, tab]);
+  // Replay: show the run as it was after its first `upTo` events. null follows the live log.
+  const [upTo, setUpTo] = useState<number | null>(null);
+  const all = run?.events ?? [];
+  const shown = upTo === null ? all : all.slice(0, upTo);
+  const then = upTo === null ? run : summarize(shown).tasks.get(item.id);
+  useEffect(() => { if (tab === "Log" && upTo === null) end.current?.scrollIntoView({ block: "nearest" }); }, [all.length, tab]);
   const id = { id: item.id };
   return (
     <section className="detail" aria-label={`Task ${item.id}`}>
@@ -172,10 +173,21 @@ function Detail(p: { item: Item; run?: TaskRun; act: Act; close: () => void }) {
           </span>
         )}
       </nav>
+      {tab === "Log" && all.length > 1 && (
+        <div className="replay">
+          <label>
+            Replay{" "}
+            <input type="range" min={1} max={all.length} value={upTo ?? all.length}
+              onChange={(e) => setUpTo(Number(e.target.value) >= all.length ? null : Number(e.target.value))} />
+          </label>
+          <span>{upTo === null ? "live" : `event ${upTo} of ${all.length} · ${new Date(shown.at(-1)!.ts).toLocaleTimeString()}`}</span>
+          {then && <StageStrip run={then} />}
+        </div>
+      )}
       {tab === "Log" && (
         <div className="log" role="log">
           {!run && <p className="empty">No run recorded for this task yet.</p>}
-          {run?.events.map((e) => {
+          {shown.map((e) => {
             const line = logLine(e);
             return line && <pre key={e.seq} className={line.cls}>{line.text}</pre>;
           })}
@@ -261,7 +273,7 @@ function App() {
   const events = useEvents();
   const { tasks, rateLimit, notice } = useMemo(() => summarize(events), [events]);
   const [backlog, reload] = useBacklog();
-  const [view, setView] = useState<"Pipeline" | "Models">("Pipeline");
+  const [view, setView] = useState<(typeof VIEWS)[number]>("Pipeline");
   const [selected, setSelected] = useState<string | null>(null);
   const [stub, setStub] = useState(false);
   const [parallel, setParallel] = useState(1);
@@ -284,7 +296,7 @@ function App() {
       <header className="top">
         <h1>Software Factory</h1>
         <nav>
-          {(["Pipeline", "Models"] as const).map((v) => (
+          {VIEWS.map((v) => (
             <button key={v} aria-current={view === v ? "page" : undefined} onClick={() => setView(v)}>{v}</button>
           ))}
         </nav>
@@ -298,7 +310,12 @@ function App() {
           {error} <button onClick={() => setError("")}>Dismiss</button>
         </p>
       )}
-      {view === "Models" ? <Models setError={setError} /> : (
+      {view === "Models" && <Models setError={setError} />}
+      {view === "Cost" && <Cost events={events} />}
+      {view === "Worktrees" && <Worktrees open={(id) => { setSelected(id); setView("Pipeline"); }} discard={(id) => act("/api/discard", { id })} />}
+      {view === "Studio" && <Studio setError={setError} />}
+      {view === "Graph" && <iframe className="graph" src="/graph" title="Knowledge graph of this repository" />}
+      {view === "Pipeline" && (
         <main className={item ? "split" : ""}>
           <div className="board">
             {SECTIONS.map((section) => {
