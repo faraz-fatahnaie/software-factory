@@ -4,8 +4,6 @@ The factory's intake queue. `factory run` takes the top item under Ready.
 Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
-- [ ] F-005 (P1) Phase 5: GUI first tier
-  Backlog and pipeline columns, logs, approval gates, model matrix.
 - [ ] F-006 (P1) Phase 6: GUI second tier
   Cost, replay, worktree manager, studio with per-role skill search, attach and detach.
 - [ ] F-007 (P1) Phase 7: hardening and Release 1
@@ -25,6 +23,7 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 - [ ] F-020 Reject with feedback: send an awaiting-approval task back to Build with a person's comments
 - [ ] F-021 Rebase a task branch automatically when approve hits a merge conflict
 - [ ] F-022 Pause and resume a running task from the control plane
+- [ ] F-023 Model health test in the matrix: a one-token prompt per model
 
 ## Ready
 
@@ -43,3 +42,5 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   One git worktree per task, parallel runs, guard and gate hooks, backlog-only commits, approve and discard.
 - [x] F-004 (P1) Phase 4: server
   Streaming runner with live tool-call and rate-limit events, event stream with replay, run, stop, approve, discard and add endpoints.
+- [x] F-005 (P1) Phase 5: GUI first tier
+  Backlog and pipeline board, live log, spec, review and diff panel with approve and discard, model matrix, usage gauge.
