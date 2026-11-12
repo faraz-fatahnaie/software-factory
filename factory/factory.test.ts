@@ -9,6 +9,7 @@ import { openStore } from "./events";
 import { guard } from "./hooks";
 import { followUps, runTask, shellGate, type Runner } from "./pipeline";
 import { serve } from "./server";
+import { elapsed, summarize, toolLine, type Ev } from "../gui/state";
 import { attachSkill, roleSkills } from "./skills";
 
 const role = { runner: "claude", model: "sonnet", effort: "medium", fallback: ["haiku"] };
@@ -217,6 +218,15 @@ test("server: rejects foreign hosts and origins; streams events; runs, approves 
     expect((await post("/api/stop", { id: "F-001" })).status).toBe(404);
     expect((await post("/api/add", { title: "From the GUI" })).status).toBe(200);
     expect(section("F-003")).toBe("Inbox");
+    expect((await post("/api/promote", { id: "F-003" })).status).toBe(200);
+    expect(section("F-003")).toBe("Ready");
+    expect(await (await fetch(base + "/")).text()).toContain("<title>Software Factory</title>");
+
+    const roles = { ...config.roles, builder: { ...role, model: "opus", fallback: [] } };
+    expect((await post("/api/config", { roles: { ...roles, builder: { ...role, effort: "extreme" } } })).status).toBe(400);
+    expect((await post("/api/config", { roles })).status).toBe(200);
+    const onDisk = JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8"));
+    expect(onDisk).toMatchObject({ setup: ["true"], gate: ["true"], roles: { builder: { model: "opus" } } }); // only roles changed
 
     expect((await post("/api/run", { parallel: 2, stub: true })).status).toBe(202);
     expect((await post("/api/run", { ids: ["F-001"], stub: true })).status).toBe(409); // already running
@@ -229,6 +239,9 @@ test("server: rejects foreign hosts and origins; streams events; runs, approves 
     while ((await backlog()).running.length) await Bun.sleep(50);
     expect([section("F-001"), section("F-002")]).toEqual(["Awaiting approval", "Awaiting approval"]);
 
+    expect(await (await fetch(`${base}/api/diff?id=F-001`)).text()).toContain("+stub build");
+    expect((await fetch(`${base}/api/diff?id=F-999`)).status).toBe(404);
+    expect((await fetch(`${base}/api/diff?id=../../etc`)).status).toBe(400);
     expect((await post("/api/approve", { id: "F-001" })).status).toBe(200);
     expect((await post("/api/discard", { id: "F-002" })).status).toBe(200);
     expect(await (await post("/api/approve", { id: "F-002" })).json()).toMatchObject({ ok: false, output: expect.stringMatching(/expected Awaiting approval/) });
@@ -237,3 +250,33 @@ test("server: rejects foreign hosts and origins; streams events; runs, approves 
     server.stop(true);
   }
 }, 60_000);
+
+test("gui state: folds events into stage states, cost and outputs; a rebuild clears later stages", () => {
+  let seq = 0;
+  const ev = (stage: string, type: string, extra: Partial<Ev> = {}): Ev => ({ seq: ++seq, ts: "2026-01-01T00:00:00.000Z", run: "r1", task: "F-001", stage, type, ...extra });
+  const log = [
+    ev("run", "run.start"),
+    ev("spec", "stage.start", { model: "opus" }), ev("spec", "stage.rate_limited", { model: "opus" }),
+    ev("spec", "stage.start", { model: "sonnet" }), ev("spec", "stage.ok", { model: "sonnet", data: { usage: { costUsd: 0.25 }, output: "the spec" } }),
+    ev("build", "stage.start", { model: "sonnet" }), ev("build", "agent.rate_limit", { data: { status: "allowed" } }),
+    ev("build", "stage.ok", { model: "sonnet", data: { usage: { costUsd: 0.5 } } }),
+    ev("check", "stage.start"), ev("check", "stage.failed", { data: "1 test failed" }),
+  ];
+  const mid = summarize(log).tasks.get("F-001")!;
+  expect(mid).toMatchObject({ status: "running", cost: 0.75, outputs: { spec: "the spec" } });
+  expect(mid.stages).toMatchObject({ spec: { state: "ok", model: "sonnet" }, build: { state: "ok" }, check: { state: "failed" } });
+
+  log.push(ev("build", "stage.start", { model: "sonnet" }));
+  const rebuilt = summarize(log);
+  expect(rebuilt.tasks.get("F-001")!.stages).toEqual({ spec: { state: "ok", model: "sonnet" }, build: { state: "active", model: "sonnet" } });
+  expect(rebuilt.rateLimit).toEqual({ status: "allowed" });
+
+  log.push(ev("run", "run.failed", { data: "Error: stopped by request" }), { ...ev("run", "command.failed"), run: "", task: "F-009" });
+  const done = summarize(log);
+  expect(done.tasks.get("F-001")).toMatchObject({ status: "failed", error: "Error: stopped by request", stages: { build: { state: "failed" } } });
+  expect(done.notice?.task).toBe("F-009");
+
+  expect(toolLine({ tool: "Bash", input: { command: "bun   test\n --watch" } })).toBe("Bash  bun test --watch");
+  expect(toolLine({ tool: "Read", input: { file_path: "a.ts" } })).toBe("Read  a.ts");
+  expect(elapsed("2026-01-01T00:00:00.000Z", Date.parse("2026-01-01T00:01:05.000Z"))).toBe("1m 05s");
+});

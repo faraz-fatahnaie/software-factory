@@ -12,9 +12,9 @@
     "semantic_hash": ""
   },
   "factory/cli.ts": {
-    "mtime": 1794470867.9307375,
-    "seen": 1794471114.716182,
-    "ast_hash": "9eca81456af63c8f73589e934c75a78e",
+    "mtime": 1794473096.6313348,
+    "seen": 1794487616.236414,
+    "ast_hash": "472f120148d40c3a61b4133237eed1f6",
     "semantic_hash": ""
   },
   "factory/config.ts": {
@@ -30,9 +30,9 @@
     "semantic_hash": ""
   },
   "factory/factory.test.ts": {
-    "mtime": 1794470867.9308753,
-    "seen": 1794471114.716183,
-    "ast_hash": "a0b206c4c4521d7c5d31bdd446052692",
+    "mtime": 1794473096.6314657,
+    "seen": 1794487616.236416,
+    "ast_hash": "8965cc6b2e9e69cdce4b32fa7fd3e436",
     "semantic_hash": ""
   },
   "factory/pipeline.ts": {
@@ -48,10 +48,10 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1794468854.0164464,
-    "seen": 1794469077.3421178,
-    "ast_hash": "6126d809922885c6523ac1a68904cc09",
-    "semantic_hash": "6126d809922885c6523ac1a68904cc09"
+    "mtime": 1794472993.1966078,
+    "seen": 1794487616.236419,
+    "ast_hash": "1bdbd08ae79138c601ca1e92b813cb8a",
+    "semantic_hash": ""
   },
   "skills-lock.json": {
     "mtime": 1794468925.3223891,
@@ -60,10 +60,10 @@
     "semantic_hash": "deb428ea053f72c7b8f839a0998ba44f"
   },
   "tsconfig.json": {
-    "mtime": 1794468847.2683384,
-    "seen": 1794469077.342119,
-    "ast_hash": "4fa83502c8aed8b4d442ee4e9134a0c1",
-    "semantic_hash": "4fa83502c8aed8b4d442ee4e9134a0c1"
+    "mtime": 1794473096.6310728,
+    "seen": 1794487616.2364202,
+    "ast_hash": "d7174d5a8c1b9e691e7077be5aa06cef",
+    "semantic_hash": ""
   },
   ".claude/agents/architect.md": {
     "mtime": 1794469576.878949,
@@ -90,15 +90,15 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1794471113.2438114,
-    "seen": 1794471114.716189,
-    "ast_hash": "d4a4a28fb4a2b4bb4f5b4ed8aaf497e9",
+    "mtime": 1794487614.561396,
+    "seen": 1794487616.2364218,
+    "ast_hash": "b6f149f9d5ed483691a80b49eaccbafb",
     "semantic_hash": ""
   },
   "BACKLOG.md": {
-    "mtime": 1794471114.4083452,
-    "seen": 1794471114.716189,
-    "ast_hash": "8910879534b6624bfaf239db16f233a1",
+    "mtime": 1794487615.8550828,
+    "seen": 1794487616.236423,
+    "ast_hash": "36fcdb65cc43c717a9ec2b0931ccdce4",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -126,9 +126,27 @@
     "semantic_hash": ""
   },
   "factory/server.ts": {
-    "mtime": 1794470867.7991362,
-    "seen": 1794471114.716185,
-    "ast_hash": "3c1e391cf5255b46af2b78b69e8bdcad",
+    "mtime": 1794473096.6311922,
+    "seen": 1794487616.236417,
+    "ast_hash": "c6630b4beeecfb1e87de7be4e8b947be",
+    "semantic_hash": ""
+  },
+  "gui/app.tsx": {
+    "mtime": 1794487565.1941397,
+    "seen": 1794487616.236418,
+    "ast_hash": "c62fa89c6a21f4cbaba14d9b4545b5fc",
+    "semantic_hash": ""
+  },
+  "gui/state.ts": {
+    "mtime": 1794473096.12426,
+    "seen": 1794487616.236419,
+    "ast_hash": "3ccbd80365b7da81fa2889f09ceee485",
+    "semantic_hash": ""
+  },
+  "gui/index.html": {
+    "mtime": 1794473139.2303221,
+    "seen": 1794487616.236423,
+    "ast_hash": "6e74107ec647128d51dabac5c4b731b8",
     "semantic_hash": ""
   }
 }

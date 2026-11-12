@@ -1,7 +1,8 @@
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "./backlog";
-import { loadConfig } from "./config";
+import gui from "../gui/index.html";
+import { loadConfig, parseConfig } from "./config";
 import { openStore } from "./events";
 
 const CLI = join(import.meta.dir, "cli.ts");
@@ -49,6 +50,7 @@ export function serve(root: string, port = 4400) {
     hostname: "127.0.0.1", // never reachable from another machine
     port,
     idleTimeout: 0, // event streams stay open
+    routes: { "/": gui }, // Bun bundles the page's TypeScript and CSS on request; there is no build step
     async fetch(req) {
       const url = new URL(req.url);
       const origins = [`http://127.0.0.1:${server.port}`, `http://localhost:${server.port}`];
@@ -61,6 +63,15 @@ export function serve(root: string, port = 4400) {
       if (route === "GET /api/events") {
         const after = Number(req.headers.get("last-event-id") ?? url.searchParams.get("after") ?? 0);
         return Number.isInteger(after) && after >= 0 ? stream(after) : json({ error: "bad after" }, 400);
+      }
+      if (route === "GET /api/diff") {
+        const id = url.searchParams.get("id") ?? "";
+        if (!ID.test(id)) return json({ error: "bad id" }, 400);
+        const p = Bun.spawn(["git", "diff", `HEAD...factory/${id}`], { cwd: root, stdout: "pipe", stderr: "ignore" });
+        const [diff, code] = await Promise.all([new Response(p.stdout).text(), p.exited]);
+        return code === 0
+          ? new Response(diff.slice(0, 500_000), { headers: { "content-type": "text/plain; charset=utf-8" } })
+          : json({ error: "no branch for that task" }, 404);
       }
       if (req.method !== "POST") return json({ error: "not found" }, 404);
 
@@ -77,8 +88,18 @@ export function serve(root: string, port = 4400) {
         return typeof body.title === "string" && body.title.trim() && body.title.length <= 500
           ? cli("add", body.title)
           : json({ error: "title: 1 to 500 characters" }, 400);
-      if (route === "POST /api/approve" || route === "POST /api/discard")
+      if (["POST /api/approve", "POST /api/discard", "POST /api/promote"].includes(route))
         return ids.length === 1 ? cli(url.pathname.slice(5), ids[0]!) : json({ error: "one id required" }, 400);
+      if (route === "POST /api/config") {
+        // The model matrix: only `roles` can change here, and only if the whole file still validates.
+        try {
+          const next = parseConfig({ ...loadConfig(root), roles: body.roles });
+          writeFileSync(join(root, "factory.config.json"), `${JSON.stringify(next, null, 2)}\n`);
+          return json(next);
+        } catch (e) {
+          return json({ error: (e as Error).message }, 400);
+        }
+      }
 
       if (route === "POST /api/stop") {
         const p = ids.length === 1 && running.get(ids[0]!);

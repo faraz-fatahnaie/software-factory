@@ -52,6 +52,7 @@ function find(id: string | undefined, ...sections: Section[]): Item {
 }
 
 const USAGE = `factory run [F-id...] [--parallel N] [--stub]   run the top Ready item(s) or the named ones, each in its own worktree
+factory promote <F-id>                          move an Inbox item to Ready
 factory approve <F-id>                          land an approved task: pull request if the repo has an origin, else a local merge
 factory discard <F-id>                          delete a task's worktree and branch, and return it to Ready
 factory serve [port]                            start the local control plane (default 127.0.0.1:4400)
@@ -73,6 +74,12 @@ async function main([cmd, ...args]: string[]) {
   if (cmd === "serve") {
     const server = serve(root, args[0] === undefined ? 4400 : Number(args[0]));
     return console.log(`factory control plane: http://127.0.0.1:${server.port}`);
+  }
+
+  if (cmd === "promote") {
+    const item = find(args[0], "Inbox");
+    editBacklog(`${item.id} → Ready`, (t) => move(t, item.id, "Ready"));
+    return console.log(`${item.id} → Ready`);
   }
 
   if (cmd === "approve") {

@@ -1,14 +1,10 @@
 {
   "0": "Software Factory (AGENTS.md)",
-  "1": "claude.ts",
+  "1": "factory.test.ts",
   "2": "cli.ts",
   "3": "package.json",
   "4": "config.ts",
   "5": "compilerOptions",
   "6": "F-002 Phase 2: Claude runner",
-  "7": "worktree.ts",
-  "8": "ref_node_fs",
-  "9": "factory.test.ts",
-  "10": "pipeline.ts",
-  "11": "events.ts"
+  "7": "app.tsx"
 }
