@@ -23,6 +23,7 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 - [ ] F-022 Pause and resume a running task from the control plane
 - [ ] F-023 Model health test in the matrix: a one-token prompt per model
 - [ ] F-024 Show a skill's SKILL.md in the studio before installing it, not only its skills.sh page
+- [ ] F-025 Assign a local port per task worktree once tasks start dev servers
 
 ## Ready
 
