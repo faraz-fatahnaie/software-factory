@@ -75,7 +75,8 @@ export async function runTask(
       if (stopping) throw new Error("stopped");
       emit(name, "stage.start", { role, model });
       const prompt =
-        `Stage: ${name}. The task and earlier stage outputs are in ${dir}. Read them first.` +
+        `Stage: ${name}. The task and earlier stage outputs are in ${dir}. Read them first.\n` +
+        `Gate commands for this project (all must pass): ${o.config.gate.join(" ; ")}` +
         (feedback && `\n\nAddress this feedback:\n${feedback}`);
       const res = await o.runner({
         role, model, effort: r.effort, stage: name, prompt, cwd: o.cwd,

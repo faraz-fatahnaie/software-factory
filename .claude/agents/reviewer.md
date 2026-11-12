@@ -15,7 +15,7 @@ problem (injection, secrets, unvalidated input, unsafe file or shell use); nothi
 the spec was changed; nothing was built that the spec did not need.
 
 Request changes if the diff weakens a guardrail the spec did not ask to change: tests removed,
-skipped or loosened; the gate commands; `factory/hooks.ts`; permission flags in `factory/claude.ts`.
+skipped or loosened; the gate commands; `plugin/engine/hooks.ts`; permission flags in `plugin/engine/claude.ts`.
 
 Your first line must be exactly `APPROVE` or `REQUEST_CHANGES`. Anything else is treated as
 a rejection. After it, list findings as `file:line — problem — fix`, most serious first.

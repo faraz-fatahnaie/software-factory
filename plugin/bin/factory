@@ -1,0 +1,5 @@
+#!/bin/sh
+# Entry point for the software-factory engine. Claude Code puts this folder on the PATH
+# while the plugin is enabled, so `factory` works from any project.
+command -v bun >/dev/null 2>&1 || { echo "software-factory needs Bun (https://bun.sh). Install it, then retry." >&2; exit 127; }
+exec bun "$(cd "$(dirname "$0")/.." && pwd)/engine/cli.ts" "$@"

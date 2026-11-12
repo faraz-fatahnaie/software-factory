@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "factory": "bun factory/cli.ts",
+    "factory": "plugin/bin/factory",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "e2e": "bun e2e/gui.e2e.ts"
@@ -19,5 +19,6 @@
     "@types/react-dom": "^19.3.0",
     "playwright-core": "^1.65.0",
     "typescript": "^7.0.2"
-  }
+  },
+  "license": "MIT"
 }

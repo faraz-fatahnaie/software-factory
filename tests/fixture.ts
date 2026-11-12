@@ -2,8 +2,8 @@
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parse } from "./backlog";
-import type { Config } from "./config";
+import { parse } from "../plugin/engine/backlog";
+import type { Config } from "../plugin/engine/config";
 
 export const role = { runner: "claude", model: "sonnet", effort: "medium", fallback: ["haiku"] };
 export const config: Config = { gate: ["true"], roles: { triage: role, architect: role, builder: role, reviewer: role } };
@@ -30,5 +30,5 @@ export function repo() {
   writeFileSync(join(dir, "AGENTS.md"), "# Rules\n");
   sh("git", "init", "-q", "-b", "main"); sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "base");
   const section = (id: string) => parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).find((i) => i.id === id)?.section;
-  return { dir, sh, section, cli: (...args: string[]) => sh("bun", join(import.meta.dir, "cli.ts"), ...args) };
+  return { dir, sh, section, cli: (...args: string[]) => sh(join(import.meta.dir, "../plugin/bin/factory"), ...args) };
 }

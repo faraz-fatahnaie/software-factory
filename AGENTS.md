@@ -16,9 +16,11 @@ model working here; `CLAUDE.md` only imports it.
 
 ## Layout
 
-- `factory/` — orchestrator: `config`, `events` (SQLite log), `backlog`, `pipeline`, `claude` (headless runner), `worktree`, `hooks` (guard and gate), `server`, `skills`, `cli`.
-- `gui/` — the control plane page (React, bundled by Bun on request): `state.ts` folds the event log into what the page shows, `app.tsx` renders the pipeline and models, `views.tsx` the cost, worktree and studio views.
-- `e2e/` — the browser test. `factory/fixture.ts` builds the throwaway repo both test suites use.
+- `plugin/` — **the product**, and the only folder users receive. Read `docs/PLUGIN.md` before changing its layout, adding a dependency or releasing.
+- `plugin/engine/` — orchestrator: `config`, `events` (SQLite log), `backlog`, `pipeline`, `claude` (headless runner), `worktree`, `hooks` (guard and gate), `server`, `skills`, `cli`.
+- `plugin/gui/` — the control plane page (React, bundled by Bun on request): `state.ts` folds the event log into what the page shows, `app.tsx` renders the pipeline and models, `views.tsx` the cost, worktree and studio views.
+- `plugin/templates/` — role files, rules, backlog and config that init writes into a project. `plugin/bin/factory` is the executable.
+- `tests/` — unit and HTTP tests. `e2e/` — the browser test. `tests/fixture.ts` builds the throwaway repo both test suites use.
 - `.worktrees/<F-id>/` — one git worktree and `factory/<F-id>` branch per task. Not committed.
 - `factory.config.json` — model, effort and fallback chain per role. It owns model choice; agent files do not set `model`.
 - `.claude/agents/<role>.md` — role prompt, tools and skills. Each stage runs as `claude -p --agent <role>` with project settings only; only the builder may change files.
@@ -34,4 +36,5 @@ model working here; `CLAUDE.md` only imports it.
 5. **Least code that works.** Reuse what is in this repo, then the standard library, then the platform, then an installed dependency. No new dependency for what a few lines do. No abstractions, config or scaffolding for needs that do not exist yet.
 6. **Never cut:** input validation at trust boundaries, error handling that prevents data loss, security checks, tests for non-trivial logic.
 7. **No secrets in files.** Config holds environment variable names, never key values.
-8. **Bun only.** Use `bun`, `bun test` and `bun:sqlite`; do not add Node-only tooling.
+8. **Product and development stay apart.** Anything the product needs at runtime lives in `plugin/`; tests, dev skills and this repo's own backlog, config and role files never go there. The factory is not used to develop itself.
+9. **Bun only.** Use `bun`, `bun test` and `bun:sqlite`; do not add Node-only tooling.

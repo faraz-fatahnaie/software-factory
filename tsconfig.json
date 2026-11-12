@@ -17,8 +17,8 @@
     ]
   },
   "include": [
-    "factory",
-    "gui",
+    "plugin",
+    "tests",
     "e2e"
   ]
 }

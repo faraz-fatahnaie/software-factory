@@ -6,7 +6,6 @@ import { claudeRunner } from "./claude";
 import { loadConfig } from "./config";
 import { openStore } from "./events";
 import { runTask, shellGate, stopAll, stubRunner } from "./pipeline";
-import { serve } from "./server";
 import { addSkill, setSkill } from "./skills";
 import { commitAll, ensureWorktree, land, removeWorktree } from "./worktree";
 
@@ -82,6 +81,8 @@ async function main([cmd, ...args]: string[]) {
   }
 
   if (cmd === "serve") {
+    // Imported here so every other command works without the GUI and its dependencies.
+    const { serve } = await import("./server");
     const server = serve(root, args[0] === undefined ? 4400 : Number(args[0]));
     return console.log(`factory control plane: http://127.0.0.1:${server.port}`);
   }

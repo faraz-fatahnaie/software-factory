@@ -5,8 +5,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
-import { repo } from "../factory/fixture";
-import { serve } from "../factory/server";
+import { repo } from "../tests/fixture";
+import { serve } from "../plugin/engine/server";
 
 const { dir, sh, section } = repo();
 const server = serve(dir, 0);

@@ -1,16 +1,16 @@
 import { expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { add, move, parse } from "./backlog";
-import { agentEvents, claudeArgs, classify } from "./claude";
-import { parseConfig } from "./config";
-import { openStore } from "./events";
+import { add, move, parse } from "../plugin/engine/backlog";
+import { agentEvents, claudeArgs, classify } from "../plugin/engine/claude";
+import { parseConfig } from "../plugin/engine/config";
+import { openStore } from "../plugin/engine/events";
 import { BACKLOG, config, repo, role, tmp } from "./fixture";
-import { guard } from "./hooks";
-import { followUps, runTask, shellGate, type Runner } from "./pipeline";
-import { serve } from "./server";
-import { costs, elapsed, summarize, toolLine, type Ev } from "../gui/state";
-import { attachSkill, detachSkill, parseFind, roleSkills } from "./skills";
+import { guard } from "../plugin/engine/hooks";
+import { followUps, runTask, shellGate, type Runner } from "../plugin/engine/pipeline";
+import { serve } from "../plugin/engine/server";
+import { costs, elapsed, summarize, toolLine, type Ev } from "../plugin/gui/state";
+import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
 
 const task = { id: "F-001", title: "First" };
 
@@ -145,7 +145,7 @@ test("guard: blocks governance files, escapes and outward git; allows normal wor
 test("hooks: guard fails closed; the stop gate sends the builder back once", () => {
   const dir = tmp();
   const hook = (mode: string, input: string, gate = "[]") =>
-    Bun.spawnSync(["bun", join(import.meta.dir, "hooks.ts"), mode], { stdin: Buffer.from(input), env: { ...process.env, FACTORY_ROOT: dir, FACTORY_GATE: gate } }).exitCode;
+    Bun.spawnSync(["bun", join(import.meta.dir, "../plugin/engine/hooks.ts"), mode], { stdin: Buffer.from(input), env: { ...process.env, FACTORY_ROOT: dir, FACTORY_GATE: gate } }).exitCode;
   expect(hook("guard", JSON.stringify({ tool_name: "Write", tool_input: { file_path: "a.ts" } }))).toBe(0);
   expect(hook("guard", JSON.stringify({ tool_name: "Write", tool_input: { file_path: "BACKLOG.md" } }))).toBe(2);
   expect(hook("guard", "not json")).toBe(2);

@@ -27,7 +27,7 @@ the pipeline with canned stage outputs and no model calls.
 The same from a terminal:
 
 ```sh
-bun run factory add "Export a VERSION constant from factory/config.ts"
+bun run factory add "Export a VERSION constant from plugin/engine/config.ts"
 bun run factory promote F-026
 bun run factory run                # top Ready item; or: run F-026 F-027, or: run --parallel 3
 git diff HEAD...factory/F-026      # review the work
@@ -109,7 +109,7 @@ Not enforced, so keep in mind:
 
 - The guard matches shell commands as text. It is not a sandbox: a Builder can still run
   arbitrary code through the tests it writes. Review diffs before approving, and treat a diff
-  that touches `factory/hooks.ts`, the gate or the tests as a change to the guardrails.
+  that touches `plugin/engine/hooks.ts`, the gate or the tests as a change to the guardrails.
 - Anything on your machine can call the local server. Do not run it on a shared host.
 - The event log in `.factory/events.db` records agent messages and tool inputs. It is not
   committed, but it may contain whatever the agents read.
@@ -126,9 +126,12 @@ bun run e2e         # drives the page in your installed Chrome with dry runs
 
 | Path | Purpose |
 | --- | --- |
-| `factory/` | Orchestrator: CLI, pipeline, Claude runner, worktrees, hooks, event log, server |
-| `gui/` | The control plane page (React, bundled by Bun on request) |
-| `e2e/` | Browser end-to-end test |
+| `plugin/` | The product: everything a user receives when installing the plugin |
+| `plugin/engine/` | Orchestrator: CLI, pipeline, Claude runner, worktrees, hooks, event log, server |
+| `plugin/gui/` | The control plane page (React, bundled by Bun on request) |
+| `plugin/templates/` | Role files, rules, backlog and config written into a project on init |
+| `tests/`, `e2e/` | Unit and HTTP tests; browser end-to-end test |
+| `docs/PLUGIN.md` | How the plugin is built, tested and released |
 | `.claude/agents/`, `.claude/skills/` | Role prompts and installed skills |
 | `AGENTS.md` | Rules for every agent working in this repo |
 | `BACKLOG.md` | The intake queue, including what is planned next |

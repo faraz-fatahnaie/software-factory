@@ -1,0 +1,13 @@
+{
+  "name": "software-factory",
+  "owner": {
+    "name": "software-factory contributors"
+  },
+  "plugins": [
+    {
+      "name": "software-factory",
+      "source": "./plugin",
+      "description": "Backlog-to-pull-request pipeline with human approval and a local control-plane GUI."
+    }
+  ]
+}

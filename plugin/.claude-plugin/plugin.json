@@ -1,0 +1,13 @@
+{
+  "name": "software-factory",
+  "version": "1.0.0",
+  "description": "A backlog-to-pull-request pipeline for any project: triage, spec, build, check and review by headless Claude Code agents in isolated worktrees, with human approval and a local control-plane GUI.",
+  "license": "MIT",
+  "keywords": [
+    "pipeline",
+    "multi-agent",
+    "worktrees",
+    "backlog",
+    "code-review"
+  ]
+}
