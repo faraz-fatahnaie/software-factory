@@ -4,7 +4,8 @@ import { elapsed, passRates, roster, series, STAGES, summarize, toolLine, type E
 import { post, useBacklog, useEvents, useHash, useNow, useTeam, useTheme, useVcs, type Backlog, type Item, type Link } from "./data";
 import { GitHub, vcsChip, type VcsData } from "./vcs";
 import { Source } from "./source";
-import { Agents, Logs, Studio, Worktrees } from "./views";
+import { Studio } from "./studio";
+import { Agents, Logs, Worktrees } from "./views";
 import { Checks, Talk, type Chats } from "./talk";
 import { presenceOf, Team, type TeamData } from "./team";
 import { Icon } from "./icons";
@@ -558,7 +559,7 @@ function App() {
             {view === "Source" && <Source items={backlog.items} vcs={vcs} act={act} refreshVcs={refreshVcs} open={open} />}
             {view === "Logs" && <Logs events={events} />}
             {view === "Worktrees" && <div className="stack"><Worktrees open={open} discard={(id) => act("/api/discard", { id })} /></div>}
-            {view === "Studio" && <Studio setError={setError} />}
+            {view === "Studio" && <Studio setError={setError} team={team} />}
             {view === "Graph" && <iframe className="graph" src="/graph" sandbox="allow-scripts" title="Knowledge graph of this repository" />}
           </>
         )}

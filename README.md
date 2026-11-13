@@ -180,7 +180,7 @@ The record builds up as you work:
 | Agents | Who is working, the model, effort and fallback chain per role, and spend and pass rate by model, role and task. |
 | Logs | Every event from every task, filterable by kind and task. |
 | Worktrees | Every task worktree with its branch and state. |
-| Studio | Edit `AGENTS.md`, role files and skills; each save is a commit and older versions can be restored. Attach, detach, search and install skills per role. |
+| Studio | Edit `AGENTS.md`, role files and skills in a workspace of files, editor and side panel. Changed lines are marked as you type, Preview shows the Markdown, and a change can be thrown away. Saving takes two checks (review the difference, then commit with a message you can edit); each save is a commit. History shows older versions and what restoring one would change. Attach, detach, search and install skills per role. |
 | Graph | The graphify knowledge graph of this repository. |
 
 The look is glass: translucent panels over a soft colour backdrop, in light and dark. Views show skeleton placeholders while they load, and every menu is the page's own list, not the browser's. The side rail groups the views, shows whether the live connection is up, and switches between the dark and light themes. On a phone it becomes a bar across the top.

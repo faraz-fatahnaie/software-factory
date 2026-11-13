@@ -219,11 +219,16 @@ export async function serve(root: string, port = 4400) {
         // A role file with broken frontmatter fails only when a run reaches it, so catch it here.
         if (path.startsWith(".claude/agents/") && !/^---\n[\s\S]*?^name: \S+[\s\S]*?\n---\n/m.test(content))
           return json({ error: "a role file must start with frontmatter (--- … ---) that has a name" }, 400);
+        // The commit message is the person's to write; a short sentence on one line, and an optional reason below it.
+        const subject = typeof body.message === "string" && body.message.trim() ? body.message.trim() : `studio: edit ${path}`;
+        const why = typeof body.why === "string" ? body.why.trim() : "";
+        if (subject.length > 200 || /[\r\n]/.test(subject)) return json({ error: "message: one line, up to 200 characters" }, 400);
+        if (why.length > 2000) return json({ error: "reason: up to 2,000 characters" }, 400);
         writeFileSync(join(root, path), content);
         // Committed, because task worktrees branch from HEAD: an uncommitted rule or role edit never reaches a run.
         await sh("git", "add", "--", path);
-        const commit = await sh("git", "commit", "-q", "-m", `studio: edit ${path}`, "--", path);
-        return json({ ok: true, committed: commit.code === 0 });
+        const commit = await sh("git", "commit", "-q", "-m", subject, ...(why ? ["-m", why] : []), "--", path);
+        return json({ ok: true, committed: commit.code === 0, sha: commit.code === 0 ? (await sh("git", "rev-parse", "--short", "HEAD")).out.trim() : "" });
       }
       if (route === "POST /api/config") {
         // The model matrix: only `roles` can change here, and only if the whole file still validates.

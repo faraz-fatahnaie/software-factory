@@ -105,6 +105,16 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   A lane graph across all branches (merges, HEAD, tags, remote branches), a Changes tab (folder tree, status colours, +/- counts, diff) and a Log tab (branch filter, graph, commit files and diffs), after PyCharm and VS Code.
 - [x] F-056 (P1) Search over the commit graph
   Whole-history search by message, author, hash prefix, ref or task id; parents rewritten to the nearest matching ancestors so lanes stay connected; match count, highlighting, `/` shortcut, Escape to clear.
+- [x] F-057 (P2) Studio skill search redesign
+  Search field with a clear button and Escape, a result count, ten results at a time, an inline yes before installing (no browser dialog), skeleton while loading and an empty state.
+- [x] F-064 (P1) Studio redesign
+  A workspace of files (rules, team, skills), editor with line numbers and changed-line marks, Preview and History tabs, and a side panel (role, model tag, skills). Saving takes two checks (review, then commit with an editable message); changes can be discarded in place, leaving a file with changes asks first, and restoring an old version goes through the same two checks.
+- [ ] F-058 (P1) Show what each agent is doing right now (a live "Now" line from the tool events, chat people on shift)
+- [ ] F-059 (P1) Suggested next prompts in chats (`SUGGEST:` lines as chips; per-person setting, on for Product Partner)
+- [ ] F-060 (P1) Guide: a read-only conversation in Talk, docked in Checks with the latest result attached
+- [ ] F-061 (P1) Plugin README, runbook and the home-bakery scenario (one story for README, runbook, landing page and video)
+- [ ] F-062 (P3) Typography video of the home-bakery scenario showing every capability (later)
+- [ ] F-063 (P3) Official documentation website (later)
 - [ ] F-049 (P2) Set models per role and per stage from the command line
   Today only by editing factory.config.json or the Models page (roles only); stage settings are set automatically when a stage moves.
 - [ ] F-050 (P3) Custom unattended checks beyond advisory

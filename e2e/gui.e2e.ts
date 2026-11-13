@@ -128,15 +128,61 @@ try {
 
   // Studio: attach a skill to a role, and edit the rules file; both are commits.
   await view("Studio");
-  await page.getByRole("button", { name: "agents/builder.md" }).click();
+  await page.getByRole("button", { name: /Kofi/ }).click();
   await page.getByRole("button", { name: "+ tdd" }).click();
   await page.getByRole("button", { name: "Detach tdd from builder" }).waitFor();
-  await page.getByRole("button", { name: "AGENTS.md" }).click();
+  // Skill search (answered here, not by skills.sh): results with a count, ten at a time, an inline yes before install, and a way to clear.
+  const many = Array.from({ length: 12 }, (_, i) => ({ pkg: `acme/skills@lint-${i}`, installs: "1K", url: `https://skills.sh/acme/skills/lint-${i}` }));
+  await page.route("**/api/skills/search?q=*", (route) => route.fulfill({ json: many }));
+  const search = page.getByRole("searchbox").or(page.getByLabel("Search skills.sh"));
+  assert.equal(await page.getByRole("button", { name: "Search", exact: true }).isDisabled(), true, "needs two letters");
+  await search.fill("lint");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.getByText("12 results for “lint”").waitFor();
+  assert.equal(await page.locator(".results li").count(), 10);
+  await page.getByRole("button", { name: /Show 2 more/ }).click();
+  assert.equal(await page.locator(".results li").count(), 12);
+  await page.locator(".results li").first().getByRole("button", { name: "Install" }).click();
+  await page.getByRole("alert").filter({ hasText: "third-party instructions" }).waitFor();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await search.press("Escape");
+  await page.locator(".results").waitFor({ state: "detached" });
+  assert.equal(await search.inputValue(), "");
+  // Editing the rules: changes show at once, can be thrown away (asked in place), and saving takes two checks.
+  await page.getByRole("button", { name: /^AGENTS\.md/ }).click();
+  await page.getByLabel("Contents of AGENTS.md").fill("# Rules\n\nBe loud.\n");
+  await page.getByText(/lines? changed/).waitFor();
+  await page.getByRole("button", { name: "Discard changes" }).click();
+  await page.getByText(/Throw away/).waitFor();
+  await page.getByRole("button", { name: "Keep editing" }).click();
+  await page.getByRole("button", { name: /Kofi/ }).click(); // leaving with changes asks first
+  await page.getByText("AGENTS.md has changes that are not saved.").waitFor();
+  await page.getByRole("button", { name: "Stay here" }).click();
+  await page.getByRole("button", { name: "Discard changes" }).click();
+  await page.getByRole("button", { name: "Discard changes" }).click(); // the confirmation
+  assert.equal(await page.getByLabel("Contents of AGENTS.md").inputValue(), "# Rules\n", "thrown away: back to the last commit");
   await page.getByLabel("Contents of AGENTS.md").fill("# Rules\n\nBe brief.\n");
-  await page.getByRole("button", { name: "Save" }).click();
-  await page.getByText("Saved and committed").waitFor();
-  assert.deepEqual(sh("git", "log", "-2", "--format=%s").out.split("\n"), ["studio: edit AGENTS.md", "skills: attach tdd for builder"]);
+  await page.getByRole("button", { name: "Review changes" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByText("Review what will change").waitFor();
+  assert.match(await dialog.locator(".udiff").innerText(), /Be brief/);
+  await dialog.getByRole("button", { name: "Continue to commit" }).click();
+  assert.equal(sh("git", "log", "-1", "--format=%s").out, "skills: attach tdd for builder", "nothing is written before the second check");
+  await dialog.getByRole("textbox", { name: /Commit message/ }).fill("rules: shorter");
+  await dialog.getByRole("button", { name: "Commit changes" }).click();
+  await page.getByText("Committed").first().waitFor();
+  assert.deepEqual(sh("git", "log", "-2", "--format=%s").out.split("\n"), ["rules: shorter", "skills: attach tdd for builder"]);
   assert.equal(sh("git", "status", "--porcelain", "--", ".claude", "AGENTS.md").out, "", "nothing left uncommitted");
+  // History and restore: the old version fills the editor and goes through the same two checks.
+  await page.getByRole("tab", { name: "Preview" }).click();
+  assert.match(await page.getByRole("article", { name: "Preview" }).innerText(), /Be brief/);
+  await page.getByRole("tab", { name: /^History/ }).click();
+  await page.getByText("Viewing an older version").waitFor();
+  await page.getByRole("button", { name: "Restore this version" }).click();
+  await page.getByText(/lines? changed/).waitFor();
+  assert.equal(await page.getByLabel("Contents of AGENTS.md").inputValue(), "# Rules\n");
+  await page.getByRole("button", { name: "Discard changes" }).click();
+  await page.getByRole("button", { name: "Discard changes" }).click();
 
   // Cost and Worktrees render from the same data.
   await view("Agents");

@@ -68,7 +68,7 @@ export function Select(p: {
     <>
       <button
         ref={button} type="button" className={`trigger${p.small ? " small" : ""}${p.block ? " block" : ""}`} disabled={p.disabled}
-        aria-haspopup="listbox" aria-expanded={open} aria-label={`${p.label}: ${shown?.label ?? p.placeholder ?? "none"}`}
+        aria-haspopup="listbox" aria-expanded={open} aria-label={`${p.label} ${shown?.label ?? p.placeholder ?? "none"}`}
         onClick={() => (open ? close() : show())}
         onKeyDown={(e) => { if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) { e.preventDefault(); show(); } }}
       >

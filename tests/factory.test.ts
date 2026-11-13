@@ -22,6 +22,7 @@ import { followUps, needsTriage, runTask, shellGate, verdictIs, type Runner } fr
 import { serve } from "../plugin/engine/server";
 import { costs, elapsed, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
 import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
+import { counts, lineDiff, marks, withGaps } from "../gui/linediff";
 
 const task = { id: "F-001", title: "First" };
 
@@ -259,10 +260,16 @@ test("server: rejects foreign hosts and origins; streams events; runs, approves 
     expect((await fetch(`${base}/api/file?path=../../etc/passwd`)).status).toBe(400);
     expect((await post("/api/file", { path: "factory.config.json", content: "{}" })).status).toBe(400);
     expect((await post("/api/file", { path: ".claude/agents/builder.md", content: "no frontmatter" })).status).toBe(400);
-    expect(await (await post("/api/file", { path: "AGENTS.md", content: "# Rules\n\n1. Be brief.\n" })).json()).toEqual({ ok: true, committed: true });
+    const saved = await (await post("/api/file", { path: "AGENTS.md", content: "# Rules\n\n1. Be brief.\n" })).json() as any;
+    expect(saved).toMatchObject({ ok: true, committed: true });
+    expect(saved.sha).toMatch(/^[0-9a-f]{7,}$/);
     const doc = await get("/api/file?path=AGENTS.md");
     expect(doc).toMatchObject({ content: "# Rules\n\n1. Be brief.\n", history: [{ subject: "studio: edit AGENTS.md" }, { subject: "base" }] });
     expect((await get(`/api/file?path=AGENTS.md&rev=${doc.history[1].sha}`)).content).toBe("# Rules\n");
+    // The person writes the commit message: one line, with an optional reason under it.
+    for (const bad of [{ message: "two\nlines" }, { message: "x".repeat(201) }, { why: "y".repeat(2001) }]) expect((await post("/api/file", { path: "AGENTS.md", content: "# Rules\n\nx\n", ...bad })).status).toBe(400);
+    expect((await post("/api/file", { path: "AGENTS.md", content: "# Rules\n\n1. Be brief.\n2. Be kind.\n", message: "rules: be kind", why: "People read these." })).status).toBe(200);
+    expect((await get("/api/file?path=AGENTS.md")).history[0].subject).toBe("rules: be kind");
 
     // Per-role skills: attach and detach an installed skill; both are committed.
     expect(await get("/api/skills")).toMatchObject({ installed: ["tdd"], roles: { builder: [], reviewer: [] } });
@@ -1835,4 +1842,19 @@ test("graph search: matches are found in the whole history and stay joined throu
   expect(graphInfo(dir, resolveTeam(), 1, undefined, "backlog").matches).toBeGreaterThan(1);
   expect(graphInfo(dir, resolveTeam(), 80, "main", "merge F-001").rows).toHaveLength(1);
   expect(() => graphInfo(dir, resolveTeam(), 80, undefined, "x".repeat(101))).toThrow(/search/);
+});
+
+test("linediff: what changed between two texts, for the Studio gutter and the review step", () => {
+  const before = "a\nb\nc\nd\ne\nf\ng\nh\n", after = "a\nb\nC\nd\ne\nf\ng\nh\ni\n";
+  const ops = lineDiff(before, after);
+  expect(counts(ops)).toEqual({ added: 2, removed: 1 });
+  expect(ops.filter((o) => o.kind !== "ctx").map((o) => `${o.kind}:${o.text}`)).toEqual(["del:c", "add:C", "add:i"]); // removed lines come first
+  expect(lineDiff("same\n", "same\n").every((o) => o.kind === "ctx")).toBe(true);
+  // Gutter: the replaced line is "mod", the extra one "add"; a removal marks the line after it.
+  expect([...marks(ops)]).toEqual([[3, "mod"], [9, "add"]]);
+  expect([...marks(lineDiff("a\nb\nc\n", "a\nc\n"))]).toEqual([[2, "del"]]);
+  // Long unchanged stretches fold into one gap row, with three lines of context kept.
+  const rows = withGaps(lineDiff(Array.from({ length: 30 }, (_, i) => `l${i}`).join("\n"), Array.from({ length: 30 }, (_, i) => (i === 15 ? "X" : `l${i}`)).join("\n")));
+  expect(rows.filter((r) => r.kind === "gap")).toEqual([{ kind: "gap", count: 12 }, { kind: "gap", count: 11 }]);
+  expect(counts(lineDiff("", "x\ny\n"))).toEqual({ added: 2, removed: 1 }); // an empty file is one empty line
 });
