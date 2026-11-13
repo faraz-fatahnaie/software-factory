@@ -1,7 +1,7 @@
 {
   "0": "Software Factory (AGENTS.md)",
   "1": "factory.test.ts",
-  "2": "cli.ts",
+  "2": "release.ts",
   "3": "package.json",
   "4": "server.ts",
   "5": "compilerOptions",
@@ -35,7 +35,7 @@
   "33": "security-performance.md",
   "34": "secure/SKILL.md",
   "35": "test/SKILL.md",
-  "36": "teamctl.ts",
+  "36": "cli.ts",
   "37": "deploy/SKILL.md",
   "38": "release/SKILL.md",
   "39": "ask/SKILL.md",
@@ -44,5 +44,6 @@
   "42": "views.tsx",
   "43": "talk.tsx",
   "44": "team.tsx",
-  "45": "data.ts"
+  "45": "vcs.tsx",
+  "46": "git/SKILL.md"
 }

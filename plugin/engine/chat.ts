@@ -13,13 +13,15 @@ export const TOPICS: Record<string, { title: string; summary: string; ids: strin
   test: { title: "Test against the stories", summary: "Check the product against what you said it should do.", ids: ["V2", "V3"], first: "Please check the product against the user stories." },
   secure: { title: "Security and performance review", summary: "Threat model, data protection and performance of the design.", ids: ["A5", "S3", "Q1"], first: "Please review the security and performance of the design." },
   audit: { title: "Security audit", summary: "The audit to run before a release.", ids: ["S4"], first: "Please run the security audit." },
+  git: { title: "Pull requests and GitHub", summary: "See what is waiting to go to GitHub, and approve a push or a merge.", ids: ["G2"], first: "What is waiting to go to GitHub?" },
   docs: { title: "Keep the documents current", summary: "Update the README, context files and documents.", ids: ["K1", "K3"], first: "Please bring the project documents up to date." },
 };
 
 const MODELS = ["fable", "opus", "sonnet", "haiku"], EFFORTS = ["low", "medium", "high", "xhigh", "max"];
 // Documents only. Governance files stay out of reach (the guard hook enforces it too), and code is the builder's.
 const ALLOW = ["Read", "Grep", "Glob", "WebSearch", "WebFetch", "Write(docs/**)", "Edit(docs/**)", "Write(README.md)", "Edit(README.md)", "Write(CHANGELOG.md)", "Edit(CHANGELOG.md)",
-  "Bash(factory docs save:*)", "Bash(factory add:*)", "Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)", "Bash(graphify query:*)"];
+  "Bash(factory docs save:*)", "Bash(factory add:*)", "Bash(factory vcs)", // read-only: pushing and merging are buttons the person presses, never commands this session may run
+  "Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)", "Bash(graphify query:*)"];
 
 export type ChatRequest = { topic: string; message: string; session?: string; model?: string; effort?: string };
 

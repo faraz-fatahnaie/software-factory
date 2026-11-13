@@ -20,7 +20,9 @@ export type SecuritySettings = { always?: boolean; paths?: string[]; keywords?: 
  * `graph: false` turns off the knowledge graph (on by default; it needs graphify installed).
  * `team` is the project's team: a preset plus its own changes. `roles` holds the model settings of the roles that run unattended.
  */
-export type Config = { setup?: string[]; gate: string[]; graph?: boolean; security?: SecuritySettings; team?: TeamSettings; roles: Record<Role, RoleConfig> };
+/** `autoMerge`: merge a pull request as soon as its checks pass, with no wait for a person. Off unless the person turns it on. */
+export type VcsSettings = { autoMerge?: boolean };
+export type Config = { setup?: string[]; gate: string[]; graph?: boolean; security?: SecuritySettings; vcs?: VcsSettings; team?: TeamSettings; roles: Record<Role, RoleConfig> };
 
 const isStr = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
 // Model names become command-line arguments, so they may not look like an option.
@@ -64,6 +66,7 @@ export function parseConfig(raw: unknown): Config {
       for (const key of ["paths", "keywords"]) if (sec[key] !== undefined && !isStrList(sec[key])) errs.push(`security.${key}: must be a list of words`);
     }
   }
+  if (c.vcs !== undefined && (typeof c.vcs !== "object" || c.vcs === null || Array.isArray(c.vcs) || (c.vcs.autoMerge !== undefined && typeof c.vcs.autoMerge !== "boolean"))) errs.push("vcs: must be an object, and vcs.autoMerge must be true or false");
   let roleNames: string[] = [];
   try { roleNames = activeRoles(teamOf(c)); } catch (e) { errs.push(`team: ${(e as Error).message}`); }
   for (const name of Object.keys(c.roles ?? {}))
@@ -92,7 +95,7 @@ export function parseConfig(raw: unknown): Config {
     return [role, { runner, model, effort, fallback, ...(enabled !== undefined && { enabled }), ...(own && Object.keys(own).length && { stages: own }) }];
   })) as Record<Role, RoleConfig>;
   const team = c.team as TeamSettings | undefined;
-  return { ...(c.setup && { setup: c.setup }), gate: c.gate, ...(c.graph !== undefined && { graph: c.graph }),
+  return { ...(c.setup && { setup: c.setup }), gate: c.gate, ...(c.graph !== undefined && { graph: c.graph }), ...(c.vcs && { vcs: { ...(c.vcs.autoMerge !== undefined && { autoMerge: c.vcs.autoMerge }) } }),
     ...(c.security && { security: { ...(c.security.always !== undefined && { always: c.security.always }), ...(c.security.paths && { paths: c.security.paths }), ...(c.security.keywords && { keywords: c.security.keywords }) } }),
     ...(team && { team: { ...(team.preset && { preset: team.preset }), ...(team.move && Object.keys(team.move).length && { move: team.move }), ...(team.off?.length && { off: team.off }), ...(team.titles && Object.keys(team.titles).length && { titles: team.titles }), ...(team.custom?.length && { custom: team.custom }) } }),
     roles };

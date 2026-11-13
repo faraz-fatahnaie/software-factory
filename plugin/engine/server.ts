@@ -7,6 +7,7 @@ import { openStore } from "./events";
 import { parseFind, roleSkills, SKILLS_CLI } from "./skills";
 import { chatPromptFor, holderOf } from "./team";
 import { changeTeam, parseChanges, planTeam, presetList, teamView } from "./teamctl";
+import { hasChecks, remoteUrl, vcsStatus } from "./vcs";
 import { listWorktrees } from "./worktree";
 
 const CLI = join(import.meta.dir, "cli.ts");
@@ -85,6 +86,12 @@ export async function serve(root: string, port = 4400) {
     return new Response(body, { headers: { "content-type": "text/event-stream", "cache-control": "no-cache" } });
   };
 
+  let vcsCache: { at: number; remote: string | null; body: object } | undefined;
+  // With auto-merge on, something has to notice when checks turn green. Once a minute, and only then.
+  const sweep = setInterval(async () => {
+    try { if (loadConfig(root).vcs?.autoMerge) { await sh(process.execPath, CLI, "sync"); vcsCache = undefined; } } catch { /* a failed sweep is tried again next minute */ }
+  }, 60_000);
+  sweep.unref();
   const teamPayload = () => {
     const raw = JSON.parse(readFileSync(join(root, "factory.config.json"), "utf8"));
     return { ...teamView(projectTeam(root), loadConfig(root), store.since(0), raw.team?.preset), presets: presetList() };
@@ -104,6 +111,15 @@ export async function serve(root: string, port = 4400) {
       if (route === "GET /api/backlog") return json({ items: items(), running: [...running.keys()] });
       if (route === "GET /api/config") return json(loadConfig(root));
       if (route === "GET /api/team") return json(teamPayload());
+      if (route === "GET /api/vcs") {
+        // Asks GitHub, so the answer is kept for a few seconds; any push, merge or sync clears it.
+        if (!vcsCache || vcsCache.remote !== remoteUrl(root) || Date.now() - vcsCache.at > 15_000) {
+          let autoMerge = false;
+          try { autoMerge = !!loadConfig(root).vcs?.autoMerge; } catch { /* not initialised */ }
+          vcsCache = { at: Date.now(), remote: remoteUrl(root), body: { ...vcsStatus(root), autoMerge, hasChecks: hasChecks(root) } };
+        }
+        return json(vcsCache.body);
+      }
       if (route === "GET /api/chat/topics") {
         const team = projectTeam(root);
         return json(Object.entries(TOPICS).map(([key, t]) => {
@@ -220,6 +236,17 @@ export async function serve(root: string, port = 4400) {
         } catch (e) {
           return json({ error: (e as Error).message }, 400);
         }
+      }
+      if (["POST /api/push", "POST /api/merge"].includes(route)) {
+        if (ids.length !== 1) return json({ error: "one id required" }, 400);
+        vcsCache = undefined;
+        return cli(url.pathname.slice(5), ids[0]!); // the same command a person would type, with the same checks
+      }
+      if (route === "POST /api/sync") { vcsCache = undefined; return cli("sync"); }
+      if (route === "POST /api/vcs/auto-merge") {
+        if (typeof body.on !== "boolean") return json({ error: "on: true or false" }, 400);
+        vcsCache = undefined;
+        return cli("vcs", "auto-merge", body.on ? "on" : "off");
       }
       if (route === "POST /api/command") {
         const argv = typeof body.name === "string" ? COMMANDS[body.name] : undefined;

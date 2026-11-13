@@ -31,7 +31,9 @@ bun run factory add "Export a VERSION constant from plugin/engine/config.ts"
 bun run factory promote F-026
 bun run factory run                # top Ready item; or: run F-026 F-027, or: run --parallel 3
 git diff HEAD...factory/F-026      # review the work
-bun run factory approve F-026      # or: discard F-026
+bun run factory approve F-026      # or: discard F-026. With a GitHub remote this keeps the branch; nothing is pushed yet
+bun run factory push F-026         # push it and open a pull request, after the secret scan
+bun run factory merge F-026        # merge the pull request (or use the dashboard, or GitHub)
 ```
 
 ## Starting from an idea
@@ -44,6 +46,7 @@ you have selected, so switch with `/model` first) and asks one question at a tim
 | --- | --- | --- |
 | `/software-factory:brainstorm <idea>` | Works out what you want: who it is for, the problem, what success looks like, what is out of scope | `docs/product/brief.md` |
 | `/software-factory:research` | Finds similar products on the web, compares them, and helps you decide what to adopt or avoid | `docs/product/research.md` |
+| `/software-factory:git` | Sets up git and a private GitHub repository with you, or tells you what is waiting to be pushed or merged. Pushing and merging are your buttons or your yes, never automatic | `.gitignore`, the remote |
 | `/software-factory:plan` | Turns the brief into user stories, non-functional requirements and scope, then (after the design) milestones and a task list | `docs/product/requirements.md`, `docs/plan/roadmap.md`, and tasks in the backlog Inbox |
 | `/software-factory:design` | Chooses the technology with you, designs the system, checks dependencies, records decisions, defines the foundation and the gate, and suggests skills for each role | `docs/architecture/overview.md`, `docs/architecture/decisions/`, the gate in `factory.config.json` |
 
@@ -169,6 +172,7 @@ The record builds up as you work:
 | Backlog | The backlog as a board. Cards show stage state, model, elapsed time and cost. A task panel has the live log with replay, the spec, the review and the diff, with Approve and Discard. |
 | Talk | Conversations with the roles that work with you (brainstorm, research, plan, design, test, security review, audit, documents), in the page. They read the project and write documents; they cannot change code. |
 | Checks | The factory's own commands as buttons: setup check, status, release information and readiness, secret scan, rebuild role files. |
+| GitHub (on Overview) | What is waiting to go to GitHub: approved tasks that are only on this machine (Push), pull requests with their checks (Merge), Sync, and an Auto-merge switch that is off by default. The rail says where the work stands. |
 | Team | Every role is a robot with a name and a job; responsibilities are cards under it. Pick a preset or a size, move or switch off responsibilities, fold roles together; the agent count and the cost of a normal task update as a preview, and nothing is saved until you say so. |
 | Agents | Who is working, the model, effort and fallback chain per role, and spend and pass rate by model, role and task. |
 | Logs | Every event from every task, filterable by kind and task. |

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { elapsed, passRates, roster, series, STAGES, summarize, toolLine, type Ev, type TaskRun } from "../plugin/engine/state";
-import { post, useBacklog, useEvents, useHash, useNow, useTeam, useTheme, type Backlog, type Item, type Link } from "./data";
+import { post, useBacklog, useEvents, useHash, useNow, useTeam, useTheme, useVcs, type Backlog, type Item, type Link } from "./data";
+import { GitHub, vcsChip, type VcsData } from "./vcs";
 import { Agents, Logs, Studio, Worktrees } from "./views";
 import { Checks, Talk, type Chats } from "./talk";
 import { presenceOf, Team, type TeamData } from "./team";
@@ -66,7 +67,9 @@ export function logLine(e: Ev): { cls: string; text: string } | null {
     case "stage.rate_limited": return { cls: "warn", text: `Rate limited on ${e.model}; trying the next model in the chain` };
     case "run.done": return { cls: "ok", text: "Review approved. Waiting for a person." };
     case "run.failed": return { cls: "bad", text: `Run failed: ${e.data}` };
-    case "task.landed": return { cls: "ok", text: `Landed: ${e.data?.where}` };
+    case "task.landed": return { cls: "ok", text: `Approved: ${e.data?.where}` };
+    case "pr.opened": return { cls: "ok", text: `Pull request opened: ${e.data?.url}` };
+    case "pr.merged": return { cls: "ok", text: "Pull request merged" };
     case "task.discarded": return { cls: "warn", text: "Discarded" };
     case "command.failed": return { cls: "bad", text: `Command failed: ${e.data?.error ?? ""}` };
     default:
@@ -212,7 +215,7 @@ export function Feed({ events, limit, open }: { events: Ev[]; limit: number; ope
 
 const DOING: Record<string, string> = { triage: "Triaging", spec: "Writing the spec for", build: "Building", check: "Running the checks on", security: "Checking the security of", review: "Reviewing", document: "Writing the summary of" };
 
-function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any; backlog: Backlog; open: (id: string) => void; team: TeamData | null }) {
+function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any; backlog: Backlog; open: (id: string) => void; team: TeamData | null; vcs: VcsData | null; act: Act; refreshVcs: () => Promise<void> }) {
   const working = useMemo(() => roster(p.tasks), [p.tasks]);
   const now = useNow(true, working.length ? 1000 : 30_000);
   const day = useMemo(() => series(p.events, now - 86_400_000, now, 24), [p.events, Math.floor(now / 60_000)]);
@@ -270,6 +273,8 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
       <Kpi title="Gate pass rate" value={pct(rates.gate)} unit={rates.gate.total ? "%" : ""} note={rates.review.total ? `Reviews approved ${pct(rates.review)}% of ${rates.review.total}` : "No builds checked yet."}>
         {rates.gate.total > 0 && <meter value={rates.gate.ok / rates.gate.total} low={0.5} optimum={1} max={1} aria-label="Gate pass rate" />}
       </Kpi>
+
+      <GitHub vcs={p.vcs} items={items} act={p.act} refresh={p.refreshVcs} open={p.open} />
 
       {working.length > 0 && (
         <section className="shift" aria-label="On shift">
@@ -477,6 +482,8 @@ function App() {
   const [topic, setTopic] = useState("");
   const ran = events.filter((e) => e.type === "stage.ok").length;
   const team = useTeam(ran);
+  const { vcs, refresh: refreshVcs } = useVcs();
+  const chip = vcsChip(vcs);
   const [error, setError] = useState("");
   // A run that failed before it started (bad state, git error) only shows up as this event.
   useEffect(() => { if (notice) setError(`${notice.task}: ${notice.data?.error ?? "command failed"}`); }, [notice?.seq]);
@@ -526,6 +533,7 @@ function App() {
         </nav>
         <footer>
           <span className={`link ${link}`} role="status" title="The live event stream from the factory server"><span>{LINK_TEXT[link]}</span></span>
+          <a className={`link vcs ${chip.tone}`} href="#overview" title={chip.title}><span>{chip.text}</span></a>
           <button className="quiet theme" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
             <Icon name={theme === "dark" ? "sun" : "moon"} /><span>{theme === "dark" ? "Light theme" : "Dark theme"}</span>
           </button>
@@ -539,7 +547,7 @@ function App() {
         </header>
         {!loaded ? <><p className="sr" role="status">Loading…</p><ViewSkeleton kind={view === "Overview" ? "overview" : view === "Backlog" ? "board" : view === "Team" ? "team" : "list"} /></> : (
           <>
-            {view === "Overview" && <Overview events={events} tasks={tasks} rateLimit={rateLimit} backlog={backlog} open={open} team={team} />}
+            {view === "Overview" && <Overview events={events} tasks={tasks} rateLimit={rateLimit} backlog={backlog} open={open} team={team} vcs={vcs} act={act} refreshVcs={refreshVcs} />}
             {view === "Backlog" && <Board backlog={backlog} tasks={tasks} act={act} selected={selected} select={setSelected} />}
             {view === "Talk" && <Talk chats={chats} setChats={setChats} topic={topic} />}
             {view === "Checks" && <Checks />}

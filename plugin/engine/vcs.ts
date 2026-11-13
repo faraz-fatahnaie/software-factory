@@ -1,0 +1,164 @@
+// Version control: what is on GitHub and what is waiting, and the pushes and merges a person approves.
+// An approved task is a local branch (`factory/F-id`) with no worktree. Pushing it opens a pull request; merging that is the person's call
+// (or automatic when they turned `vcs.autoMerge` on). Nothing here runs unless a person or the dashboard asked for that exact action.
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { formatFindings, parseDiff, scanSecrets } from "./security";
+import { branchOf, git, worktreeOf } from "./worktree";
+
+const GH = () => process.env.FACTORY_GH ?? "gh"; // overridable so tests never touch GitHub
+const run = (argv: string[], cwd: string) => {
+  const p = Bun.spawnSync(argv, { cwd, stdout: "pipe", stderr: "pipe", env: process.env });
+  return { code: p.exitCode, out: p.stdout.toString().trim(), err: p.stderr.toString().trim() };
+};
+const gh = (cwd: string, ...args: string[]) => run([GH(), ...args], cwd);
+const tryGit = (cwd: string, ...args: string[]) => { try { return git(cwd, ...args); } catch { return null; } };
+
+export type Checks = "passing" | "failing" | "pending" | "none";
+export type Pr = { number: number; url: string; state: "OPEN" | "MERGED" | "CLOSED"; checks: Checks; mergeable: boolean };
+export type Branch = { id: string; pushed: boolean; pr?: Pr };
+export type Status = { remote: string | null; github: boolean; ghReady: boolean; base: string; branches: Branch[]; note?: string };
+
+export const remoteUrl = (root: string) => tryGit(root, "remote", "get-url", "origin");
+export const baseBranch = (root: string) => git(root, "rev-parse", "--abbrev-ref", "HEAD");
+const hasRef = (root: string, ref: string) => tryGit(root, "rev-parse", "--verify", "-q", ref) !== null;
+
+/** One word for the checks on a pull request, from what `gh` reports (check runs and older status contexts). */
+export function summarizeChecks(rollup: any[] | null | undefined): Checks {
+  if (!rollup?.length) return "none";
+  const failed = (c: any) => ["FAILURE", "TIMED_OUT", "CANCELLED", "ACTION_REQUIRED", "STARTUP_FAILURE", "ERROR"].includes(c.conclusion ?? c.state);
+  const waiting = (c: any) => (c.status !== undefined && c.status !== "COMPLETED") || ["PENDING", "EXPECTED"].includes(c.state);
+  return rollup.some(failed) ? "failing" : rollup.some(waiting) ? "pending" : "passing";
+}
+
+/** The pull requests the factory opened, by task id. null when `gh` cannot answer (not installed, not signed in, offline). */
+export function listPrs(root: string): Map<string, Pr> | null {
+  const r = gh(root, "pr", "list", "--state", "all", "--limit", "100", "--json", "number,url,state,headRefName,mergeable,statusCheckRollup");
+  if (r.code !== 0) return null;
+  const out = new Map<string, Pr>();
+  for (const p of JSON.parse(r.out || "[]")) {
+    const id = /^factory\/(F-\d+)$/.exec(p.headRefName)?.[1];
+    if (!id || (out.get(id)?.state === "OPEN" && p.state !== "OPEN")) continue; // an open pull request wins over an old closed one
+    out.set(id, { number: p.number, url: p.url, state: p.state, checks: summarizeChecks(p.statusCheckRollup), mergeable: p.mergeable !== "CONFLICTING" });
+  }
+  return out;
+}
+
+/** What is waiting: approved tasks that are only on this machine, pushed ones, and their pull requests. Reads git; asks GitHub only if `prs`. */
+export function vcsStatus(root: string, prs = true): Status {
+  const remote = remoteUrl(root);
+  const ghReady = gh(root, "auth", "status").code === 0;
+  const status: Status = { remote, github: !!remote && /github\.com/.test(remote), ghReady, base: baseBranch(root), branches: [] };
+  const found = remote && ghReady && prs ? listPrs(root) : null;
+  if (remote && ghReady && prs && !found) status.note = "GitHub did not answer, so pull request details are missing.";
+  for (const ref of git(root, "for-each-ref", "--format=%(refname:short)", "refs/heads/factory/").split("\n").filter(Boolean)) {
+    const id = ref.slice("factory/".length);
+    if (!/^F-\d+$/.test(id) || existsSync(worktreeOf(root, id))) continue; // still being worked on
+    status.branches.push({ id, pushed: hasRef(root, `refs/remotes/origin/${ref}`), pr: found?.get(id) });
+  }
+  return status;
+}
+
+/** One-line description per waiting branch, for `factory vcs` and for the conversation that explains it. */
+export function formatStatus(s: Status, autoMerge: boolean): string {
+  const lines = [s.remote ? `remote: ${s.remote}${s.github ? "" : " (not GitHub)"}` : "remote: none. This project's work exists only on this machine.",
+    `GitHub CLI: ${s.ghReady ? "signed in" : "not signed in (run: gh auth login)"}`, `auto-merge: ${autoMerge ? "on (merges when checks pass)" : "off (you merge)"}`];
+  if (s.note) lines.push(s.note);
+  if (!s.branches.length) lines.push("nothing is waiting to be pushed or merged");
+  for (const b of s.branches) {
+    const where = b.pr ? `pull request #${b.pr.number} ${b.pr.state.toLowerCase()}${b.pr.state === "OPEN" ? `, checks ${b.pr.checks}${b.pr.mergeable ? "" : ", has conflicts"}` : ""} ${b.pr.url}` : b.pushed ? "pushed, no pull request found" : "approved, only on this machine";
+    lines.push(`${b.id}: ${where}`);
+  }
+  return lines.join("\n");
+}
+
+/** The text of a pull request: where it came from, the spec and the review, trimmed. All of it came from earlier stages of this run. */
+export function prBody(id: string, spec: string, review: string): string {
+  const part = (title: string, text: string) => (text.trim() ? `\n\n## ${title}\n${text.trim().slice(0, 1500)}${text.trim().length > 1500 ? "\n…" : ""}` : "");
+  return `Built by the software factory from backlog item ${id}.${part("What and why", spec)}${part("Review", review)}`;
+}
+
+function need(root: string): string {
+  const remote = remoteUrl(root);
+  if (!remote) throw new Error("this project has no GitHub remote. Set one up with /software-factory:git");
+  if (gh(root, "auth", "status").code !== 0) throw new Error("the GitHub CLI is not signed in. Run `gh auth login` yourself, then try again");
+  return remote;
+}
+
+/** Pushes an approved task's branch and opens its pull request. Refuses on a possible secret. Returns the pull request URL. */
+export function pushTask(root: string, id: string, title: string, spec = "", review = ""): string {
+  need(root);
+  const branch = branchOf(id), base = baseBranch(root);
+  if (!hasRef(root, `refs/heads/${branch}`)) throw new Error(`there is no branch for ${id}. Approve it first`);
+  if (existsSync(worktreeOf(root, id))) throw new Error(`${id} is still being worked on. Approve it first`);
+  const found = scanSecrets(parseDiff(git(root, "diff", `${base}...${branch}`, "-U0", "--no-color")));
+  if (found.length) throw new Error(`${id} was not pushed: possible secrets in what would be uploaded.\n${formatFindings(found)}\nRemove them (or mark a known false alarm with "factory:allow-secret" on the line), then push again.`);
+  const open = listPrs(root)?.get(id);
+  if (open?.state === "OPEN") return open.url;
+  git(root, "push", "-q", "-u", "origin", branch);
+  const r = gh(root, "pr", "create", "--head", branch, "--base", base, "--title", `${id}: ${title}`, "--body", prBody(id, spec, review));
+  if (r.code !== 0) throw new Error(`${id} was pushed, but opening the pull request failed: ${r.err}`);
+  return r.out.split("\n").at(-1)!; // the pull request URL
+}
+
+/** After a merge on GitHub: bring the merged code into this project's main branch and drop the branches that are done. */
+function tidy(root: string, prs: Map<string, Pr>): string[] {
+  const lines: string[] = [], base = baseBranch(root);
+  git(root, "fetch", "-q", "origin");
+  const behind = Number(tryGit(root, "rev-list", "--count", `HEAD..origin/${base}`) ?? 0);
+  if (behind) {
+    if (tryGit(root, "status", "--porcelain")) lines.push(`${base} is ${behind} commit${behind > 1 ? "s" : ""} behind GitHub, but this project has uncommitted changes, so it was not updated`);
+    else if (tryGit(root, "merge", "--no-edit", "-q", `origin/${base}`) !== null) lines.push(`${base} updated with ${behind} commit${behind > 1 ? "s" : ""} from GitHub`);
+    else { Bun.spawnSync(["git", "merge", "--abort"], { cwd: root }); lines.push(`${base} could not be updated from GitHub without a conflict; nothing was changed`); }
+  }
+  for (const [id, pr] of prs) {
+    if (pr.state !== "MERGED" || !hasRef(root, `refs/heads/${branchOf(id)}`) || existsSync(worktreeOf(root, id))) continue;
+    git(root, "branch", "-D", branchOf(id));
+    lines.push(`${id}: merged on GitHub; local branch removed`);
+  }
+  return lines;
+}
+
+/** Merges a task's pull request (a person asked for it, or auto-merge is on). Refuses on failing checks or conflicts. */
+export function mergeTask(root: string, id: string): string[] {
+  need(root);
+  const prs = listPrs(root);
+  const pr = prs?.get(id);
+  if (!prs || !pr || pr.state !== "OPEN") throw new Error(`${id} has no open pull request`);
+  if (pr.checks === "failing") throw new Error(`the checks on ${id} are failing, so it was not merged. Fix them first (or merge on GitHub if you know better)`);
+  if (!pr.mergeable) throw new Error(`${id} conflicts with ${baseBranch(root)}, so it was not merged. Rebuild it: factory discard, then factory run`);
+  const r = gh(root, "pr", "merge", String(pr.number), "--merge");
+  if (r.code !== 0) throw new Error(`GitHub refused the merge: ${r.err}`);
+  prs.set(id, { ...pr, state: "MERGED" });
+  return [`${id}: pull request #${pr.number} merged`, ...tidy(root, prs)];
+}
+
+/** Brings this project up to date with GitHub: merges what auto-merge allows, pulls merged work in, and removes finished branches. */
+export function syncGithub(root: string, autoMerge: boolean): string[] {
+  need(root);
+  const prs = listPrs(root);
+  if (!prs) throw new Error("GitHub did not answer");
+  const lines: string[] = [];
+  if (autoMerge) for (const [id, pr] of prs) {
+    if (pr.state !== "OPEN" || pr.checks !== "passing" || !pr.mergeable) continue;
+    const r = gh(root, "pr", "merge", String(pr.number), "--merge");
+    if (r.code === 0) { prs.set(id, { ...pr, state: "MERGED" }); lines.push(`${id}: checks passed, pull request #${pr.number} merged`); }
+    else lines.push(`${id}: could not be merged: ${r.err}`);
+  }
+  return [...lines, ...tidy(root, prs)];
+}
+
+/** Asks GitHub to merge the pull request itself once its checks pass. False when the repository does not allow that; sync covers it then. */
+export const armAutoMerge = (root: string, url: string) => gh(root, "pr", "merge", url, "--auto", "--merge").code === 0;
+
+/** Auto-merge waits for checks, so it needs some: a project with no workflow has nothing to wait for and would merge at once. */
+export function hasChecks(root: string): boolean {
+  const dir = join(root, ".github", "workflows");
+  return existsSync(dir) && readdirSync(dir).some((f) => /\.ya?ml$/.test(f));
+}
+
+/** The spec and review a task's last run produced, for the pull request text. */
+export function runTexts(root: string, run: string): { spec: string; review: string } {
+  const read = (f: string) => { try { return readFileSync(join(root, ".factory", "runs", run, f), "utf8"); } catch { return ""; } };
+  return { spec: read("spec.md"), review: read("review.md") };
+}

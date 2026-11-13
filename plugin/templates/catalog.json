@@ -594,5 +594,29 @@
     "access": [
       "write"
     ]
+  },
+  {
+    "id": "G1",
+    "area": "Version control",
+    "summary": "Set up git and GitHub for the project",
+    "when": "project",
+    "how": "chat",
+    "access": [
+      "read"
+    ],
+    "title": "Set up version control",
+    "instruction": "Set up version control with the user, in plain words. Git keeps the history of the project; GitHub keeps a copy online and is where finished work is reviewed and merged as a pull request. Ask one question at a time.\n1. Run `factory vcs` to see what exists: a git repository, a GitHub remote, whether the GitHub CLI (`gh`) is signed in. Read-only commands such as `git status`, `git remote -v` and `gh auth status` are fine to run.\n2. Not a git repository yet? Explain what that means and, after the user agrees, run `git init -b main`. Check that `.gitignore` covers dependencies, build output, `.env` files, `.factory/` and `.worktrees/`; propose any missing lines and add them only after the user approves.\n3. `gh` missing or not signed in? Tell the user to install the GitHub CLI and run `gh auth login` themselves. Never ask for, paste or store a token or a password, and never put one in a file.\n4. No GitHub remote? Ask whether to create one. Recommend **private**, and ask for the repository name (suggest the folder name). Say what will be uploaded: everything committed so far, including its history. Only after a clear yes run `gh repo create <name> --private --source . --remote origin --push`. The user sees a permission prompt for that command, and the prompt is their approval; do not run it a second way.\n5. Explain how work flows from now on: each approved task becomes a branch and a pull request; nothing is pushed until the user presses Push in the dashboard or approves it in a conversation; they merge the pull request themselves. Mention that merging can be automated with `factory vcs auto-merge on`, which only works once the project has checks (GitHub Actions) and means merges then wait for nobody; leave that choice to them.\n6. Close with what now exists and the one next step."
+  },
+  {
+    "id": "G2",
+    "area": "Version control",
+    "summary": "What is waiting to go to GitHub, and approving a push or merge",
+    "when": "request",
+    "how": "chat",
+    "access": [
+      "read"
+    ],
+    "title": "Pushes and pull requests",
+    "instruction": "Tell the user, in plain words, what is waiting to go to GitHub and what to do about it. Run `factory vcs` for the facts and do not guess. For each task say where it stands: approved but only on this machine; pushed with a pull request (checks passing, failing or still running; conflicts); or merged on GitHub and ready to tidy up. Explain a failing check or a conflict simply and offer to add a backlog item for it with `factory add`.\nYou never push or merge, and you have no command for it. When the user clearly asks for a task to be pushed or merged, end your message with exactly one line on its own: `PROPOSE: push F-014` or `PROPOSE: merge F-014` (that task's id). The page turns the line into a button, and pressing the button is the user's approval. Propose only a task that `factory vcs` lists in that state, one at a time, and never because it seems sensible. `PROPOSE: sync` asks the page to update from GitHub. Without a GitHub remote, say so and point to `/software-factory:git`."
   }
 ]

@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
-import { repo } from "../tests/fixture";
+import { fakeGh, ghPr, repo, tmp } from "../tests/fixture";
 import { serve } from "../plugin/engine/server";
 
 const { dir, sh, section } = repo();
@@ -57,6 +57,35 @@ try {
   assert.ok(existsSync(join(dir, "STUB_BUILD.txt")), "the task's change is merged");
   assert.ok(!existsSync(join(dir, ".worktrees/F-001")), "the worktree is removed");
 
+  // GitHub: with a remote, approving keeps the branch and pushes nothing. The Push button pushes and opens the pull request,
+  // the Merge button merges it, and the rail says where the work stands. (A fake GitHub CLI stands in for GitHub.)
+  const gh = fakeGh(), bare = tmp();
+  process.env.FACTORY_GH = gh.path;
+  sh("git", "init", "-q", "--bare", bare); sh("git", "remote", "add", "origin", bare);
+  await view("Backlog");
+  await card("Ready", "F-003").getByRole("button", { name: "Run", exact: true }).click();
+  await card("Awaiting approval", "F-003").locator(".stages li.ok").nth(4).waitFor({ timeout: 30_000 });
+  await card("Awaiting approval", "F-003").getByRole("button", { name: "Review" }).click();
+  await page.getByRole("button", { name: "Approve and land" }).click();
+  await card("Done", "F-003").waitFor();
+  assert.match(sh("git", "branch", "--list", "factory/F-003").out, /factory\/F-003/, "the approved branch is kept");
+  assert.equal(sh("git", "-C", bare, "branch", "--list").out, "", "nothing was pushed by approving");
+  await view("Overview");
+  const row = page.locator(".github li", { hasText: "F-003" });
+  await row.getByText("Only on this machine").waitFor({ timeout: 30_000 });
+  await page.locator(".link.vcs", { hasText: "1 waiting for GitHub" }).waitFor();
+  await row.getByRole("button", { name: "Push" }).click();
+  await row.getByText("Pushed, no pull request").waitFor(); // pushed; the fake GitHub lists no pull request yet
+  assert.match(sh("git", "-C", bare, "branch", "--list").out, /factory\/F-003/, "the push went through");
+  assert.match(gh.calls(), /pr create --head factory\/F-003/);
+  gh.prs([ghPr(7, "F-003", "SUCCESS")]); // GitHub now lists the pull request; Sync reads it
+  await page.getByRole("button", { name: "Sync" }).click();
+  await row.getByText("#7 · checks passing").waitFor();
+  await row.getByRole("button", { name: "Merge" }).click();
+  await row.waitFor({ state: "detached" });
+  await page.locator(".link.vcs", { hasText: "In sync with GitHub" }).waitFor();
+  assert.match(gh.calls(), /pr merge 7 --merge/);
+
   // Models: a change is validated and written to the config file.
   await view("Agents");
   await page.getByRole("button", { name: /^builder model/ }).click();
@@ -81,7 +110,7 @@ try {
   await view("Agents");
   await page.getByText("By model").waitFor();
   await view("Logs");
-  await page.locator(".logs .feed li", { hasText: "Landed" }).waitFor();
+  await page.locator(".logs .feed li", { hasText: "Approved: " }).first().waitFor();
   // The theme switch flips the page and is remembered.
   const before = await page.evaluate(() => document.documentElement.dataset.theme);
   await page.getByRole("button", { name: /Switch to (light|dark) theme/ }).click();

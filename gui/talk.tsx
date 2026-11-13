@@ -5,7 +5,9 @@ import { call } from "./data";
 import { personaFor, Robot } from "./robots";
 import { Select, Skel } from "./ui";
 
-export type Msg = { who: "you" | "team"; text: string; tools?: string[]; cost?: number; bad?: boolean };
+/** An action the conversation proposes. Only the button runs it: the session itself has no way to push or merge. */
+export type Proposal = { kind: "push" | "merge" | "sync"; id?: string };
+export type Msg = { who: "you" | "team"; text: string; tools?: string[]; cost?: number; bad?: boolean; proposal?: Proposal; acted?: string };
 export type Chat = { messages: Msg[]; session?: string; busy: boolean };
 export type Chats = Record<string, Chat>;
 type Topic = { key: string; title: string; summary: string; first: string; available: boolean; reason?: string; role?: string; roleTitle?: string };
@@ -51,12 +53,23 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
     patch(k, (c) => {
       if (!r.ok) return { ...c, busy: false, messages: [...c.messages, { who: "team", text: r.error, bad: true }] };
       const d = r.data;
+      const ask = d.ok ? /^PROPOSE: (push|merge|sync)(?: (F-\d+))?[ \t]*$/m.exec(d.text) : null;
+      const proposal: Proposal | undefined = ask && (ask[1] === "sync" ? !ask[2] : !!ask[2]) ? { kind: ask[1] as Proposal["kind"], id: ask[2] } : undefined;
       const reply: Msg = d.ok
-        ? { who: "team", text: d.text, tools: d.tools.map((t) => toolLine(t)), cost: d.costUsd }
+        ? { who: "team", text: proposal ? d.text.replace(ask![0], "").trimEnd() : d.text, proposal, tools: d.tools.map((t) => toolLine(t)), cost: d.costUsd }
         : { who: "team", text: FAILURES[d.status] ?? d.text, bad: true };
       if (d.denials.length) reply.tools = [...(reply.tools ?? []), ...d.denials.map((x) => `not allowed here: ${x}`)];
       return { ...c, busy: false, session: d.session ?? c.session, messages: [...c.messages, reply] };
     });
+  };
+
+  // The approval: the button calls the same endpoint as the dashboard's Push and Merge buttons.
+  const approve = async (i: number, p: Proposal) => {
+    const k = key;
+    patch(k, (c) => ({ ...c, busy: true }));
+    const r = await call<{ ok: boolean; output: string }>(p.kind === "sync" ? "/api/sync" : `/api/${p.kind}`, p.kind === "sync" ? {} : { id: p.id });
+    const text = r.ok ? r.data.output : r.error;
+    patch(k, (c) => ({ ...c, busy: false, messages: [...c.messages.map((m, j) => (j === i ? { ...m, acted: r.ok ? "Done" : "Failed" } : m)), { who: "team", text, bad: !r.ok }] }));
   };
 
   if (!topics) return problem ? <p className="error" role="alert">{problem}</p> : (
@@ -108,6 +121,12 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
                       {m.cost ? <span>${m.cost.toFixed(4)}</span> : null}
                     </div>
                   ) : null}
+                  {m.proposal && (
+                    <div className="proposal">
+                      <span>{m.proposal.kind === "sync" ? "Update from GitHub?" : `${m.proposal.kind === "push" ? "Push" : "Merge"} ${m.proposal.id}${m.proposal.kind === "push" ? " to GitHub and open a pull request?" : "'s pull request into main?"}`}</span>
+                      {m.acted ? <b>{m.acted}</b> : <button className="primary" disabled={chat.busy} onClick={() => approve(i, m.proposal!)}>{m.proposal.kind === "sync" ? "Sync" : m.proposal.kind === "push" ? "Push" : "Merge"}</button>}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

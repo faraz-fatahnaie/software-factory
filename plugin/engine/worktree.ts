@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 // Ids come from parsed backlog items (F-<digits>), so they are safe in paths and branch names.
-const branchOf = (id: string) => `factory/${id}`;
+export const branchOf = (id: string) => `factory/${id}`;
 export const worktreeOf = (root: string, id: string) => join(root, ".worktrees", id);
 
 export function git(cwd: string, ...args: string[]): string {
@@ -44,24 +44,21 @@ export function commitAll(dir: string, message: string): boolean {
 }
 
 /** Deletes the task's checkout and local branch, including any uncommitted work in it. */
-export function removeWorktree(root: string, id: string) {
+export function removeWorktree(root: string, id: string, keepBranch = false) {
   if (existsSync(worktreeOf(root, id))) git(root, "worktree", "remove", "--force", worktreeOf(root, id));
   git(root, "worktree", "prune");
-  Bun.spawnSync(["git", "branch", "-D", branchOf(id)], { cwd: root }); // absent branch is fine
+  if (!keepBranch) Bun.spawnSync(["git", "branch", "-D", branchOf(id)], { cwd: root }); // absent branch is fine
 }
 
-/** Lands an approved task: a pull request when the repo has an `origin`, else a local merge. */
+export const APPROVED = "approved; not pushed yet";
+
+/**
+ * Lands an approved task. With an `origin` nothing leaves this machine: the branch is kept and a person pushes it (`factory push`),
+ * which opens a pull request they merge. Without one, it merges locally.
+ */
 export function land(root: string, id: string, title: string): string {
+  if (git(root, "remote").split("\n").includes("origin")) return APPROVED;
   const subject = `${id}: ${title}`;
-  if (git(root, "remote").split("\n").includes("origin")) {
-    git(root, "push", "-q", "-u", "origin", branchOf(id));
-    const p = Bun.spawnSync(
-      ["gh", "pr", "create", "--head", branchOf(id), "--title", subject, "--body", `Built by the software factory from backlog item ${id}.`],
-      { cwd: root, stdout: "pipe", stderr: "pipe" },
-    );
-    if (p.exitCode !== 0) throw new Error(`gh pr create failed: ${p.stderr.toString().trim()}`);
-    return p.stdout.toString().trim(); // the pull request URL
-  }
   try {
     git(root, "merge", "--no-ff", "-q", "-m", `Merge ${subject}`, branchOf(id));
   } catch {

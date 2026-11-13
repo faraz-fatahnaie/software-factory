@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Ev } from "../plugin/engine/state";
 import type { TeamData } from "./team";
+import type { VcsData } from "./vcs";
 
 export type Item = { id: string; prio?: string; title: string; section: string };
 export type Backlog = { items: Item[]; running: string[] };
@@ -122,4 +123,16 @@ export function useTeam(key: number): TeamData | null {
   const [team, setTeam] = useState<TeamData | null>(null);
   useEffect(() => { call<TeamData>("/api/team").then((r) => r.ok && setTeam(r.data)); }, [key]);
   return team;
+}
+
+/** What is waiting to go to GitHub. Polled (it asks GitHub through the server, which keeps the answer a few seconds); `refresh` re-reads at once. */
+export function useVcs(): { vcs: VcsData | null; refresh: () => Promise<void> } {
+  const [vcs, setVcs] = useState<VcsData | null>(null);
+  const refresh = async () => { const r = await call<VcsData>("/api/vcs"); if (r.ok) setVcs(r.data); };
+  useEffect(() => {
+    refresh();
+    const timer = setInterval(refresh, 20_000);
+    return () => clearInterval(timer);
+  }, []);
+  return { vcs, refresh };
 }

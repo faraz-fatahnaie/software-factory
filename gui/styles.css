@@ -508,3 +508,24 @@ button.small { min-height: 28px; font-size: 12.5px; padding: 0 10px; }
 .free-list li > span:nth-child(2) > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .free-list .right { display: none; }
 .chart, .roster { align-self: start; }
+
+/* GitHub tile, rail chip, and the approval card in a conversation */
+.github { grid-column: span 12; }
+.github header h2 { display: flex; align-items: center; gap: 10px; }
+.github li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.github li:last-child { border-bottom: 0; }
+.github li .what { flex: 1; min-width: 160px; white-space: normal; }
+.switch { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); cursor: pointer; }
+.switch input { width: 36px; height: 20px; appearance: none; border-radius: 999px; background: var(--raise); border: 1px solid var(--line-strong); position: relative; cursor: pointer; transition: background 0.15s var(--ease); }
+.switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform 0.15s var(--ease), background 0.15s var(--ease); }
+.switch input:checked { background: var(--accent-soft); border-color: var(--accent); }
+.switch input:checked::after { transform: translateX(16px); background: var(--accent); }
+.switch input:disabled { opacity: 0.5; cursor: not-allowed; }
+.link.vcs { text-decoration: none; }
+.link.vcs.ok { color: var(--ok); }
+.link.vcs.ok::before { background: var(--ok); box-shadow: none; }
+.link.vcs.warn { color: var(--warn); }
+.link.vcs.warn::before { background: var(--warn); box-shadow: none; animation: none; }
+.link.vcs.off { color: var(--muted); }
+.proposal { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent-soft); }
+.proposal span { flex: 1; min-width: 180px; }

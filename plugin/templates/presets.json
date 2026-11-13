@@ -119,7 +119,7 @@
       },
       "release-engineer": {
         "title": "Release Engineer",
-        "description": "Prepares releases and deployment, and deploys only when asked.",
+        "description": "Looks after git and GitHub, prepares releases and deployment, and pushes, merges or deploys only when asked.",
         "holds": [
           "L2",
           "L3",
@@ -127,7 +127,9 @@
           "L1",
           "L4",
           "L5",
-          "O3"
+          "O3",
+          "G1",
+          "G2"
         ]
       },
       "scribe": {
@@ -246,7 +248,7 @@
       },
       "release-engineer": {
         "title": "Release Engineer",
-        "description": "Prepares releases and deployment, audits before a release, and deploys only when asked.",
+        "description": "Looks after git and GitHub, prepares releases and deployment, audits before a release, and pushes, merges or deploys only when asked.",
         "holds": [
           "L2",
           "L3",
@@ -258,7 +260,9 @@
           "S4",
           "S6",
           "Q3",
-          "Q4"
+          "Q4",
+          "G1",
+          "G2"
         ]
       },
       "scribe": {
@@ -417,14 +421,16 @@
       },
       "release-engineer": {
         "title": "Release Engineer",
-        "description": "Prepares releases and deployment, and deploys only when asked.",
+        "description": "Looks after git and GitHub, prepares releases and deployment, and pushes, merges or deploys only when asked.",
         "holds": [
           "L2",
           "L3",
           "O2",
           "L1",
           "L4",
-          "L5"
+          "L5",
+          "G1",
+          "G2"
         ]
       },
       "operations-engineer": {

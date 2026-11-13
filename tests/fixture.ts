@@ -1,5 +1,5 @@
 // Shared by the unit tests and the browser end-to-end test: a throwaway factory repo.
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parse } from "../plugin/engine/backlog";
@@ -32,3 +32,28 @@ export function repo() {
   const section = (id: string) => parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).find((i) => i.id === id)?.section;
   return { dir, sh, section, cli: (...args: string[]) => sh(join(import.meta.dir, "../plugin/bin/factory"), ...args) };
 }
+
+/** A stand-in for the GitHub CLI: signed in, opens pull request #7, lists the pull requests you give it, and logs every call. Point FACTORY_GH at `.path`. */
+export function fakeGh() {
+  const dir = tmp(), path = join(dir, "gh");
+  writeFileSync(path, `#!/bin/bash
+D="$(dirname "$0")"
+echo "$@" >> "$D/calls.log"
+case "$1 $2" in
+  "auth status") exit 0;;
+  "pr create") echo "https://github.com/o/r/pull/7"; exit 0;;
+  "pr list") cat "$D/prs.json" 2>/dev/null || echo "[]"; exit 0;;
+esac
+exit 0
+`);
+  chmodSync(path, 0o755);
+  return {
+    path,
+    calls: () => (existsSync(join(dir, "calls.log")) ? readFileSync(join(dir, "calls.log"), "utf8") : ""),
+    prs: (list: object[]) => writeFileSync(join(dir, "prs.json"), JSON.stringify(list)),
+  };
+}
+
+/** One pull request as `gh pr list --json` reports it, with a single check that ended as `conclusion`. */
+export const ghPr = (number: number, id: string, conclusion: string, state = "OPEN") =>
+  ({ number, url: `https://github.com/o/r/pull/${number}`, state, headRefName: `factory/${id}`, mergeable: "MERGEABLE", statusCheckRollup: [{ status: "COMPLETED", conclusion }] });

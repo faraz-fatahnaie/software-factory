@@ -40,7 +40,7 @@ spec that changes the data model, an interface or a login boundary), the opt-in 
 (S6 probes, Q3 load tests, Q4 runtime checks, which need a running test environment and the
 release step), and milestone-triggered runs.
 
-Step 6 is done too: the Release Engineer runs as two conversations. `/software-factory:release`
+Version control (git and GitHub) is held by the Release Engineer, not a new agent: G1 sets it up (`/software-factory:git`), G2 explains what is waiting. Work always reaches GitHub as a pull request the user merges; nothing is pushed until the user presses Push or approves it in a conversation (the conversation only proposes, and the page's button acts); auto-merge is an opt-in setting that needs checks to wait for. Step 6 is done too: the Release Engineer runs as two conversations. `/software-factory:release`
 holds L2 (the deployment interview), L3 (preparation: hosting recommendation, environments,
 secrets, data, checks, rollback), O2 (runbooks) and L1 (version, changelog, tag); `/software-factory:deploy`
 holds L4 and L5 (deploy, smoke test, rollback) and runs only on the user's request. Preparation
@@ -188,7 +188,7 @@ personal data or heavy traffic) and shows the agents-per-task estimate for each.
 | Tester | | V2 V3 | V2 |
 | Reviewer | C1 S1 S3 S5 Q2 V2 V3 | C1 | C1 |
 | Security and Performance Engineer | | A5 S1 S3–S6 Q1–Q4 | A5 S1 S3–S6 Q1–Q4 |
-| Release Engineer | L1–L5 O2 O3 S4 S6 Q3 Q4 | L1–L5 O2 O3 | L1–L5 |
+| Release Engineer | L1–L5 O2 O3 G1 G2 S4 S6 Q3 Q4 | L1–L5 O2 O3 | L1–L5 |
 | Operations Engineer | | | O1 O3 |
 | Scribe | K1–K4 | K1–K4 | K1–K4 |
 | *Scripts (no agent)* | S2 V4 K5 | S2 V4 K5 | S2 V4 K5 |

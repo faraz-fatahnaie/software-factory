@@ -9,13 +9,14 @@ import { allTracked, changesInWorktree, changesSince, parseDiff, scanSecrets, se
 import { appendChronicle, appendNotes, chronicleEntry, parseScribe, readNotes, stageOutput } from "../plugin/engine/chronicle";
 import { graphifyInstalled, updateGraph } from "../plugin/engine/graph";
 import { openStore } from "../plugin/engine/events";
-import { BACKLOG, config, repo, role, tmp } from "./fixture";
+import { BACKLOG, config, fakeGh, ghPr, repo, role, tmp } from "./fixture";
 import { guard } from "../plugin/engine/hooks";
 import { applyTeam, configure, detect, doctor, init, nextStep, projectDocs } from "../plugin/engine/init";
 import { activeRoles, catalog, chatPrompt, chatPromptFor, checkSettings, customStages, DEFAULT_PRESET, describeTeam, perTask, presets, renderRole, resolveTeam, stageDuties, stageRole, teamForAgents, toolsFor, validateTeam, type TeamSettings } from "../plugin/engine/team";
 import { addCustom, moveSettings, offSettings, parseChange, planTeam, removeCustom, renameSettings, teamView } from "../plugin/engine/teamctl";
 import { chatArgs, TOPICS } from "../plugin/engine/chat";
 import { estimate } from "../plugin/engine/estimate";
+import { prBody, summarizeChecks } from "../plugin/engine/vcs";
 import { followUps, needsTriage, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
 import { costs, elapsed, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
@@ -384,7 +385,7 @@ test("init: detects the stack, writes without overwriting, and doctor confirms t
 
 test("team: the Balanced preset covers the catalog and obeys the enforced rules; bad teams are rejected", () => {
   const balanced = presets[DEFAULT_PRESET]!;
-  expect(catalog).toHaveLength(51);
+  expect(catalog).toHaveLength(53);
   expect(validateTeam(balanced)).toEqual([]);
   expect(activeRoles(balanced)).toEqual(["planner", "architect", "builder", "reviewer", "security-performance", "scribe"]); // the roles that hold something built
 
@@ -1538,4 +1539,112 @@ test("server: the team is read, previewed and changed over HTTP with the same ch
   } finally {
     server.stop(true);
   }
+}, 60_000);
+
+test("version control: approve keeps the branch and pushes nothing; push scans, pushes and opens a pull request; merge and sync act only on request", () => {
+  const { dir, sh, section, cli } = repo();
+  const bare = tmp(), { calls, prs, path } = fakeGh();
+  sh("git", "init", "-q", "--bare", bare);
+  sh("git", "remote", "add", "origin", bare);
+  const remoteBranches = () => Bun.spawnSync(["git", "branch", "--list"], { cwd: bare }).stdout.toString();
+  process.env.FACTORY_GH = path;
+  try {
+    expect(cli("run", "F-001", "F-002", "--stub").code).toBe(0);
+
+    // Approving accepts the work and nothing more: no push, the branch stays, the worktree goes.
+    const approved = cli("approve", "F-001");
+    expect(approved.out).toContain("approved; not pushed yet");
+    expect(section("F-001")).toBe("Done");
+    expect(sh("git", "branch", "--list", "factory/F-001").out).toContain("factory/F-001");
+    expect(existsSync(join(dir, ".worktrees/F-001"))).toBe(false);
+    expect(remoteBranches()).toBe("");
+    expect(calls()).not.toContain("pr create");
+    expect(cli("vcs").out).toContain("F-001: approved, only on this machine");
+
+    // Push: the branch goes up and a pull request opens with the spec and review in its text.
+    const pushed = cli("push", "F-001");
+    expect(pushed.out).toContain("pull request https://github.com/o/r/pull/7");
+    expect(remoteBranches()).toContain("factory/F-001");
+    expect(calls()).toMatch(/pr create --head factory\/F-001 --base main --title F-001: First --body Built by the software factory from backlog item F-001/);
+    expect(cli("push", "F-002").out).toContain("F-002 is under"); // only approved (Done) tasks can be pushed
+
+    // Merge refuses failing checks and conflicts, and merges when the checks pass; the merged branch is tidied away.
+    prs([ghPr(7, "F-001", "FAILURE")]);
+    expect(cli("vcs").out).toContain("pull request #7 open, checks failing");
+    const refused = cli("merge", "F-001");
+    expect(refused.code).toBe(1);
+    expect(refused.out).toContain("checks on F-001 are failing");
+    expect(calls()).not.toContain("pr merge");
+    prs([ghPr(7, "F-001", "SUCCESS")]);
+    expect(cli("merge", "F-001").out).toContain("pull request #7 merged");
+    expect(calls()).toContain("pr merge 7 --merge");
+    expect(sh("git", "branch", "--list", "factory/F-001").out).toBe("");
+
+    // A possible secret blocks the push before anything is uploaded.
+    const worktree = join(dir, ".worktrees/F-002");
+    writeFileSync(join(worktree, "leak.txt"), `key = ${"AKIA" + "IOSFODNN7EXAMPLE"}\n`);
+    Bun.spawnSync(["git", "add", "-A"], { cwd: worktree }); Bun.spawnSync(["git", "commit", "-q", "-m", "leak"], { cwd: worktree, env: process.env });
+    expect(cli("approve", "F-002").code).toBe(0);
+    const blocked = cli("push", "F-002");
+    expect(blocked.code).toBe(1);
+    expect(blocked.out).toContain("possible secrets");
+    expect(remoteBranches()).not.toContain("F-002");
+
+    // Auto-merge needs checks to wait for; once on, sync merges a pull request whose checks have passed.
+    expect(cli("vcs", "auto-merge", "on").out).toContain("no workflow");
+    mkdirSync(join(dir, ".github/workflows"), { recursive: true });
+    writeFileSync(join(dir, ".github/workflows/ci.yml"), "name: ci\n");
+    expect(cli("vcs", "auto-merge", "on").code).toBe(0);
+    expect(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).vcs).toEqual({ autoMerge: true });
+    prs([ghPr(9, "F-002", "SUCCESS")]);
+    expect(cli("sync").out).toContain("pull request #9 merged");
+    expect(calls()).toContain("pr merge 9 --merge");
+    expect(cli("vcs", "auto-merge", "off").code).toBe(0);
+    prs([ghPr(10, "F-003", "SUCCESS")]);
+    const before = calls();
+    cli("sync");
+    expect(calls().slice(before.length)).not.toContain("pr merge"); // sync with auto-merge off never merges
+  } finally {
+    delete process.env.FACTORY_GH;
+  }
+}, 120_000);
+
+test("version control: no remote means a local merge as before, and the helpers read GitHub's answers faithfully", () => {
+  const { section, cli } = repo();
+  expect(cli("run", "F-001", "--stub").code).toBe(0);
+  expect(cli("approve", "F-001").out).toContain("merged locally");
+  expect(section("F-001")).toBe("Done");
+  expect(cli("push", "F-001").out).toContain("no GitHub remote");
+  expect(cli("vcs").out).toContain("remote: none");
+
+  expect(summarizeChecks([])).toBe("none");
+  expect(summarizeChecks([{ status: "COMPLETED", conclusion: "SUCCESS" }, { state: "SUCCESS" }])).toBe("passing");
+  expect(summarizeChecks([{ status: "COMPLETED", conclusion: "SUCCESS" }, { status: "IN_PROGRESS" }])).toBe("pending");
+  expect(summarizeChecks([{ status: "IN_PROGRESS" }, { status: "COMPLETED", conclusion: "FAILURE" }])).toBe("failing");
+  expect(prBody("F-1", "spec text", "APPROVE\nlooks fine")).toMatch(/^Built by the software factory from backlog item F-1\.\n\n## What and why\nspec text\n\n## Review\nAPPROVE/);
+  expect(prBody("F-1", "x".repeat(3000), "").length).toBeLessThan(1700); // long agent text is trimmed
+});
+
+test("version control over HTTP and in conversation: status is readable, actions are validated, and chat can see status but never push", async () => {
+  const p = project("balanced");
+  const server = await serve(p.dir, 0);
+  const base = `http://127.0.0.1:${server.port}`;
+  const post = (path: string, body: unknown) => fetch(base + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  try {
+    const v = await (await fetch(base + "/api/vcs")).json() as any;
+    expect(v).toMatchObject({ remote: null, branches: [], autoMerge: false, hasChecks: false });
+    expect((await post("/api/push", { id: "F-001; rm -rf /" })).status).toBe(400);
+    expect((await post("/api/push", {})).status).toBe(400);
+    expect((await post("/api/merge", { id: "F-001" })).status).toBe(409); // F-001 is not an approved task here
+    expect((await post("/api/vcs/auto-merge", { on: "yes" })).status).toBe(400);
+    const topics = await (await fetch(base + "/api/chat/topics")).json() as any[];
+    expect(topics.find((t) => t.key === "git")).toMatchObject({ available: true, role: "release-engineer" });
+  } finally {
+    server.stop(true);
+  }
+  const args = chatArgs({ topic: "git", message: "x" }, resolveTeam());
+  const allowed = args.slice(args.indexOf("--allowedTools") + 1, args.indexOf("--setting-sources"));
+  expect(allowed).toContain("Bash(factory vcs)");
+  expect(allowed.some((a) => /push|merge|gh |auto-merge/.test(a))).toBe(false);
+  expect(args[args.indexOf("--append-system-prompt") + 1]).toContain("PROPOSE: push");
 }, 60_000);

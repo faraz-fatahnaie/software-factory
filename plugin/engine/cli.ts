@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { join } from "node:path";
 import { add, move, parse, type Item, type Section } from "./backlog";
 import { claudeRunner } from "./claude";
-import { loadConfig, projectTeam } from "./config";
+import { loadConfig, parseConfig, projectTeam } from "./config";
 import { openStore } from "./events";
 import { applyTeam, configure, detect, DOC_PATHS, doctor, init, nextStep, projectDocs } from "./init";
 import { appendChronicle, appendNotes, chronicleEntry, parseScribe, stageOutput } from "./chronicle";
@@ -14,7 +14,8 @@ import { activeRoles, chatPrompt, chatPromptFor, describeTeam, perTask, presets,
 import { addCustom, changeTeam, moveSettings, offSettings, onSettings, removeCustom, renameSettings, teamForAgents, titleSettings, useSettings } from "./teamctl";
 import { runTask, shellGate, stopAll, stubRunner } from "./pipeline";
 import { addSkill, searchSkills, setSkill } from "./skills";
-import { commitAll, ensureWorktree, land, removeWorktree } from "./worktree";
+import { armAutoMerge, formatStatus, hasChecks, mergeTask, pushTask, runTexts, syncGithub, vcsStatus } from "./vcs";
+import { APPROVED, commitAll, ensureWorktree, land, removeWorktree } from "./worktree";
 
 const root = process.cwd();
 const backlogPath = join(root, "BACKLOG.md");
@@ -92,7 +93,11 @@ factory status                                  what is ready, running, waiting 
 factory run [F-id...] [--parallel N] [--stub]   run the top Ready item(s) or the named ones, each in its own worktree
 factory promote <F-id>...                       move Inbox items to Ready, in the order given
 factory role <id>... | <role> [id...]            print the instructions of a conversation, by responsibility or role (used by the commands)
-factory approve <F-id>                          land an approved task: pull request if the repo has an origin, else a local merge
+factory approve <F-id>                          accept a finished task: a local merge, or (with a GitHub remote) a branch that waits for your push
+factory push <F-id>                             push an approved task's branch and open its pull request (scans for secrets first)
+factory merge <F-id>                            merge a task's pull request (refuses failing checks or conflicts)
+factory sync                                    update from GitHub: pull merged work in, tidy branches, and auto-merge if it is on
+factory vcs [auto-merge on|off]                 what is waiting to go to GitHub, or turn auto-merge on or off
 factory discard <F-id>                          delete a task's worktree and branch, and return it to Ready
 factory serve [port]                            start the local control plane (default 127.0.0.1:4400)
 factory add "<title>" [--detail "<lines>"] [--priority P1]   add an item to Inbox
@@ -319,10 +324,47 @@ async function main([cmd, ...args]: string[]) {
     return console.log(/^[A-Z]\d{1,3}$/.test(name) ? chatPromptFor(args, projectTeam(root)) : chatPrompt(name, ids, projectTeam(root)));
   }
 
+  const autoMerge = () => { try { return !!loadConfig(root).vcs?.autoMerge; } catch { return false; } };
+  if (cmd === "vcs") {
+    const [sub, value] = args;
+    if (!sub) return console.log(formatStatus(vcsStatus(root), autoMerge()));
+    if (sub === "auto-merge" && (value === "on" || value === "off") && args.length === 2) {
+      if (value === "on" && !hasChecks(root)) throw new Error("auto-merge waits for the checks to pass, and this project has none (no workflow in .github/workflows), so it would merge at once. Add checks first, then turn it on");
+      const file = join(root, "factory.config.json"), raw = JSON.parse(readFileSync(file, "utf8"));
+      writeFileSync(file, `${JSON.stringify(parseConfig({ ...raw, vcs: { ...raw.vcs, autoMerge: value === "on" } }), null, 2)}\n`);
+      commitPaths(`software-factory: auto-merge ${value}`, "factory.config.json");
+      return console.log(value === "on" ? "auto-merge on: a pull request merges as soon as its checks pass, with nobody to approve it" : "auto-merge off: you merge pull requests");
+    }
+    throw new Error("usage: factory vcs [auto-merge on|off]");
+  }
+
+  if (cmd === "push") {
+    const item = find(args[0], "Done");
+    const store = openEvents(), run = store.lastRun(item.id) ?? "";
+    const { spec, review } = runTexts(root, run);
+    const url = pushTask(root, item.id, item.title, spec, review);
+    store.emit({ run, task: item.id, stage: "pr", type: "pr.opened", data: { url } });
+    store.close();
+    let tail = "Merge it when you are ready: the Merge button in the dashboard, factory merge " + item.id + ", or on GitHub.";
+    if (autoMerge()) tail = armAutoMerge(root, url) ? "Auto-merge is on: GitHub merges it when the checks pass." : "Auto-merge is on: it merges when the checks pass (the dashboard or factory sync does it).";
+    return console.log(`${item.id}: pushed; pull request ${url}\n${tail}`);
+  }
+
+  if (cmd === "merge") {
+    const item = find(args[0], "Done");
+    const lines = mergeTask(root, item.id);
+    const store = openEvents();
+    store.emit({ run: store.lastRun(item.id) ?? "", task: item.id, stage: "pr", type: "pr.merged", data: { by: "person" } });
+    store.close();
+    return console.log(lines.join("\n"));
+  }
+
+  if (cmd === "sync") return console.log(syncGithub(root, autoMerge()).join("\n") || "already up to date");
+
   if (cmd === "approve") {
     const item = find(args[0], "Awaiting approval");
     const where = land(root, item.id, item.title);
-    removeWorktree(root, item.id);
+    removeWorktree(root, item.id, where === APPROVED); // an approved branch is kept: it has not been pushed yet
     editBacklog(`${item.id} → Done`, (t) => move(t, item.id, "Done", where.startsWith("http") ? where : ""));
     const store = openEvents();
     const run = store.lastRun(item.id) ?? "";
@@ -337,7 +379,7 @@ async function main([cmd, ...args]: string[]) {
       if (g.ok) commitPaths("software-factory: update the knowledge graph", "graphify-out");
       graph = `\ngraph: ${g.ok ? g.message : `not updated (${g.message})`}`;
     }
-    return console.log(`${item.id} → Done: ${where}${notes.length ? `\nrecorded: ${notes.join(", ")}` : ""}${graph}`);
+    return console.log(`${item.id} → Done: ${where}${where === APPROVED ? `\nPush it when you are ready: factory push ${item.id} (or the Push button in the dashboard)` : ""}${notes.length ? `\nrecorded: ${notes.join(", ")}` : ""}${graph}`);
   }
 
   if (cmd === "discard") {
