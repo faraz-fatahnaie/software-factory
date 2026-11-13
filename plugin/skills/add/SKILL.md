@@ -8,4 +8,6 @@ allowed-tools: Bash(factory *)
 
 Add one backlog item per distinct piece of work: `factory add "<title>"`. Write the title as a single line that says what should exist afterwards; keep the user's wording where it is clear. Arguments, if given: $ARGUMENTS
 
+For a bigger piece of work that still needs shaping, suggest `/software-factory:plan` instead. A detail and priority can be attached: `factory add "<title>" --detail "<lines>" --priority P2`; a detail line starting `Acceptance:` tells the factory the item already has its checks, so it skips triage.
+
 New items land in Inbox. They run only after a person promotes them: mention `factory promote <F-id>`, and promote only if the user asks you to.

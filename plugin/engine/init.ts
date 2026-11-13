@@ -138,3 +138,26 @@ export function applyTeam(dir: string, force = false) {
   }
   return { lines, paths };
 }
+
+const DOCS: [string, string][] = [["brief", "docs/product/brief.md"], ["research", "docs/product/research.md"], ["requirements", "docs/product/requirements.md"], ["roadmap", "docs/plan/roadmap.md"]];
+
+/** The product documents and whether each is missing, a draft, or approved by the user. */
+export function projectDocs(dir: string) {
+  return DOCS.map(([name, file]) => {
+    const text = read(dir, file);
+    return { name, file, state: !text ? "–" : /^Status: approved/m.test(text) ? "approved" : "draft" };
+  });
+}
+
+/** The one command the user should run next, from what exists. */
+export function nextStep(docs: ReturnType<typeof projectDocs>, items: { section: string }[]): string {
+  const has = (name: string) => docs.find((d) => d.name === name)!.state === "approved";
+  const count = (s: string) => items.filter((i) => i.section === s).length;
+  if (count("Awaiting approval")) return "review what is waiting for you, then /software-factory:approve <F-id> or /software-factory:discard <F-id>";
+  if (count("Blocked")) return "look at the blocked task in /software-factory:open and retry or discard it";
+  if (count("Ready") || count("In progress")) return count("In progress") ? "wait for the running tasks, or /software-factory:open to watch them" : "/software-factory:run";
+  if (count("Inbox") && has("roadmap")) return "promote the tasks you want built (factory promote <F-id>...), then /software-factory:run";
+  if (!has("brief")) return "/software-factory:brainstorm <your idea>";
+  if (!has("roadmap")) return "/software-factory:plan";
+  return "/software-factory:add <what to build next>";
+}

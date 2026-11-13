@@ -5,4 +5,4 @@ allowed-tools: Bash(factory *)
 ---
 `factory` is the software factory's command-line tool; this plugin puts it on the PATH. It does the work. Do not perform pipeline stages, edit `BACKLOG.md`, or commit on its behalf.
 
-Run `factory status` and relay it briefly. Lead with anything awaiting the user's approval, then anything blocked and why, then what is running.
+Run `factory status` and relay it briefly. End with its `Next:` line, which is the one command the user should run. Lead with anything awaiting the user's approval, then anything blocked and why, then what is running.

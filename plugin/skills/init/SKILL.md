@@ -20,4 +20,4 @@ Set up the current project. It can be in any language.
    - `factory skill add getsentry/skills@security-review --role reviewer`
 8. Run `factory doctor` and relay anything it flags.
 
-Finish by telling the user the next steps: `/software-factory:add`, then `/software-factory:run`, and `/software-factory:open` for the GUI.
+Finish by telling the user the next step. To start from an idea, run `/software-factory:brainstorm <idea>`; to queue a specific piece of work directly, `/software-factory:add`, then `/software-factory:run`. `/software-factory:open` shows the GUI.

@@ -5,8 +5,8 @@ import { add, move, parse, type Item, type Section } from "./backlog";
 import { claudeRunner } from "./claude";
 import { loadConfig } from "./config";
 import { openStore } from "./events";
-import { applyTeam, detect, doctor, init } from "./init";
-import { describeTeam, presets, DEFAULT_PRESET } from "./team";
+import { applyTeam, detect, doctor, init, nextStep, projectDocs } from "./init";
+import { chatPrompt, describeTeam, presets, DEFAULT_PRESET } from "./team";
 import { runTask, shellGate, stopAll, stubRunner } from "./pipeline";
 import { addSkill, setSkill } from "./skills";
 import { commitAll, ensureWorktree, land, removeWorktree } from "./worktree";
@@ -64,17 +64,22 @@ factory team [apply [--force]]                  show the team, or rebuild the ro
 factory doctor                                  check the machine and this project's setup
 factory status                                  what is ready, running, waiting for you or blocked
 factory run [F-id...] [--parallel N] [--stub]   run the top Ready item(s) or the named ones, each in its own worktree
-factory promote <F-id>                          move an Inbox item to Ready
+factory promote <F-id>...                       move Inbox items to Ready, in the order given
+factory role <role> [id...]                     print a conversational role's instructions (used by the brainstorm, research and plan commands)
 factory approve <F-id>                          land an approved task: pull request if the repo has an origin, else a local merge
 factory discard <F-id>                          delete a task's worktree and branch, and return it to Ready
 factory serve [port]                            start the local control plane (default 127.0.0.1:4400)
-factory add "<title>"                           add an item to Inbox
+factory add "<title>" [--detail "<lines>"] [--priority P1]   add an item to Inbox
 factory skill add <owner/repo@skill> --role <r> install a skill and attach it to a role
 factory skill attach|detach <skill> --role <r>  attach or detach a skill that is already installed`;
 
 async function main([cmd, ...args]: string[]) {
   if (cmd === "add" && args[0]) {
-    const added = add(readFileSync(backlogPath, "utf8"), args.join(" "));
+    // Flags may come after the title: factory add "<title>" --detail "<lines>" --priority P1
+    const value = (flag: string) => { const i = args.indexOf(flag); return i < 0 ? undefined : args[i + 1] ?? (() => { throw new Error(`${flag} needs a value`); })(); };
+    const detail = value("--detail"), prio = value("--priority");
+    const title = args.filter((a, i) => !a.startsWith("--") && args[i - 1] !== "--detail" && args[i - 1] !== "--priority").join(" ");
+    const added = add(readFileSync(backlogPath, "utf8"), title, "Inbox", { detail, prio });
     editBacklog(`add ${added.id}`, () => added.text);
     return console.log(`added ${added.id} to Inbox`);
   }
@@ -108,7 +113,7 @@ async function main([cmd, ...args]: string[]) {
     console.log(`${preset.title} team: ${preset.summary}\n`);
     for (const r of describeTeam(preset)) {
       const c = config?.roles[r.name] ?? preset.roles[r.name]!.defaults;
-      console.log(`${r.active ? "●" : "○"} ${r.title}${c ? `  ${c.model}, ${c.effort}` : ""}\n    built:   ${r.built.join(" ") || "none yet"}\n    planned: ${r.planned.join(" ") || "none"}`);
+      console.log(`${r.active ? "●" : "○"} ${r.title}${r.modes.length ? `  [${r.modes.join(" + ")}]` : ""}${c && r.modes.includes("agent") ? `  ${c.model}, ${c.effort}` : ""}\n    built:   ${r.built.join(" ") || "none yet"}\n    planned: ${r.planned.join(" ") || "none"}`);
     }
     return console.log("\n● has built responsibilities and runs today; ○ is planned.");
   }
@@ -125,7 +130,7 @@ async function main([cmd, ...args]: string[]) {
     // Committed, because task worktrees branch from HEAD.
     if (r.paths.length) commitPaths("software-factory: initialize", ...r.paths);
     console.log([`Stack: ${r.stack}`, ...r.done, `setup: ${r.config.setup?.join(" ; ") || "(none)"}`, `gate:  ${r.config.gate.join(" ; ") || "(none: only the reviewer will check a build)"}`,
-      "Next: factory add \"<what to build>\", factory promote <F-id>, factory run"].join("\n"));
+      "Next: tell the factory what you want to build: /software-factory:brainstorm <your idea>"].join("\n"));
     return;
   }
 
@@ -163,13 +168,23 @@ async function main([cmd, ...args]: string[]) {
       }
     }
     const count = (s: string) => items.filter((i) => i.section === s).length;
+    const docs = projectDocs(root);
+    console.log(`Documents: ${docs.map((d) => `${d.name} ${d.state}`).join(" · ")}`);
+    console.log(`Next: ${nextStep(docs, items)}`);
     return console.log(`Inbox ${count("Inbox")} · Ready ${count("Ready")} · In progress ${count("In progress")} · Awaiting approval ${count("Awaiting approval")} · Blocked ${count("Blocked")} · Done ${count("Done")}`);
   }
 
   if (cmd === "promote") {
-    const item = find(args[0], "Inbox");
-    editBacklog(`${item.id} → Ready`, (t) => move(t, item.id, "Ready"));
-    return console.log(`${item.id} → Ready`);
+    if (!args.length) throw new Error("usage: factory promote <F-id>...");
+    for (const id of args) find(id, "Inbox"); // check them all first: promote none unless every id is valid
+    for (const id of args) editBacklog(`${id} → Ready`, (t) => move(t, id, "Ready")); // in the order given, so Ready keeps it
+    return console.log(args.map((id) => `${id} → Ready`).join("\n"));
+  }
+
+  if (cmd === "role") {
+    const [name, ...ids] = args;
+    if (!name) throw new Error("usage: factory role <role> [responsibility-id...]");
+    return console.log(chatPrompt(name, ids));
   }
 
   if (cmd === "approve") {

@@ -1,6 +1,6 @@
 {
   "0": "Software Factory (AGENTS.md)",
-  "1": "pipeline.ts",
+  "1": "factory.test.ts",
   "2": "cli.ts",
   "3": "package.json",
   "4": "server.ts",
@@ -12,9 +12,9 @@
   "10": "Backlog",
   "11": "factory",
   "12": "RULES.md",
-  "13": "factory.test.ts",
+  "13": "team.ts",
   "14": "Roles and responsibilities",
-  "15": "hooks.ts",
+  "15": "worktree.ts",
   "16": "Only the orchestrator writes BACKLOG.md (rule)",
   "17": "add/SKILL.md",
   "18": "approve/SKILL.md",
@@ -24,5 +24,9 @@
   "22": "open/SKILL.md",
   "23": "run/SKILL.md",
   "24": "status/SKILL.md",
-  "25": "planner.md"
+  "25": "planner.md",
+  "26": "brainstorm/SKILL.md",
+  "27": "plan/SKILL.md",
+  "28": "research/SKILL.md",
+  "29": "CHAT.md"
 }

@@ -46,13 +46,18 @@ export function move(text: string, id: string, to: Section, note = ""): string {
   return lines.join("\n");
 }
 
-/** Appends a new item. Titles may come from model output, so they are flattened and capped. */
-export function add(text: string, title: string, to: Section = "Inbox"): { text: string; id: string } {
+/**
+ * Appends a new item. Titles and details may come from model output, so they are flattened and
+ * capped: every detail line is indented, which keeps it from ever being read as an item or a heading.
+ */
+export function add(text: string, title: string, to: Section = "Inbox", opts: { detail?: string; prio?: string } = {}): { text: string; id: string } {
   const clean = title.replace(/\s+/g, " ").trim().slice(0, 200);
   if (!clean) throw new Error("backlog item needs a title");
+  if (opts.prio !== undefined && !/^P\d$/.test(opts.prio)) throw new Error(`priority must look like P1, got "${opts.prio}"`);
+  const detail = (opts.detail ?? "").split("\n").map((l) => l.replace(/\s+/g, " ").trim().slice(0, 400)).filter(Boolean).slice(0, 40).map((l) => `  ${l}`);
   const max = Math.max(0, ...parse(text).map((i) => Number(i.id.slice(2))));
   const id = `F-${String(max + 1).padStart(3, "0")}`;
   const lines = text.split("\n");
-  lines.splice(endOf(lines, to), 0, `- [ ] ${id} ${clean}`);
+  lines.splice(endOf(lines, to), 0, `- [ ] ${id} ${opts.prio ? `(${opts.prio}) ` : ""}${clean}`, ...detail);
   return { text: lines.join("\n"), id };
 }

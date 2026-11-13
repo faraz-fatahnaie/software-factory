@@ -67,3 +67,5 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Overview with KPIs, pipeline line, throughput chart, live feed and roster; dark and light themes; connection status; page shipped prebuilt in plugin/dist.
 - [x] F-035 (P1) Roles step 1: catalog, Balanced preset, assembled role files
   Catalog and preset as data, team rules validated, role files built from responsibilities, factory team and team apply, Triage only for ad-hoc items.
+- [x] F-036 (P1) Roles step 2: Product Partner and Planner conversations
+  brainstorm, research and plan commands; factory role, add --detail and ordered promote; documents with approval status; next-step hint in status.

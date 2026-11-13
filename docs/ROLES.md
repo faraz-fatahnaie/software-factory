@@ -5,8 +5,17 @@ deployed and maintained product, for a user who is not a software engineer. Agre
 project owner on 2026-11-13. **Build status:** step 1 of the build order is done: the catalog
 and the Balanced preset are data (`plugin/templates/catalog.json`, `presets.json`), role files
 are assembled from them, and the per-task path has no mandatory Triage stage. A catalog entry
-with an `instruction` is built; the rest are planned. Today four roles run: Planner (P4),
-Architect (B1), Builder (B2, V1) and Reviewer (C1).
+with an `instruction` is built; the rest are planned. Step 2 is done too: the Product Partner (D1, D2, D3) and the Planner's
+planning work (R1–R4, P1–P3) run as conversations through `/software-factory:brainstorm`,
+`:research` and `:plan`. Today six roles work: Product Partner (chat), Planner (chat, plus
+unattended triage P4), Architect (B1), Builder (B2, V1) and Reviewer (C1).
+
+**Conventions step 2 set:** a conversation saves a document only after the user approves a
+draft, and every document starts with `Status: approved by the user on <date>`. Backlog items
+written by the Planner carry `Milestone:`, `Stories:`, `Depends on:`, `Acceptance:` and
+`Out of scope:` detail lines; an `Acceptance:` line makes the pipeline skip triage. The Planner
+never writes a task that deploys or publishes. Conversational roles run on the model of the
+user's own session, so they have no model setting in `factory.config.json`.
 
 ## The idea
 

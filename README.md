@@ -34,6 +34,23 @@ git diff HEAD...factory/F-026      # review the work
 bun run factory approve F-026      # or: discard F-026
 ```
 
+## Starting from an idea
+
+You do not need to know what to ask for. Three conversations take you from a rough idea to a
+backlog the factory can build; each runs in your own Claude Code session (on whichever model
+you have selected, so switch with `/model` first) and asks one question at a time:
+
+| Command | What it does | Saves, after you approve it |
+| --- | --- | --- |
+| `/software-factory:brainstorm <idea>` | Works out what you want: who it is for, the problem, what success looks like, what is out of scope | `docs/product/brief.md` |
+| `/software-factory:research` | Finds similar products on the web, compares them, and helps you decide what to adopt or avoid | `docs/product/research.md` |
+| `/software-factory:plan` | Turns the brief into user stories, non-functional requirements, scope, milestones and a task list | `docs/product/requirements.md`, `docs/plan/roadmap.md`, and tasks in the backlog Inbox |
+
+Nothing is written until you approve a draft, every document starts with a
+`Status: approved by the user on <date>` line, and the tasks it adds wait in Inbox until you
+promote them (`factory promote F-010 F-011 ...`, in the order given). `factory status` shows
+which documents exist and the one command to run next.
+
 ## How a task flows
 
 1. **Intake.** `BACKLOG.md` has six sections: Inbox, Ready, In progress, Awaiting approval,

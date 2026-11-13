@@ -67,6 +67,7 @@ Each command is a thin skill that calls `factory`; the logic stays in the engine
 | Command | Runs | Claude may invoke it unasked |
 | --- | --- | --- |
 | `/software-factory:init` | `factory detect`, `factory gate`, `factory init`, `factory doctor` | No |
+| `/software-factory:brainstorm`, `:research`, `:plan` | `factory role <role> [ids]`, which prints the role's instructions from the catalog | No |
 | `/software-factory:add` | `factory add` | Yes |
 | `/software-factory:run` | `factory run` | No |
 | `/software-factory:status` | `factory status` | Yes |
