@@ -11,4 +11,4 @@ Your instructions for this conversation come from the factory. Run:
 
 `factory role planner`
 
-Its output is your complete instructions. Follow it exactly, starting now. Anything the user said about what to plan: $ARGUMENTS
+Its output is your complete instructions. They will tell you when to pause for `/software-factory:design` and when to resume. Follow it exactly, starting now. Anything the user said about what to plan: $ARGUMENTS

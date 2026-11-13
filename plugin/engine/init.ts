@@ -113,8 +113,8 @@ export function doctor(dir: string) {
   check(read(dir, "CLAUDE.md").includes("@AGENTS.md"), "CLAUDE.md imports AGENTS.md", "run: factory init");
   check(IGNORED.every((l) => read(dir, ".gitignore").split("\n").includes(l)), ".gitignore covers .factory/ and .worktrees/", "run: factory init");
   // Task worktrees branch from HEAD, so setup that is not committed never reaches a run.
-  const dirty = Bun.spawnSync(["git", "status", "--porcelain", "--", "factory.config.json", ".claude/agents", "AGENTS.md", "CLAUDE.md", ".gitignore"], { cwd: dir, stdout: "pipe", stderr: "pipe" }).stdout.toString().trim();
-  check(!dirty, "factory setup is committed", "commit the role files, AGENTS.md, CLAUDE.md and .gitignore", false);
+  const dirty = Bun.spawnSync(["git", "status", "--porcelain", "--", "factory.config.json", ".claude/agents", "AGENTS.md", "CLAUDE.md", ".gitignore", "docs"], { cwd: dir, stdout: "pipe", stderr: "pipe" }).stdout.toString().trim();
+  check(!dirty, "factory setup and documents are committed", "commit the role files, AGENTS.md, CLAUDE.md, .gitignore and docs/ (factory docs save commits the documents)", false);
   return { ok, lines };
 }
 
@@ -139,7 +139,7 @@ export function applyTeam(dir: string, force = false) {
   return { lines, paths };
 }
 
-const DOCS: [string, string][] = [["brief", "docs/product/brief.md"], ["research", "docs/product/research.md"], ["requirements", "docs/product/requirements.md"], ["roadmap", "docs/plan/roadmap.md"]];
+const DOCS: [string, string][] = [["brief", "docs/product/brief.md"], ["research", "docs/product/research.md"], ["requirements", "docs/product/requirements.md"], ["architecture", "docs/architecture/overview.md"], ["roadmap", "docs/plan/roadmap.md"]];
 
 /** The product documents and whether each is missing, a draft, or approved by the user. */
 export function projectDocs(dir: string) {
@@ -158,6 +158,17 @@ export function nextStep(docs: ReturnType<typeof projectDocs>, items: { section:
   if (count("Ready") || count("In progress")) return count("In progress") ? "wait for the running tasks, or /software-factory:open to watch them" : "/software-factory:run";
   if (count("Inbox") && has("roadmap")) return "promote the tasks you want built (factory promote <F-id>...), then /software-factory:run";
   if (!has("brief")) return "/software-factory:brainstorm <your idea>";
+  if (!has("requirements")) return "/software-factory:plan";
+  if (!has("architecture")) return "/software-factory:design";
   if (!has("roadmap")) return "/software-factory:plan";
   return "/software-factory:add <what to build next>";
+}
+
+/** Replaces the setup and gate commands in factory.config.json. The whole file is validated before it is written. */
+export function configure(dir: string, opts: { setup?: string[]; gate?: string[] }) {
+  const file = join(dir, "factory.config.json");
+  const current = loadConfig(dir);
+  const next = parseConfig({ ...current, ...(opts.setup && { setup: opts.setup }), ...(opts.gate && { gate: opts.gate }) });
+  writeFileSync(file, `${JSON.stringify(next, null, 2)}\n`);
+  return next;
 }

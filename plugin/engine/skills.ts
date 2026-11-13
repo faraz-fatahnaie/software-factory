@@ -67,3 +67,11 @@ export function setSkill(cwd: string, action: "attach" | "detach", skill: string
   const file = join(cwd, ".claude", "agents", `${role}.md`);
   writeFileSync(file, (action === "attach" ? attachSkill : detachSkill)(readFileSync(file, "utf8"), skill));
 }
+
+/** Searches skills.sh through the pinned CLI. Returns packages with their install counts and review pages. */
+export function searchSkills(query: string) {
+  if (!/^\w[\w .-]{1,59}$/.test(query)) throw new Error("search: 2 to 60 letters, digits or spaces");
+  const p = Bun.spawnSync(["npx", "-y", SKILLS_CLI, "find", query], { stdout: "pipe", stderr: "pipe", env: { ...process.env, NO_COLOR: "1" } });
+  if (p.exitCode !== 0) throw new Error(`skills search failed: ${p.stderr.toString().trim().slice(-300)}`);
+  return parseFind(p.stdout.toString());
+}

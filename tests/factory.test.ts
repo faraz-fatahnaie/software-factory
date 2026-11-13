@@ -7,7 +7,7 @@ import { parseConfig } from "../plugin/engine/config";
 import { openStore } from "../plugin/engine/events";
 import { BACKLOG, config, repo, role, tmp } from "./fixture";
 import { guard } from "../plugin/engine/hooks";
-import { applyTeam, detect, doctor, init, nextStep, projectDocs } from "../plugin/engine/init";
+import { applyTeam, configure, detect, doctor, init, nextStep, projectDocs } from "../plugin/engine/init";
 import { activeRoles, catalog, chatPrompt, DEFAULT_PRESET, presets, renderRole, toolsFor, validateTeam } from "../plugin/engine/team";
 import { followUps, needsTriage, runTask, shellGate, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
@@ -532,7 +532,7 @@ test("cli: add --detail, ordered promote, role, status documents and the next st
   expect(cli("role").code).toBe(1);
 
   // Status shows which documents exist and the one command to run next.
-  expect(status()).toMatch(/Documents: brief – · research – · requirements – · roadmap –\nNext: \/software-factory:run/); // Ready items exist, so run them
+  expect(status()).toMatch(/Documents: brief – · research – · requirements – · architecture – · roadmap –\nNext: \/software-factory:run/); // Ready items exist, so run them
   expect(cli("team").out).toContain("○ Tester"); // planned roles are listed but marked
 }, 60_000);
 
@@ -540,14 +540,19 @@ test("next step: follows the documents and the backlog", () => {
   const dir = tmp();
   mkdirSync(join(dir, "docs/product"), { recursive: true }); mkdirSync(join(dir, "docs/plan"), { recursive: true });
   const docs = () => projectDocs(dir);
-  expect(docs().map((d) => d.state)).toEqual(["–", "–", "–", "–"]);
+  expect(docs().map((d) => d.state)).toEqual(["–", "–", "–", "–", "–"]);
+  mkdirSync(join(dir, "docs/architecture"), { recursive: true });
   expect(nextStep(docs(), [])).toBe("/software-factory:brainstorm <your idea>");
   writeFileSync(join(dir, "docs/product/brief.md"), "# Brief\nStatus: draft\n");
   expect(docs()[0]!.state).toBe("draft"); // written but not approved: still the brainstorm
   expect(nextStep(docs(), [])).toBe("/software-factory:brainstorm <your idea>");
   writeFileSync(join(dir, "docs/product/brief.md"), "# Brief\nStatus: approved by the user on 2026-11-13\n");
   expect(docs()[0]!.state).toBe("approved");
-  expect(nextStep(docs(), [])).toBe("/software-factory:plan");
+  expect(nextStep(docs(), [])).toBe("/software-factory:plan"); // requirements come first
+  writeFileSync(join(dir, "docs/product/requirements.md"), "# Requirements\nStatus: approved by the user on 2026-11-13\n");
+  expect(nextStep(docs(), [])).toBe("/software-factory:design"); // then the technology and the design
+  writeFileSync(join(dir, "docs/architecture/overview.md"), "# Design\nStatus: approved by the user on 2026-11-13\n");
+  expect(nextStep(docs(), [])).toBe("/software-factory:plan"); // then milestones and tasks
   writeFileSync(join(dir, "docs/plan/roadmap.md"), "# Roadmap\nStatus: approved by the user on 2026-11-13\n");
   expect(nextStep(docs(), [{ section: "Inbox" }])).toMatch(/promote the tasks you want built/);
   expect(nextStep(docs(), [{ section: "Ready" }])).toBe("/software-factory:run");
@@ -555,4 +560,65 @@ test("next step: follows the documents and the backlog", () => {
   expect(nextStep(docs(), [{ section: "Blocked" }, { section: "Ready" }])).toMatch(/blocked task/); // a person's attention beats starting more
   expect(nextStep(docs(), [{ section: "Awaiting approval" }, { section: "Blocked" }])).toMatch(/waiting for you/);
   expect(nextStep(docs(), [{ section: "Done" }])).toBe("/software-factory:add <what to build next>");
+});
+
+test("design: the Architect's conversation is assembled in order, and its handoffs to the Planner are explicit", () => {
+  const design = chatPrompt("architect");
+  const titles = [...design.matchAll(/^## Step \d+: (.+)$/gm)].map((m) => m[1]);
+  expect(titles).toEqual(["Choose the technology", "Design the system", "Choose the dependencies", "Record the decisions", "Define the foundation and the gate", "Suggest skills"]);
+  expect(design).not.toContain("Write the spec"); // B1 is the unattended task mode
+  expect(design).toContain("factory configure --setup"); // the one way a conversation changes configuration
+  expect(design).toContain("factory skill search");
+  expect(design).toContain("docs/architecture/decisions/NNNN-short-title.md");
+  expect(design).toContain("instead of trusting memory"); // versions are checked on the web
+
+  // The task-mode role file is unchanged by the design-time responsibilities: still only the spec.
+  expect(renderRole("architect")).toContain("## Write the spec");
+  expect(renderRole("architect")).not.toContain("Choose the technology");
+  expect(toolsFor(presets[DEFAULT_PRESET]!.roles.architect!.holds)).toEqual(["Read", "Grep", "Glob", "Bash", "WebSearch", "WebFetch", "Skill"]);
+  expect(validateTeam(presets[DEFAULT_PRESET]!)).toEqual([]);
+
+  // The Planner pauses for the design when there is no technology, and resumes after it.
+  const plan = chatPrompt("planner");
+  expect(plan).toContain("skip the requirement steps");
+  expect(plan).toMatch(/stop here[\s\S]*\/software-factory:design[\s\S]*run `\/software-factory:plan` again/);
+  expect(plan).toContain("Read `docs/architecture/overview.md` first");
+  expect(plan).toContain("name the exact tools the design chose");
+});
+
+test("configure: replaces setup and gate, validates the file, commits only the config; skill search validates its query", () => {
+  const { dir, cli, sh } = repo();
+  const config = () => JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8"));
+  expect(cli("configure").code).toBe(1); // nothing to change is an error, not a silent no-op
+  expect(cli("configure", "--bogus", "x").out).toMatch(/usage: factory configure/);
+  const ok = cli("configure", "--setup", "npm install", "--gate", "npm test", "--gate", "npm run lint");
+  expect(ok).toMatchObject({ code: 0, out: "setup: npm install\ngate:  npm test ; npm run lint" });
+  expect(config()).toMatchObject({ setup: ["npm install"], gate: ["npm test", "npm run lint"], roles: { builder: { model: "sonnet" } } }); // roles untouched
+  expect(sh("git", "log", "-1", "--format=%s").out).toBe("software-factory: update setup and gate");
+  expect(cli("configure", "--gate", "make test").code).toBe(0);
+  expect(config()).toMatchObject({ setup: ["npm install"], gate: ["make test"] }); // only what was named changes
+  expect(() => configure(dir, { gate: [""] as string[] })).toThrow(/gate: must be a list of commands/); // invalid input is refused, the file is left alone
+  expect(config().gate).toEqual(["make test"]);
+  expect(cli("skill", "search", "x; rm -rf /").out).toMatch(/search: 2 to 60 letters/);
+  expect(cli("skill", "search").code).toBe(1);
+});
+
+test("docs save: commits only docs/, so task worktrees can read approved documents", () => {
+  const { dir, cli, sh } = repo();
+  expect(cli("docs", "save").out).toBe("documents are already saved");
+  mkdirSync(join(dir, "docs/product"), { recursive: true });
+  writeFileSync(join(dir, "docs/product/brief.md"), "Status: approved by the user on 2026-11-13\n# Brief\n");
+  writeFileSync(join(dir, "notes.txt"), "not a document");
+  sh("git", "add", "notes.txt"); // even something staged elsewhere must stay out of the commit
+  const saved = cli("docs", "save");
+  expect(saved.code).toBe(0);
+  expect(saved.out).toContain("docs/");
+  expect(sh("git", "log", "-1", "--format=%s").out).toBe("software-factory: update documents");
+  expect(sh("git", "show", "--name-only", "--format=", "HEAD").out).toBe("docs/product/brief.md");
+  expect(sh("git", "status", "--porcelain").out).toBe("A  notes.txt");
+  expect(cli("docs", "save").out).toBe("documents are already saved");
+  expect(cli("docs").out).toMatch(/factory run/); // anything but `docs save` prints the usage
+  // A task worktree branches from HEAD, so it now sees the document.
+  expect(sh("git", "show", "HEAD:docs/product/brief.md").out).toContain("# Brief");
+  expect(chatPrompt("product-partner", ["D1"])).toContain("factory docs save");
 });

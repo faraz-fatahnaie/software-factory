@@ -10,6 +10,13 @@ planning work (R1–R4, P1–P3) run as conversations through `/software-factory
 `:research` and `:plan`. Today six roles work: Product Partner (chat), Planner (chat, plus
 unattended triage P4), Architect (B1), Builder (B2, V1) and Reviewer (C1).
 
+Step 3 is done too: the Architect's project mode runs as `/software-factory:design`: it chooses
+the technology (A1), designs the system (A2), checks dependencies (A4), writes decision records
+(A3), defines the foundation and the gate (F3) and suggests skills (X1). The foundation itself
+is built as ordinary tasks by the Builder from the design's Foundation section, so F1, F2 and F4
+stay unbuilt as separate instructions. Recording decisions and checking dependencies *at task
+time* (the headless half of A3 and A4) is still planned.
+
 **Conventions step 2 set:** a conversation saves a document only after the user approves a
 draft, and every document starts with `Status: approved by the user on <date>`. Backlog items
 written by the Planner carry `Milestone:`, `Stories:`, `Depends on:`, `Acceptance:` and
@@ -53,8 +60,8 @@ Each entry has an id, when it runs, how it runs, and what it may do.
 | **Architecture** | | | | |
 | A1 | Choose the stack for an empty project, with reasons the user can follow | project | chat | read, web |
 | A2 | System design: components, data model, interfaces | project | chat | write (docs) |
-| A3 | Record each significant decision and why | project, task | headless | write (docs) |
-| A4 | Choose dependencies; check their licences and health | project, task | headless | read, web |
+| A3 | Record each significant decision and why (at task time: planned) | project | chat | write (docs) |
+| A4 | Choose dependencies; check their licences and health (at task time: planned) | project | chat | read, web |
 | A5 | Threat model: what must be protected, from whom, how | project | chat | write (docs) |
 | **Planning** | | | | |
 | P1 | Milestones | project | chat | write (docs) |
@@ -284,11 +291,13 @@ later; every command should eventually also be an action in the GUI.
 
 ## Suggested build order
 
-1. The catalog as data, role prompts assembled from it, the Balanced preset, and the per-task path without Triage.
-2. Product Partner and Planner (`brainstorm`, `research`, `plan`) with the product documents.
-3. Architect's project mode (`design`), decision records, foundation tasks.
+1. The catalog as data, role prompts assembled from it, the Balanced preset, and the per-task path without Triage. (done)
+2. Product Partner and Planner (`brainstorm`, `research`, `plan`) with the product documents. (done)
+3. Architect's project mode (`design`), decision records, foundation tasks. (done)
 4. Scribe and the document structure; the graph on by default.
 5. Tester, and the Security and Performance Engineer with its four gates (`test`, `secure`).
 6. Release Engineer (`release`, `deploy`) with the deployment interview.
 7. Lean and Full presets, free regrouping, custom responsibilities (`team`).
 8. GUI: Team view, command actions, chat.
+
+**Conversations commit their documents** (`factory docs save`, which commits only `docs/`) because task agents work from the last commit. The usual order is brainstorm, research (optional), plan (requirements), design, plan (milestones and tasks); `plan` pauses for `design` when the project has no code and no approved design, and resumes after it.

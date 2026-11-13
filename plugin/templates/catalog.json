@@ -46,7 +46,7 @@
       "write"
     ],
     "title": "Write the user stories",
-    "instruction": "Turn the brief into the list of things the product must let someone do.\n\nRead `docs/product/brief.md` (and `docs/product/research.md` if it exists). If there is no brief, ask whether they would like to brainstorm first, or whether to plan from what they tell you now; in the second case ask the questions the brief would answer, one at a time, and save a short brief before going on.\n\nWrite each requirement as a story: **As a** <kind of user>, **I want** <something they can do>, **so that** <the benefit>. Give each story an id (`US-1`, `US-2`, ...) and **acceptance criteria**: two to five statements anyone could check by using the product (\"Given ..., when ..., then ...\"), including at least one unhappy path (wrong input, nothing found, something fails). A story with no way to check it is not finished.\n\nGroup the stories under the brief's key scenarios, cover each success criterion with at least one story, and point out any criterion nothing covers. Show the stories to the user, let them add, drop and correct, then save them as the first part of `docs/product/requirements.md` once they approve."
+    "instruction": "Turn the brief into the list of things the product must let someone do.\n\nFirst check what already exists. If `docs/product/requirements.md` is already approved, skip the requirement steps (the user stories, non-functional requirements, constraints and scope) and go straight to \"Plan the milestones\".\n\nRead `docs/product/brief.md` (and `docs/product/research.md` if it exists). If there is no brief, ask whether they would like to brainstorm first, or whether to plan from what they tell you now; in the second case ask the questions the brief would answer, one at a time, and save a short brief before going on.\n\nWrite each requirement as a story: **As a** <kind of user>, **I want** <something they can do>, **so that** <the benefit>. Give each story an id (`US-1`, `US-2`, ...) and **acceptance criteria**: two to five statements anyone could check by using the product (\"Given ..., when ..., then ...\"), including at least one unhappy path (wrong input, nothing found, something fails). A story with no way to check it is not finished.\n\nGroup the stories under the brief's key scenarios, cover each success criterion with at least one story, and point out any criterion nothing covers. Show the stories to the user, let them add, drop and correct, then save them as the first part of `docs/product/requirements.md` once they approve."
   },
   {
     "id": "R2",
@@ -82,7 +82,7 @@
       "write"
     ],
     "title": "Scope the first release",
-    "instruction": "Decide, with the user, what the first release contains. Most ideas are too big to build at once, and the first version only has to prove the idea is worth continuing.\n\nGo through the stories and sort each into **First release**, **Later** or **Not planned**, using this test for the first release: without it, would the product fail to do its main job for its first user? Show the sorting with a one-line reason per story, and ask the user to move things. Be firm and kind about size: say what the first release would cost in time and effort in relative terms (\"this is the biggest piece\") and offer a smaller first release if it is too large. Save the result under a **Scope** heading in `docs/product/requirements.md` after approval, then mark the file `Status: approved by the user on <date>`."
+    "instruction": "Decide, with the user, what the first release contains. Most ideas are too big to build at once, and the first version only has to prove the idea is worth continuing.\n\nGo through the stories and sort each into **First release**, **Later** or **Not planned**, using this test for the first release: without it, would the product fail to do its main job for its first user? Show the sorting with a one-line reason per story, and ask the user to move things. Be firm and kind about size: say what the first release would cost in time and effort in relative terms (\"this is the biggest piece\") and offer a smaller first release if it is too large. Save the result under a **Scope** heading in `docs/product/requirements.md` after approval, then mark the file `Status: approved by the user on <date>`.\n\nIf the project has no source code yet and `docs/architecture/overview.md` is not approved, stop here. Tell the user the requirements are saved, that the next step is `/software-factory:design` (it chooses the technology and designs the system), and that they should then run `/software-factory:plan` again to continue with the milestones and tasks."
   },
   {
     "id": "A1",
@@ -93,7 +93,9 @@
     "access": [
       "read",
       "web"
-    ]
+    ],
+    "title": "Choose the technology",
+    "instruction": "Decide what the product is built with. Read `docs/product/brief.md`, `docs/product/requirements.md` (especially the non-functional requirements) and any research. If the requirements are missing, tell the user the design needs them and suggest `/software-factory:plan` first; continue only if they insist, and then ask the few questions you need.\n\nLook at the project. **If it already has code**, find out its language, frameworks, tests and build tooling, tell the user what you found, and keep it unless the requirements cannot be met with it. Changing a stack needs the user's explicit approval and a decision record.\n\n**If it is empty**, choose a stack with the user:\n1. Ask, one question at a time, what limits the choice: what the user or anyone who will maintain it already knows, where it must run (phone, browser, desktop, server), whether it must work offline or store data, and any technology they like or must avoid.\n2. Propose two or three options that fit the requirements. For each, say in plain language what it is, why it fits, what it costs in effort, and what could go wrong. Prefer mainstream, well-documented technology with the fewest moving parts that meets the requirements: the factory's agents and any future maintainer do best with common tools. Check on the web that each option is current and maintained (latest release date, active repository) instead of trusting memory, and cite what you found.\n3. Recommend one and say why in a sentence. Let the user choose. If they choose differently, say plainly what that will cost, and accept it if it can still meet the requirements."
   },
   {
     "id": "A2",
@@ -103,28 +105,34 @@
     "how": "chat",
     "access": [
       "write"
-    ]
+    ],
+    "title": "Design the system",
+    "instruction": "Describe how the product is put together, in terms the user can follow. Draft `docs/architecture/overview.md` in the conversation and refine it with the user. Keep it short: a reader should grasp the whole design in ten minutes. Sections:\n- **Context**: what the product is, who uses it, and anything outside it that it talks to.\n- **Stack**: what it is built with, and a one-line reason for each choice, pointing to its decision record.\n- **Components**: the main parts and what each is responsible for, as a short list or a simple text diagram. Name the boundary between parts.\n- **Data**: what information is kept (entities, their key fields and relationships), where it is stored, for how long, and who can reach it.\n- **Interfaces**: how parts and users talk to each other (screens, commands, endpoints, files), with the important rules of each, such as what input is accepted.\n- **Quality**: for each non-functional requirement, how the design meets it. Say plainly when the design cannot meet one.\n- **Foundation**: what must exist before features can be built (see the foundation step).\n- **Risks and open questions**.\n\nTrace the design to the requirements: name the story ids (`US-n`) each component serves, and point out any story nothing in the design delivers. Prefer the simplest design that meets the requirements, and say what you left out on purpose. Authentication and the places where outside input enters are design decisions: make them explicit. When the user approves, write the file starting with `Status: approved by the user on <date>`."
   },
   {
     "id": "A3",
     "area": "Architecture",
     "summary": "Record each significant decision and why",
-    "when": "project, task",
-    "how": "headless",
+    "when": "project",
+    "how": "chat",
     "access": [
       "write"
-    ]
+    ],
+    "title": "Record the decisions",
+    "instruction": "Write down each significant decision and why, so nobody (including a later agent) has to reconstruct it. Make a record for every decision that would be costly to change: the language and framework, where data is stored, how people sign in if they do, and each major dependency. Do not record small choices.\n\nUse one file per decision: `docs/architecture/decisions/NNNN-short-title.md`, numbered from the highest existing number plus one (look at the folder first). Each has: **Status** (`accepted by the user on <date>`), **Context** (the situation and the forces at play), **Options considered** (each with its main trade-off), **Decision** (what was chosen), and **Consequences** (what becomes easier and harder). Keep each to one page, show it to the user, and write it once they approve. Never edit an accepted record: if a decision changes, write a new record that supersedes it and says so."
   },
   {
     "id": "A4",
     "area": "Architecture",
     "summary": "Choose dependencies; check their licences and health",
-    "when": "project, task",
-    "how": "headless",
+    "when": "project",
+    "how": "chat",
     "access": [
       "read",
       "web"
-    ]
+    ],
+    "title": "Choose the dependencies",
+    "instruction": "List the libraries and services the design relies on, and check each before the user commits to it. Prefer what the language already provides, then what is already in the project, and add a dependency only when it saves real effort. For each one proposed, record: what it is for and why not do without it; its licence and whether that licence allows the user's intended use (commercial use, closed source); when it was last released and whether it is actively maintained; how widely it is used; and any known security problems. Look these up on the web and cite the source; say when you could not verify something. Flag any that are abandoned, have a restrictive licence, or pull in many other dependencies.\n\nShow the user a short table and ask them to approve or swap items. Put the approved list in the design's Stack section."
   },
   {
     "id": "A5",
@@ -146,7 +154,7 @@
       "write"
     ],
     "title": "Plan the milestones",
-    "instruction": "Split the first release into milestones: stages after which the user can see and try something real. Each milestone should be usable on its own and build on the last.\n\nFor each milestone write: a name, the goal in one sentence, which stories it delivers, what the user can do when it is finished, and an exit check (how you will know it is done). If the project has no code or no technology chosen yet, the first milestone is \"Foundation\": choose the technology together with the user, set up the project, and get a first automatic check running. Order milestones by what unblocks the others, then by value to the user.\n\nDraft them in the conversation and revise with the user. After approval write them into `docs/plan/roadmap.md` with the heading **Milestones**."
+    "instruction": "Split the first release into milestones: stages after which the user can see and try something real. Each milestone should be usable on its own and build on the last.\n\nFor each milestone write: a name, the goal in one sentence, which stories it delivers, what the user can do when it is finished, and an exit check (how you will know it is done). Read `docs/architecture/overview.md` first. If the project has no code yet, the first milestone is \"Foundation\": the scaffold, formatter and linter, test framework with one passing test, dependency installation, secrets handling and continuous integration listed in the design's Foundation section. If there is no approved design and no code, do not invent a technology: send the user to `/software-factory:design` first. Order milestones by what unblocks the others, then by value to the user.\n\nDraft them in the conversation and revise with the user. After approval write them into `docs/plan/roadmap.md` with the heading **Milestones**."
   },
   {
     "id": "P2",
@@ -158,7 +166,7 @@
       "backlog"
     ],
     "title": "Break the milestones into tasks",
-    "instruction": "Turn each milestone into backlog items that the factory can build one at a time. Each item must be one change a reviewer can read in one sitting: if building it would touch more than about five files, or contains two independent concerns, split it. Order the items so each one only needs the ones before it.\n\nWrite each item as a title that says what will exist afterwards, plus detail lines in exactly this form:\n```\nMilestone: <milestone name>\nStories: <US ids it serves>\nDepends on: <F-ids, or none>\nAcceptance: <the checks that prove it is done, in one or two sentences>\nOut of scope: <what to leave alone>\n```\nBecause the item has an `Acceptance` line, the pipeline skips triage for it.\n\nNever write a task that deploys, publishes, pays for a service or changes something outside the project. Deployment is a separate step that happens only when the user asks; if the plan needs it, say so at the end instead of adding a task.\n\nShow the whole list to the user, with the order, and ask for changes. After they approve, add the items to the backlog in dependency order, one at a time, with `factory add \"<title>\" --detail \"<the detail lines>\" --priority P1` (P1 for the first milestone, P2 and P3 later). Items go to Inbox; tell the user the order, and that they promote them to Ready with `factory promote` when they want them built, keeping that order. You never promote or run anything. Record the final task list under **Tasks** in `docs/plan/roadmap.md`, using the ids `factory add` printed."
+    "instruction": "Turn each milestone into backlog items that the factory can build one at a time. Each item must be one change a reviewer can read in one sitting: if building it would touch more than about five files, or contains two independent concerns, split it. Order the items so each one only needs the ones before it. Turn each Foundation item into one or more tasks that name the exact tools the design chose, and make the first one leave the project with its automatic checks passing, because every later build must pass them.\n\nWrite each item as a title that says what will exist afterwards, plus detail lines in exactly this form:\n```\nMilestone: <milestone name>\nStories: <US ids it serves>\nDepends on: <F-ids, or none>\nAcceptance: <the checks that prove it is done, in one or two sentences>\nOut of scope: <what to leave alone>\n```\nBecause the item has an `Acceptance` line, the pipeline skips triage for it.\n\nNever write a task that deploys, publishes, pays for a service or changes something outside the project. Deployment is a separate step that happens only when the user asks; if the plan needs it, say so at the end instead of adding a task.\n\nShow the whole list to the user, with the order, and ask for changes. After they approve, add the items to the backlog in dependency order, one at a time, with `factory add \"<title>\" --detail \"<the detail lines>\" --priority P1` (P1 for the first milestone, P2 and P3 later). Items go to Inbox; tell the user the order, and that they promote them to Ready with `factory promote` when they want them built, keeping that order. You never promote or run anything. Record the final task list under **Tasks** in `docs/plan/roadmap.md`, using the ids `factory add` printed."
   },
   {
     "id": "P3",
@@ -212,7 +220,9 @@
     "how": "chat",
     "access": [
       "config"
-    ]
+    ],
+    "title": "Define the foundation and the gate",
+    "instruction": "Define what must exist before features can be built, and the checks every change must pass.\n\n**Foundation**, in the project's chosen stack: a project scaffold with the standard layout; a formatter and a linter with their configuration; a test framework with one passing example test; the command that installs the project's dependencies; secrets handling (a `.gitignore` entry for environment and key files, a template file listing the settings a person must provide, without values, and a rule that nothing sensitive is committed); and a continuous integration workflow that runs the same checks as the gate. List this under **Foundation** in the design. The planner turns it into tasks and the builder carries them out; do not write code yourself.\n\n**The gate** is the fast, automatic commands that run after every build and must pass: tests, compile or type check, lint and format check, and the stack's dependency audit if it has one. Propose them and say in one sentence what each protects. They will only pass once the foundation tasks have been built, which is expected. When the user approves, record them with `factory configure --setup \"<install command>\" --gate \"<command>\" --gate \"<command>\"`, repeating `--gate` once per command and leaving out `--setup` if there is none. This is the only way a conversation changes the factory's configuration."
   },
   {
     "id": "F4",
@@ -413,7 +423,9 @@
     "access": [
       "read",
       "web"
-    ]
+    ],
+    "title": "Suggest skills",
+    "instruction": "Skills are add-ons that make an agent better at a kind of work. Suggest ones that fit this project, and install only what the user accepts. A skill is third-party instructions the agents will follow, so the user must see where each comes from first.\n\n1. From the design, decide what each working role (`planner`, `architect`, `builder`, `reviewer`) would benefit from: the builder from the chosen language and framework, the reviewer from security and the framework's usual pitfalls, the architect from design patterns for this kind of product.\n2. Search with `factory skill search \"<two or three words>\"`, for example `factory skill search \"python testing\"`. Run each search as its own command, with no pipes, `echo` or chained commands, because the pre-approval only covers a single `factory` command. It lists packages with their install counts and a page to read. Prefer skills with at least a thousand installs from known organisations or well-known authors, and be wary of fewer than a hundred. Never choose on the name alone.\n3. Show the user at most two or three suggestions per role: what each does in a sentence, its install count, its source, the link to review it, and which role it helps. Say which you recommend and why. Look at the `skills:` lines in `.claude/agents/<role>.md` first, so you do not suggest what a role already has.\n4. Install only what the user accepts, with `factory skill add <owner/repo@skill> --role <role>`. Say what you installed, and that they can detach it at any time."
   },
   {
     "id": "L1",

@@ -5,10 +5,10 @@ import { add, move, parse, type Item, type Section } from "./backlog";
 import { claudeRunner } from "./claude";
 import { loadConfig } from "./config";
 import { openStore } from "./events";
-import { applyTeam, detect, doctor, init, nextStep, projectDocs } from "./init";
+import { applyTeam, configure, detect, doctor, init, nextStep, projectDocs } from "./init";
 import { chatPrompt, describeTeam, presets, DEFAULT_PRESET } from "./team";
 import { runTask, shellGate, stopAll, stubRunner } from "./pipeline";
-import { addSkill, setSkill } from "./skills";
+import { addSkill, searchSkills, setSkill } from "./skills";
 import { commitAll, ensureWorktree, land, removeWorktree } from "./worktree";
 
 const root = process.cwd();
@@ -57,9 +57,15 @@ function find(id: string | undefined, ...sections: Section[]): Item {
   return item;
 }
 
+/** Every value given for a repeated flag: --gate "a" --gate "b" gives ["a", "b"]. */
+const flag = (args: string[], name: string) => args.flatMap((a, i) => (a === name && args[i + 1] !== undefined ? [args[i + 1]!] : []));
+
 const USAGE = `factory init [--setup <cmd>]... [--gate <cmd>]...  set this project up; without flags the commands are detected
 factory detect                                  show the setup and gate commands init would use
 factory gate ["<cmd>"...]                        run the configured gate here, or try the given commands
+factory docs save                               commit the documents under docs/ so task agents can read them
+factory configure [--setup "<cmd>"]... [--gate "<cmd>"]...   change the project's setup and gate commands
+factory skill search "<words>"                  search skills.sh: packages, install counts and review pages
 factory team [apply [--force]]                  show the team, or rebuild the role files from the catalog
 factory doctor                                  check the machine and this project's setup
 factory status                                  what is ready, running, waiting for you or blocked
@@ -82,6 +88,11 @@ async function main([cmd, ...args]: string[]) {
     const added = add(readFileSync(backlogPath, "utf8"), title, "Inbox", { detail, prio });
     editBacklog(`add ${added.id}`, () => added.text);
     return console.log(`added ${added.id} to Inbox`);
+  }
+
+  if (cmd === "skill" && args[0] === "search" && args[1]) {
+    const found = searchSkills(args.slice(1).join(" "));
+    return console.log(found.length ? found.map((f) => `${f.pkg}  ${f.installs} installs  ${f.url}`).join("\n") : "no skills found");
   }
 
   if (cmd === "skill" && ["add", "attach", "detach"].includes(args[0]!) && args[1] && args[2] === "--role") {
@@ -118,15 +129,30 @@ async function main([cmd, ...args]: string[]) {
     return console.log("\n● has built responsibilities and runs today; ○ is planned.");
   }
 
+  if (cmd === "docs" && args[0] === "save") {
+    // Only docs/ is committed: a conversation may write documents, never anything else.
+    const dirty = Bun.spawnSync(["git", "status", "--porcelain", "--", "docs"], { cwd: root, stdout: "pipe" }).stdout.toString().trim();
+    if (!dirty) return console.log("documents are already saved");
+    commitPaths("software-factory: update documents", "docs");
+    return console.log(`saved:\n${dirty}`);
+  }
+
+  if (cmd === "configure") {
+    const unknown = args.filter((a, i) => a !== "--setup" && a !== "--gate" && args[i - 1] !== "--setup" && args[i - 1] !== "--gate");
+    if (unknown.length || !args.length) throw new Error('usage: factory configure [--setup "<cmd>"]... [--gate "<cmd>"]...');
+    const next = configure(root, { ...(args.includes("--setup") && { setup: flag(args, "--setup") }), ...(args.includes("--gate") && { gate: flag(args, "--gate") }) });
+    commitPaths("software-factory: update setup and gate", "factory.config.json");
+    return console.log(`setup: ${next.setup?.join(" ; ") || "(none)"}\ngate:  ${next.gate.join(" ; ") || "(none)"}`);
+  }
+
   if (cmd === "detect") return console.log(JSON.stringify(detect(root), null, 2));
 
   if (cmd === "init") {
     if (Bun.spawnSync(["git", "rev-parse", "--is-inside-work-tree"], { cwd: root }).exitCode !== 0)
       throw new Error("not a git repository. Run `git init` first: the factory works in git worktrees.");
-    const flag = (name: string) => args.flatMap((a, i) => (a === name && args[i + 1] !== undefined ? [args[i + 1]!] : []));
     const unknown = args.filter((a, i) => a !== "--setup" && a !== "--gate" && args[i - 1] !== "--setup" && args[i - 1] !== "--gate");
     if (unknown.length) throw new Error(`unknown argument: ${unknown.join(" ")}`);
-    const r = init(root, { ...(args.includes("--setup") && { setup: flag("--setup") }), ...(args.includes("--gate") && { gate: flag("--gate") }) });
+    const r = init(root, { ...(args.includes("--setup") && { setup: flag(args, "--setup") }), ...(args.includes("--gate") && { gate: flag(args, "--gate") }) });
     // Committed, because task worktrees branch from HEAD.
     if (r.paths.length) commitPaths("software-factory: initialize", ...r.paths);
     console.log([`Stack: ${r.stack}`, ...r.done, `setup: ${r.config.setup?.join(" ; ") || "(none)"}`, `gate:  ${r.config.gate.join(" ; ") || "(none: only the reviewer will check a build)"}`,

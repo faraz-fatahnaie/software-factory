@@ -69,3 +69,7 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Catalog and preset as data, team rules validated, role files built from responsibilities, factory team and team apply, Triage only for ad-hoc items.
 - [x] F-036 (P1) Roles step 2: Product Partner and Planner conversations
   brainstorm, research and plan commands; factory role, add --detail and ordered promote; documents with approval status; next-step hint in status.
+- [x] F-037 (P1) Roles step 3: Architect design conversation
+  design command: stack, system design, dependencies, decision records, foundation and gate, skill suggestions; factory configure, skill search and docs save; plan pauses for and resumes after the design.
+- [ ] F-038 (P2) Task-time decision records and dependency checks
+  The headless half of A3 and A4: when a spec adds a dependency or makes a costly decision, check it and record it. Needs the spec stage to write documents.

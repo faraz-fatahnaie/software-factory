@@ -36,7 +36,7 @@ bun run factory approve F-026      # or: discard F-026
 
 ## Starting from an idea
 
-You do not need to know what to ask for. Three conversations take you from a rough idea to a
+You do not need to know what to ask for. Four conversations take you from a rough idea to a
 backlog the factory can build; each runs in your own Claude Code session (on whichever model
 you have selected, so switch with `/model` first) and asks one question at a time:
 
@@ -44,11 +44,14 @@ you have selected, so switch with `/model` first) and asks one question at a tim
 | --- | --- | --- |
 | `/software-factory:brainstorm <idea>` | Works out what you want: who it is for, the problem, what success looks like, what is out of scope | `docs/product/brief.md` |
 | `/software-factory:research` | Finds similar products on the web, compares them, and helps you decide what to adopt or avoid | `docs/product/research.md` |
-| `/software-factory:plan` | Turns the brief into user stories, non-functional requirements, scope, milestones and a task list | `docs/product/requirements.md`, `docs/plan/roadmap.md`, and tasks in the backlog Inbox |
+| `/software-factory:plan` | Turns the brief into user stories, non-functional requirements and scope, then (after the design) milestones and a task list | `docs/product/requirements.md`, `docs/plan/roadmap.md`, and tasks in the backlog Inbox |
+| `/software-factory:design` | Chooses the technology with you, designs the system, checks dependencies, records decisions, defines the foundation and the gate, and suggests skills for each role | `docs/architecture/overview.md`, `docs/architecture/decisions/`, the gate in `factory.config.json` |
+
+The usual order is brainstorm, research (optional), plan, design, then plan again: the first `plan` stops after the requirements when there is no technology yet, and the second continues with milestones and tasks. A project that already has code can skip `design`.
 
 Nothing is written until you approve a draft, every document starts with a
 `Status: approved by the user on <date>` line, and the tasks it adds wait in Inbox until you
-promote them (`factory promote F-010 F-011 ...`, in the order given). `factory status` shows
+promote them (`factory promote F-010 F-011 ...`, in the order given). Documents are committed as they are saved (`factory docs save`), because task agents work from the last commit. `factory status` shows
 which documents exist and the one command to run next.
 
 ## How a task flows

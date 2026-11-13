@@ -48,9 +48,9 @@
     "semantic_hash": ""
   },
   "BACKLOG.md": {
-    "mtime": 1794558366.3343728,
-    "seen": 1794558383.494011,
-    "ast_hash": "1444dc84c295069b351d9d160bdc8e35",
+    "mtime": 1794559035.0077415,
+    "seen": 1794559052.7127979,
+    "ast_hash": "b9668fa7ba3d2d4946c8a097c7d9b257",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1794558366.333288,
-    "seen": 1794558383.494011,
-    "ast_hash": "641320dd38b8e710960d3891f73e1cdf",
+    "mtime": 1794559035.006854,
+    "seen": 1794559052.712799,
+    "ast_hash": "31b703fd9c03b7dc859d7214d589ace8",
     "semantic_hash": ""
   },
   ".claude-plugin/marketplace.json": {
@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "plugin/engine/cli.ts": {
-    "mtime": 1794558038.1185951,
-    "seen": 1794558383.494003,
-    "ast_hash": "aab62ca67319e04f46cbd27064477f28",
+    "mtime": 1794558996.1548176,
+    "seen": 1794559052.71279,
+    "ast_hash": "555f331deb187f8e70368a8fbccae649",
     "semantic_hash": ""
   },
   "plugin/engine/config.ts": {
@@ -138,9 +138,9 @@
     "semantic_hash": ""
   },
   "plugin/engine/skills.ts": {
-    "mtime": 1794493553.6805499,
-    "seen": 1794510033.701972,
-    "ast_hash": "bf0c56adb9b5b8472f6fc4332dd0058f",
+    "mtime": 1794558733.637246,
+    "seen": 1794559052.712793,
+    "ast_hash": "6a76a7404321f6d8ecfb1ed717fdb0c6",
     "semantic_hash": ""
   },
   "plugin/engine/worktree.ts": {
@@ -150,9 +150,9 @@
     "semantic_hash": ""
   },
   "tests/factory.test.ts": {
-    "mtime": 1794558287.9878788,
-    "seen": 1794558383.494008,
-    "ast_hash": "c400554a1322066dc9c9feba8a34124a",
+    "mtime": 1794558996.1551967,
+    "seen": 1794559052.712796,
+    "ast_hash": "dce92ea735ef191867a1723533ba9626",
     "semantic_hash": ""
   },
   "tests/fixture.ts": {
@@ -162,9 +162,9 @@
     "semantic_hash": ""
   },
   "docs/PLUGIN.md": {
-    "mtime": 1794558366.333728,
-    "seen": 1794558383.4940119,
-    "ast_hash": "a56b6d86cfd2803831a6bc4f883e15ad",
+    "mtime": 1794559035.0073416,
+    "seen": 1794559052.7128,
+    "ast_hash": "42b5a4dad5d72eff81ee2aabf91cd996",
     "semantic_hash": ""
   },
   "plugin/templates/BACKLOG.md": {
@@ -180,9 +180,9 @@
     "semantic_hash": ""
   },
   "plugin/engine/init.ts": {
-    "mtime": 1794558038.1186826,
-    "seen": 1794558383.494004,
-    "ast_hash": "7a6974ca9efc009d6f1d0e6699624076",
+    "mtime": 1794558996.1549215,
+    "seen": 1794559052.7127922,
+    "ast_hash": "4f48c527aea683ee2a82af0e4b7a182d",
     "semantic_hash": ""
   },
   "plugin/skills/add/SKILL.md": {
@@ -270,15 +270,15 @@
     "semantic_hash": ""
   },
   "plugin/templates/catalog.json": {
-    "mtime": 1794558287.9877203,
-    "seen": 1794558383.494007,
-    "ast_hash": "cf7310e89388a740bdd53a727d385d6a",
+    "mtime": 1794558914.8927019,
+    "seen": 1794559052.712794,
+    "ast_hash": "9f2e4125f348e05b814b3a214e04681f",
     "semantic_hash": ""
   },
   "plugin/templates/presets.json": {
-    "mtime": 1794557472.061553,
-    "seen": 1794557591.5261362,
-    "ast_hash": "f40e9e6d03100334080afd969951a256",
+    "mtime": 1794558717.7074833,
+    "seen": 1794559052.7127948,
+    "ast_hash": "4681233d7f706558c9e76193d3e9cef2",
     "semantic_hash": ""
   },
   ".claude/agents/planner.md": {
@@ -288,9 +288,9 @@
     "semantic_hash": ""
   },
   "docs/ROLES.md": {
-    "mtime": 1794558366.3342068,
-    "seen": 1794558383.4940119,
-    "ast_hash": "9c7063885a50940bc8742e80876f3750",
+    "mtime": 1794559035.007565,
+    "seen": 1794559052.7128,
+    "ast_hash": "35bf2d2d87ab5e600477e80aaf88db65",
     "semantic_hash": ""
   },
   "plugin/skills/brainstorm/SKILL.md": {
@@ -300,9 +300,9 @@
     "semantic_hash": ""
   },
   "plugin/skills/plan/SKILL.md": {
-    "mtime": 1794558050.696719,
-    "seen": 1794558383.494015,
-    "ast_hash": "d59268d8d2587fece93775b1e30c56f0",
+    "mtime": 1794558733.6376863,
+    "seen": 1794559052.712804,
+    "ast_hash": "6367a1f237f59e7dda57582e61c6dec9",
     "semantic_hash": ""
   },
   "plugin/skills/research/SKILL.md": {
@@ -312,9 +312,15 @@
     "semantic_hash": ""
   },
   "plugin/templates/CHAT.md": {
-    "mtime": 1794558006.5313203,
-    "seen": 1794558383.4940171,
-    "ast_hash": "c1cf9db7cf66587cb4fd40d3b8b51e4a",
+    "mtime": 1794558996.154676,
+    "seen": 1794559052.712806,
+    "ast_hash": "812360ac02ecf6cb85c906e03952f63a",
+    "semantic_hash": ""
+  },
+  "plugin/skills/design/SKILL.md": {
+    "mtime": 1794558733.6376173,
+    "seen": 1794559052.712802,
+    "ast_hash": "25c3d667b8ddd7b3bf1dab3d16ae383e",
     "semantic_hash": ""
   }
 }
