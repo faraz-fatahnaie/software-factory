@@ -13,7 +13,9 @@ import { BACKLOG, config, repo, role, tmp } from "./fixture";
 import { guard } from "../plugin/engine/hooks";
 import { applyTeam, configure, detect, doctor, init, nextStep, projectDocs } from "../plugin/engine/init";
 import { activeRoles, catalog, chatPrompt, chatPromptFor, checkSettings, customStages, DEFAULT_PRESET, describeTeam, perTask, presets, renderRole, resolveTeam, stageDuties, stageRole, teamForAgents, toolsFor, validateTeam, type TeamSettings } from "../plugin/engine/team";
-import { addCustom, moveSettings, offSettings, removeCustom, renameSettings } from "../plugin/engine/teamctl";
+import { addCustom, moveSettings, offSettings, parseChange, planTeam, removeCustom, renameSettings, teamView } from "../plugin/engine/teamctl";
+import { chatArgs, TOPICS } from "../plugin/engine/chat";
+import { estimate } from "../plugin/engine/estimate";
 import { followUps, needsTriage, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
 import { costs, elapsed, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
@@ -1447,3 +1449,93 @@ test("regrouping keeps what each stage costs: a stage moved into another role ke
   expect(seen.review).toBe("opus/high"); // other stages use the role's
   expect(() => parseConfig({ gate: ["true"], roles: { ...configFor({}).roles, architect: { ...configFor({}).roles.architect, stages: { nap: { model: "haiku" } } } } })).toThrow(/stages\.nap: unknown stage[\s\S]*stages\.nap: needs a model, an effort and a fallback list/);
 }, 120_000);
+
+const stageOk = (stage: string, model: string, costUsd: number) => ({ stage, type: "stage.ok", model, data: { usage: { costUsd } } });
+
+test("estimate: who runs each stage and what it should cost, from this project's own runs when there are any", () => {
+  const team = resolveTeam({ preset: "lean" });
+  const cfg = configFor({ preset: "lean" });
+  const none = estimate(team, cfg);
+  expect(none.agents.always).toBe(3);
+  expect(none.stages.filter((s) => s.always).map((s) => s.stage)).toEqual(["spec", "build", "review"]);
+  expect(none.basis).toBe("guide");
+  // With history, the figure is the average of what that stage cost on that model.
+  const seen = estimate(team, cfg, [stageOk("spec", "opus", 0.4), stageOk("spec", "opus", 0.6), stageOk("build", "sonnet", 1), stageOk("review", "opus", 0.2)]);
+  expect(seen.stages.find((s) => s.stage === "spec")).toMatchObject({ usd: 0.5, basis: "runs", model: "opus" });
+  // A model with no history for a stage falls back to its average over all stages, so a regrouping still gets a real figure.
+  expect(seen.stages.find((s) => s.stage === "review")!.usd).toBe(0.2);
+  // Moving the spec to a cheaper role changes the estimate; a per-stage setting wins over the role's.
+  const cheaper = { roles: { ...cfg.roles, architect: { ...cfg.roles.architect!, stages: { spec: { model: "haiku", effort: "low", fallback: [] } } } } };
+  expect(estimate(team, cheaper).stages.find((s) => s.stage === "spec")).toMatchObject({ model: "haiku", effort: "low" });
+});
+
+test("team view: previewing a change shows the result and the cost without writing, and a change that breaks a rule says why", () => {
+  const p = project("balanced");
+  const before = readFileSync(join(p.dir, "factory.config.json"), "utf8");
+  const plan = planTeam(p.dir, parseChange({ op: "use", preset: "lean" }).edit);
+  const view = teamView(plan.team, plan.config, [], plan.clean.preset);
+  expect(view.roles.length).toBe(6);
+  expect(view.preset).toBe("lean");
+  expect(view.roles.flatMap((r) => r.holds).length + view.off.length + view.scripts.length).toBe(catalog.length); // every responsibility is somewhere
+  expect(readFileSync(join(p.dir, "factory.config.json"), "utf8")).toBe(before); // nothing was written
+  expect(p.git("status", "--porcelain")).toBe("");
+  expect(() => planTeam(p.dir, parseChange({ op: "move", ids: ["C1"], to: "builder" }).edit)).toThrow(/builder/);
+  expect(() => parseChange({ op: "move", ids: ["C1; rm"], to: "builder" })).toThrow(/not a responsibility id/);
+  expect(() => parseChange({ op: "move", ids: ["C1"], to: "Bad Name" })).toThrow(/not a role name/);
+  expect(() => parseChange({ op: "nap" })).toThrow(/change\.op/);
+  expect(parseChange({ op: "merge", from: "scribe", into: "architect" }).args).toEqual(["merge", "scribe", "architect"]);
+});
+
+test("conversations in the GUI: the topic, the model and the session are checked; documents are the only thing it may write", () => {
+  const team = resolveTeam();
+  const args = chatArgs({ topic: "brainstorm", message: "hello" }, team);
+  expect(args.slice(0, 4)).toEqual(["claude", "-p", "hello", "--model"]);
+  expect(args[args.indexOf("--append-system-prompt") + 1]).toContain("Approval before anything is saved");
+  const allowed = args.slice(args.indexOf("--allowedTools") + 1, args.indexOf("--setting-sources"));
+  expect(allowed).toContain("Write(docs/**)");
+  expect(allowed.some((a) => /^(Write|Edit)\(src|^Bash\(\*|^Bash$|release|deploy/.test(a))).toBe(false);
+  expect(args).toContain("dontAsk");
+  expect(chatArgs({ topic: "plan", message: "go on", session: "9f1c2d3e-4b5a-4c6d-8e7f-0a1b2c3d4e5f" }, team)).toContain("--resume");
+  expect(Object.keys(TOPICS)).not.toContain("deploy"); // deploying needs a yes for every step: command line only
+  expect(() => chatArgs({ topic: "deploy", message: "x" }, team)).toThrow(/topic/);
+  expect(() => chatArgs({ topic: "plan", message: "  " }, team)).toThrow(/message/);
+  expect(() => chatArgs({ topic: "plan", message: "x", model: "--help" }, team)).toThrow(/model/);
+  expect(() => chatArgs({ topic: "plan", message: "x", session: "../../etc" }, team)).toThrow(/session/);
+  expect(() => chatArgs({ topic: "brainstorm", message: "x" }, resolveTeam({ off: ["D1"] }))).toThrow(/switched off/);
+});
+
+test("server: the team is read, previewed and changed over HTTP with the same checks as the command line; commands are a fixed list", async () => {
+  const p = project("balanced");
+  const server = await serve(p.dir, 0);
+  const base = `http://127.0.0.1:${server.port}`;
+  const post = (path: string, body: unknown) => fetch(base + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  try {
+    const team = await (await fetch(base + "/api/team")).json() as any;
+    expect(team.roles.length).toBe(9);
+    expect(team.presets.map((x: any) => x.name)).toEqual(["balanced", "lean", "full"]);
+    expect(team.estimate.agents.always).toBe(3);
+    const topics = await (await fetch(base + "/api/chat/topics")).json() as any[];
+    expect(topics.find((t) => t.key === "brainstorm").available).toBe(true);
+
+    const preview = await post("/api/team/preview", { changes: [{ op: "use", preset: "lean" }] });
+    expect((await preview.json() as any).roles.length).toBe(6);
+    expect(p.cli("team").out).toContain("Balanced"); // still balanced: a preview changes nothing
+
+    const bad = await post("/api/team/preview", { changes: [{ op: "move", ids: ["C1"], to: "builder" }] });
+    expect(bad.status).toBe(400);
+    expect(((await bad.json()) as any).error).toContain("builder");
+    expect((await post("/api/team", { changes: [{ op: "move", ids: ["C1"], to: "builder" }] })).status).toBe(400);
+
+    const applied = await post("/api/team", { changes: [{ op: "use", preset: "lean" }] });
+    expect(applied.status).toBe(200);
+    expect(((await applied.json()) as any).roles.length).toBe(6);
+    expect(p.cli("team").out).toContain("Lean");
+    expect(p.git("log", "-1", "--format=%s")).toContain("software-factory: team use lean"); // committed, like the command line
+
+    expect((await post("/api/command", { name: "rm -rf /" })).status).toBe(400);
+    expect((await post("/api/command", { name: "doctor" })).status).toBeLessThan(500);
+    expect((await post("/api/chat", { topic: "plan", message: "x", model: "nope" })).status).toBe(400); // refused before any model is called
+  } finally {
+    server.stop(true);
+  }
+}, 60_000);

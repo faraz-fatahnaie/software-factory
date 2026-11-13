@@ -264,7 +264,7 @@ export function Agents(p: { events: Ev[]; tasks: Map<string, TaskRun>; setError:
   const working = useMemo(() => roster(p.tasks), [p.tasks]);
   const now = useNow(working.length > 0);
   return (
-    <main className="stack">
+    <div className="stack">
       <section className="tile wide">
         <header><h2>Working now</h2></header>
         {working.length === 0 ? <p className="empty">No agents are running. Each stage of a task starts one, on the model set for its role below.</p> : (
@@ -284,7 +284,7 @@ export function Agents(p: { events: Ev[]; tasks: Map<string, TaskRun>; setError:
       </section>
       <Models setError={p.setError} />
       <Cost events={p.events} />
-    </main>
+    </div>
   );
 }
 
@@ -303,7 +303,7 @@ export function Logs({ events }: { events: Ev[] }) {
   const ids = useMemo(() => [...new Set(events.map((e) => e.task).filter((t) => /^F-\d+$/.test(t)))], [events]);
   const shown = useMemo(() => events.filter((e) => (!task || e.task === task) && KINDS[kind]!(logLine(e)?.cls ?? "")), [events, kind, task]);
   return (
-    <main className="stack">
+    <div className="stack">
       <section className="tile wide logs">
         <p className="toolbar">
           <span className="pills" role="group" aria-label="Kind of event">
@@ -314,6 +314,6 @@ export function Logs({ events }: { events: Ev[] }) {
         </p>
         <Feed events={shown} limit={500} />
       </section>
-    </main>
+    </div>
   );
 }

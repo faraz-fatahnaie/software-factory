@@ -35,9 +35,14 @@
   "33": "security-performance.md",
   "34": "secure/SKILL.md",
   "35": "test/SKILL.md",
-  "36": "init.ts",
+  "36": "teamctl.ts",
   "37": "deploy/SKILL.md",
   "38": "release/SKILL.md",
   "39": "ask/SKILL.md",
-  "40": "team/SKILL.md"
+  "40": "team/SKILL.md",
+  "41": "state.ts",
+  "42": "views.tsx",
+  "43": "talk.tsx",
+  "44": "team.tsx",
+  "45": "data.ts"
 }

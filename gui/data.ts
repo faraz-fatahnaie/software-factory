@@ -104,3 +104,14 @@ export function useHash<T extends string>(views: readonly T[]): [T, (v: T) => vo
   }, []);
   return [view, (v) => { location.hash = v.toLowerCase(); }];
 }
+
+/** A JSON call that hands back the answer or the server's own explanation. GET when there is no body. */
+export async function call<T>(path: string, body?: unknown): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
+  try {
+    const res = await fetch(path, body === undefined ? undefined : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    return res.ok ? { ok: true, data: data as T } : { ok: false, error: data.error ?? data.output ?? `request failed (${res.status})` };
+  } catch {
+    return { ok: false, error: "The factory server did not answer. Is `factory serve` still running?" };
+  }
+}

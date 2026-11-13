@@ -15,11 +15,13 @@ try {
   const page = await browser.newPage();
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(String(e)));
-  page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+  // The one refusal this test provokes on purpose (a team change that breaks a rule, answered 400) is not an error.
+  let refusals = 0;
+  page.on("console", (m) => { if (m.type() !== "error") return; if (m.text().includes("status of 400")) refusals++; else errors.push(m.text()); });
   page.on("dialog", (d) => d.accept());
   await page.goto(`http://127.0.0.1:${server.port}/`);
   const card = (column: string, id: string) => page.locator(`section[aria-label="${column}"] .card`, { hasText: id });
-  const view = (name: string) => page.getByRole("button", { name, exact: true }).click();
+  const view = (name: string) => page.getByRole("navigation", { name: "Views" }).getByRole("link", { name, exact: true }).click();
 
   // Overview is the landing view: the connection is live and the pipeline shows the two Ready items.
   await page.locator(".link.live").waitFor();
@@ -87,6 +89,34 @@ try {
   await view("Worktrees");
   await page.getByText("No task worktrees").waitFor();
 
+  // Checks: a command runs and its output is shown.
+  await view("Checks");
+  await page.locator('section[aria-label="Is the setup right?"]').getByRole("button", { name: "Run" }).click();
+  await page.locator('section[aria-label="Is the setup right?"] .out', { hasText: "git repository" }).waitFor();
+
+  // Talk: the conversations are listed (no model is called here), and a conversation needs your first message.
+  await view("Talk");
+  await page.getByRole("button", { name: /Brainstorm an idea/ }).waitFor();
+  await page.getByRole("button", { name: "Start this conversation" }).waitFor();
+
+  // Team: a change is previewed with its cost and not saved until you say so; saving commits it.
+  await view("Team");
+  await page.locator(".role").first().waitFor();
+  assert.equal(await page.locator(".role").count(), 9, "the balanced team has nine roles");
+  await page.getByRole("button", { name: /^Lean/ }).click();
+  await page.locator(".draft", { hasText: "Switch to the lean team" }).waitFor();
+  await page.waitForFunction(() => document.querySelectorAll(".role").length === 6);
+  assert.equal(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).team, undefined, "a preview writes nothing");
+  await page.getByRole("button", { name: "Save to project" }).click();
+  await page.locator(".draft").waitFor({ state: "detached" });
+  assert.equal(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).team.preset, "lean");
+  assert.match(sh("git", "log", "-1", "--format=%s").out, /team use lean/);
+  // A move that breaks a rule is refused with the reason, and the draft stays empty.
+  await page.getByLabel(/^Move C1 /).selectOption({ label: "Builder" });
+  await page.getByRole("alert").waitFor();
+  assert.equal(await page.locator(".draft").count(), 0);
+
+  assert.equal(refusals, 1, "exactly the one expected refusal");
   assert.deepEqual(errors, [], "no browser console errors");
   console.log("e2e ok");
 } finally {

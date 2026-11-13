@@ -43,7 +43,7 @@ const titleize = (name: string) => name.split("-").map((w) => w[0]!.toUpperCase(
 const toResponsibility = (c: Custom): Responsibility => ({ id: c.id, area: "Custom", summary: c.summary, when: c.when, how: c.how, access: c.access, title: c.title, instruction: c.instruction });
 
 const indexes = new WeakMap<object, Map<string, Responsibility>>();
-function lookup(team: Preset): Map<string, Responsibility> {
+export function lookup(team: Preset): Map<string, Responsibility> {
   const cat = team.catalog ?? catalog;
   let index = indexes.get(cat);
   if (!index) { index = new Map(cat.map((r) => [r.id, r])); indexes.set(cat, index); }

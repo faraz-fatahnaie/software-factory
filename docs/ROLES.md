@@ -67,8 +67,9 @@ of a command sit with several roles, all of them hold the conversation. Regroupi
 what a stage costs: a stage moved into another role keeps its model settings as a per-stage
 setting (for example the summary stage stays on the cheap model when the scribe is folded into the
 architect). In a Lean team the reviewer does the security pass as a separate stage, so the
-saving is fewer roles to configure, not fewer runs. **Still planned:** the Team view in the GUI,
-editing model settings per stage from the command line, and custom unattended checks in the GUI.
+saving is fewer roles to configure, not fewer runs. Step 8 is done: the GUI has a Team view, a Talk view
+for the conversations and a Checks view for the factory's own commands. **Still planned:** editing model
+settings per stage from the command line, custom unattended checks in the GUI, and release and deploy in the GUI.
 
 **Conventions step 2 set:** a conversation saves a document only after the user approves a
 draft, and every document starts with `Status: approved by the user on <date>`. Backlog items
@@ -318,9 +319,13 @@ Existing: `init`, `add`, `run`, `status`, `open`, `approve`, `discard`, `doctor`
 New, one per phase of the work: `brainstorm`, `research`, `plan`, `design`, `test`, `secure`,
 `release`, `deploy`, `docs`, `team`.
 
-The three chat roles work from the command line first. Chat inside the GUI, and a Team view
-(roles as columns, responsibilities as cards, cost estimate updating as you regroup), come
-later; every command should eventually also be an action in the GUI.
+The conversations work from the command line first, and the GUI's Talk view runs the same instructions
+as a headless session that is resumed on each message. It may read the project and write documents
+under `docs/`, `README.md` and `CHANGELOG.md`; it cannot change code or governance files. Deploy is not
+offered there, because it moves one approved step at a time. The Team view shows roles as columns and
+responsibilities as cards; every change is previewed against the rules and the cost before it is saved,
+and saving commits like `factory team`. The estimate uses what each stage cost in this project's own
+runs, or a rough per-model guide until there are runs.
 
 ## Decisions on record
 
@@ -354,6 +359,6 @@ later; every command should eventually also be an action in the GUI.
 5. Tester, and the Security and Performance Engineer with its four gates (`test`, `secure`). (gate 2 and the conversations done; gate 1 at task time and the opt-in dynamic work planned)
 6. Release Engineer (`release`, `deploy`) with the deployment interview. (done)
 7. Lean and Full presets, free regrouping, custom responsibilities (`team`). (done)
-8. GUI: Team view, command actions, chat.
+8. GUI: Team view, command actions, chat. (done; release and deploy in the GUI are planned)
 
 **Conversations commit their documents** (`factory docs save`, which commits only `docs/`) because task agents work from the last commit. The usual order is brainstorm, research (optional), plan (requirements), design, plan (milestones and tasks); `plan` pauses for `design` when the project has no code and no approved design, and resumes after it.

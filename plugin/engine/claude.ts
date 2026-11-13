@@ -35,7 +35,7 @@ export function claudeArgs(job: Job, gate: string[], skills: string[] = []): str
 }
 
 /** Hooks for factory runs only, passed on the command line so your own sessions are unaffected. */
-function hookSettings(stage: string): string {
+export function hookSettings(stage: string): string {
   const quoted = (s: string) => `'${s.replaceAll("'", `'\\''`)}'`;
   const hook = (mode: string) => ({
     type: "command",

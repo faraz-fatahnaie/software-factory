@@ -25,8 +25,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 - [ ] F-027 (P1) Multi-project view at user scope
   Project registry in the plugin data folder; project switcher in the GUI.
-- [ ] F-032 (P2) Dashboard design refactor
-  The Phase 10 design works but can be improved; revisit with the user's notes.
+- [x] F-032 (P2) Dashboard design refactor
+  Done in step 8: rail navigation, page headers, decision-first Overview, one radius scale, status never by colour alone, keyboard and phone layouts; Lighthouse accessibility 100.
 - [ ] F-033 (P2) Spending caps per role with dynamic model switching
   When a role reaches its cap or a usage limit, keep working on another model instead of stopping. Deferred by the user on 2026-11-13.
 - [ ] F-034 (P2) Default skills per role
@@ -91,8 +91,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Show readiness, the deployment plan and the deploy log; start a release from the page. A deploy stays a conversation the user approves step by step.
 - [x] F-047 (P1) Roles step 7: presets, regrouping and custom responsibilities
   Lean, Balanced and Full; factory team (use, agents, move, merge, rename, title, off, on, add, remove); the pipeline finds stage roles by responsibility; stage costs survive a regrouping; team and ask skills.
-- [ ] F-048 (P2) Team view in the GUI
-  Roles as columns, responsibilities as cards, the per-task agent count updating as you regroup.
+- [x] F-048 (P2) Team view in the GUI
+  Roles as columns, responsibilities as cards, the per-task agent count and cost updating as you regroup, with preview before save. Also: Talk (chat) and Checks views, and the dashboard design pass.
 - [ ] F-049 (P2) Set models per role and per stage from the command line
   Today only by editing factory.config.json or the Models page (roles only); stage settings are set automatically when a stage moves.
 - [ ] F-050 (P3) Custom unattended checks beyond advisory

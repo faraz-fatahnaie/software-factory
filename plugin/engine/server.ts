@@ -1,14 +1,21 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { parse } from "./backlog";
-import { loadConfig, parseConfig, projectRoles } from "./config";
+import { chatArgs, chatTurn, TOPICS } from "./chat";
+import { loadConfig, parseConfig, projectRoles, projectTeam } from "./config";
 import { openStore } from "./events";
 import { parseFind, roleSkills, SKILLS_CLI } from "./skills";
+import { chatPromptFor } from "./team";
+import { changeTeam, parseChanges, planTeam, presetList, teamView } from "./teamctl";
 import { listWorktrees } from "./worktree";
 
 const CLI = join(import.meta.dir, "cli.ts");
 const ID = /^F-\d+$/;
 const json = (body: unknown, status = 200) => Response.json(body, { status });
+// Commands the page may run. Each is a fixed command line, so the page cannot pass anything to a shell.
+const COMMANDS: Record<string, string[]> = {
+  doctor: ["doctor"], status: ["status"], "release-info": ["release", "info"], "release-check": ["release", "check"], scan: ["scan"], "team-apply": ["team", "apply"],
+};
 
 // The page ships prebuilt in dist/, so an installed plugin needs no dependencies. The source
 // lives outside the plugin folder; where it is present (this repository), it is rebuilt on start.
@@ -78,6 +85,11 @@ export async function serve(root: string, port = 4400) {
     return new Response(body, { headers: { "content-type": "text/event-stream", "cache-control": "no-cache" } });
   };
 
+  const teamPayload = () => {
+    const raw = JSON.parse(readFileSync(join(root, "factory.config.json"), "utf8"));
+    return { ...teamView(projectTeam(root), loadConfig(root), store.since(0), raw.team?.preset), presets: presetList() };
+  };
+
   const server = Bun.serve({
     hostname: "127.0.0.1", // never reachable from another machine
     port,
@@ -91,6 +103,14 @@ export async function serve(root: string, port = 4400) {
 
       if (route === "GET /api/backlog") return json({ items: items(), running: [...running.keys()] });
       if (route === "GET /api/config") return json(loadConfig(root));
+      if (route === "GET /api/team") return json(teamPayload());
+      if (route === "GET /api/chat/topics") {
+        const team = projectTeam(root);
+        return json(Object.entries(TOPICS).map(([key, t]) => {
+          try { chatPromptFor(t.ids, team); return { key, title: t.title, summary: t.summary, first: t.first, available: true }; }
+          catch (e) { return { key, title: t.title, summary: t.summary, first: t.first, available: false, reason: (e as Error).message }; }
+        }));
+      }
       if (route === "GET /api/events") {
         const after = Number(req.headers.get("last-event-id") ?? url.searchParams.get("after") ?? 0);
         return Number.isInteger(after) && after >= 0 ? stream(after) : json({ error: "bad after" }, 400);
@@ -181,6 +201,35 @@ export async function serve(root: string, port = 4400) {
           const next = parseConfig({ ...loadConfig(root), roles: body.roles });
           writeFileSync(join(root, "factory.config.json"), `${JSON.stringify(next, null, 2)}\n`);
           return json(next);
+        } catch (e) {
+          return json({ error: (e as Error).message }, 400);
+        }
+      }
+
+      if (route === "POST /api/team/preview" || route === "POST /api/team") {
+        try {
+          const change = parseChanges(body.changes);
+          const plan = planTeam(root, change.edit); // every rule is checked first, preview or not
+          if (route.endsWith("preview")) return json({ ...teamView(plan.team, plan.config, store.since(0), plan.clean.preset), presets: presetList() });
+          const done = changeTeam(root, change.edit);
+          await sh("git", "add", "--", ...done.paths); // committed like the command line does: task worktrees branch from HEAD
+          await sh("git", "commit", "-q", "-m", `software-factory: team ${change.label}`, "--", ...done.paths);
+          return json(teamPayload());
+        } catch (e) {
+          return json({ error: (e as Error).message }, 400);
+        }
+      }
+      if (route === "POST /api/command") {
+        const argv = typeof body.name === "string" ? COMMANDS[body.name] : undefined;
+        if (!argv) return json({ error: `name: one of ${Object.keys(COMMANDS).join(", ")}` }, 400);
+        // A check that finds problems exits non-zero. That is its answer, not a failed request.
+        const r = await sh(process.execPath, CLI, ...argv);
+        return json({ ok: r.code === 0, output: `${r.out}${r.err}`.trim() });
+      }
+      if (route === "POST /api/chat") {
+        try {
+          chatArgs(body as never, projectTeam(root)); // validate before spending anything
+          return json(await chatTurn(root, body as never, projectTeam(root)));
         } catch (e) {
           return json({ error: (e as Error).message }, 400);
         }

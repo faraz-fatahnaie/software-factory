@@ -3,10 +3,31 @@ import { createRoot } from "react-dom/client";
 import { elapsed, passRates, roster, series, STAGES, summarize, toolLine, type Ev, type TaskRun } from "../plugin/engine/state";
 import { post, useBacklog, useEvents, useHash, useNow, useTheme, type Backlog, type Item, type Link } from "./data";
 import { Agents, Logs, Studio, Worktrees } from "./views";
+import { Checks, Talk, type Chats } from "./talk";
+import { Team } from "./team";
+import { Icon } from "./icons";
 
 export type Act = (path: string, body: unknown) => Promise<boolean>;
 
-const VIEWS = ["Overview", "Backlog", "Agents", "Logs", "Worktrees", "Studio", "Graph"] as const;
+const VIEWS = ["Overview", "Backlog", "Talk", "Checks", "Team", "Agents", "Logs", "Worktrees", "Studio", "Graph"] as const;
+type View = (typeof VIEWS)[number];
+const GROUPS: { name: string; views: View[] }[] = [
+  { name: "Work", views: ["Overview", "Backlog", "Talk", "Checks"] },
+  { name: "Team", views: ["Team", "Agents"] },
+  { name: "Records", views: ["Logs", "Worktrees", "Studio", "Graph"] },
+];
+const HEADS: Record<View, [string, string]> = {
+  Overview: ["Overview", "What is running, what needs you, and what it costs."],
+  Backlog: ["Backlog", "Move work through the pipeline. Open a task to read its log, spec, review and changes."],
+  Talk: ["Talk to the team", "Start a conversation with the roles that work with you: brainstorming, research, planning and design."],
+  Checks: ["Checks", "Run the factory's own checks on this project. Nothing here changes your code or deploys anything."],
+  Team: ["Team", "Who does what. Regroup the responsibilities and see what a task costs before you save."],
+  Agents: ["Agents", "Who is working, which model each role uses, and what it has cost."],
+  Logs: ["Logs", "Every event from every task, filterable."],
+  Worktrees: ["Worktrees", "One isolated copy of the project per task."],
+  Studio: ["Studio", "Edit the rules, role prompts and skills. Every save is a commit."],
+  Graph: ["Knowledge graph", "How the parts of this project connect."],
+};
 const SECTIONS = ["Inbox", "Ready", "In progress", "Awaiting approval", "Blocked", "Done"];
 const LINK_TEXT: Record<Link, string> = { connecting: "Connecting", live: "Live", reconnecting: "Reconnecting", offline: "Offline" };
 
@@ -104,6 +125,7 @@ function Throughput({ events, now }: { events: Ev[]; now: number }) {
           : <>No stages have run in the last {win}.</>}
       </p>
       <div className="bars" onMouseLeave={() => setAt(null)}>
+        <span className="ymax" aria-hidden="true">{max}</span>
         {data.map((d, i) => (
           <button key={d.t} className={`bar${at === i ? " on" : ""}`} onMouseEnter={() => setAt(i)} onFocus={() => setAt(i)} onBlur={() => setAt(null)}
             aria-label={`${when(d.t)}: ${d.stages} stages passed, ${d.finished} tasks finished, ${d.failed} failures`}>
@@ -134,7 +156,7 @@ function Line({ backlog, tasks, open }: { backlog: Backlog; tasks: Map<string, T
   return (
     <article className="tile line">
       <header><h2>Pipeline</h2><p className="note">{backlog.items.filter((i) => i.section === "Done").length} done · {backlog.items.filter((i) => i.section === "Blocked").length} blocked</p></header>
-      <ol>
+      <ol style={{ "--reach": Math.max(0, ...at.map((list, n) => (list.length ? n : 0))) } as React.CSSProperties}>
         {names.map((name, n) => (
           <li key={name} className={at[n]!.length ? "busy" : ""}>
             <span className="count">{at[n]!.length}</span>
@@ -192,7 +214,26 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
   const needsYou = items.filter((i) => i.section === "Awaiting approval" || i.section === "Blocked");
 
   return (
-    <main className="bento">
+    <div className="bento">
+      <article className={`tile attention${needsYou.length ? " waiting" : ""}`} aria-label="Needs you">
+        {needsYou.length === 0 ? (
+          <p className="calm"><Icon name="check" /> Nothing is waiting for you.</p>
+        ) : (
+          <>
+            <header><h2>{needsYou.length === 1 ? "1 task needs you" : `${needsYou.length} tasks need you`}</h2></header>
+            <ul>
+              {needsYou.map((i) => (
+                <li key={i.id}>
+                  <button className="chip-id" onClick={() => p.open(i.id)}>{i.id}</button>
+                  <span className="what">{i.title}</span>
+                  <span className={`badge ${i.section === "Blocked" ? "bad" : "ok"}`}>{i.section === "Blocked" ? "⚠ Blocked" : "✓ Ready to review"}</span>
+                  <button className={i.section === "Blocked" ? "" : "primary"} onClick={() => p.open(i.id)}>{i.section === "Blocked" ? "Look into it" : "Review"}</button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </article>
       <Kpi title="Agents working" value={String(working.length)} note={`${items.filter((i) => i.section === "In progress").length} tasks in progress, ${items.filter((i) => i.section === "Ready").length} ready`}>
         <Spark values={day.map((b) => b.stages)} label="Stages passed per hour, last 24 hours" />
       </Kpi>
@@ -208,6 +249,7 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
       </Kpi>
 
       <Line backlog={p.backlog} tasks={p.tasks} open={p.open} />
+
       <Throughput events={p.events} now={now} />
 
       <article className="tile roster">
@@ -231,21 +273,7 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
 
       <article className="tile activity"><Feed events={p.events} limit={60} open={p.open} /></article>
 
-      <article className="tile needs">
-        <header><h2>Needs you</h2></header>
-        {needsYou.length === 0 ? <p className="empty">Nothing is waiting for you.</p> : (
-          <ul>
-            {needsYou.map((i) => (
-              <li key={i.id}>
-                <button className="chip-id" onClick={() => p.open(i.id)}>{i.id}</button>
-                <span className="what">{i.title}</span>
-                <span className={`badge ${i.section === "Blocked" ? "bad" : "ok"}`}>{i.section === "Blocked" ? "Blocked" : "Review"}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </article>
-    </main>
+    </div>
   );
 }
 
@@ -365,7 +393,7 @@ function Board(p: { backlog: Backlog; tasks: Map<string, TaskRun>; act: Act; sel
   const now = useNow(p.backlog.running.length > 0);
   const item = p.backlog.items.find((i) => i.id === p.selected);
   return (
-    <main className={item ? "split" : ""}>
+    <div className={item ? "split" : ""}>
       <div>
         <p className="toolbar">
           <label title="Runs the pipeline with canned stage outputs and no model calls">
@@ -401,7 +429,7 @@ function Board(p: { backlog: Backlog; tasks: Map<string, TaskRun>; act: Act; sel
         </div>
       </div>
       {item && <Detail key={item.id + item.section} item={item} run={p.tasks.get(item.id)} act={p.act} close={() => p.select(null)} />}
-    </main>
+    </div>
   );
 }
 
@@ -414,9 +442,21 @@ function App() {
   const [view, setView] = useHash(VIEWS);
   const [theme, toggleTheme] = useTheme();
   const [selected, setSelected] = useState<string | null>(null);
+  const [chats, setChats] = useState<Chats>({});
   const [error, setError] = useState("");
   // A run that failed before it started (bad state, git error) only shows up as this event.
   useEffect(() => { if (notice) setError(`${notice.task}: ${notice.data?.error ?? "command failed"}`); }, [notice?.seq]);
+  // The tab title says what is waiting, so a person in another tab sees it.
+  const waiting = backlog.items.filter((i) => i.section === "Awaiting approval" || i.section === "Blocked").length;
+  useEffect(() => { document.title = `${waiting ? `(${waiting}) ` : ""}${HEADS[view][0]} · Software Factory`; }, [view, waiting]);
+  // After a view change, focus moves to the page so a keyboard or screen reader user starts at the top of it.
+  const main = useRef<HTMLElement>(null);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) first.current = false; else main.current?.focus({ preventScroll: true });
+    // On a narrow screen the rail is a scrolling bar: keep the current view's tab in sight.
+    document.querySelector(".side a[aria-current]")?.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [view]);
 
   const act: Act = async (path, body) => {
     const r = await post(path, body);
@@ -425,33 +465,59 @@ function App() {
     return r.ok;
   };
   const open = (id: string) => { setSelected(id); setView("Backlog"); };
+  const [title, blurb] = HEADS[view];
 
   return (
-    <>
-      <header className="top">
-        <h1>Software Factory</h1>
-        <nav className="pills" aria-label="Views">
-          {VIEWS.map((v) => <button key={v} aria-current={view === v ? "page" : undefined} onClick={() => setView(v)}>{v}</button>)}
+    <div className="shell">
+      <a className="skip" href="#main" onClick={(e) => { e.preventDefault(); main.current?.focus(); }}>Skip to content</a>
+      <aside className="side">
+        <div className="brand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 20V9l6 3V9l6 3V5h6v15z" /><path d="M7 16h2M12 16h2M17 16h1" /></svg>
+          <span>Software Factory</span>
+        </div>
+        <nav aria-label="Views">
+          {GROUPS.map((g) => (
+            <div key={g.name} role="group" aria-label={g.name}>
+              <h2>{g.name}</h2>
+              {g.views.map((v) => (
+                <a key={v} className="nav" href={`#${v.toLowerCase()}`} aria-current={view === v ? "page" : undefined}>
+                  <Icon name={v.toLowerCase()} />
+                  {v}
+                  {v === "Backlog" && waiting > 0 && <span className="badge-n" aria-label={`${waiting} waiting for you`}>{waiting}</span>}
+                </a>
+              ))}
+            </div>
+          ))}
         </nav>
-        <span className={`link ${link}`} role="status" title="The live event stream from the factory server">{LINK_TEXT[link]}</span>
-        <button className="quiet theme" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
-          {theme === "dark" ? "Light" : "Dark"}
-        </button>
-      </header>
-      {link === "offline" && <p className="error" role="alert">The factory server is not answering, so this page is showing what it last received. It retries every 5 seconds. Start it again with <code>factory serve</code>.</p>}
-      {error && <p className="error" role="alert">{error} <button className="quiet" onClick={() => setError("")}>Dismiss</button></p>}
-      {!loaded ? <p className="empty loading">Loading the backlog…</p> : (
-        <>
-          {view === "Overview" && <Overview events={events} tasks={tasks} rateLimit={rateLimit} backlog={backlog} open={open} />}
-          {view === "Backlog" && <Board backlog={backlog} tasks={tasks} act={act} selected={selected} select={setSelected} />}
-          {view === "Agents" && <Agents events={events} tasks={tasks} setError={setError} open={open} />}
-          {view === "Logs" && <Logs events={events} />}
-          {view === "Worktrees" && <main className="stack"><Worktrees open={open} discard={(id) => act("/api/discard", { id })} /></main>}
-          {view === "Studio" && <Studio setError={setError} />}
-          {view === "Graph" && <iframe className="graph" src="/graph" sandbox="allow-scripts" title="Knowledge graph of this repository" />}
-        </>
-      )}
-    </>
+        <footer>
+          <span className={`link ${link}`} role="status" title="The live event stream from the factory server"><span>{LINK_TEXT[link]}</span></span>
+          <button className="quiet theme" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
+            <Icon name={theme === "dark" ? "sun" : "moon"} /><span>{theme === "dark" ? "Light theme" : "Dark theme"}</span>
+          </button>
+        </footer>
+      </aside>
+      <main className="content" id="main" tabIndex={-1} ref={main}>
+        {link === "offline" && <p className="error" role="alert">The factory server is not answering, so this page is showing what it last received. It retries every 5 seconds. Start it again with <code>factory serve</code>.</p>}
+        {error && <p className="error" role="alert">{error} <button className="quiet" onClick={() => setError("")}>Dismiss</button></p>}
+        <header className="page-head">
+          <div><h1>{title}</h1><p>{blurb}</p></div>
+        </header>
+        {!loaded ? <p className="empty loading">Loading the backlog…</p> : (
+          <>
+            {view === "Overview" && <Overview events={events} tasks={tasks} rateLimit={rateLimit} backlog={backlog} open={open} />}
+            {view === "Backlog" && <Board backlog={backlog} tasks={tasks} act={act} selected={selected} select={setSelected} />}
+            {view === "Talk" && <Talk chats={chats} setChats={setChats} />}
+            {view === "Checks" && <Checks />}
+            {view === "Team" && <Team events={events} setError={setError} />}
+            {view === "Agents" && <Agents events={events} tasks={tasks} setError={setError} open={open} />}
+            {view === "Logs" && <Logs events={events} />}
+            {view === "Worktrees" && <div className="stack"><Worktrees open={open} discard={(id) => act("/api/discard", { id })} /></div>}
+            {view === "Studio" && <Studio setError={setError} />}
+            {view === "Graph" && <iframe className="graph" src="/graph" sandbox="allow-scripts" title="Knowledge graph of this repository" />}
+          </>
+        )}
+      </main>
+    </div>
   );
 }
 
