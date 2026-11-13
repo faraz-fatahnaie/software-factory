@@ -54,6 +54,29 @@ Nothing is written until you approve a draft, every document starts with a
 promote them (`factory promote F-010 F-011 ...`, in the order given). Documents are committed as they are saved (`factory docs save`), because task agents work from the last commit. `factory status` shows
 which documents exist and the one command to run next.
 
+## Security and quality
+
+- **On every task, at no cost in tokens:** after the tests pass and before the review, a script
+  reads what the builder changed and looks for hard-coded secrets (keys, tokens, private keys,
+  passwords in connection addresses, committed `.env` files). A finding is sent straight back to
+  the builder and never printed. Mark a known false alarm with `factory:allow-secret` on its line.
+  `factory scan [--since <revision>]` runs the same scan by hand.
+- **When a change touches a sensitive area,** the Security and Performance Engineer (a model,
+  read-only) reviews it: logins and access control, payments, personal data, cryptography, file
+  and shell access, database queries and schema, public endpoints, dependency manifests, and
+  container, pipeline or infrastructure files. It traces untrusted input to dangerous places,
+  checks that new endpoints verify who is asking, and looks for repeated queries, missing limits
+  and leaks. A **blocker** goes back to the builder with a proposed patch; an **advisory** becomes
+  a backlog item and does not stall the task. Tune it in `factory.config.json`:
+  `"security": { "always": true, "paths": ["billing/"], "keywords": ["tenant"] }`, or switch it
+  off with `"enabled": false` on the `security-performance` role.
+- **Conversations,** like the other commands: `/software-factory:secure` builds the threat model
+  (`docs/architecture/threat-model.md`), checks data protection and reviews the design for
+  performance; `/software-factory:secure audit` is the static audit before a release
+  (`docs/quality/`); `/software-factory:test` checks which acceptance criteria are actually
+  proven and proposes tasks for the gaps, and checks accessibility for anything with an interface.
+  They propose backlog items and never change code.
+
 ## Documents and memory
 
 `factory init` writes `docs/README.md`, a map of where each document lives and who keeps it.

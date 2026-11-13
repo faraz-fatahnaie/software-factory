@@ -99,16 +99,23 @@
         "description": "Keeps the code safe and fast through four gates.",
         "holds": [
           "A5",
-          "S1",
           "S3",
+          "Q1",
           "S4",
+          "S1",
           "S5",
           "S6",
-          "Q1",
           "Q2",
           "Q3",
           "Q4"
-        ]
+        ],
+        "defaults": {
+          "model": "opus",
+          "effort": "high",
+          "fallback": [
+            "sonnet"
+          ]
+        }
       },
       "release-engineer": {
         "title": "Release Engineer",

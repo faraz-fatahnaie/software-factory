@@ -77,3 +77,9 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Scribe stage after an approved review; chronicle and role notes recorded on approve; docs command; docs map written by init; graph built by init and refreshed on landing.
 - [ ] F-040 (P3) Milestone-triggered Scribe run
   Run the documentation update (K1) automatically when a milestone completes, as a proposal the user reviews.
+- [x] F-041 (P1) Roles step 5: Tester and the Security and Performance Engineer
+  Secret scan and sensitive-area triggers on every task, unattended security review with blockers and advisories, secure and test conversations, factory scan.
+- [ ] F-042 (P2) Security gate 1 at task time
+  Review a spec that changes the data model, an interface or a login boundary before the builder starts (A5 and Q1 in task mode).
+- [ ] F-043 (P3) Opt-in dynamic probes, load tests and runtime checks
+  S6, Q3 and Q4 against a running test environment; needs the release step and the user's request each time.

@@ -6,7 +6,7 @@ import { parse } from "../plugin/engine/backlog";
 import type { Config } from "../plugin/engine/config";
 
 export const role = { runner: "claude", model: "sonnet", effort: "medium", fallback: ["haiku"] };
-export const config: Config = { gate: ["true"], roles: { planner: role, architect: role, builder: role, reviewer: role, scribe: role } };
+export const config: Config = { gate: ["true"], roles: { planner: role, architect: role, builder: role, reviewer: role, scribe: role, "security-performance": role } };
 export const BACKLOG = "# Backlog\n\n## Inbox\n\n## Ready\n- [ ] F-001 (P1) First\n  detail line\n- [ ] F-002 Second\n\n## In progress\n\n## Awaiting approval\n\n## Blocked\n\n## Done\n";
 export const tmp = () => mkdtempSync(join(tmpdir(), "factory-"));
 

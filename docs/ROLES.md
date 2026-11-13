@@ -26,6 +26,20 @@ and the knowledge graph (K5) is built by `init` and refreshed after each locally
 graphify is installed. Roles with a new default (here the Scribe) are filled in for configs
 written by an older plugin. The Scribe's milestone-triggered headless run of K1 is still planned.
 
+Step 5 is done too, in part. **Gate 2 (the branch gate)** runs on every task: scripts (S2: a
+secret scan of what the builder changed, plus whatever audit the project's gate holds) and, when
+a script finds something or the change touches a sensitive area, the Security and Performance
+Engineer's unattended review (S1, S5, Q2) between the tests and the review. A blocker goes back
+to the builder with a proposed patch, an advisory becomes a backlog item, and anything but a
+leading `SECURE` counts as blocked. Tunable per project (`security` in the config). The
+conversations are `/software-factory:secure` (A5 threat model, S3 data protection, Q1 design
+performance review), `/software-factory:secure audit` (S4) and `/software-factory:test` (V2
+acceptance coverage, V3 accessibility). The Tester never writes code or tests: it proposes
+backlog tasks and the Builder writes them. **Still planned:** gate 1 at task time (reviewing a
+spec that changes the data model, an interface or a login boundary), the opt-in dynamic work
+(S6 probes, Q3 load tests, Q4 runtime checks, which need a running test environment and the
+release step), and milestone-triggered runs.
+
 **Conventions step 2 set:** a conversation saves a document only after the user approves a
 draft, and every document starts with `Status: approved by the user on <date>`. Backlog items
 written by the Planner carry `Milestone:`, `Stories:`, `Depends on:`, `Acceptance:` and
@@ -304,7 +318,7 @@ later; every command should eventually also be an action in the GUI.
 2. Product Partner and Planner (`brainstorm`, `research`, `plan`) with the product documents. (done)
 3. Architect's project mode (`design`), decision records, foundation tasks. (done)
 4. Scribe and the document structure; the graph on by default. (done)
-5. Tester, and the Security and Performance Engineer with its four gates (`test`, `secure`).
+5. Tester, and the Security and Performance Engineer with its four gates (`test`, `secure`). (gate 2 and the conversations done; gate 1 at task time and the opt-in dynamic work planned)
 6. Release Engineer (`release`, `deploy`) with the deployment interview.
 7. Lean and Full presets, free regrouping, custom responsibilities (`team`).
 8. GUI: Team view, command actions, chat.

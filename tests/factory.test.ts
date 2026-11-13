@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { add, move, parse } from "../plugin/engine/backlog";
 import { agentEvents, claudeArgs, classify } from "../plugin/engine/claude";
 import { loadConfig, parseConfig } from "../plugin/engine/config";
+import { allTracked, changesInWorktree, changesSince, parseDiff, scanSecrets, sensitiveReasons } from "../plugin/engine/security";
 import { appendChronicle, appendNotes, chronicleEntry, parseScribe, readNotes, stageOutput } from "../plugin/engine/chronicle";
 import { graphifyInstalled, updateGraph } from "../plugin/engine/graph";
 import { openStore } from "../plugin/engine/events";
@@ -381,7 +382,7 @@ test("team: the Balanced preset covers the catalog and obeys the enforced rules;
   const balanced = presets[DEFAULT_PRESET]!;
   expect(catalog).toHaveLength(51);
   expect(validateTeam(balanced)).toEqual([]);
-  expect(activeRoles(balanced)).toEqual(["planner", "architect", "builder", "reviewer", "scribe"]); // the roles that hold something built
+  expect(activeRoles(balanced)).toEqual(["planner", "architect", "builder", "reviewer", "security-performance", "scribe"]); // the roles that hold something built
 
   const copy = () => structuredClone(balanced);
   const moved = copy(); moved.roles.reviewer!.holds = []; moved.roles.builder!.holds.push("C1"); // builder reviews its own work
@@ -488,7 +489,7 @@ test("chat roles: prompts are assembled per command; unattended role files stay 
   expect(() => chatPrompt("janitor")).toThrow(/no role "janitor"/);
 
   // A conversational role has no config entry and no role file; the planner has both, for its unattended triage only.
-  expect(activeRoles()).toEqual(["planner", "architect", "builder", "reviewer", "scribe"]);
+  expect(activeRoles()).toEqual(["planner", "architect", "builder", "reviewer", "security-performance", "scribe"]);
   expect(() => renderRole("product-partner")).toThrow(/runs unattended/);
   expect(renderRole("planner")).toContain("## Triage an item");
   expect(renderRole("planner")).not.toContain("Write the user stories");
@@ -535,7 +536,7 @@ test("cli: add --detail, ordered promote, role, status documents and the next st
 
   // Status shows which documents exist and the one command to run next.
   expect(status()).toMatch(/Documents: brief – · research – · requirements – · architecture – · roadmap –\nNext: \/software-factory:run/); // Ready items exist, so run them
-  expect(cli("team").out).toContain("○ Tester"); // planned roles are listed but marked
+  expect(cli("team").out).toContain("○ Release Engineer"); // roles with nothing built yet are listed but marked
 }, 60_000);
 
 test("next step: follows the documents and the backlog", () => {
@@ -773,4 +774,162 @@ test.skipIf(!(() => { const p = Bun.spawnSync(["graphify", "--version"], { stdou
   expect(tracked).not.toContain("graphify-out/cache");
   expect(updateGraph(dir).ok).toBe(true);
   expect(graphifyInstalled()).toBe(false); // hidden by the test environment variable
+});
+
+// Fake secrets are assembled from pieces so this file does not contain a real-looking one.
+const fake = { aws: "AK" + "IA" + "ABCDEFGHIJKLMNOP", stripe: "sk_li" + "ve_" + "a1B2c3D4e5F6g7H8", jwt: "ey" + "J" + "hbGciOiJIUzI1NiIsInR5" + ".ey" + "J" + "zdWIiOiIxMjM0NTY3ODkwIn0" + ".dBjftJeZ4CVPmB92K27uhbUJU1p1r" };
+const added = (file: string, ...lines: string[]) => ({ file, added: lines.map((text, i) => ({ line: i + 1, text })) });
+
+test("security scripts: the diff is parsed, secrets are found without echoing them, false alarms are quiet", () => {
+  const diff = ["diff --git a/src/a.py b/src/a.py", "--- a/src/a.py", "+++ b/src/a.py", "@@ -3,0 +4,2 @@ def x():", "+key = 1", "+other = 2", "@@ -10 +12 @@", "+tail", "diff --git a/old.py b/old.py", "--- a/old.py", "+++ /dev/null", "@@ -1 +0,0 @@", "-gone"].join("\n");
+  expect(parseDiff(diff)).toEqual([{ file: "src/a.py", added: [{ line: 4, text: "key = 1" }, { line: 5, text: "other = 2" }, { line: 12, text: "tail" }] }]); // a deleted file adds nothing
+
+  const hits = scanSecrets([
+    added("a.py", `aws = "${fake.aws}"`, `STRIPE = "${fake.stripe}"`, `t = "${fake.jwt}"`, "-----BEGIN RSA PRIVATE KEY-----"),
+    added("b.js", 'const apiKey = "Zk3x9QpLm2Vb7TnRw4Yc8Hd1";', 'const password = "hunter2hunter2hunter2";', 'db = "postgres://app:S3cr3tPass@db.internal/main"'),
+    added("c.py", 'api_key = "your-api-key-here-0000"', 'token = os.environ["TOKEN_VALUE_HERE"]', 'secret = "aaaaaaaaaaaaaaaaaaaa"', `k = "${fake.aws}"  # factory:allow-secret`, 'url = "https://user:pass@localhost"'),
+    added(".env", "TOKEN=abc"), added(".env.example", "TOKEN="), added(".env.local", "X=1"),
+  ]);
+  expect(hits.map((h) => `${h.file}:${h.line} ${h.kind}`)).toEqual([
+    "a.py:1 AWS access key", "a.py:2 Stripe live key", "a.py:3 JSON web token", "a.py:4 private key",
+    "b.js:1 hard-coded secret", // line 2 is a low-entropy value, so it is not guessed at
+    "b.js:3 password in a connection address",
+    "c.py:5 password in a connection address", // the placeholder, the environment read, the repeated letters and the marked line are quiet
+    ".env:1 environment file committed", ".env.local:1 environment file committed",
+  ]);
+  expect(JSON.stringify(hits)).not.toContain(fake.aws); // the value is never copied into a finding
+  expect(scanSecrets([added("d.py", "x = 1", "name = 'Alice'")])).toEqual([]);
+  expect(scanSecrets([added("t.py", 'password = "Zk3x9QpLm2Vb7TnRw4Yc8Hd1"')])).toHaveLength(1);
+});
+
+test("security scripts: sensitive areas are recognised by path and content; tests and tunable words work", () => {
+  const reasons = (changes: ReturnType<typeof added>[], cfg = {}) => sensitiveReasons(changes, cfg);
+  expect(reasons([added("src/readme.txt", "plain words")])).toEqual([]);
+  expect(reasons([added("package.json", '"a": 1')])).toEqual(["a dependency manifest changed"]);
+  expect(reasons([added("Dockerfile", "FROM node")])).toEqual(["a container, pipeline or infrastructure file changed"]);
+  expect(reasons([added(".github/workflows/ci.yml", "on: push")])).toEqual(["a container, pipeline or infrastructure file changed"]);
+  expect(reasons([added("src/login.ts", "const x = 1")])).toEqual(["authentication or access control"]); // by file name
+  expect(reasons([added("src/db.py", 'rows = db.execute("SELECT * FROM users WHERE id = " + uid)')])).toEqual(["database queries"]);
+  expect(reasons([added("src/h.py", "subprocess.run(cmd, shell=True)")])).toEqual(["file or shell access"]);
+  expect(reasons([added("src/server.ts", 'app.post("/pay", handler)')])).toEqual(["a public endpoint"]);
+  expect(reasons([added("src/c.js", "createHash('md5')")])).toEqual(["cryptography"]);
+  expect(reasons([added("tests/auth.test.ts", "jwt login subprocess SELECT * FROM x WHERE y")])).toEqual(["authentication or access control"]); // path only: tests mention words without handling anything
+  expect(reasons([added("src/a.ts", "x")], { always: true })).toEqual(["the project is configured to review every change"]);
+  expect(reasons([added("billing/x.ts", "x")], { paths: ["billing/"] })).toEqual(["payments", "a file in a path you marked sensitive (billing/)"]);
+  expect(reasons([added("src/a.ts", "const Tenant = 1")], { keywords: ["tenant"] })).toEqual(["a line with a word you marked sensitive (tenant)"]);
+  expect(reasons([{ file: "package-lock.json", added: [] }])).toEqual(["a dependency manifest changed"]); // lock files count by name only
+});
+
+test("security scripts: the real change set of a worktree, a revision range and the whole project", () => {
+  const { dir, sh } = repo();
+  writeFileSync(join(dir, "app.py"), "def f():\n    return 1\n");
+  writeFileSync(join(dir, ".gitignore"), ".factory/\n.worktrees/\nignored.env\n");
+  sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "app"); sh("git", "tag", "v1");
+  writeFileSync(join(dir, "app.py"), `def f():\n    return 1\nKEY = "${fake.aws}"\n`);
+  mkdirSync(join(dir, "node_modules/x"), { recursive: true });
+  writeFileSync(join(dir, "node_modules/x/k.js"), `var k = "${fake.aws}"`); // dependencies are not the project's code
+  writeFileSync(join(dir, "ignored.env"), `K=${fake.aws}`); // ignored by git: never committed
+  writeFileSync(join(dir, "new.py"), `x = "${fake.stripe}"\n`);
+  writeFileSync(join(dir, "logo.png"), "\0\0binary");
+  const changed = changesInWorktree(dir);
+  expect(changed.map((c) => c.file).sort()).toEqual(["app.py", "logo.png", "new.py"]);
+  expect(changed.find((c) => c.file === "logo.png")!.added).toEqual([]); // a binary file is listed (its name counts) but never read
+  expect(scanSecrets(changesInWorktree(dir)).map((h) => `${h.file}:${h.line}`)).toEqual(["app.py:3", "new.py:1"]);
+
+  sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "more");
+  expect(scanSecrets(changesSince(dir, "v1")).map((h) => h.file).sort()).toEqual(["app.py", "new.py"]);
+  expect(changesSince(dir, "HEAD")).toEqual([]);
+  expect(() => changesSince(dir, "--output=x")).toThrow(/not a revision/);
+  expect(scanSecrets(allTracked(dir))).toHaveLength(2);
+});
+
+test("pipeline security gate: secrets block without a model; sensitive changes call the engineer; blockers loop back; advisories become follow-ups", async () => {
+  const run = async (o: { write?: (dir: string, build: number) => void; verdict?: (n: number) => string; roleOff?: boolean; security?: { always?: boolean } }) => {
+    const { dir, sh } = repo();
+    const store = openStore(":memory:");
+    let builds = 0, securityRuns = 0;
+    const prompts: string[] = [], feedbackSeen: string[] = [];
+    const runner: Runner = async ({ stage, prompt, cwd }) => {
+      if (stage === "build") { builds++; feedbackSeen.push(prompt); o.write?.(cwd, builds); }
+      if (stage === "security") { securityRuns++; prompts.push(prompt); return { status: "ok", text: o.verdict!(securityRuns) }; }
+      return { status: "ok", text: stage === "review" ? "APPROVE" : stage };
+    };
+    const cfg = { ...config, ...(o.security && { security: o.security }), roles: { ...config.roles, "security-performance": { ...role, ...(o.roleOff && { enabled: false }) } } };
+    const result = await runTask({ ...task, detail: "Acceptance: x" }, { config: cfg, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
+    void sh;
+    return { result, builds, securityRuns, prompts, feedbackSeen, events: store.list(result.run).map((e) => `${e.stage}:${e.type}`) };
+  };
+  const secretless = (cwd: string, n: number) => writeFileSync(join(cwd, "app.py"), n === 1 ? `K = "${fake.aws}"\n` : "K = os.environ['K']\n");
+
+  // 1. A hard-coded secret: found by the script, no model is called, and the builder is told without the value.
+  const secret = await run({ write: secretless, verdict: () => "SECURE" });
+  expect(secret.result.ok).toBe(true);
+  expect(secret.securityRuns).toBe(0);
+  expect(secret.builds).toBe(2);
+  expect(secret.feedbackSeen[1]).toContain("app.py:1 — AWS access key");
+  expect(secret.feedbackSeen[1]).not.toContain(fake.aws);
+  expect(secret.events).toContain("security:stage.failed");
+
+  // 2. Nothing sensitive: skipped without a model.
+  const quiet = await run({ write: (cwd) => writeFileSync(join(cwd, "readme.txt"), "hello"), verdict: () => "SECURE" });
+  expect(quiet.securityRuns).toBe(0);
+  expect(quiet.events).toContain("security:stage.skipped");
+
+  // 3. A sensitive change calls the engineer, who says why it was asked; SECURE lets the review go on; advisories reach the backlog.
+  const sensitive = (cwd: string) => writeFileSync(join(cwd, "login.py"), "def login(user, pw): pass\n");
+  const clean = await run({ write: sensitive, verdict: () => "SECURE\n\n- [advisory] login.py:1 — no rate limit — add one\n\n## Follow-ups\n- Rate-limit login attempts" });
+  expect(clean.securityRuns).toBe(1);
+  expect(clean.prompts[0]).toContain("Why you were asked: the change touches authentication or access control.");
+  expect(clean.result).toMatchObject({ ok: true, followUps: ["Rate-limit login attempts"] });
+
+  // 4. BLOCKERS send the engineer's findings (with the patch) back to the builder, once per round.
+  const blocked = await run({ write: sensitive, verdict: (n) => (n === 1 ? "BLOCKERS\n- [blocker] login.py:1 — no password check — apply the patch\n```diff\n+check\n```" : "SECURE") });
+  expect(blocked.securityRuns).toBe(2);
+  expect(blocked.builds).toBe(2);
+  expect(blocked.feedbackSeen[1]).toContain("[blocker] login.py:1 — no password check");
+  expect(blocked.result.ok).toBe(true);
+  const stuck = await run({ write: sensitive, verdict: () => "BLOCKERS\n- [blocker] x:1 — still broken" });
+  expect(stuck.result).toMatchObject({ ok: false, error: expect.stringMatching(/no approved build after 3 attempts/) });
+  const sloppy = await run({ write: sensitive, verdict: () => "Looks fine to me" }); // anything but a leading SECURE blocks
+  expect(sloppy.result.ok).toBe(false);
+
+  // 5. Switched off, or configured to always look.
+  const off = await run({ write: sensitive, verdict: () => "BLOCKERS", roleOff: true });
+  expect(off.result.ok).toBe(true);
+  expect(off.securityRuns).toBe(0);
+  const always = await run({ write: (cwd) => writeFileSync(join(cwd, "readme.txt"), "hello"), verdict: () => "SECURE", security: { always: true } });
+  expect(always.securityRuns).toBe(1);
+});
+
+test("security: config settings validate, the role prompts are assembled, factory scan works, and older configs get the role", () => {
+  expect(() => parseConfig({ ...config, security: { always: "yes", paths: [""], keywords: "x" } })).toThrow(/security\.always[\s\S]*security\.paths[\s\S]*security\.keywords/);
+  expect(() => parseConfig({ ...config, security: [] })).toThrow(/security: must be an object/);
+  expect(parseConfig({ ...config, security: { always: true, paths: ["billing/"], keywords: ["tenant"], extra: 1 } }).security).toEqual({ always: true, paths: ["billing/"], keywords: ["tenant"] });
+
+  const agent = renderRole("security-performance");
+  expect(agent).toContain("tools: Read, Grep, Glob, Bash, Skill"); // it reads and proposes; the builder applies its patches
+  expect(agent).toMatch(/## Review the change for security[\s\S]*## Review configuration and infrastructure[\s\S]*## Review the change for performance/);
+  expect(agent).toContain("Your first line must be exactly `SECURE`");
+  expect(agent).not.toContain("threat model with the user"); // the conversational half is not in the unattended file
+  expect(validateTeam(presets[DEFAULT_PRESET]!)).toEqual([]);
+  expect(chatPrompt("security-performance", ["A5", "S3", "Q1"]).match(/^## Step \d: (.+)$/gm)).toEqual(["## Step 1: Build the threat model", "## Step 2: Check data protection", "## Step 3: Review the design for performance"]);
+  expect(chatPrompt("security-performance", ["S4"])).toContain("factory scan");
+  expect(chatPrompt("tester").match(/^## Step \d: (.+)$/gm)).toEqual(["## Step 1: Check the product against the user stories", "## Step 2: Check accessibility and usability"]);
+  expect(chatPrompt("tester")).toContain("You never write or change tests or code yourself");
+
+  const { dir, cli, sh } = repo();
+  expect(cli("scan").out).toBe("no secrets found");
+  writeFileSync(join(dir, "k.py"), `K = "${fake.aws}"\n`);
+  sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "oops");
+  const found = cli("scan");
+  expect(found.code).toBe(1);
+  expect(found.out).toMatch(/1 possible secret \(values are never printed\):\n- k\.py:1 — AWS access key/);
+  expect(found.out).not.toContain(fake.aws);
+  expect(cli("scan", "--since", "HEAD~1").code).toBe(1);
+  expect(cli("scan", "--since", "HEAD").out).toBe("no secrets found");
+  expect(cli("scan", "x").code).toBe(1);
+
+  const older = { ...config.roles }; delete (older as any)["security-performance"];
+  writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ gate: ["true"], roles: older }));
+  expect(loadConfig(dir).roles["security-performance"]).toEqual({ runner: "claude", model: "opus", effort: "high", fallback: ["sonnet"] });
 });

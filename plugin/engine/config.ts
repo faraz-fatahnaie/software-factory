@@ -13,7 +13,9 @@ const EFFORTS = ["low", "medium", "high", "xhigh", "max"];
 export type RoleConfig = { runner: string; model: string; effort: string; fallback: string[]; enabled?: boolean };
 /** `setup` runs once in each new task worktree (for example `bun install`); `gate` must pass before review. */
 /** `graph: false` turns off the knowledge graph (it is on by default and needs graphify installed). */
-export type Config = { setup?: string[]; gate: string[]; graph?: boolean; roles: Record<Role, RoleConfig> };
+/** Tunes when the security engineer reviews a task: `always`, plus extra file-path fragments and words that count as sensitive. */
+export type SecuritySettings = { always?: boolean; paths?: string[]; keywords?: string[] };
+export type Config = { setup?: string[]; gate: string[]; graph?: boolean; security?: SecuritySettings; roles: Record<Role, RoleConfig> };
 
 const isStr = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
 // Model names become command-line arguments, so they may not look like an option.
@@ -27,6 +29,14 @@ export function parseConfig(raw: unknown): Config {
   if (!isStrList(c.gate)) errs.push("gate: must be a list of commands");
   if (c.setup !== undefined && !isStrList(c.setup)) errs.push("setup: must be a list of commands");
   if (c.graph !== undefined && typeof c.graph !== "boolean") errs.push("graph: must be true or false");
+  if (c.security !== undefined) {
+    const sec = c.security;
+    if (typeof sec !== "object" || sec === null || Array.isArray(sec)) errs.push("security: must be an object");
+    else {
+      if (sec.always !== undefined && typeof sec.always !== "boolean") errs.push("security.always: must be true or false");
+      for (const key of ["paths", "keywords"]) if (sec[key] !== undefined && !isStrList(sec[key])) errs.push(`security.${key}: must be a list of words`);
+    }
+  }
   for (const name of Object.keys(c.roles ?? {}))
     if (!ROLES.includes(name as Role)) errs.push(`roles.${name}: unknown role`);
   for (const role of ROLES) {
@@ -44,7 +54,8 @@ export function parseConfig(raw: unknown): Config {
     const { runner, model, effort, fallback, enabled } = c.roles[role];
     return [role, { runner, model, effort, fallback, ...(enabled !== undefined && { enabled }) }];
   })) as Record<Role, RoleConfig>;
-  return { ...(c.setup && { setup: c.setup }), gate: c.gate, ...(c.graph !== undefined && { graph: c.graph }), roles };
+  return { ...(c.setup && { setup: c.setup }), gate: c.gate, ...(c.graph !== undefined && { graph: c.graph }),
+    ...(c.security && { security: { ...(c.security.always !== undefined && { always: c.security.always }), ...(c.security.paths && { paths: c.security.paths }), ...(c.security.keywords && { keywords: c.security.keywords }) } }), roles };
 }
 
 /** A config written by an older plugin lacks any role added since: give it that role's default instead of failing. */

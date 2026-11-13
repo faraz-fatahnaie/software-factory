@@ -1,8 +1,8 @@
 {
   "factory.config.json": {
-    "mtime": 1794562271.6799731,
-    "seen": 1794562477.0001438,
-    "ast_hash": "32a74e7b90364b51413a8793fd36460f",
+    "mtime": 1794564077.7034104,
+    "seen": 1794564097.31828,
+    "ast_hash": "845279a100bea2e3aa4f007efc0bbdf7",
     "semantic_hash": ""
   },
   "package.json": {
@@ -30,9 +30,9 @@
     "semantic_hash": ""
   },
   ".claude/agents/builder.md": {
-    "mtime": 1794557515.9477968,
-    "seen": 1794557591.526138,
-    "ast_hash": "a266feca89bfe65986c2ed09fcff7dbc",
+    "mtime": 1794564077.72035,
+    "seen": 1794564097.318293,
+    "ast_hash": "028e7b20bcba0fcbbbf2c88c7611677a",
     "semantic_hash": ""
   },
   ".claude/agents/reviewer.md": {
@@ -42,15 +42,15 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1794562457.9363034,
-    "seen": 1794562477.0001569,
-    "ast_hash": "ca8aa306e37a2d9222bbf5d8a449eb76",
+    "mtime": 1794564077.7040813,
+    "seen": 1794564097.318295,
+    "ast_hash": "b6968835e7728a74330f7d5b73e176a2",
     "semantic_hash": ""
   },
   "BACKLOG.md": {
-    "mtime": 1794562457.9366589,
-    "seen": 1794562477.0001569,
-    "ast_hash": "a167a8b000a6944e12b570f1795090d7",
+    "mtime": 1794564077.7046297,
+    "seen": 1794564097.318295,
+    "ast_hash": "41d73133a9052edb90fee4a4efb9efd0",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1794562457.9357636,
-    "seen": 1794562477.0001578,
-    "ast_hash": "40ddf65191ccc26419782ca6db295222",
+    "mtime": 1794564077.703648,
+    "seen": 1794564097.318296,
+    "ast_hash": "5b9c1b9327a4a3484122316ddfc162e9",
     "semantic_hash": ""
   },
   ".claude-plugin/marketplace.json": {
@@ -102,15 +102,15 @@
     "semantic_hash": ""
   },
   "plugin/engine/cli.ts": {
-    "mtime": 1794562258.8221362,
-    "seen": 1794562477.000149,
-    "ast_hash": "33523f1da7ed0f87464c35fcf6933f50",
+    "mtime": 1794563630.6868572,
+    "seen": 1794564097.318285,
+    "ast_hash": "e6e642b1b1862e9f9238b96d8e47a125",
     "semantic_hash": ""
   },
   "plugin/engine/config.ts": {
-    "mtime": 1794562233.7336445,
-    "seen": 1794562477.000149,
-    "ast_hash": "2e4e70b2d7df40bc2ed0a344f8a06cf5",
+    "mtime": 1794563617.0929546,
+    "seen": 1794564097.318285,
+    "ast_hash": "02ed64f3e5993e613639dc5748740595",
     "semantic_hash": ""
   },
   "plugin/engine/events.ts": {
@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "plugin/engine/pipeline.ts": {
-    "mtime": 1794562271.6802542,
-    "seen": 1794562477.0001512,
-    "ast_hash": "69a0abd01a2989385cdb05781557fa4b",
+    "mtime": 1794563617.0937097,
+    "seen": 1794564097.3182871,
+    "ast_hash": "6485bf68a76f1d25d85cdf7e0ca2aaa4",
     "semantic_hash": ""
   },
   "plugin/engine/server.ts": {
@@ -150,21 +150,21 @@
     "semantic_hash": ""
   },
   "tests/factory.test.ts": {
-    "mtime": 1794562351.3578134,
-    "seen": 1794562477.000154,
-    "ast_hash": "8c1c450b913e17d9baae648983b0bcdc",
+    "mtime": 1794563706.8264058,
+    "seen": 1794564097.318291,
+    "ast_hash": "9e87eda6a10bfc232f4a2d55ead760ef",
     "semantic_hash": ""
   },
   "tests/fixture.ts": {
-    "mtime": 1794562316.1237578,
-    "seen": 1794562477.000154,
-    "ast_hash": "f361455a14214eb79a69be613be0b663",
+    "mtime": 1794563636.9354906,
+    "seen": 1794564097.318291,
+    "ast_hash": "c69ad2e3c165fcfe7d9b20d78af37d62",
     "semantic_hash": ""
   },
   "docs/PLUGIN.md": {
-    "mtime": 1794562457.9359958,
-    "seen": 1794562477.0001578,
-    "ast_hash": "353a212c95ae498c9d10a2bac4ce0513",
+    "mtime": 1794564077.7038372,
+    "seen": 1794564097.318296,
+    "ast_hash": "9dc2161696716f2bfdfbc079c39bfb48",
     "semantic_hash": ""
   },
   "plugin/templates/BACKLOG.md": {
@@ -234,9 +234,9 @@
     "semantic_hash": ""
   },
   "gui/app.tsx": {
-    "mtime": 1794562258.8217719,
-    "seen": 1794562477.000145,
-    "ast_hash": "1bb334231f32de00aee77275ef63cf31",
+    "mtime": 1794563617.0934563,
+    "seen": 1794564097.318281,
+    "ast_hash": "dce3e327ed54037062f3d8c14f0ec21d",
     "semantic_hash": ""
   },
   "gui/data.ts": {
@@ -252,9 +252,9 @@
     "semantic_hash": ""
   },
   "plugin/engine/state.ts": {
-    "mtime": 1794562258.821638,
-    "seen": 1794562477.000152,
-    "ast_hash": "e8278001666c6e97f7b0f4fca0e3db68",
+    "mtime": 1794563617.093199,
+    "seen": 1794564097.3182888,
+    "ast_hash": "9c6d43cd7117890592375f907f8b7b82",
     "semantic_hash": ""
   },
   "gui/index.html": {
@@ -270,15 +270,15 @@
     "semantic_hash": ""
   },
   "plugin/templates/catalog.json": {
-    "mtime": 1794562069.1115339,
-    "seen": 1794562477.000153,
-    "ast_hash": "113c8c53afb35660a68b58f6ea1f3ea1",
+    "mtime": 1794564077.7030697,
+    "seen": 1794564097.31829,
+    "ast_hash": "f62e007f017993fa155344c150d669f8",
     "semantic_hash": ""
   },
   "plugin/templates/presets.json": {
-    "mtime": 1794562069.111664,
-    "seen": 1794562477.000153,
-    "ast_hash": "ed3befe6af20283049d397d1190d4f62",
+    "mtime": 1794563577.7999022,
+    "seen": 1794564097.31829,
+    "ast_hash": "b99b911721e469b275f765a312fc88a4",
     "semantic_hash": ""
   },
   ".claude/agents/planner.md": {
@@ -288,9 +288,9 @@
     "semantic_hash": ""
   },
   "docs/ROLES.md": {
-    "mtime": 1794562457.9365776,
-    "seen": 1794562477.000159,
-    "ast_hash": "65de5b62666b5027d867096c241e536c",
+    "mtime": 1794564077.7044058,
+    "seen": 1794564097.318296,
+    "ast_hash": "55371049e90b1195d96c0cc9811096e5",
     "semantic_hash": ""
   },
   "plugin/skills/brainstorm/SKILL.md": {
@@ -348,9 +348,33 @@
     "semantic_hash": ""
   },
   "plugin/templates/DOCS.md": {
-    "mtime": 1794562069.111805,
-    "seen": 1794562477.0001652,
-    "ast_hash": "8d33c2ef0b8f21b33133be99781e0e93",
+    "mtime": 1794563630.6871634,
+    "seen": 1794564097.3183029,
+    "ast_hash": "5fd64a7bc0f6ee9bdbb130e736657781",
+    "semantic_hash": ""
+  },
+  "plugin/engine/security.ts": {
+    "mtime": 1794563616.9854872,
+    "seen": 1794564097.3182878,
+    "ast_hash": "642e217d96890819c080c46f1e1bb878",
+    "semantic_hash": ""
+  },
+  ".claude/agents/security-performance.md": {
+    "mtime": 1794564077.720592,
+    "seen": 1794564097.318294,
+    "ast_hash": "9af32fe7c351eddd37889aef0a5df18d",
+    "semantic_hash": ""
+  },
+  "plugin/skills/secure/SKILL.md": {
+    "mtime": 1794563630.6870782,
+    "seen": 1794564097.318301,
+    "ast_hash": "7435bd2a8325bf609e0dd76040454426",
+    "semantic_hash": ""
+  },
+  "plugin/skills/test/SKILL.md": {
+    "mtime": 1794563630.6869962,
+    "seen": 1794564097.318302,
+    "ast_hash": "148960f13bfd829ad0b263972edb4652",
     "semantic_hash": ""
   }
 }

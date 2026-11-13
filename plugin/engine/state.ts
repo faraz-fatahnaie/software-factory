@@ -17,7 +17,7 @@ export type TaskRun = {
   events: Ev[];
 };
 
-export const STAGES = ["triage", "spec", "build", "check", "review", "document"];
+export const STAGES = ["triage", "spec", "build", "check", "security", "review", "document"];
 
 /** Folds events into each task's latest run, the newest rate-limit reading, and the last command failure. */
 export function summarize(events: Ev[]) {
