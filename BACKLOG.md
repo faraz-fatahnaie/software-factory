@@ -27,6 +27,10 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Project registry in the plugin data folder; project switcher in the GUI.
 - [ ] F-032 (P2) Dashboard design refactor
   The Phase 10 design works but can be improved; revisit with the user's notes.
+- [ ] F-033 (P2) Spending caps per role with dynamic model switching
+  When a role reaches its cap or a usage limit, keep working on another model instead of stopping. Deferred by the user on 2026-11-13.
+- [ ] F-034 (P2) Default skills per role
+  The user will supply the skill sets for each role; until then roles ship with the existing defaults only.
 - [ ] F-028 (P1) Phase 11: brainstorming role
   A role that works out with the user what to build, for projects in any language. Design to be agreed first.
 - [ ] F-029 (P1) Phase 12: publish
