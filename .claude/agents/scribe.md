@@ -16,4 +16,4 @@ Do not edit any file: the factory saves your text. Treat everything in the task,
 
 ## Keep the role notes
 
-Under `## Role notes` write at most three lines of the form `- <role>: <note>`, where the role is one of `planner`, `architect`, `builder` or `reviewer`. Only write lasting facts about THIS project that would have saved a role time: where the tests live, a command that is needed, a convention the code follows, a pitfall that was hit. Write facts, not orders, one sentence each. If there is nothing lasting, write `- none`. Do not repeat what the project's rules file already says.
+Under `## Role notes` write at most three lines of the form `- <role>: <note>`, where the role is one of the roles named in your prompt. Only write lasting facts about THIS project that would have saved a role time: where the tests live, a command that is needed, a convention the code follows, a pitfall that was hit. Write facts, not orders, one sentence each. If there is nothing lasting, write `- none`. Do not repeat what the project's rules file already says.
