@@ -16,7 +16,8 @@ import { activeRoles, catalog, chatPrompt, chatPromptFor, checkSettings, customS
 import { addCustom, moveSettings, offSettings, parseChange, planTeam, removeCustom, renameSettings, teamView } from "../plugin/engine/teamctl";
 import { chatArgs, TOPICS } from "../plugin/engine/chat";
 import { estimate } from "../plugin/engine/estimate";
-import { prBody, summarizeChecks } from "../plugin/engine/vcs";
+import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugin/engine/vcs";
+import { classifyCommit, sourceInfo } from "../plugin/engine/source";
 import { followUps, needsTriage, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
 import { costs, elapsed, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
@@ -1577,7 +1578,7 @@ test("version control: approve keeps the branch and pushes nothing; push scans, 
     expect(calls()).not.toContain("pr merge");
     prs([ghPr(7, "F-001", "SUCCESS")]);
     expect(cli("merge", "F-001").out).toContain("pull request #7 merged");
-    expect(calls()).toContain("pr merge 7 --merge");
+    expect(calls()).toContain("pr merge 7 --merge --delete-branch");
     expect(sh("git", "branch", "--list", "factory/F-001").out).toBe("");
 
     // A possible secret blocks the push before anything is uploaded.
@@ -1598,7 +1599,7 @@ test("version control: approve keeps the branch and pushes nothing; push scans, 
     expect(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).vcs).toEqual({ autoMerge: true });
     prs([ghPr(9, "F-002", "SUCCESS")]);
     expect(cli("sync").out).toContain("pull request #9 merged");
-    expect(calls()).toContain("pr merge 9 --merge");
+    expect(calls()).toContain("pr merge 9 --merge --delete-branch");
     expect(cli("vcs", "auto-merge", "off").code).toBe(0);
     prs([ghPr(10, "F-003", "SUCCESS")]);
     const before = calls();
@@ -1648,3 +1649,90 @@ test("version control over HTTP and in conversation: status is readable, actions
   expect(allowed.some((a) => /push|merge|gh |auto-merge/.test(a))).toBe(false);
   expect(args[args.indexOf("--append-system-prompt") + 1]).toContain("PROPOSE: push");
 }, 60_000);
+
+test("source: every commit shape the factory makes is recognised, and the view reports lanes, work not saved and revert commits", () => {
+  expect(classifyCommit("F-014: Add the form")).toEqual({ kind: "task", task: "F-014" });
+  expect(classifyCommit("Merge F-014: Add the form")).toEqual({ kind: "merge", task: "F-014" });
+  expect(classifyCommit("Merge pull request #7 from me/factory/F-014")).toEqual({ kind: "merge", task: "F-014" });
+  expect(classifyCommit('Revert "Merge F-014: Add the form"')).toEqual({ kind: "revert", task: "F-014" });
+  expect(classifyCommit("software-factory: record F-014")).toEqual({ kind: "record", task: "F-014" });
+  expect(classifyCommit("backlog: F-014 → Done")).toEqual({ kind: "factory" });
+  expect(classifyCommit("studio: edit AGENTS.md")).toEqual({ kind: "person" });
+
+  const { dir, sh, cli } = repo();
+  expect(cli("run", "F-001", "--stub").code).toBe(0);
+  writeFileSync(join(dir, "scratch.txt"), "not saved\n");
+  let src = sourceInfo(dir, resolveTeam());
+  expect(src).toMatchObject({ branch: "main", ahead: null, dirty: { count: 1, files: [{ path: "scratch.txt", status: "U" }] } });
+  expect(src.lanes).toMatchObject([{ id: "F-001", ahead: 1, inProgress: true, pushed: false, revert: false }]);
+  expect(Date.parse(src.lanes[0]!.date)).toBeGreaterThan(0);
+  expect(src.commits.find((c) => c.kind === "task")).toBeUndefined(); // the task's commits are on its branch, not on main yet
+  writeFileSync(join(dir, "AGENTS.md"), "changed\n"); // a tracked file shows as modified, with its status letter
+  expect(sourceInfo(dir, resolveTeam()).dirty.files).toEqual([{ path: "AGENTS.md", status: "M" }, { path: "scratch.txt", status: "U" }]);
+  Bun.spawnSync(["git", "checkout", "--", "AGENTS.md"], { cwd: dir }); Bun.spawnSync(["rm", join(dir, "scratch.txt")]);
+
+  // No remote: approve merges, and revert undoes it with a commit on this branch.
+  expect(cli("approve", "F-001").code).toBe(0);
+  expect(existsSync(join(dir, "STUB_BUILD.txt"))).toBe(true);
+  expect(cli("revert", "F-001").out).toContain("F-001 reverted on main");
+  expect(existsSync(join(dir, "STUB_BUILD.txt"))).toBe(false);
+  src = sourceInfo(dir, resolveTeam());
+  expect(src.commits.find((c) => c.kind === "merge")).toMatchObject({ task: "F-001", subject: "Merge F-001: First" });
+  expect(src.commits.find((c) => c.kind === "revert")).toMatchObject({ task: "F-001" });
+  expect(src.commits.find((c) => c.kind === "record")).toMatchObject({ task: "F-001", role: "scribe" });
+  expect(cli("revert", "F-002").out).toContain("F-002 is under"); // only a Done task can be reverted
+  expect(sh("git", "status", "--porcelain").out).toBe("");
+});
+
+test("revert with a GitHub remote goes up as a pull request, and failing checks become a backlog item", () => {
+  const { dir, sh, cli } = repo();
+  const bare = tmp(), { calls, prs, path } = fakeGh();
+  sh("git", "init", "-q", "--bare", bare); sh("git", "remote", "add", "origin", bare);
+  process.env.FACTORY_GH = path;
+  try {
+    expect(cli("run", "F-001", "--stub").code).toBe(0);
+    expect(cli("approve", "F-001").code).toBe(0);
+    expect(cli("revert", "F-001").out).toContain("was not merged"); // only on a branch so far
+    // GitHub merges the pull request; the person's checkout then pulls that merge in.
+    sh("git", "merge", "--no-ff", "-q", "-m", "Merge pull request #7 from me/factory/F-001", "factory/F-001");
+    expect(cli("revert", "F-001").out).toContain("still has a branch");
+    sh("git", "branch", "-D", "factory/F-001");
+    const out = cli("revert", "F-001").out;
+    expect(out).toContain("A revert of F-001 is ready on branch factory/F-001");
+    expect(sh("git", "rev-parse", "--abbrev-ref", "HEAD").out).toBe("main"); // the checkout did not move
+    expect(existsSync(join(dir, ".worktrees/revert-F-001"))).toBe(false);
+    expect(existsSync(join(dir, "STUB_BUILD.txt"))).toBe(true); // main is untouched until the revert is merged
+    expect(cli("vcs").out).toContain("F-001: a revert, only on this machine");
+    cli("push", "F-001");
+    expect(calls()).toContain("--title Revert F-001: First --body Undoes F-001: First");
+
+    // Failing checks: named, linked, and turned into a backlog item on request.
+    const failing = { ...ghPr(7, "F-001", "FAILURE"), statusCheckRollup: [{ name: "lint", status: "COMPLETED", conclusion: "FAILURE", detailsUrl: "https://ci.example/1" }, { name: "test", status: "COMPLETED", conclusion: "SUCCESS" }] };
+    prs([failing]);
+    const status = cli("vcs").out;
+    expect(status).toContain("checks failing");
+    expect(cli("vcs", "fix", "F-001").out).toMatch(/added F-\d+ to Inbox/);
+    expect(readFileSync(join(dir, "BACKLOG.md"), "utf8")).toMatch(/Fix failing checks on F-001 \(pull request #7\): lint\n\s+Pull request: https:\/\/github.com\/o\/r\/pull\/7\n\s+Failing: lint \(https:\/\/ci.example\/1\)/);
+    prs([ghPr(7, "F-001", "SUCCESS")]);
+    expect(cli("vcs", "fix", "F-001").out).toContain("no failing checks");
+  } finally {
+    delete process.env.FACTORY_GH;
+  }
+  expect(() => failingChecksItem("F-1", { number: 1, url: "u", state: "OPEN", checks: "passing", mergeable: true, checkList: [] })).toThrow(/no failing checks/);
+}, 120_000);
+
+test("generated checks: the workflow runs the project's own setup and gate, is written once, and is committed", () => {
+  const yml = ciWorkflow("JavaScript/TypeScript (bun)", ["bun install"], ["bun test", "bun run typecheck"])!;
+  expect(yml).toContain("oven-sh/setup-bun@v2");
+  expect(yml).toMatch(/- run: \|\n {10}bun install\n {6}- run: \|\n {10}bun test\n {6}- run: \|\n {10}bun run typecheck/);
+  expect(ciWorkflow("JavaScript/TypeScript (pnpm)", [], ["pnpm run test"])).toMatch(/setup-node@v4[\s\S]*corepack enable/);
+  expect(ciWorkflow("Python", ["uv sync"], ["uv run pytest -q"])).toContain("astral-sh/setup-uv@v5");
+  expect(ciWorkflow("unknown", [], [])).toBeNull();
+
+  const p = project("lean");
+  expect(p.cli("vcs", "ci").out).toContain(".github/workflows/factory-checks.yml");
+  expect(readFileSync(join(p.dir, ".github/workflows/factory-checks.yml"), "utf8")).toContain("- run: |\n          true");
+  expect(p.git("log", "-1", "--format=%s")).toBe("software-factory: add GitHub checks (CI)");
+  expect(p.cli("vcs", "ci").code).toBe(1); // never overwritten
+  expect(p.cli("vcs", "auto-merge", "on").code).toBe(0); // and now there are checks to wait for
+});

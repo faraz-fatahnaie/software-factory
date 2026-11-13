@@ -71,7 +71,7 @@ try {
   assert.match(sh("git", "branch", "--list", "factory/F-003").out, /factory\/F-003/, "the approved branch is kept");
   assert.equal(sh("git", "-C", bare, "branch", "--list").out, "", "nothing was pushed by approving");
   await view("Overview");
-  const row = page.locator(".github li", { hasText: "F-003" });
+  const row = page.locator(".gh-row", { hasText: "F-003" });
   await row.getByText("Only on this machine").waitFor({ timeout: 30_000 });
   await page.locator(".link.vcs", { hasText: "1 waiting for GitHub" }).waitFor();
   await row.getByRole("button", { name: "Push" }).click();
@@ -80,11 +80,22 @@ try {
   assert.match(gh.calls(), /pr create --head factory\/F-003/);
   gh.prs([ghPr(7, "F-003", "SUCCESS")]); // GitHub now lists the pull request; Sync reads it
   await page.getByRole("button", { name: "Sync" }).click();
-  await row.getByText("#7 · checks passing").waitFor();
+  await row.getByText("All checks have passed").waitFor();
   await row.getByRole("button", { name: "Merge" }).click();
   await row.waitFor({ state: "detached" });
   await page.locator(".link.vcs", { hasText: "In sync with GitHub" }).waitFor();
-  assert.match(gh.calls(), /pr merge 7 --merge/);
+  assert.match(gh.calls(), /pr merge 7 --merge --delete-branch/);
+
+  // Source: history reads as one story per task, and a merged task can be reverted. With a remote, the revert is a branch to push.
+  await view("Source");
+  const story = page.locator(".commit-card > div", { hasText: "Merge F-001: First" });
+  await story.getByText("Merge F-001: First").waitFor();
+  await story.getByRole("button", { name: "Revert" }).click(); // the dialog is accepted above
+  await page.locator(".branches-table li", { hasText: "F-001" }).getByText("A revert, only here").waitFor();
+  assert.match(sh("git", "branch", "--list", "factory/F-001").out, /factory\/F-001/);
+  assert.equal(sh("git", "rev-parse", "--abbrev-ref", "HEAD").out, "main", "the checkout did not move");
+  await view("Overview");
+  await page.locator(".gh-row", { hasText: "F-001" }).getByText("Revert", { exact: true }).waitFor();
 
   // Models: a change is validated and written to the config file.
   await view("Agents");

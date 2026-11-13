@@ -14,7 +14,7 @@ import { activeRoles, chatPrompt, chatPromptFor, describeTeam, perTask, presets,
 import { addCustom, changeTeam, moveSettings, offSettings, onSettings, removeCustom, renameSettings, teamForAgents, titleSettings, useSettings } from "./teamctl";
 import { runTask, shellGate, stopAll, stubRunner } from "./pipeline";
 import { addSkill, searchSkills, setSkill } from "./skills";
-import { armAutoMerge, formatStatus, hasChecks, mergeTask, pushTask, runTexts, syncGithub, vcsStatus } from "./vcs";
+import { armAutoMerge, ciWorkflow, failingChecksItem, formatStatus, hasChecks, listPrs, mergeTask, pushTask, revertTask, runTexts, syncGithub, vcsStatus } from "./vcs";
 import { APPROVED, commitAll, ensureWorktree, land, removeWorktree } from "./worktree";
 
 const root = process.cwd();
@@ -97,7 +97,8 @@ factory approve <F-id>                          accept a finished task: a local 
 factory push <F-id>                             push an approved task's branch and open its pull request (scans for secrets first)
 factory merge <F-id>                            merge a task's pull request (refuses failing checks or conflicts)
 factory sync                                    update from GitHub: pull merged work in, tidy branches, and auto-merge if it is on
-factory vcs [auto-merge on|off]                 what is waiting to go to GitHub, or turn auto-merge on or off
+factory vcs [auto-merge on|off | ci | fix <F-id>]  what is waiting to go to GitHub; turn auto-merge on or off; write the checks workflow; add a failing pull request's checks to the backlog
+factory revert <F-id>                           undo a merged task: a revert on this branch, or (with a GitHub remote) a branch you push for review
 factory discard <F-id>                          delete a task's worktree and branch, and return it to Ready
 factory serve [port]                            start the local control plane (default 127.0.0.1:4400)
 factory add "<title>" [--detail "<lines>"] [--priority P1]   add an item to Inbox
@@ -335,7 +336,25 @@ async function main([cmd, ...args]: string[]) {
       commitPaths(`software-factory: auto-merge ${value}`, "factory.config.json");
       return console.log(value === "on" ? "auto-merge on: a pull request merges as soon as its checks pass, with nobody to approve it" : "auto-merge off: you merge pull requests");
     }
-    throw new Error("usage: factory vcs [auto-merge on|off]");
+    if (sub === "ci" && args.length === 1) {
+      const file = ".github/workflows/factory-checks.yml";
+      if (existsSync(join(root, file))) throw new Error(`${file} already exists. Edit it instead`);
+      const cfg = loadConfig(root), yml = ciWorkflow(detect(root).stack, cfg.setup ?? [], cfg.gate);
+      if (!yml) throw new Error("this project has no gate commands to run as checks. Set them with: factory configure --gate \"<cmd>\"");
+      mkdirSync(join(root, ".github", "workflows"), { recursive: true });
+      writeFileSync(join(root, file), yml);
+      commitPaths("software-factory: add GitHub checks (CI)", file);
+      return console.log(`wrote ${file} from the setup and gate commands. Read it; it runs on GitHub once you push, and auto-merge can now be turned on.`);
+    }
+    if (sub === "fix" && value && /^F-\d+$/.test(value) && args.length === 2) {
+      const pr = listPrs(root)?.get(value);
+      if (!pr) throw new Error(`${value} has no pull request that GitHub reports`);
+      const { title, detail } = failingChecksItem(value, pr);
+      const added = add(readFileSync(backlogPath, "utf8"), title, "Inbox", { detail });
+      editBacklog(`add ${added.id}`, () => added.text);
+      return console.log(`added ${added.id} to Inbox`);
+    }
+    throw new Error("usage: factory vcs [auto-merge on|off | ci | fix <F-id>]");
   }
 
   if (cmd === "push") {
@@ -349,6 +368,8 @@ async function main([cmd, ...args]: string[]) {
     if (autoMerge()) tail = armAutoMerge(root, url) ? "Auto-merge is on: GitHub merges it when the checks pass." : "Auto-merge is on: it merges when the checks pass (the dashboard or factory sync does it).";
     return console.log(`${item.id}: pushed; pull request ${url}\n${tail}`);
   }
+
+  if (cmd === "revert") return console.log(revertTask(root, find(args[0], "Done").id));
 
   if (cmd === "merge") {
     const item = find(args[0], "Done");

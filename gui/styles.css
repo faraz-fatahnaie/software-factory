@@ -529,3 +529,121 @@ button.small { min-height: 28px; font-size: 12.5px; padding: 0 10px; }
 .link.vcs.off { color: var(--muted); }
 .proposal { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent-soft); }
 .proposal span { flex: 1; min-width: 180px; }
+
+/* Source view, check detail */
+.warn-tile { border-color: var(--warn); }
+.warn-tile h2 { color: var(--warn); }
+.warn-tile .files { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.warn-tile .files code { padding: 1px 8px; border-radius: 6px; background: var(--inset); border: 1px solid var(--line); }
+.lanes li { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.lanes li:last-child { border-bottom: 0; }
+.lanes .what { flex: 1; min-width: 160px; white-space: normal; }
+.dots { display: inline-flex; align-items: center; gap: 5px; padding-left: 14px; position: relative; }
+.dots::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: var(--line-strong); }
+.dots i { position: relative; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+.dots i.fork { background: var(--muted); }
+.timeline ol { display: grid; gap: 12px; }
+.timeline .group { border: 1px solid var(--edge); border-radius: 14px; padding: 10px 12px; background: var(--inset); }
+.timeline .group > header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.timeline .group > header .grow { display: grid; }
+.dot-icon { width: 34px; height: 34px; border-radius: 50%; border: 2px dashed var(--line-strong); flex: none; }
+.commit { display: flex; align-items: baseline; gap: 10px; padding: 4px 0; font-size: 13.5px; }
+.commit .tag { min-width: 64px; text-align: center; }
+.commit.merge .tag { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+.commit.revert .tag { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 50%, transparent); }
+.commit .what { flex: 1; min-width: 0; }
+.commit time, .commit code { color: var(--muted); flex: none; }
+.timeline .loose { padding: 2px 12px; }
+.ci-note { margin: 0 0 10px; }
+.checks-detail { flex-basis: 100%; }
+.checks-detail summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.checks-detail ul { margin-top: 6px; display: grid; gap: 4px; }
+.checks-detail li { display: flex; align-items: center; gap: 8px; padding: 2px 0; border: 0; }
+.check-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); flex: none; }
+.check-dot.failing { background: var(--bad); border-radius: 2px; transform: rotate(45deg); }
+.check-dot.pending { background: var(--warn); }
+
+/* GitHub and VS Code conventions for everything about version control: their state colours, icons and layouts, so nothing about it is new to a user who knows them. */
+:root[data-theme="light"] { --gh-open: #1a7f37; --gh-merged: #8250df; --gh-closed: #cf222e; --gh-btn: #1f883d; --gh-btn-hover: #1a7f37; --vsc-m: #895503; --vsc-a: #1a7f37; --vsc-d: #ad0707; }
+:root[data-theme="dark"] { --gh-open: #3fb950; --gh-merged: #a371f7; --gh-closed: #f85149; --gh-btn: #238636; --gh-btn-hover: #2ea043; --vsc-m: #e2c08d; --vsc-a: #73c991; --vsc-d: #f48771; }
+button.gh { background: var(--gh-btn); border-color: color-mix(in srgb, var(--gh-btn) 70%, #000); color: #fff; font-weight: 600; box-shadow: none; }
+button.gh:hover:not(:disabled) { background: var(--gh-btn-hover); border-color: var(--gh-btn-hover); }
+.st-open { color: var(--gh-open); }
+.st-merged { color: var(--gh-merged); }
+.st-closed { color: var(--gh-closed); }
+.st-local { color: var(--muted); }
+.st-pending { color: var(--warn); }
+.state-icon { display: inline-flex; flex: none; }
+.state-icon svg { width: 18px; height: 18px; }
+.gh-label { display: inline-flex; align-items: center; gap: 5px; padding: 0 9px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid currentColor; }
+.gh-label svg { width: 12px; height: 12px; }
+.gh-label.merged { color: var(--gh-merged); }
+.gh-label.open { color: var(--gh-open); }
+.gh-label.closed { color: var(--gh-closed); }
+.sha { font: 12px var(--mono); padding: 2px 8px; min-height: 0; border-radius: 6px; background: var(--inset); border: 1px solid var(--line); color: var(--muted); display: inline-flex; align-items: center; gap: 5px; box-shadow: none; }
+.sha svg { width: 12px; height: 12px; }
+.sha:hover { color: var(--text); border-color: var(--line-strong); }
+.branch-pill { display: inline-flex; align-items: center; gap: 5px; font: 12.5px var(--mono); padding: 1px 8px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.branch-pill svg { width: 13px; height: 13px; flex: none; }
+
+/* Pull requests, as GitHub lists them: a bordered list with a header row, and a merge box under an open one */
+.prs { display: grid; gap: 14px; }
+.gh-list { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--inset); }
+.gh-list > header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; margin: 0; background: var(--raise); border-bottom: 1px solid var(--line); font-weight: 600; font-size: 13.5px; }
+.gh-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.gh-row:last-child { border-bottom: 0; }
+.gh-row .state-icon { margin-top: 2px; }
+.gh-main { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.gh-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 600; font-size: 15px; }
+.gh-title a, .gh-title button { color: inherit; font-weight: inherit; text-decoration: none; }
+.gh-title a:hover { color: var(--accent); text-decoration: underline; }
+.gh-meta { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gh-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.merge-box { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--tile); }
+.merge-box > div { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.merge-box > div:last-child { border-bottom: 0; }
+.merge-box .big { width: 22px; height: 22px; flex: none; }
+.merge-box .what-text { flex: 1; display: grid; }
+.merge-box .what-text b { font-size: 14px; }
+.merge-box .check { padding-left: 46px; font-size: 13px; }
+.merge-box .check .name { flex: 1; }
+.merge-box .foot { background: var(--raise); flex-wrap: wrap; }
+.merge-box .conflict .big { color: var(--gh-closed); }
+
+/* Source, as VS Code and GitHub show it */
+.scm { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 14px; align-items: start; }
+.statusbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 8px 14px; border-radius: 10px; background: var(--raise); border: 1px solid var(--line); font-size: 13.5px; grid-column: 1 / -1; }
+.statusbar > span { display: inline-flex; align-items: center; gap: 6px; }
+.statusbar svg { width: 15px; height: 15px; }
+.statusbar .grow { flex: 1; }
+.sec-head { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-weight: 600; font-size: 13.5px; }
+.sec-head .count { margin-left: auto; min-width: 22px; text-align: center; padding: 0 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; }
+.changes li { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px; font-size: 13.5px; }
+.changes li:hover { background: var(--raise); }
+.changes svg { width: 15px; height: 15px; color: var(--muted); flex: none; }
+.changes .file { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.changes .file .dir { color: var(--muted); font-size: 12px; margin-left: 6px; }
+.changes .letter { font: 700 13px var(--mono); width: 18px; text-align: center; }
+.letter.M { color: var(--vsc-m); } .letter.A, .letter.U { color: var(--vsc-a); } .letter.D { color: var(--vsc-d); } .letter.R { color: var(--gh-merged); }
+.branches-table li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 9px 4px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.branches-table li:last-child { border-bottom: 0; }
+.branches-table .upd { color: var(--muted); font-size: 12px; margin-left: auto; }
+.ahead { font: 600 12px var(--mono); color: var(--gh-open); }
+.default-tag { font-size: 11.5px; padding: 0 7px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted); }
+.commits-day { position: relative; padding-left: 24px; margin-bottom: 18px; }
+.commits-day::before { content: ""; position: absolute; left: 7px; top: 22px; bottom: -18px; width: 2px; background: var(--line); }
+.commits-day:last-child::before { display: none; }
+.commits-day > h3 { font-size: 13.5px; font-weight: 500; color: var(--muted); display: flex; align-items: center; gap: 8px; margin-bottom: 8px; margin-left: -24px; }
+.commits-day > h3 svg { width: 16px; height: 16px; background: var(--canvas); }
+.commit-card { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--inset); }
+.c-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.c-row:last-child { border-bottom: 0; }
+.c-row .c-main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.c-row .c-msg { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-row .c-by { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.c-task { background: var(--raise); }
+.c-task .c-main { gap: 3px; }
+.c-sub { padding-left: 38px; }
+@media (max-width: 1100px) { .scm { grid-template-columns: 1fr; } }
+button.linkish { padding: 0; min-height: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; }
+button.linkish:hover { color: var(--accent); text-decoration: underline; }

@@ -34,6 +34,8 @@ git diff HEAD...factory/F-026      # review the work
 bun run factory approve F-026      # or: discard F-026. With a GitHub remote this keeps the branch; nothing is pushed yet
 bun run factory push F-026         # push it and open a pull request, after the secret scan
 bun run factory merge F-026        # merge the pull request (or use the dashboard, or GitHub)
+bun run factory revert F-026       # undo a merged task: a branch to push and review when GitHub is the remote
+bun run factory vcs ci             # write a GitHub Actions workflow from the gate commands, so pull requests have checks
 ```
 
 ## Starting from an idea
@@ -174,6 +176,7 @@ The record builds up as you work:
 | Checks | The factory's own commands as buttons: setup check, status, release information and readiness, secret scan, rebuild role files. |
 | GitHub (on Overview) | What is waiting to go to GitHub: approved tasks that are only on this machine (Push), pull requests with their checks (Merge), Sync, and an Auto-merge switch that is off by default. The rail says where the work stands. |
 | Team | Every role is a robot with a name and a job; responsibilities are cards under it. Pick a preset or a size, move or switch off responsibilities, fold roles together; the agent count and the cost of a normal task update as a preview, and nothing is saved until you say so. |
+| Source | Laid out like VS Code and GitHub: a branch status line, a Changes list with M/A/D/U letters, a branches table, and commits by day with one story per task (and the robot that made it) and a Revert button on a merged task. |
 | Agents | Who is working, the model, effort and fallback chain per role, and spend and pass rate by model, role and task. |
 | Logs | Every event from every task, filterable by kind and task. |
 | Worktrees | Every task worktree with its branch and state. |

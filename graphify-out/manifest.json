@@ -42,15 +42,15 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1794586696.4790945,
-    "seen": 1794586698.185617,
-    "ast_hash": "1fbbca8ad0a9bdc337c2e99e9caa9be5",
+    "mtime": 1794588002.110131,
+    "seen": 1794588017.219638,
+    "ast_hash": "af5f0c93b4573411a5369c13053f10fa",
     "semantic_hash": ""
   },
   "BACKLOG.md": {
-    "mtime": 1794586696.4796603,
-    "seen": 1794586698.185617,
-    "ast_hash": "05444b643410416bb81b1ae07bddee7b",
+    "mtime": 1794587287.4636438,
+    "seen": 1794587300.445042,
+    "ast_hash": "4b57beb1c704ee0d1b84ac355d20dc5b",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -60,15 +60,15 @@
     "semantic_hash": "5c27369b226fcf2be8a6cfe52224e767"
   },
   "e2e/gui.e2e.ts": {
-    "mtime": 1794586641.814333,
-    "seen": 1794586698.185598,
-    "ast_hash": "9aa904a76bdfb31edeb98fbff79f84d1",
+    "mtime": 1794587916.1810195,
+    "seen": 1794588017.219618,
+    "ast_hash": "d6d9767b1fb9b6aeb0b2ab02556d58db",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1794586696.4792836,
-    "seen": 1794586698.185618,
-    "ast_hash": "e0d3038b20755258e02a7787f089a28a",
+    "mtime": 1794588002.1104355,
+    "seen": 1794588017.219639,
+    "ast_hash": "59bc8c80aac226681324988eb320480f",
     "semantic_hash": ""
   },
   ".claude-plugin/marketplace.json": {
@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "plugin/engine/cli.ts": {
-    "mtime": 1794586225.013602,
-    "seen": 1794586698.185607,
-    "ast_hash": "98bcd6eb17c5a2ceec816b583d8f889d",
+    "mtime": 1794587138.6507835,
+    "seen": 1794587300.44503,
+    "ast_hash": "122fbb4ca25bef8bae29c65f86e7bb49",
     "semantic_hash": ""
   },
   "plugin/engine/config.ts": {
@@ -132,9 +132,9 @@
     "semantic_hash": ""
   },
   "plugin/engine/server.ts": {
-    "mtime": 1794586411.7857254,
-    "seen": 1794586698.185611,
-    "ast_hash": "fc97a84b213838414f006fdff2b17817",
+    "mtime": 1794587138.6510513,
+    "seen": 1794587300.445034,
+    "ast_hash": "cb9ff08bc8b6afb471eb87e7df92d2d1",
     "semantic_hash": ""
   },
   "plugin/engine/skills.ts": {
@@ -150,9 +150,9 @@
     "semantic_hash": ""
   },
   "tests/factory.test.ts": {
-    "mtime": 1794586411.7855783,
-    "seen": 1794586698.185614,
-    "ast_hash": "538cb5ec49af268201058f1e4188e9a2",
+    "mtime": 1794587737.3660166,
+    "seen": 1794588017.219635,
+    "ast_hash": "3f8a7789cb81c847f0f482a001eff5cd",
     "semantic_hash": ""
   },
   "tests/fixture.ts": {
@@ -234,9 +234,9 @@
     "semantic_hash": ""
   },
   "gui/app.tsx": {
-    "mtime": 1794586364.7257526,
-    "seen": 1794586698.1856,
-    "ast_hash": "6bf80949a6b55c003473223a22c0b16c",
+    "mtime": 1794587235.7727423,
+    "seen": 1794587300.445023,
+    "ast_hash": "392c0c3d0984213dfb82e15daf9360f0",
     "semantic_hash": ""
   },
   "gui/data.ts": {
@@ -414,9 +414,9 @@
     "semantic_hash": ""
   },
   "gui/icons.tsx": {
-    "mtime": 1794574219.2537305,
-    "seen": 1794574653.393981,
-    "ast_hash": "c645032e26c5b7491f79ffd819dcd72c",
+    "mtime": 1794587799.8805597,
+    "seen": 1794588017.2196212,
+    "ast_hash": "ae1d67439831129283ac3168129704b5",
     "semantic_hash": ""
   },
   "gui/talk.tsx": {
@@ -456,21 +456,33 @@
     "semantic_hash": ""
   },
   "gui/vcs.tsx": {
-    "mtime": 1794586354.3052013,
-    "seen": 1794586698.1856031,
-    "ast_hash": "3c0d6a134d509db3747a7aa7d5272103",
+    "mtime": 1794587882.8239198,
+    "seen": 1794588017.2196229,
+    "ast_hash": "91c30814944357cb993d0b8511ead4af",
     "semantic_hash": ""
   },
   "plugin/engine/vcs.ts": {
-    "mtime": 1794586225.0115716,
-    "seen": 1794586698.185612,
-    "ast_hash": "dee574cbe43aaaf907448c4dad57a180",
+    "mtime": 1794587111.4211676,
+    "seen": 1794587300.445036,
+    "ast_hash": "b28d711015139d7b892baa50458f07c7",
     "semantic_hash": ""
   },
   "plugin/skills/git/SKILL.md": {
     "mtime": 1794586247.769019,
     "seen": 1794586698.185623,
     "ast_hash": "23fcf6d28fd6e4816f9686ba032c367c",
+    "semantic_hash": ""
+  },
+  "gui/source.tsx": {
+    "mtime": 1794587909.2859004,
+    "seen": 1794588017.219622,
+    "ast_hash": "7ae045d3df96b52d5096995151fcb64f",
+    "semantic_hash": ""
+  },
+  "plugin/engine/source.ts": {
+    "mtime": 1794587719.0328202,
+    "seen": 1794588017.2196321,
+    "ast_hash": "5491878f98bfd086691863e4d65e9c56",
     "semantic_hash": ""
   }
 }

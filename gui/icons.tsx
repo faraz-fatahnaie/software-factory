@@ -11,13 +11,27 @@ const PATHS: Record<string, string> = {
   worktrees: "M6 3v12 M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M18 9a9 9 0 0 1-9 9",
   studio: "M12 20h9 M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z",
   graph: "M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M8.59 13.51l6.83 3.98 M15.41 6.51l-6.82 3.98",
+  source: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M3 12h6 M15 12h6",
+  branch: "M6 3v12 M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M18 9a9 9 0 0 1-9 9",
+  commit: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M3 12h6 M15 12h6",
+  pr: "M6 9v6 M6 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z M6 15.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z M18 15.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z M18 15.5V9a3 3 0 0 0-3-3h-4 M13 3.5L10.5 6 13 8.5",
+  merge: "M6 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z M6 15.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z M18 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z M6 8.5v7 M18 14.5c0 3-3 3-6 3H8.5",
+  x: "M18 6L6 18 M6 6l12 12",
+  dot: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+  sync: "M21 12a9 9 0 0 0-15-6.7L3 8 M3 3v5h5 M3 12a9 9 0 0 0 15 6.7L21 16 M16 16h5v5",
+  up: "M12 19V5 M5 12l7-7 7 7",
+  down: "M12 5v14 M19 12l-7 7-7-7",
+  file: "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z M14 3v5h5",
+  undo: "M3 7v6h6 M3 13a9 9 0 1 0 3-7.7L3 8",
+  copy: "M9 9h10v10H9z M5 15V5h10",
+  chevron: "M9 6l6 6-6 6",
   sun: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z M12 1v2 M12 21v2 M4.22 4.22l1.42 1.42 M18.36 18.36l1.42 1.42 M1 12h2 M21 12h2 M4.22 19.78l1.42-1.42 M18.36 5.64l1.42-1.42",
   moon: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z",
 };
 
-export function Icon({ name }: { name: string }) {
+export function Icon({ name, size }: { name: string; size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
       <path d={PATHS[name] ?? PATHS.check} />
     </svg>
   );

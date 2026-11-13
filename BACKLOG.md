@@ -95,10 +95,10 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Roles as columns, responsibilities as cards, the per-task agent count and cost updating as you regroup, with preview before save. Also: Talk (chat) and Checks views, and the dashboard design pass.
 - [x] F-051 (P1) Git and GitHub as a responsibility of the Release Engineer
   G1 setup and G2 status conversations (`/software-factory:git`), `factory push|merge|sync|vcs`, approve keeps the branch, pull request always, push and merge only on request, opt-in auto-merge, GitHub tile and rail chip, approval card in the Rafi conversation.
-- [ ] F-052 (P2) Source view
-  Commits grouped by task with the robot that made each, branch lanes against main, uncommitted work warning.
-- [ ] F-053 (P2) CI status and revert
-  Per-check detail on a pull request, failing checks as backlog items, one-click revert of a merged task, generate the workflow from the gate (F2).
+- [x] F-052 (P2) Source view
+  Commits grouped by task with the robot that made each, branch lanes against main, a warning for work that is not saved, and commits not yet on GitHub.
+- [x] F-053 (P2) CI status and revert
+  Per-check detail on a pull request, failing checks as a backlog item, revert of a merged task (a pull request you push when GitHub is the remote), and a workflow generated from the gate commands. Merging now deletes the pull request branch so a later revert can reuse the task id.
 - [ ] F-054 (P3) Model-written pull request description
   The text is a trimmed spec and review today; one cheap stage could write it in plain words.
 - [ ] F-049 (P2) Set models per role and per stage from the command line

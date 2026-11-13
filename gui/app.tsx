@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { elapsed, passRates, roster, series, STAGES, summarize, toolLine, type Ev, type TaskRun } from "../plugin/engine/state";
 import { post, useBacklog, useEvents, useHash, useNow, useTeam, useTheme, useVcs, type Backlog, type Item, type Link } from "./data";
 import { GitHub, vcsChip, type VcsData } from "./vcs";
+import { Source } from "./source";
 import { Agents, Logs, Studio, Worktrees } from "./views";
 import { Checks, Talk, type Chats } from "./talk";
 import { presenceOf, Team, type TeamData } from "./team";
@@ -12,12 +13,12 @@ import { ViewSkeleton } from "./ui";
 
 export type Act = (path: string, body: unknown) => Promise<boolean>;
 
-const VIEWS = ["Overview", "Backlog", "Talk", "Checks", "Team", "Agents", "Logs", "Worktrees", "Studio", "Graph"] as const;
+const VIEWS = ["Overview", "Backlog", "Talk", "Checks", "Team", "Agents", "Source", "Logs", "Worktrees", "Studio", "Graph"] as const;
 type View = (typeof VIEWS)[number];
 const GROUPS: { name: string; views: View[] }[] = [
   { name: "Work", views: ["Overview", "Backlog", "Talk", "Checks"] },
   { name: "Team", views: ["Team", "Agents"] },
-  { name: "Records", views: ["Logs", "Worktrees", "Studio", "Graph"] },
+  { name: "Records", views: ["Source", "Logs", "Worktrees", "Studio", "Graph"] },
 ];
 const HEADS: Record<View, [string, string]> = {
   Overview: ["Overview", "What is running, what needs you, and what it costs."],
@@ -26,6 +27,7 @@ const HEADS: Record<View, [string, string]> = {
   Checks: ["Checks", "Run the factory's own checks on this project. Nothing here changes your code or deploys anything."],
   Team: ["Team", "Who does what. Regroup the responsibilities and see what a task costs before you save."],
   Agents: ["Agents", "Who is working, which model each role uses, and what it has cost."],
+  Source: ["Source", "What changed, who changed it, which branches are in flight, and what is on GitHub."],
   Logs: ["Logs", "Every event from every task, filterable."],
   Worktrees: ["Worktrees", "One isolated copy of the project per task."],
   Studio: ["Studio", "Edit the rules, role prompts and skills. Every save is a commit."],
@@ -553,6 +555,7 @@ function App() {
             {view === "Checks" && <Checks />}
             {view === "Team" && <Team events={events} tasks={tasks} setError={setError} talkTo={talkTo} />}
             {view === "Agents" && <Agents events={events} tasks={tasks} setError={setError} open={open} />}
+            {view === "Source" && <Source items={backlog.items} vcs={vcs} act={act} refreshVcs={refreshVcs} open={open} />}
             {view === "Logs" && <Logs events={events} />}
             {view === "Worktrees" && <div className="stack"><Worktrees open={open} discard={(id) => act("/api/discard", { id })} /></div>}
             {view === "Studio" && <Studio setError={setError} />}

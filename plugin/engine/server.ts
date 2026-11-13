@@ -7,6 +7,7 @@ import { openStore } from "./events";
 import { parseFind, roleSkills, SKILLS_CLI } from "./skills";
 import { chatPromptFor, holderOf } from "./team";
 import { changeTeam, parseChanges, planTeam, presetList, teamView } from "./teamctl";
+import { sourceInfo } from "./source";
 import { hasChecks, remoteUrl, vcsStatus } from "./vcs";
 import { listWorktrees } from "./worktree";
 
@@ -111,6 +112,7 @@ export async function serve(root: string, port = 4400) {
       if (route === "GET /api/backlog") return json({ items: items(), running: [...running.keys()] });
       if (route === "GET /api/config") return json(loadConfig(root));
       if (route === "GET /api/team") return json(teamPayload());
+      if (route === "GET /api/source") return json(sourceInfo(root, projectTeam(root)));
       if (route === "GET /api/vcs") {
         // Asks GitHub, so the answer is kept for a few seconds; any push, merge or sync clears it.
         if (!vcsCache || vcsCache.remote !== remoteUrl(root) || Date.now() - vcsCache.at > 15_000) {
@@ -236,6 +238,12 @@ export async function serve(root: string, port = 4400) {
         } catch (e) {
           return json({ error: (e as Error).message }, 400);
         }
+      }
+      if (route === "POST /api/ci") { vcsCache = undefined; return cli("vcs", "ci"); }
+      if (["POST /api/revert", "POST /api/fix-checks"].includes(route)) {
+        if (ids.length !== 1) return json({ error: "one id required" }, 400);
+        vcsCache = undefined;
+        return route.endsWith("revert") ? cli("revert", ids[0]!) : cli("vcs", "fix", ids[0]!);
       }
       if (["POST /api/push", "POST /api/merge"].includes(route)) {
         if (ids.length !== 1) return json({ error: "one id required" }, 400);

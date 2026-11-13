@@ -15,20 +15,27 @@ const gh = (cwd: string, ...args: string[]) => run([GH(), ...args], cwd);
 const tryGit = (cwd: string, ...args: string[]) => { try { return git(cwd, ...args); } catch { return null; } };
 
 export type Checks = "passing" | "failing" | "pending" | "none";
-export type Pr = { number: number; url: string; state: "OPEN" | "MERGED" | "CLOSED"; checks: Checks; mergeable: boolean };
-export type Branch = { id: string; pushed: boolean; pr?: Pr };
+export type Check = { name: string; state: "passing" | "failing" | "pending"; url?: string };
+export type Pr = { number: number; url: string; state: "OPEN" | "MERGED" | "CLOSED"; checks: Checks; mergeable: boolean; checkList: Check[] };
+export type Branch = { id: string; pushed: boolean; revert?: boolean; pr?: Pr };
 export type Status = { remote: string | null; github: boolean; ghReady: boolean; base: string; branches: Branch[]; note?: string };
 
 export const remoteUrl = (root: string) => tryGit(root, "remote", "get-url", "origin");
 export const baseBranch = (root: string) => git(root, "rev-parse", "--abbrev-ref", "HEAD");
 const hasRef = (root: string, ref: string) => tryGit(root, "rev-parse", "--verify", "-q", ref) !== null;
 
-/** One word for the checks on a pull request, from what `gh` reports (check runs and older status contexts). */
+const FAILED = ["FAILURE", "TIMED_OUT", "CANCELLED", "ACTION_REQUIRED", "STARTUP_FAILURE", "ERROR"];
+/** One check from `gh`'s rollup (a check run, or an older status context), as passing, failing or still running. */
+const checkOf = (c: any): Check => ({
+  name: String(c.name ?? c.context ?? "check"), url: c.detailsUrl || c.targetUrl || undefined,
+  state: FAILED.includes(c.conclusion ?? c.state) ? "failing" : (c.status !== undefined && c.status !== "COMPLETED") || ["PENDING", "EXPECTED"].includes(c.state) ? "pending" : "passing",
+});
+
+/** One word for the checks on a pull request, from what `gh` reports. */
 export function summarizeChecks(rollup: any[] | null | undefined): Checks {
   if (!rollup?.length) return "none";
-  const failed = (c: any) => ["FAILURE", "TIMED_OUT", "CANCELLED", "ACTION_REQUIRED", "STARTUP_FAILURE", "ERROR"].includes(c.conclusion ?? c.state);
-  const waiting = (c: any) => (c.status !== undefined && c.status !== "COMPLETED") || ["PENDING", "EXPECTED"].includes(c.state);
-  return rollup.some(failed) ? "failing" : rollup.some(waiting) ? "pending" : "passing";
+  const states = rollup.map((c) => checkOf(c).state);
+  return states.includes("failing") ? "failing" : states.includes("pending") ? "pending" : "passing";
 }
 
 /** The pull requests the factory opened, by task id. null when `gh` cannot answer (not installed, not signed in, offline). */
@@ -39,10 +46,12 @@ export function listPrs(root: string): Map<string, Pr> | null {
   for (const p of JSON.parse(r.out || "[]")) {
     const id = /^factory\/(F-\d+)$/.exec(p.headRefName)?.[1];
     if (!id || (out.get(id)?.state === "OPEN" && p.state !== "OPEN")) continue; // an open pull request wins over an old closed one
-    out.set(id, { number: p.number, url: p.url, state: p.state, checks: summarizeChecks(p.statusCheckRollup), mergeable: p.mergeable !== "CONFLICTING" });
+    out.set(id, { number: p.number, url: p.url, state: p.state, checks: summarizeChecks(p.statusCheckRollup), mergeable: p.mergeable !== "CONFLICTING", checkList: (p.statusCheckRollup ?? []).map(checkOf) });
   }
   return out;
 }
+
+const isRevert = (root: string, branch: string) => (tryGit(root, "log", "-1", "--format=%s", branch) ?? "").startsWith("Revert ");
 
 /** What is waiting: approved tasks that are only on this machine, pushed ones, and their pull requests. Reads git; asks GitHub only if `prs`. */
 export function vcsStatus(root: string, prs = true): Status {
@@ -54,7 +63,7 @@ export function vcsStatus(root: string, prs = true): Status {
   for (const ref of git(root, "for-each-ref", "--format=%(refname:short)", "refs/heads/factory/").split("\n").filter(Boolean)) {
     const id = ref.slice("factory/".length);
     if (!/^F-\d+$/.test(id) || existsSync(worktreeOf(root, id))) continue; // still being worked on
-    status.branches.push({ id, pushed: hasRef(root, `refs/remotes/origin/${ref}`), pr: found?.get(id) });
+    status.branches.push({ id, pushed: hasRef(root, `refs/remotes/origin/${ref}`), revert: isRevert(root, ref) || undefined, pr: found?.get(id) });
   }
   return status;
 }
@@ -66,7 +75,7 @@ export function formatStatus(s: Status, autoMerge: boolean): string {
   if (s.note) lines.push(s.note);
   if (!s.branches.length) lines.push("nothing is waiting to be pushed or merged");
   for (const b of s.branches) {
-    const where = b.pr ? `pull request #${b.pr.number} ${b.pr.state.toLowerCase()}${b.pr.state === "OPEN" ? `, checks ${b.pr.checks}${b.pr.mergeable ? "" : ", has conflicts"}` : ""} ${b.pr.url}` : b.pushed ? "pushed, no pull request found" : "approved, only on this machine";
+    const where = b.revert && !b.pr ? "a revert, only on this machine" : b.pr ? `pull request #${b.pr.number} ${b.pr.state.toLowerCase()}${b.pr.state === "OPEN" ? `, checks ${b.pr.checks}${b.pr.mergeable ? "" : ", has conflicts"}` : ""} ${b.pr.url}` : b.pushed ? "pushed, no pull request found" : "approved, only on this machine";
     lines.push(`${b.id}: ${where}`);
   }
   return lines.join("\n");
@@ -95,8 +104,12 @@ export function pushTask(root: string, id: string, title: string, spec = "", rev
   if (found.length) throw new Error(`${id} was not pushed: possible secrets in what would be uploaded.\n${formatFindings(found)}\nRemove them (or mark a known false alarm with "factory:allow-secret" on the line), then push again.`);
   const open = listPrs(root)?.get(id);
   if (open?.state === "OPEN") return open.url;
-  git(root, "push", "-q", "-u", "origin", branch);
-  const r = gh(root, "pr", "create", "--head", branch, "--base", base, "--title", `${id}: ${title}`, "--body", prBody(id, spec, review));
+  const revert = isRevert(root, branch);
+  try { git(root, "push", "-q", "-u", "origin", branch); } catch (e) {
+    throw new Error(`${(e as Error).message}\nIf an older branch named ${branch} is still on GitHub from an earlier pull request, delete it there, then push again.`);
+  }
+  const r = gh(root, "pr", "create", "--head", branch, "--base", base, "--title", revert ? `Revert ${id}: ${title}` : `${id}: ${title}`,
+    "--body", revert ? `Undoes ${id}: ${title}. Prepared by the software factory at your request.` : prBody(id, spec, review));
   if (r.code !== 0) throw new Error(`${id} was pushed, but opening the pull request failed: ${r.err}`);
   return r.out.split("\n").at(-1)!; // the pull request URL
 }
@@ -127,7 +140,7 @@ export function mergeTask(root: string, id: string): string[] {
   if (!prs || !pr || pr.state !== "OPEN") throw new Error(`${id} has no open pull request`);
   if (pr.checks === "failing") throw new Error(`the checks on ${id} are failing, so it was not merged. Fix them first (or merge on GitHub if you know better)`);
   if (!pr.mergeable) throw new Error(`${id} conflicts with ${baseBranch(root)}, so it was not merged. Rebuild it: factory discard, then factory run`);
-  const r = gh(root, "pr", "merge", String(pr.number), "--merge");
+  const r = gh(root, "pr", "merge", String(pr.number), "--merge", "--delete-branch");
   if (r.code !== 0) throw new Error(`GitHub refused the merge: ${r.err}`);
   prs.set(id, { ...pr, state: "MERGED" });
   return [`${id}: pull request #${pr.number} merged`, ...tidy(root, prs)];
@@ -141,7 +154,7 @@ export function syncGithub(root: string, autoMerge: boolean): string[] {
   const lines: string[] = [];
   if (autoMerge) for (const [id, pr] of prs) {
     if (pr.state !== "OPEN" || pr.checks !== "passing" || !pr.mergeable) continue;
-    const r = gh(root, "pr", "merge", String(pr.number), "--merge");
+    const r = gh(root, "pr", "merge", String(pr.number), "--merge", "--delete-branch");
     if (r.code === 0) { prs.set(id, { ...pr, state: "MERGED" }); lines.push(`${id}: checks passed, pull request #${pr.number} merged`); }
     else lines.push(`${id}: could not be merged: ${r.err}`);
   }
@@ -149,7 +162,7 @@ export function syncGithub(root: string, autoMerge: boolean): string[] {
 }
 
 /** Asks GitHub to merge the pull request itself once its checks pass. False when the repository does not allow that; sync covers it then. */
-export const armAutoMerge = (root: string, url: string) => gh(root, "pr", "merge", url, "--auto", "--merge").code === 0;
+export const armAutoMerge = (root: string, url: string) => gh(root, "pr", "merge", url, "--auto", "--merge", "--delete-branch").code === 0;
 
 /** Auto-merge waits for checks, so it needs some: a project with no workflow has nothing to wait for and would merge at once. */
 export function hasChecks(root: string): boolean {
@@ -161,4 +174,70 @@ export function hasChecks(root: string): boolean {
 export function runTexts(root: string, run: string): { spec: string; review: string } {
   const read = (f: string) => { try { return readFileSync(join(root, ".factory", "runs", run, f), "utf8"); } catch { return ""; } };
   return { spec: read("spec.md"), review: read("review.md") };
+}
+
+/** A backlog item for the checks that failed on a pull request: what to fix and where the logs are. */
+export function failingChecksItem(id: string, pr: Pr): { title: string; detail: string } {
+  const failing = pr.checkList.filter((c) => c.state === "failing");
+  if (!failing.length) throw new Error(`no failing checks on ${id}`);
+  return {
+    title: `Fix failing checks on ${id} (pull request #${pr.number}): ${failing.map((c) => c.name).join(", ")}`,
+    detail: [`Pull request: ${pr.url}`, ...failing.map((c) => `Failing: ${c.name}${c.url ? ` (${c.url})` : ""}`), "Read the logs at the links, fix the cause, and the checks should pass."].join("\n"),
+  };
+}
+
+// The merge commit that landed a task: a local `Merge F-001: title`, or GitHub's `Merge pull request #7 from user/factory/F-001`.
+function mergeOf(root: string, id: string): string | null {
+  const re = new RegExp(`factory/${id}(?!\\d)`);
+  for (const line of (tryGit(root, "log", "--merges", "-n", "300", "--format=%H%x09%s") ?? "").split("\n")) {
+    const [sha, subject = ""] = line.split("\t");
+    if (subject.startsWith(`Merge ${id}:`) || re.test(subject)) return sha!;
+  }
+  return null;
+}
+
+/**
+ * Undoes a merged task. Without a remote the revert is committed on the current branch. With one it is prepared on the task's own
+ * branch (in a throwaway worktree, so your checkout does not move) and goes up like any task: you push it, and merge its pull request.
+ */
+export function revertTask(root: string, id: string): string {
+  const merge = mergeOf(root, id), base = baseBranch(root), branch = branchOf(id);
+  if (!merge) throw new Error(`${id} was not merged into ${base}, so there is nothing to revert`);
+  const conflict = `${id} could not be reverted without a conflict (later work builds on it); nothing was changed`;
+  if (!remoteUrl(root)) {
+    if (tryGit(root, "status", "--porcelain")) throw new Error("this project has uncommitted changes. Commit or set them aside first");
+    try { git(root, "revert", "-m", "1", "--no-edit", merge); } catch { Bun.spawnSync(["git", "revert", "--abort"], { cwd: root }); throw new Error(conflict); }
+    return `${id} reverted on ${base}`;
+  }
+  if (hasRef(root, `refs/heads/${branch}`)) throw new Error(`${id} still has a branch. Merge or discard that first`);
+  const dir = join(root, ".worktrees", `revert-${id}`);
+  git(root, "worktree", "add", "-q", "-b", branch, dir, base);
+  try {
+    git(dir, "revert", "-m", "1", "--no-edit", merge);
+  } catch {
+    Bun.spawnSync(["git", "revert", "--abort"], { cwd: dir });
+    git(root, "worktree", "remove", "--force", dir); git(root, "branch", "-D", branch);
+    throw new Error(conflict);
+  }
+  git(root, "worktree", "remove", "--force", dir);
+  return `A revert of ${id} is ready on branch ${branch}. Push it (the Push button, or: factory push ${id}) to open a pull request that undoes it, then merge that. Nothing is pushed until you do.`;
+}
+
+/** A GitHub Actions workflow that runs the project's setup and gate commands, so a pull request has checks to wait for. null with no gate. */
+export function ciWorkflow(stack: string, setup: string[], gate: string[]): string | null {
+  if (!gate.length) return null;
+  const runtime =
+    stack.includes("(bun)") ? ["uses: oven-sh/setup-bun@v2"]
+    : stack.includes("(pnpm)") || stack.includes("(yarn)") ? ["uses: actions/setup-node@v4\n        with:\n          node-version: lts/*", "run: corepack enable"]
+    : stack.startsWith("JavaScript") ? ["uses: actions/setup-node@v4\n        with:\n          node-version: lts/*"]
+    : stack === "Python" ? [setup.some((c) => c.startsWith("uv ")) ? "uses: astral-sh/setup-uv@v5" : "uses: actions/setup-python@v5\n        with:\n          python-version: \"3.x\""]
+    : stack === "Go" ? ["uses: actions/setup-go@v5\n        with:\n          go-version: stable"]
+    : []; // Rust and make projects run on the runner as it is
+  const step = (s: string) => `      - ${s}`;
+  const run = (cmd: string) => `      - run: |\n          ${cmd.replace(/\n/g, "\n          ")}`;
+  return [
+    "# Written by the software factory from this project's setup and gate commands. Edit it freely.",
+    "name: checks", "on:", "  pull_request:", "  push:", "    branches: [main]", "jobs:", "  gate:", "    runs-on: ubuntu-latest", "    steps:",
+    step("uses: actions/checkout@v4"), ...runtime.map(step), ...[...setup, ...gate].map(run), "",
+  ].join("\n");
 }
