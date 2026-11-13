@@ -69,6 +69,7 @@ Each command is a thin skill that calls `factory`; the logic stays in the engine
 | `/software-factory:init` | `factory detect`, `factory gate`, `factory init`, `factory doctor` | No |
 | `/software-factory:brainstorm`, `:research`, `:plan`, `:design` | `factory role <role> [ids]`, which prints the role's instructions from the catalog | No |
 | `/software-factory:test`, `:secure` | `factory role tester`, `factory role security-performance ...`, `factory scan` | No |
+| `/software-factory:release`, `:deploy` | `factory role release-engineer ...`, `factory release info\|check\|tag` | No |
 | `/software-factory:docs` | `factory role scribe`, then `factory docs save` | No |
 | `/software-factory:add` | `factory add` | Yes |
 | `/software-factory:run` | `factory run` | No |

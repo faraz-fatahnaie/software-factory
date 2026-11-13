@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { parse } from "./backlog";
 import { loadConfig, parseConfig, ROLES } from "./config";
@@ -14,11 +14,21 @@ const json = (body: unknown, status = 200) => Response.json(body, { status });
 // lives outside the plugin folder; where it is present (this repository), it is rebuilt on start.
 const DIST = join(import.meta.dir, "..", "dist");
 const SOURCE = join(import.meta.dir, "..", "..", "gui", "index.html");
+let building: Promise<void> | undefined;
 async function buildGui() {
   if (!existsSync(SOURCE)) return;
   rmSync(DIST, { recursive: true, force: true }); // chunk names carry a content hash, so old ones would pile up
   const result = await Bun.build({ entrypoints: [SOURCE], outdir: DIST, minify: true, define: { "process.env.NODE_ENV": '"production"' } });
   if (!result.success) throw new Error(`GUI build failed:\n${result.logs.join("\n")}`);
+}
+
+/** In a source checkout, rebuild the page when anything it is made from is newer than the build, so a refresh shows the latest. */
+async function freshGui() {
+  const sourceDir = join(import.meta.dir, "..", "..", "gui");
+  if (!existsSync(sourceDir)) return; // an installed copy ships the build only
+  const newest = Math.max(statSync(join(import.meta.dir, "state.ts")).mtimeMs, ...readdirSync(sourceDir).map((f) => statSync(join(sourceDir, f)).mtimeMs));
+  const built = existsSync(join(DIST, "index.html")) ? statSync(join(DIST, "index.html")).mtimeMs : 0;
+  if (newest > built) await (building ??= buildGui().finally(() => { building = undefined; }));
 }
 
 /** Local control plane: a live event stream plus endpoints that run the same CLI a person would. */
@@ -126,6 +136,7 @@ export async function serve(root: string, port = 4400) {
       }
       if (req.method === "GET" && !url.pathname.startsWith("/api/")) {
         // Static page files. Only the file name is used, so a request cannot reach outside dist/.
+        await freshGui();
         const file = Bun.file(join(DIST, url.pathname === "/" ? "index.html" : basename(url.pathname)));
         return (await file.exists()) ? new Response(file, { headers: { "cache-control": "no-cache" } }) : json({ error: "not found" }, 404);
       }

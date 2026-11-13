@@ -14,7 +14,8 @@
       "ESNext",
       "DOM",
       "DOM.Iterable"
-    ]
+    ],
+    "resolveJsonModule": true
   },
   "include": [
     "plugin/engine",

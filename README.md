@@ -77,6 +77,26 @@ which documents exist and the one command to run next.
   proven and proposes tasks for the gaps, and checks accessibility for anything with an interface.
   They propose backlog items and never change code.
 
+## Releasing and deploying
+
+Preparing to ship and shipping are separate on purpose. **Nothing is deployed unless you ask.**
+
+- `/software-factory:release` interviews you about where and how the product should reach its
+  users, recommends hosting (with current prices and sources), and writes the deployment plan and
+  the deploy, rollback and incident runbooks under `docs/runbooks/`. The code the plan needs
+  (deployment configuration, a health check, a smoke test) becomes backlog tasks for the Builder.
+  When you want a release, it proposes a version, writes the `CHANGELOG.md` entry, updates the
+  version files and tags the commit with `factory release tag`. It never publishes or pushes.
+- `/software-factory:deploy` runs only when you ask. It refuses unless the deployment plan and
+  runbooks are approved and the commit is an exact release tag; it shows every action, then waits
+  for your yes before each step that changes something outside the project, using the hosting
+  provider's own logged-in tool. It never asks you to paste a credential or writes one to a file.
+  It smoke-tests the live version, offers a rollback if a check fails, and logs the deploy in
+  `docs/runbooks/deployments.md`.
+- `factory release info` shows the version files, the last tag and what changed since;
+  `factory release check [--deploy]` lists what blocks a release or a deploy (running tasks, a
+  failing gate, secrets, missing plan or runbooks, no security audit) as failures or warnings.
+
 ## Documents and memory
 
 `factory init` writes `docs/README.md`, a map of where each document lives and who keeps it.

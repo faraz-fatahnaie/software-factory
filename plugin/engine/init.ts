@@ -155,7 +155,7 @@ export function applyTeam(dir: string, force = false) {
   return { lines, paths };
 }
 
-const DOCS: [string, string][] = [["brief", "docs/product/brief.md"], ["research", "docs/product/research.md"], ["requirements", "docs/product/requirements.md"], ["architecture", "docs/architecture/overview.md"], ["roadmap", "docs/plan/roadmap.md"]];
+const DOCS: [string, string][] = [["brief", "docs/product/brief.md"], ["research", "docs/product/research.md"], ["requirements", "docs/product/requirements.md"], ["architecture", "docs/architecture/overview.md"], ["roadmap", "docs/plan/roadmap.md"], ["deployment", "docs/runbooks/deployment-plan.md"]];
 
 /** The product documents and whether each is missing, a draft, or approved by the user. */
 export function projectDocs(dir: string) {
@@ -177,6 +177,9 @@ export function nextStep(docs: ReturnType<typeof projectDocs>, items: { section:
   if (!has("requirements")) return "/software-factory:plan";
   if (!has("architecture")) return "/software-factory:design";
   if (!has("roadmap")) return "/software-factory:plan";
+  // Everything planned is built: time to prepare to ship, or to ship when the user chooses.
+  if (count("Done") && !has("deployment")) return "/software-factory:release";
+  if (count("Done")) return "/software-factory:release for a new version, /software-factory:deploy when you want it live, or /software-factory:add for more work";
   return "/software-factory:add <what to build next>";
 }
 

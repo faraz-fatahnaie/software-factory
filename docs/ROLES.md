@@ -40,6 +40,20 @@ spec that changes the data model, an interface or a login boundary), the opt-in 
 (S6 probes, Q3 load tests, Q4 runtime checks, which need a running test environment and the
 release step), and milestone-triggered runs.
 
+Step 6 is done too: the Release Engineer runs as two conversations. `/software-factory:release`
+holds L2 (the deployment interview), L3 (preparation: hosting recommendation, environments,
+secrets, data, checks, rollback), O2 (runbooks) and L1 (version, changelog, tag); `/software-factory:deploy`
+holds L4 and L5 (deploy, smoke test, rollback) and runs only on the user's request. Preparation
+happens without a deploy request, as agreed; everything outward-facing waits for a clear yes to
+the exact step, and credentials never enter the project or the conversation. The code a plan needs
+(deployment files, health check, smoke test) is proposed as backlog tasks for the Builder, so one
+role still edits code; the security engineer reviews infrastructure files automatically. The
+deterministic parts are code: `factory release info`, `check [--deploy]` (a deploy needs an
+approved plan and runbooks and an exact release tag) and `tag <version>` (commits only the
+version files and the changelog; never pushes). **Still planned:** the unattended, milestone-
+triggered preparation (the headless half of L1 and L3), maintenance intake (O3), logging and
+health checks as builder tasks (O1), and the GUI for all of it.
+
 **Conventions step 2 set:** a conversation saves a document only after the user approves a
 draft, and every document starts with `Status: approved by the user on <date>`. Backlog items
 written by the Planner carry `Milestone:`, `Stories:`, `Depends on:`, `Acceptance:` and
@@ -319,7 +333,7 @@ later; every command should eventually also be an action in the GUI.
 3. Architect's project mode (`design`), decision records, foundation tasks. (done)
 4. Scribe and the document structure; the graph on by default. (done)
 5. Tester, and the Security and Performance Engineer with its four gates (`test`, `secure`). (gate 2 and the conversations done; gate 1 at task time and the opt-in dynamic work planned)
-6. Release Engineer (`release`, `deploy`) with the deployment interview.
+6. Release Engineer (`release`, `deploy`) with the deployment interview. (done)
 7. Lean and Full presets, free regrouping, custom responsibilities (`team`).
 8. GUI: Team view, command actions, chat.
 

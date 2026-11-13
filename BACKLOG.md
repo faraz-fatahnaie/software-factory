@@ -83,3 +83,9 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Review a spec that changes the data model, an interface or a login boundary before the builder starts (A5 and Q1 in task mode).
 - [ ] F-043 (P3) Opt-in dynamic probes, load tests and runtime checks
   S6, Q3 and Q4 against a running test environment; needs the release step and the user's request each time.
+- [x] F-044 (P1) Roles step 6: Release Engineer
+  release and deploy conversations, deployment plan and runbooks, version and changelog with factory release tag, readiness checks, deploys only on request.
+- [ ] F-045 (P2) Maintenance intake (O3)
+  Turn bug reports and dependency updates into backlog items on request.
+- [ ] F-046 (P2) Deployment and release in the GUI
+  Show readiness, the deployment plan and the deploy log; start a release from the page. A deploy stays a conversation the user approves step by step.

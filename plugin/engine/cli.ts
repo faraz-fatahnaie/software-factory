@@ -8,6 +8,7 @@ import { openStore } from "./events";
 import { applyTeam, configure, detect, DOC_PATHS, doctor, init, nextStep, projectDocs } from "./init";
 import { appendChronicle, appendNotes, chronicleEntry, parseScribe, stageOutput } from "./chronicle";
 import { graphifyInstalled, updateGraph } from "./graph";
+import { formatChecks, formatInfo, readiness, releaseInfo, tagRelease } from "./release";
 import { allTracked, changesSince, formatFindings, scanSecrets } from "./security";
 import { chatPrompt, describeTeam, presets, DEFAULT_PRESET } from "./team";
 import { runTask, shellGate, stopAll, stubRunner } from "./pipeline";
@@ -79,6 +80,7 @@ const flag = (args: string[], name: string) => args.flatMap((a, i) => (a === nam
 const USAGE = `factory init [--setup <cmd>]... [--gate <cmd>]...  set this project up; without flags the commands are detected
 factory detect                                  show the setup and gate commands init would use
 factory gate ["<cmd>"...]                        run the configured gate here, or try the given commands
+factory release info | check [--deploy] | tag <version>   what a release holds, whether the project is ready, and tag it (never pushes)
 factory scan [--since <revision>]                scan for hard-coded secrets: the whole project, or what changed since a revision
 factory docs save                               commit the documents (docs/, README.md, AGENTS.md...) so task agents can read them
 factory configure [--setup "<cmd>"]... [--gate "<cmd>"]...   change the project's setup and gate commands
@@ -144,6 +146,22 @@ async function main([cmd, ...args]: string[]) {
       console.log(`${r.active ? "●" : "○"} ${r.title}${r.modes.length ? `  [${r.modes.join(" + ")}]` : ""}${c && r.modes.includes("agent") ? `  ${c.model}, ${c.effort}` : ""}\n    built:   ${r.built.join(" ") || "none yet"}\n    planned: ${r.planned.join(" ") || "none"}`);
     }
     return console.log("\n● has built responsibilities and runs today; ○ is planned.");
+  }
+
+  if (cmd === "release") {
+    const [sub, ...rest] = args;
+    if (sub === "info" && !rest.length) return console.log(formatInfo(releaseInfo(root)));
+    if (sub === "check" && rest.every((a) => a === "--deploy")) {
+      const checks = await readiness(root, { deploy: rest.includes("--deploy") });
+      console.log(formatChecks(checks));
+      if (checks.some((c) => c.level === "fail")) process.exitCode = 1;
+      return;
+    }
+    if (sub === "tag" && rest.length === 1) {
+      const r = tagRelease(root, rest[0]!);
+      return console.log(`tagged ${r.tag}${r.committed.length ? ` (committed ${r.committed.join(", ")})` : ""}\nNothing was pushed: sharing the tag and publishing are yours to do.`);
+    }
+    throw new Error("usage: factory release info | check [--deploy] | tag <version>");
   }
 
   if (cmd === "scan") {

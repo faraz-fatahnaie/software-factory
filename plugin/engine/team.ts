@@ -1,6 +1,8 @@
 // The team: which responsibilities exist, which role holds each, and the role files built from them.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import catalogData from "../templates/catalog.json";
+import presetData from "../templates/presets.json";
 
 const DATA = join(import.meta.dir, "..", "templates");
 
@@ -15,9 +17,9 @@ export type RoleDef = {
 };
 export type Preset = { title: string; summary: string; roles: Record<string, RoleDef>; scripts: string[]; off: string[] };
 
-const load = <T>(file: string): T => JSON.parse(readFileSync(join(DATA, file), "utf8"));
-export const catalog = load<Responsibility[]>("catalog.json");
-export const presets = load<Record<string, Preset>>("presets.json");
+// The data files are imported as modules (not read as files) so a watching dev server restarts when they change.
+export const catalog = catalogData as Responsibility[];
+export const presets = presetData as Record<string, Preset>;
 export const DEFAULT_PRESET = "balanced";
 
 const byId = new Map(catalog.map((r) => [r.id, r]));

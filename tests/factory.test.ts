@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { add, move, parse } from "../plugin/engine/backlog";
 import { agentEvents, claudeArgs, classify } from "../plugin/engine/claude";
 import { loadConfig, parseConfig } from "../plugin/engine/config";
+import { formatChecks, formatInfo, readiness, releaseInfo, tagRelease, versionFiles } from "../plugin/engine/release";
 import { allTracked, changesInWorktree, changesSince, parseDiff, scanSecrets, sensitiveReasons } from "../plugin/engine/security";
 import { appendChronicle, appendNotes, chronicleEntry, parseScribe, readNotes, stageOutput } from "../plugin/engine/chronicle";
 import { graphifyInstalled, updateGraph } from "../plugin/engine/graph";
@@ -485,7 +486,7 @@ test("chat roles: prompts are assembled per command; unattended role files stay 
   expect(plan).toContain("Never write a task that deploys"); // deployment stays a separate step, on request
 
   expect(() => chatPrompt("product-partner", ["B2"])).toThrow(/does not hold B2/);
-  expect(() => chatPrompt("release-engineer")).toThrow(/no conversational responsibilities/);
+  expect(() => chatPrompt("builder")).toThrow(/no conversational responsibilities/); // the builder is unattended only
   expect(() => chatPrompt("janitor")).toThrow(/no role "janitor"/);
 
   // A conversational role has no config entry and no role file; the planner has both, for its unattended triage only.
@@ -531,19 +532,19 @@ test("cli: add --detail, ordered promote, role, status documents and the next st
   expect(cli("promote").code).toBe(1);
 
   expect(cli("role", "planner", "P2").out).toMatch(/Break the milestones into tasks/);
-  expect(cli("role", "release-engineer").code).toBe(1);
+  expect(cli("role", "builder").code).toBe(1);
   expect(cli("role").code).toBe(1);
 
   // Status shows which documents exist and the one command to run next.
-  expect(status()).toMatch(/Documents: brief – · research – · requirements – · architecture – · roadmap –\nNext: \/software-factory:run/); // Ready items exist, so run them
-  expect(cli("team").out).toContain("○ Release Engineer"); // roles with nothing built yet are listed but marked
+  expect(status()).toMatch(/Documents: brief – · research – · requirements – · architecture – · roadmap – · deployment –\nNext: \/software-factory:run/); // Ready items exist, so run them
+  expect(cli("team").out).toContain("● Release Engineer  [chat]"); // every role in the Balanced team now has something built
 }, 60_000);
 
 test("next step: follows the documents and the backlog", () => {
   const dir = tmp();
   mkdirSync(join(dir, "docs/product"), { recursive: true }); mkdirSync(join(dir, "docs/plan"), { recursive: true });
   const docs = () => projectDocs(dir);
-  expect(docs().map((d) => d.state)).toEqual(["–", "–", "–", "–", "–"]);
+  expect(docs().map((d) => d.state)).toEqual(["–", "–", "–", "–", "–", "–"]);
   mkdirSync(join(dir, "docs/architecture"), { recursive: true });
   expect(nextStep(docs(), [])).toBe("/software-factory:brainstorm <your idea>");
   writeFileSync(join(dir, "docs/product/brief.md"), "# Brief\nStatus: draft\n");
@@ -562,7 +563,11 @@ test("next step: follows the documents and the backlog", () => {
   expect(nextStep(docs(), [{ section: "In progress" }])).toMatch(/wait for the running tasks/);
   expect(nextStep(docs(), [{ section: "Blocked" }, { section: "Ready" }])).toMatch(/blocked task/); // a person's attention beats starting more
   expect(nextStep(docs(), [{ section: "Awaiting approval" }, { section: "Blocked" }])).toMatch(/waiting for you/);
-  expect(nextStep(docs(), [{ section: "Done" }])).toBe("/software-factory:add <what to build next>");
+  expect(nextStep(docs(), [{ section: "Done" }])).toBe("/software-factory:release"); // everything built and nothing prepared to ship
+  mkdirSync(join(dir, "docs/runbooks"), { recursive: true });
+  writeFileSync(join(dir, "docs/runbooks/deployment-plan.md"), "Status: approved by the user on 2026-11-13\n");
+  expect(nextStep(docs(), [{ section: "Done" }])).toMatch(/release for a new version, \/software-factory:deploy when you want it live/);
+  expect(nextStep(docs(), [])).toBe("/software-factory:add <what to build next>"); // nothing done yet: start with some work
 });
 
 test("design: the Architect's conversation is assembled in order, and its handoffs to the Planner are explicit", () => {
@@ -932,4 +937,149 @@ test("security: config settings validate, the role prompts are assembled, factor
   const older = { ...config.roles }; delete (older as any)["security-performance"];
   writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ gate: ["true"], roles: older }));
   expect(loadConfig(dir).roles["security-performance"]).toEqual({ runner: "claude", model: "opus", effort: "high", fallback: ["sonnet"] });
+});
+
+/** A throwaway project with a version, a changelog, a backlog and a passing gate, committed and tagged v1.0.0. */
+function releaseRepo(gate = "true") {
+  const r = repo();
+  writeFileSync(join(r.dir, "package.json"), JSON.stringify({ name: "x", version: "1.0.0" }, null, 2) + "\n");
+  writeFileSync(join(r.dir, "pyproject.toml"), '[project]\nname = "x"\nversion = "1.0.0"\n');
+  writeFileSync(join(r.dir, "CHANGELOG.md"), "# Changelog\n\n## [1.0.0] - 2026-11-01\n- First release\n");
+  writeFileSync(join(r.dir, "factory.config.json"), JSON.stringify({ ...config, setup: ["true"], gate: [gate] }));
+  r.sh("git", "add", "-A"); r.sh("git", "commit", "-q", "-m", "release 1.0.0"); r.sh("git", "tag", "-a", "v1.0.0", "-m", "Release 1.0.0");
+  return r;
+}
+
+test("release info: the last tag, the changes since, and every file that carries the version", () => {
+  const { dir, sh } = releaseRepo();
+  writeFileSync(join(dir, "VERSION"), "1.0.0\n");
+  writeFileSync(join(dir, "Cargo.toml"), '[package]\nname = "x"\nversion = "1.0.0"\n[dependencies]\nserde = { version = "1.2.3" }\n');
+  sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "add files");
+  writeFileSync(join(dir, "new.txt"), "x");
+  const info = releaseInfo(dir);
+  expect(info).toMatchObject({ lastTag: "v1.0.0", current: "1.0.0", dirty: ["new.txt"], commitsSince: ["add files"] });
+  expect(info.versionFiles.map((f) => f.file)).toEqual(["package.json", "pyproject.toml", "Cargo.toml", "VERSION"]);
+  expect(versionFiles(dir).find((f) => f.file === "Cargo.toml")!.version).toBe("1.0.0"); // the first version line, not a dependency's
+  const text = formatInfo(info);
+  expect(text).toContain("last release tag: v1.0.0");
+  expect(text).toContain("changes since v1.0.0 (1):\n  - add files");
+  expect(formatInfo(releaseInfo(tmp()))).toContain("last release tag: none yet"); // not a repository at all: still answers
+});
+
+test("release check: failures stop a release, warnings are for the user; deploy asks for more", async () => {
+  const levels = (checks: Awaited<ReturnType<typeof readiness>>) => Object.fromEntries(checks.map((c) => [c.label.split(":")[0]!.slice(0, 40), c.level]));
+  const { dir, sh } = releaseRepo();
+  // Nothing has changed since the tag, and nothing is prepared.
+  let checks = await readiness(dir);
+  expect(checks.find((c) => /nothing has changed since v1.0.0/.test(c.label))!.level).toBe("fail");
+  expect(checks.find((c) => /no approved deployment plan/.test(c.label))!.level).toBe("warn");
+  expect(checks.find((c) => /no security audit/.test(c.label))!.level).toBe("warn");
+  expect(checks.find((c) => /the gate passes/.test(c.label))!.level).toBe("ok");
+
+  // New work, a running task, a task waiting, a dirty tree, a failing gate and a secret each show up.
+  writeFileSync(join(dir, "feature.py"), "x = 1\n"); sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "feature");
+  writeFileSync(join(dir, "BACKLOG.md"), "# B\n\n## Inbox\n\n## Ready\n\n## In progress\n- [ ] F-001 Running\n\n## Awaiting approval\n- [ ] F-002 Waiting\n\n## Blocked\n- [ ] F-003 Stuck\n\n## Done\n");
+  writeFileSync(join(dir, "scratch.txt"), "uncommitted");
+  checks = await readiness(dir);
+  expect(checks.find((c) => /uncommitted changes \(2\)/.test(c.label))!.level).toBe("fail");
+  expect(checks.find((c) => /tasks are still running: F-001/.test(c.label))!.level).toBe("fail");
+  expect(checks.find((c) => /waiting for your approval.*F-002/.test(c.label))!.level).toBe("warn");
+  expect(checks.find((c) => /blocked tasks.*F-003/.test(c.label))!.level).toBe("warn");
+  expect(checks.find((c) => /nothing has changed/.test(c.label))).toBeUndefined();
+  expect(formatChecks(checks)).toMatch(/✗ tasks are still running: F-001 {2}→ {2}wait for them/);
+
+  const failing = releaseRepo("echo broken; false");
+  expect((await readiness(failing.dir)).find((c) => /the gate fails: .*broken/.test(c.label))!.level).toBe("fail");
+  writeFileSync(join(failing.dir, "k.py"), `K = "${fake.aws}"\n`); failing.sh("git", "add", "-A"); failing.sh("git", "commit", "-q", "-m", "oops");
+  expect((await readiness(failing.dir)).find((c) => /1 possible hard-coded secret/.test(c.label))!.level).toBe("fail");
+
+  // A security audit newer than the last release, and an approved plan and runbooks, turn those warnings into passes.
+  const ready = releaseRepo();
+  writeFileSync(join(ready.dir, "f.py"), "x\n");
+  mkdirSync(join(ready.dir, "docs/quality"), { recursive: true }); mkdirSync(join(ready.dir, "docs/runbooks"), { recursive: true });
+  writeFileSync(join(ready.dir, "docs/quality/security-audit-2099-01-01.md"), "# audit\n");
+  for (const f of ["deployment-plan", "deploy", "rollback"]) writeFileSync(join(ready.dir, `docs/runbooks/${f}.md`), "Status: approved by the user on 2026-11-13\n");
+  ready.sh("git", "add", "-A"); ready.sh("git", "commit", "-q", "-m", "ready");
+  const good = await readiness(ready.dir);
+  expect(good.filter((c) => c.level === "fail")).toEqual([]);
+  expect(good.filter((c) => c.level === "warn").map((c) => c.label)).toEqual([]);
+
+  // Deploying needs the plan, the runbooks and an exact release tag; a dirty or untagged commit is refused.
+  const deploy = await readiness(releaseRepo().dir, { deploy: true });
+  expect(deploy.find((c) => /deploying release v1.0.0/.test(c.label))!.level).toBe("ok");
+  expect(deploy.find((c) => /no approved deployment plan/.test(c.label))!.level).toBe("fail");
+  expect(deploy.find((c) => /runbooks are missing/.test(c.label))!.level).toBe("fail");
+  const untagged = await readiness(ready.dir, { deploy: true });
+  expect(untagged.find((c) => /not a release tag/.test(c.label))!.level).toBe("fail");
+  expect(levels(await readiness(tmp()))).toEqual({ "not a git repository": "fail" });
+}, 120_000);
+
+test("release tag: commits only the version files and the changelog, refuses anything else, never pushes", () => {
+  const { dir, sh } = releaseRepo();
+  const bump = (v: string) => {
+    writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "x", version: v }, null, 2) + "\n");
+    writeFileSync(join(dir, "pyproject.toml"), `[project]\nname = "x"\nversion = "${v}"\n`);
+  };
+  expect(() => tagRelease(dir, "v1.1.0")).toThrow(/is not a version like 1.2.0/);
+  expect(() => tagRelease(dir, "1.0.0")).toThrow(/tag v1.0.0 already exists/);
+  expect(() => tagRelease(dir, "1.1.0")).toThrow(/CHANGELOG.md has no entry for 1.1.0/);
+  writeFileSync(join(dir, "CHANGELOG.md"), "# Changelog\n\n## [1.1.0] - 2026-11-13\n- Added a thing\n\n## [1.0.0] - 2026-11-01\n- First release\n");
+  expect(() => tagRelease(dir, "1.1.0")).toThrow(/do not say 1.1.0 yet: package.json \(1.0.0\), pyproject.toml \(1.0.0\)/);
+  bump("1.1.0");
+  writeFileSync(join(dir, "stray.txt"), "not part of the release");
+  expect(() => tagRelease(dir, "1.1.0")).toThrow(/other files have changed too, so nothing was committed or tagged: stray.txt/);
+  expect(sh("git", "tag", "-l", "v1.1.0").out).toBe(""); // refused before changing anything
+  expect(sh("git", "log", "-1", "--format=%s").out).toBe("release 1.0.0");
+
+  Bun.spawnSync(["rm", join(dir, "stray.txt")]);
+  const done = tagRelease(dir, "1.1.0");
+  expect(done).toEqual({ tag: "v1.1.0", committed: ["CHANGELOG.md", "package.json", "pyproject.toml"] });
+  expect(sh("git", "log", "-1", "--format=%s").out).toBe("release 1.1.0");
+  expect(sh("git", "show", "--name-only", "--format=", "HEAD").out.split("\n").sort()).toEqual(["CHANGELOG.md", "package.json", "pyproject.toml"]);
+  expect(sh("git", "cat-file", "-t", "v1.1.0").out).toBe("tag"); // annotated
+  expect(sh("git", "status", "--porcelain").out).toBe("");
+  expect(sh("git", "remote").out).toBe(""); // and nothing was pushed anywhere
+
+  // A pre-release label works; with everything already committed, only the tag is made.
+  writeFileSync(join(dir, "CHANGELOG.md"), "## [1.2.0-rc.1] - 2026-11-14\n" + sh("cat", "CHANGELOG.md").out);
+  bump("1.2.0-rc.1");
+  sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "prepared by hand");
+  expect(tagRelease(dir, "1.2.0-rc.1")).toEqual({ tag: "v1.2.0-rc.1", committed: [] });
+});
+
+test("release commands and prompts: the preparation conversation is ordered, deploy moves one approved step at a time", () => {
+  const { dir, cli, sh } = releaseRepo();
+  expect(cli("release", "info").out).toContain("last release tag: v1.0.0");
+  expect(cli("release", "check").code).toBe(1); // nothing new since the tag
+  expect(cli("release", "check", "--deploy").out).toMatch(/✗ there is no approved deployment plan/);
+  expect(cli("release").out).toMatch(/usage: factory release/);
+  expect(cli("release", "tag").code).toBe(1);
+  expect(cli("release", "tag", "9.9.9").out).toMatch(/CHANGELOG.md has no entry for 9.9.9/);
+  writeFileSync(join(dir, "CHANGELOG.md"), "## [1.0.1] - 2026-11-13\n" + readFileSync(join(dir, "CHANGELOG.md"), "utf8"));
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "x", version: "1.0.1" }) + "\n");
+  writeFileSync(join(dir, "pyproject.toml"), '[project]\nversion = "1.0.1"\n');
+  expect(cli("release", "tag", "1.0.1").out).toMatch(/^tagged v1\.0\.1 \(committed [^)]+\)\nNothing was pushed/);
+  expect(sh("git", "describe", "--tags", "--abbrev=0").out).toBe("v1.0.1");
+
+  const prepare = chatPrompt("release-engineer", ["L2", "L3", "O2", "L1"]);
+  expect(prepare.match(/^## Step \d: (.+)$/gm)).toEqual(["## Step 1: Interview the user about deployment", "## Step 2: Prepare the deployment", "## Step 3: Write the runbooks", "## Step 4: Prepare the version and changelog"]);
+  expect(prepare).toContain("Never ask the user to paste a password, key or token");
+  expect(prepare).toContain("Pipeline and infrastructure files are reviewed by the security engineer automatically");
+  expect(prepare).toContain("It never pushes");
+  expect(prepare).not.toContain("Put a released version in front of real users"); // deploying is a separate command
+  const deploy = chatPrompt("release-engineer", ["L4", "L5"]);
+  expect(deploy.match(/^## Step \d: (.+)$/gm)).toEqual(["## Step 1: Deploy", "## Step 2: Check the live version and roll back if needed"]);
+  expect(deploy).toContain("only because the user asked for it now");
+  expect(deploy).toContain("wait for a clear yes from the user, even if the permission system would let it run unasked");
+  expect(deploy).toContain("factory release check --deploy");
+  expect(deploy).toContain("never push code or tags to a remote unless that step is in the approved plan");
+  expect(deploy).toContain("Roll back only after a clear yes");
+  expect(deploy).toContain("Unless your task below says otherwise"); // the shared rule makes this an explicit exception
+  expect(validateTeam(presets[DEFAULT_PRESET]!)).toEqual([]);
+  expect(activeRoles()).not.toContain("release-engineer"); // conversational only: no config entry and no role file
+  for (const name of ["release", "deploy"]) {
+    const skill = readFileSync(join(import.meta.dir, `../plugin/skills/${name}/SKILL.md`), "utf8");
+    expect(skill).toContain("disable-model-invocation: true"); // only a person starts either
+  }
+  expect(readFileSync(join(import.meta.dir, "../plugin/skills/deploy/SKILL.md"), "utf8")).toContain("allowed-tools: Bash(factory *)\n"); // no provider tool is pre-approved
 });
