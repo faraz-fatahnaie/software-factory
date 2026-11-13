@@ -17,6 +17,15 @@ is built as ordinary tasks by the Builder from the design's Foundation section, 
 stay unbuilt as separate instructions. Recording decisions and checking dependencies *at task
 time* (the headless half of A3 and A4) is still planned.
 
+Step 4 is done too: the Scribe's unattended stage (K2, K4) runs after an approved review on a
+cheap model and only reads; its summary and role notes are appended by the orchestrator when
+the user approves the task, so parallel tasks never conflict on a file and an agent never edits
+documents. README, user documentation and context files (K1, K3) are a conversation on request
+(`/software-factory:docs`). `init` writes `docs/README.md` (the map of documents and owners),
+and the knowledge graph (K5) is built by `init` and refreshed after each locally merged task when
+graphify is installed. Roles with a new default (here the Scribe) are filled in for configs
+written by an older plugin. The Scribe's milestone-triggered headless run of K1 is still planned.
+
 **Conventions step 2 set:** a conversation saves a document only after the user approves a
 draft, and every document starts with `Status: approved by the user on <date>`. Backlog items
 written by the Planner carry `Milestone:`, `Stories:`, `Depends on:`, `Acceptance:` and
@@ -108,10 +117,10 @@ Each entry has an id, when it runs, how it runs, and what it may do.
 | O2 | Runbooks: deploy, rollback, incident | milestone | headless | write (docs) |
 | O3 | Maintenance intake: bug reports and dependency updates become backlog items | request | headless | backlog (via the orchestrator) |
 | **Documentation and knowledge** | | | | |
-| K1 | README and user documentation | milestone | headless | write (docs) |
-| K2 | Chronicle: what was done, by which role, and why | task (on landing) | headless, cheap model | write (docs) |
-| K3 | Context files (`AGENTS.md`) kept current as the project changes | milestone, request | headless | governance (via the orchestrator) |
-| K4 | Each role's working notes | when the role runs | headless | write (docs) |
+| K1 | README and user documentation | request (milestone-triggered run planned) | chat | write (docs) |
+| K2 | Chronicle: what was done, by which role, and why (the agent writes the summary; the orchestrator appends it when the task lands) | task (on landing) | headless, cheap model | read |
+| K3 | Context files (`AGENTS.md`) kept current as the project changes | request | chat | governance (the user approves the change) |
+| K4 | Each role's working notes: lasting facts about this project (the agent proposes them; the orchestrator appends them when the task lands) | when the role runs | headless | read |
 | K5 | Knowledge graph kept current | task (on landing) | script | write (`graphify-out`) |
 
 Governance is not an agent's job. The **orchestrator** (code) enforces approvals, budgets,
@@ -294,7 +303,7 @@ later; every command should eventually also be an action in the GUI.
 1. The catalog as data, role prompts assembled from it, the Balanced preset, and the per-task path without Triage. (done)
 2. Product Partner and Planner (`brainstorm`, `research`, `plan`) with the product documents. (done)
 3. Architect's project mode (`design`), decision records, foundation tasks. (done)
-4. Scribe and the document structure; the graph on by default.
+4. Scribe and the document structure; the graph on by default. (done)
 5. Tester, and the Security and Performance Engineer with its four gates (`test`, `secure`).
 6. Release Engineer (`release`, `deploy`) with the deployment interview.
 7. Lean and Full presets, free regrouping, custom responsibilities (`team`).

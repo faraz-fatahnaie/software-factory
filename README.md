@@ -54,6 +54,27 @@ Nothing is written until you approve a draft, every document starts with a
 promote them (`factory promote F-010 F-011 ...`, in the order given). Documents are committed as they are saved (`factory docs save`), because task agents work from the last commit. `factory status` shows
 which documents exist and the one command to run next.
 
+## Documents and memory
+
+`factory init` writes `docs/README.md`, a map of where each document lives and who keeps it.
+The record builds up as you work:
+
+- **Chronicle.** After a task passes review, the Scribe (a cheap model, read-only) writes two to
+  four sentences on what changed and why. When you approve the task, the factory appends them to
+  `docs/chronicle/YYYY-MM.md` with how it landed, which models worked on it and what it cost.
+- **Role notes.** The Scribe also proposes up to three lasting facts about the project per task
+  (where the tests live, a command that is needed). They are appended to `docs/roles/<role>.md`
+  and shown to that role in later runs as information, never as instructions. Edit or delete any
+  that are wrong.
+- **README, user documentation and `AGENTS.md`.** `/software-factory:docs` has the Scribe compare
+  them with what was built and propose changes, which are applied only after you approve.
+- **Knowledge graph.** If [graphify](https://github.com/safishamsi/graphify) is installed
+  (`uv tool install graphifyy`), `init` builds a graph of your code and it is refreshed after each
+  task you approve, without calling a model. Agents read its report before opening files, which
+  saves tokens. It is on by default; set `"graph": false` in `factory.config.json` to turn it off.
+  A task landing as a pull request does not refresh it until the code is merged.
+- The Scribe stage can be switched off with `"enabled": false` on the `scribe` role in the config.
+
 ## How a task flows
 
 1. **Intake.** `BACKLOG.md` has six sections: Inbox, Ready, In progress, Awaiting approval,
@@ -101,7 +122,7 @@ The header shows whether the live connection is up and switches between the dark
 ```
 
 - `setup` runs once in each new worktree. `gate` must pass before a build is reviewed.
-- Each role that exists today (`planner`, `architect`, `builder`, `reviewer`) has a model, an effort
+- Each role that runs unattended (`planner`, `architect`, `builder`, `reviewer`, `scribe`) has a model, an effort
   level and a fallback chain. A rate limit moves the stage to the next model in the chain.
 - Role prompts and tools live in `.claude/agents/<role>.md`, assembled from the responsibilities the role holds (`factory team` shows the team; `factory team apply` rebuilds the files). `AGENTS.md` holds the rules every
   role follows.

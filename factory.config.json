@@ -38,6 +38,15 @@
       "fallback": [
         "sonnet"
       ]
+    },
+    "scribe": {
+      "runner": "claude",
+      "model": "haiku",
+      "effort": "low",
+      "fallback": [
+        "sonnet"
+      ]
     }
-  }
+  },
+  "graph": true
 }

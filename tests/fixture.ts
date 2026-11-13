@@ -6,18 +6,18 @@ import { parse } from "../plugin/engine/backlog";
 import type { Config } from "../plugin/engine/config";
 
 export const role = { runner: "claude", model: "sonnet", effort: "medium", fallback: ["haiku"] };
-export const config: Config = { gate: ["true"], roles: { planner: role, architect: role, builder: role, reviewer: role } };
+export const config: Config = { gate: ["true"], roles: { planner: role, architect: role, builder: role, reviewer: role, scribe: role } };
 export const BACKLOG = "# Backlog\n\n## Inbox\n\n## Ready\n- [ ] F-001 (P1) First\n  detail line\n- [ ] F-002 Second\n\n## In progress\n\n## Awaiting approval\n\n## Blocked\n\n## Done\n";
 export const tmp = () => mkdtempSync(join(tmpdir(), "factory-"));
 
-// Commits made in throwaway repos must not depend on the machine's git identity.
-Object.assign(process.env, { GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.invalid", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.invalid" });
+// Commits made in throwaway repos must not depend on the machine's git identity, and tests must not run graphify.
+Object.assign(process.env, { FACTORY_NO_GRAPH: "1", GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.invalid", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.invalid" });
 
 /** A git repo with two Ready items, one role file, one installed skill and a gate that always passes. */
 export function repo() {
   const dir = tmp();
   const sh = (...argv: string[]) => {
-    const p = Bun.spawnSync(argv, { cwd: dir });
+    const p = Bun.spawnSync(argv, { cwd: dir, env: process.env }); // explicit: Bun does not pass later changes to process.env to children
     return { code: p.exitCode, out: `${p.stdout}${p.stderr}`.trim() };
   };
   writeFileSync(join(dir, "BACKLOG.md"), BACKLOG);

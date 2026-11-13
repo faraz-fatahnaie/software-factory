@@ -73,3 +73,7 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   design command: stack, system design, dependencies, decision records, foundation and gate, skill suggestions; factory configure, skill search and docs save; plan pauses for and resumes after the design.
 - [ ] F-038 (P2) Task-time decision records and dependency checks
   The headless half of A3 and A4: when a spec adds a dependency or makes a costly decision, check it and record it. Needs the spec stage to write documents.
+- [x] F-039 (P1) Roles step 4: Scribe, document structure and the graph on by default
+  Scribe stage after an approved review; chronicle and role notes recorded on approve; docs command; docs map written by init; graph built by init and refreshed on landing.
+- [ ] F-040 (P3) Milestone-triggered Scribe run
+  Run the documentation update (K1) automatically when a milestone completes, as a proposal the user reviews.

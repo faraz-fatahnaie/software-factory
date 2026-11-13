@@ -131,7 +131,14 @@
           "K2",
           "K3",
           "K4"
-        ]
+        ],
+        "defaults": {
+          "model": "haiku",
+          "effort": "low",
+          "fallback": [
+            "sonnet"
+          ]
+        }
       }
     },
     "scripts": [

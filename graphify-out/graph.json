@@ -4,6 +4,71 @@
   "graph": {},
   "nodes": [
     {
+      "id": "plugin_engine_config_config",
+      "label": "Config",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "config",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L16"
+    },
+    {
+      "id": "plugin_engine_config_role",
+      "label": "Role",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "role",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "plugin_engine_events_factoryevent",
+      "label": "FactoryEvent",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "factoryevent",
+      "source_file": "plugin/engine/events.ts",
+      "source_location": "L3"
+    },
+    {
+      "id": "plugin_engine_events_row",
+      "label": "Row",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "row",
+      "source_file": "plugin/engine/events.ts",
+      "source_location": "L13"
+    },
+    {
+      "id": "plugin_engine_events_store",
+      "label": "Store",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "store",
+      "source_file": "plugin/engine/events.ts",
+      "source_location": "L42"
+    },
+    {
       "id": "plugin_engine_hooks_hookinput",
       "label": "HookInput",
       "_callable": true,
@@ -27,7 +92,7 @@
       "file_type": "code",
       "norm_label": "gate",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L14"
+      "source_location": "L15"
     },
     {
       "id": "plugin_engine_pipeline_job",
@@ -40,7 +105,7 @@
       "file_type": "code",
       "norm_label": "job",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L7"
+      "source_location": "L8"
     },
     {
       "id": "plugin_engine_pipeline_runner",
@@ -53,7 +118,7 @@
       "file_type": "code",
       "norm_label": "runner",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L13"
+      "source_location": "L14"
     },
     {
       "id": "plugin_engine_pipeline_runnerresult",
@@ -66,7 +131,7 @@
       "file_type": "code",
       "norm_label": "runnerresult",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L12"
+      "source_location": "L13"
     },
     {
       "id": "plugin_engine_pipeline_status",
@@ -79,7 +144,20 @@
       "file_type": "code",
       "norm_label": "status",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L6"
+      "source_location": "L7"
+    },
+    {
+      "id": "plugin_engine_config_roleconfig",
+      "label": "RoleConfig",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "init.ts",
+      "file_type": "code",
+      "norm_label": "roleconfig",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L13"
     },
     {
       "id": "plugin_engine_team_preset",
@@ -147,82 +225,17 @@
       "source_location": "L3"
     },
     {
-      "id": "plugin_engine_config_config",
-      "label": "Config",
+      "id": "plugin_engine_chronicle_eventlike",
+      "label": "EventLike",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 4,
-      "community_name": "server.ts",
+      "community": 2,
+      "community_name": "cli.ts",
       "file_type": "code",
-      "norm_label": "config",
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L14"
-    },
-    {
-      "id": "plugin_engine_config_role",
-      "label": "Role",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "role",
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "plugin_engine_config_roleconfig",
-      "label": "RoleConfig",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "roleconfig",
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L12"
-    },
-    {
-      "id": "plugin_engine_events_factoryevent",
-      "label": "FactoryEvent",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "factoryevent",
-      "source_file": "plugin/engine/events.ts",
-      "source_location": "L3"
-    },
-    {
-      "id": "plugin_engine_events_row",
-      "label": "Row",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "row",
-      "source_file": "plugin/engine/events.ts",
-      "source_location": "L13"
-    },
-    {
-      "id": "plugin_engine_events_store",
-      "label": "Store",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "store",
-      "source_file": "plugin/engine/events.ts",
-      "source_location": "L42"
+      "norm_label": "eventlike",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L9"
     },
     {
       "id": "gui_app_act",
@@ -407,6 +420,18 @@
       "source_location": "L8"
     },
     {
+      "id": "plugin_engine_chronicle_readnotes",
+      "label": "readNotes()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "readnotes()",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L69"
+    },
+    {
       "id": "plugin_engine_claude_agentevents",
       "label": "agentEvents()",
       "_callable": true,
@@ -500,7 +525,7 @@
       "file_type": "code",
       "norm_label": "followups()",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L53"
+      "source_location": "L57"
     },
     {
       "id": "plugin_engine_pipeline_needstriage",
@@ -512,7 +537,7 @@
       "file_type": "code",
       "norm_label": "needstriage()",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L59"
+      "source_location": "L63"
     },
     {
       "id": "plugin_engine_pipeline_runtask",
@@ -524,7 +549,7 @@
       "file_type": "code",
       "norm_label": "runtask()",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L62"
+      "source_location": "L66"
     },
     {
       "id": "plugin_engine_pipeline_shellgate",
@@ -536,7 +561,19 @@
       "file_type": "code",
       "norm_label": "shellgate()",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L33"
+      "source_location": "L34"
+    },
+    {
+      "id": "plugin_engine_pipeline_stopall",
+      "label": "stopAll()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "stopall()",
+      "source_file": "plugin/engine/pipeline.ts",
+      "source_location": "L28"
     },
     {
       "id": "plugin_engine_pipeline_stubrunner",
@@ -548,7 +585,7 @@
       "file_type": "code",
       "norm_label": "stubrunner()",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L47"
+      "source_location": "L48"
     },
     {
       "id": "plugin_engine_pipeline_track",
@@ -560,7 +597,7 @@
       "file_type": "code",
       "norm_label": "track()",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L21"
+      "source_location": "L22"
     },
     {
       "id": "tests_fixture_repo",
@@ -587,6 +624,102 @@
       "source_location": "L11"
     },
     {
+      "id": "plugin_engine_cli_graphenabled",
+      "label": "graphEnabled()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "init.ts",
+      "file_type": "code",
+      "norm_label": "graphenabled()",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L50"
+    },
+    {
+      "id": "plugin_engine_config_ismodel",
+      "label": "isModel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "init.ts",
+      "file_type": "code",
+      "norm_label": "ismodel()",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L20"
+    },
+    {
+      "id": "plugin_engine_config_isstr",
+      "label": "isStr()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "init.ts",
+      "file_type": "code",
+      "norm_label": "isstr()",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L18"
+    },
+    {
+      "id": "plugin_engine_config_isstrlist",
+      "label": "isStrList()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "init.ts",
+      "file_type": "code",
+      "norm_label": "isstrlist()",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L21"
+    },
+    {
+      "id": "plugin_engine_config_loadconfig",
+      "label": "loadConfig()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "init.ts",
+      "file_type": "code",
+      "norm_label": "loadconfig()",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L51"
+    },
+    {
+      "id": "plugin_engine_config_parseconfig",
+      "label": "parseConfig()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "init.ts",
+      "file_type": "code",
+      "norm_label": "parseconfig()",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L24"
+    },
+    {
+      "id": "plugin_engine_graph_graphifyinstalled",
+      "label": "graphifyInstalled()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "init.ts",
+      "file_type": "code",
+      "norm_label": "graphifyinstalled()",
+      "source_file": "plugin/engine/graph.ts",
+      "source_location": "L9"
+    },
+    {
+      "id": "plugin_engine_graph_updategraph",
+      "label": "updateGraph()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "init.ts",
+      "file_type": "code",
+      "norm_label": "updategraph()",
+      "source_file": "plugin/engine/graph.ts",
+      "source_location": "L15"
+    },
+    {
       "id": "plugin_engine_init_applyteam",
       "label": "applyTeam()",
       "_callable": true,
@@ -596,7 +729,19 @@
       "file_type": "code",
       "norm_label": "applyteam()",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L126"
+      "source_location": "L142"
+    },
+    {
+      "id": "plugin_engine_init_configure",
+      "label": "configure()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "init.ts",
+      "file_type": "code",
+      "norm_label": "configure()",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L184"
     },
     {
       "id": "plugin_engine_init_detect",
@@ -608,7 +753,7 @@
       "file_type": "code",
       "norm_label": "detect()",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L22"
+      "source_location": "L25"
     },
     {
       "id": "plugin_engine_init_doctor",
@@ -620,7 +765,7 @@
       "file_type": "code",
       "norm_label": "doctor()",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L84"
+      "source_location": "L99"
     },
     {
       "id": "plugin_engine_init_init",
@@ -632,7 +777,7 @@
       "file_type": "code",
       "norm_label": "init()",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L50"
+      "source_location": "L53"
     },
     {
       "id": "plugin_engine_init_projectdocs",
@@ -644,7 +789,7 @@
       "file_type": "code",
       "norm_label": "projectdocs()",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L145"
+      "source_location": "L161"
     },
     {
       "id": "plugin_engine_init_read",
@@ -656,7 +801,7 @@
       "file_type": "code",
       "norm_label": "read()",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L15"
+      "source_location": "L18"
     },
     {
       "id": "plugin_engine_team_activeroles",
@@ -815,16 +960,64 @@
       "source_location": "L37"
     },
     {
-      "id": "plugin_engine_backlog_parse",
-      "label": "parse()",
+      "id": "plugin_engine_chronicle_appendchronicle",
+      "label": "appendChronicle()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "cli.ts",
       "file_type": "code",
-      "norm_label": "parse()",
-      "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L8"
+      "norm_label": "appendchronicle()",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L45"
+    },
+    {
+      "id": "plugin_engine_chronicle_appendnotes",
+      "label": "appendNotes()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "appendnotes()",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L54"
+    },
+    {
+      "id": "plugin_engine_chronicle_chronicleentry",
+      "label": "chronicleEntry()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "chronicleentry()",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L27"
+    },
+    {
+      "id": "plugin_engine_chronicle_parsescribe",
+      "label": "parseScribe()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "parsescribe()",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L12"
+    },
+    {
+      "id": "plugin_engine_chronicle_stageoutput",
+      "label": "stageOutput()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "stageoutput()",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L23"
     },
     {
       "id": "plugin_engine_cli_commitpaths",
@@ -836,7 +1029,7 @@
       "file_type": "code",
       "norm_label": "commitpaths()",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L19"
+      "source_location": "L21"
     },
     {
       "id": "plugin_engine_cli_editbacklog",
@@ -848,7 +1041,7 @@
       "file_type": "code",
       "norm_label": "editbacklog()",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L26"
+      "source_location": "L41"
     },
     {
       "id": "plugin_engine_cli_find",
@@ -860,7 +1053,7 @@
       "file_type": "code",
       "norm_label": "find()",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L52"
+      "source_location": "L67"
     },
     {
       "id": "plugin_engine_cli_flag",
@@ -872,7 +1065,7 @@
       "file_type": "code",
       "norm_label": "flag()",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L61"
+      "source_location": "L76"
     },
     {
       "id": "plugin_engine_cli_main",
@@ -884,7 +1077,7 @@
       "file_type": "code",
       "norm_label": "main()",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L82"
+      "source_location": "L97"
     },
     {
       "id": "plugin_engine_cli_openevents",
@@ -896,7 +1089,7 @@
       "file_type": "code",
       "norm_label": "openevents()",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L47"
+      "source_location": "L62"
     },
     {
       "id": "plugin_engine_cli_readitems",
@@ -908,7 +1101,31 @@
       "file_type": "code",
       "norm_label": "readitems()",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L16"
+      "source_location": "L18"
+    },
+    {
+      "id": "plugin_engine_cli_recordlanding",
+      "label": "recordLanding()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "recordlanding()",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L53"
+    },
+    {
+      "id": "plugin_engine_cli_withlock",
+      "label": "withLock()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "withlock()",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L29"
     },
     {
       "id": "plugin_engine_init_nextstep",
@@ -920,19 +1137,7 @@
       "file_type": "code",
       "norm_label": "nextstep()",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L153"
-    },
-    {
-      "id": "plugin_engine_pipeline_stopall",
-      "label": "stopAll()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "stopall()",
-      "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L27"
+      "source_location": "L169"
     },
     {
       "id": "plugin_engine_worktree_branchof",
@@ -1031,64 +1236,16 @@
       "source_location": "L6"
     },
     {
-      "id": "plugin_engine_config_ismodel",
-      "label": "isModel()",
+      "id": "plugin_engine_backlog_parse",
+      "label": "parse()",
       "_callable": true,
       "_origin": "ast",
       "community": 4,
       "community_name": "server.ts",
       "file_type": "code",
-      "norm_label": "ismodel()",
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L18"
-    },
-    {
-      "id": "plugin_engine_config_isstr",
-      "label": "isStr()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "isstr()",
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L16"
-    },
-    {
-      "id": "plugin_engine_config_isstrlist",
-      "label": "isStrList()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "isstrlist()",
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L19"
-    },
-    {
-      "id": "plugin_engine_config_loadconfig",
-      "label": "loadConfig()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "loadconfig()",
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L46"
-    },
-    {
-      "id": "plugin_engine_config_parseconfig",
-      "label": "parseConfig()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "parseconfig()",
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L22"
+      "norm_label": "parse()",
+      "source_file": "plugin/engine/backlog.ts",
+      "source_location": "L8"
     },
     {
       "id": "plugin_engine_events_openstore",
@@ -1101,18 +1258,6 @@
       "norm_label": "openstore()",
       "source_file": "plugin/engine/events.ts",
       "source_location": "L17"
-    },
-    {
-      "id": "plugin_engine_init_configure",
-      "label": "configure()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "configure()",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L168"
     },
     {
       "id": "plugin_engine_server_buildgui",
@@ -1675,6 +1820,17 @@
       "source_location": "L10"
     },
     {
+      "id": "plugin_engine_events",
+      "label": "events.ts",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "events.ts",
+      "source_file": "plugin/engine/events.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "plugin_engine_hooks",
       "label": "hooks.ts",
       "_origin": "ast",
@@ -1705,7 +1861,7 @@
       "file_type": "code",
       "norm_label": "live",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L19"
+      "source_location": "L20"
     },
     {
       "id": "tests_factory_test",
@@ -1727,7 +1883,7 @@
       "file_type": "code",
       "norm_label": "task",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L17"
+      "source_location": "L19"
     },
     {
       "id": "tests_fixture",
@@ -1935,15 +2091,59 @@
       "source_location": "L1"
     },
     {
-      "id": "plugin_engine_backlog_sections",
-      "label": "SECTIONS",
+      "id": "plugin_engine_config",
+      "label": "config.ts",
       "_origin": "ast",
       "community": 13,
       "community_name": "init.ts",
       "file_type": "code",
-      "norm_label": "sections",
-      "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L2"
+      "norm_label": "config.ts",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "plugin_engine_config_efforts",
+      "label": "EFFORTS",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "init.ts",
+      "file_type": "code",
+      "norm_label": "efforts",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L10"
+    },
+    {
+      "id": "plugin_engine_config_runners",
+      "label": "RUNNERS",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "init.ts",
+      "file_type": "code",
+      "norm_label": "runners",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L9"
+    },
+    {
+      "id": "plugin_engine_graph",
+      "label": "graph.ts",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "init.ts",
+      "file_type": "code",
+      "norm_label": "graph.ts",
+      "source_file": "plugin/engine/graph.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "plugin_engine_graph_graph_ignore",
+      "label": "GRAPH_IGNORE",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "init.ts",
+      "file_type": "code",
+      "norm_label": "graph_ignore",
+      "source_file": "plugin/engine/graph.ts",
+      "source_location": "L7"
     },
     {
       "id": "plugin_engine_init",
@@ -1957,6 +2157,17 @@
       "source_location": "L1"
     },
     {
+      "id": "plugin_engine_init_doc_paths",
+      "label": "DOC_PATHS",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "init.ts",
+      "file_type": "code",
+      "norm_label": "doc_paths",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L14"
+    },
+    {
       "id": "plugin_engine_init_docs",
       "label": "DOCS",
       "_origin": "ast",
@@ -1965,7 +2176,7 @@
       "file_type": "code",
       "norm_label": "docs",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L142"
+      "source_location": "L158"
     },
     {
       "id": "plugin_engine_init_generated_mark",
@@ -1976,7 +2187,7 @@
       "file_type": "code",
       "norm_label": "generated_mark",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L9"
+      "source_location": "L10"
     },
     {
       "id": "plugin_engine_init_ignored",
@@ -1987,7 +2198,7 @@
       "file_type": "code",
       "norm_label": "ignored",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L13"
+      "source_location": "L16"
     },
     {
       "id": "plugin_engine_init_templates",
@@ -1998,7 +2209,7 @@
       "file_type": "code",
       "norm_label": "templates",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L11"
+      "source_location": "L12"
     },
     {
       "id": "plugin_engine_team",
@@ -2132,7 +2343,7 @@
       "node_kind": "heading",
       "norm_label": "commands",
       "source_file": "docs/ROLES.md",
-      "source_location": "L258"
+      "source_location": "L267"
     },
     {
       "id": "docs_roles_configuration",
@@ -2144,7 +2355,7 @@
       "node_kind": "heading",
       "norm_label": "configuration",
       "source_file": "docs/ROLES.md",
-      "source_location": "L251"
+      "source_location": "L260"
     },
     {
       "id": "docs_roles_customizing",
@@ -2156,7 +2367,7 @@
       "node_kind": "heading",
       "norm_label": "customizing",
       "source_file": "docs/ROLES.md",
-      "source_location": "L147"
+      "source_location": "L156"
     },
     {
       "id": "docs_roles_decisions_on_record",
@@ -2168,7 +2379,7 @@
       "node_kind": "heading",
       "norm_label": "decisions on record",
       "source_file": "docs/ROLES.md",
-      "source_location": "L269"
+      "source_location": "L278"
     },
     {
       "id": "docs_roles_documents",
@@ -2180,7 +2391,7 @@
       "node_kind": "heading",
       "norm_label": "documents",
       "source_file": "docs/ROLES.md",
-      "source_location": "L227"
+      "source_location": "L236"
     },
     {
       "id": "docs_roles_how_it_reports",
@@ -2192,7 +2403,7 @@
       "node_kind": "heading",
       "norm_label": "how it reports",
       "source_file": "docs/ROLES.md",
-      "source_location": "L185"
+      "source_location": "L194"
     },
     {
       "id": "docs_roles_knowledge_graph_and_memory",
@@ -2204,7 +2415,7 @@
       "node_kind": "heading",
       "norm_label": "knowledge graph and memory",
       "source_file": "docs/ROLES.md",
-      "source_location": "L242"
+      "source_location": "L251"
     },
     {
       "id": "docs_roles_responsibility_catalog",
@@ -2216,7 +2427,7 @@
       "node_kind": "heading",
       "norm_label": "responsibility catalog",
       "source_file": "docs/ROLES.md",
-      "source_location": "L39"
+      "source_location": "L48"
     },
     {
       "id": "docs_roles_roles_and_responsibilities",
@@ -2240,7 +2451,7 @@
       "node_kind": "heading",
       "norm_label": "rules the tool enforces whatever the grouping",
       "source_file": "docs/ROLES.md",
-      "source_location": "L157"
+      "source_location": "L166"
     },
     {
       "id": "docs_roles_skills",
@@ -2252,7 +2463,7 @@
       "node_kind": "heading",
       "norm_label": "skills",
       "source_file": "docs/ROLES.md",
-      "source_location": "L196"
+      "source_location": "L205"
     },
     {
       "id": "docs_roles_still_to_decide",
@@ -2264,7 +2475,7 @@
       "node_kind": "heading",
       "norm_label": "still to decide",
       "source_file": "docs/ROLES.md",
-      "source_location": "L286"
+      "source_location": "L295"
     },
     {
       "id": "docs_roles_suggested_build_order",
@@ -2276,7 +2487,7 @@
       "node_kind": "heading",
       "norm_label": "suggested build order",
       "source_file": "docs/ROLES.md",
-      "source_location": "L292"
+      "source_location": "L301"
     },
     {
       "id": "docs_roles_team_presets",
@@ -2288,7 +2499,7 @@
       "node_kind": "heading",
       "norm_label": "team presets",
       "source_file": "docs/ROLES.md",
-      "source_location": "L120"
+      "source_location": "L129"
     },
     {
       "id": "docs_roles_the_four_gates",
@@ -2300,7 +2511,7 @@
       "node_kind": "heading",
       "norm_label": "the four gates",
       "source_file": "docs/ROLES.md",
-      "source_location": "L171"
+      "source_location": "L180"
     },
     {
       "id": "docs_roles_the_idea",
@@ -2312,7 +2523,7 @@
       "node_kind": "heading",
       "norm_label": "the idea",
       "source_file": "docs/ROLES.md",
-      "source_location": "L27"
+      "source_location": "L36"
     },
     {
       "id": "docs_roles_the_security_and_performance_engineer",
@@ -2324,7 +2535,7 @@
       "node_kind": "heading",
       "norm_label": "the security and performance engineer",
       "source_file": "docs/ROLES.md",
-      "source_location": "L165"
+      "source_location": "L174"
     },
     {
       "id": "docs_roles_what_needs_the_user",
@@ -2336,7 +2547,7 @@
       "node_kind": "heading",
       "norm_label": "what needs the user",
       "source_file": "docs/ROLES.md",
-      "source_location": "L207"
+      "source_location": "L216"
     },
     {
       "id": "plugin_skills_design_skill",
@@ -2425,6 +2636,28 @@
       "source_location": "L1"
     },
     {
+      "id": "plugin_engine_backlog_sections",
+      "label": "SECTIONS",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "sections",
+      "source_file": "plugin/engine/backlog.ts",
+      "source_location": "L2"
+    },
+    {
+      "id": "plugin_engine_chronicle",
+      "label": "chronicle.ts",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "chronicle.ts",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "plugin_engine_cli",
       "label": "cli.ts",
       "_origin": "ast",
@@ -2444,7 +2677,7 @@
       "file_type": "code",
       "norm_label": "backlogpath",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L15"
+      "source_location": "L17"
     },
     {
       "id": "plugin_engine_cli_root",
@@ -2455,7 +2688,7 @@
       "file_type": "code",
       "norm_label": "root",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L14"
+      "source_location": "L16"
     },
     {
       "id": "plugin_engine_worktree",
@@ -2931,26 +3164,88 @@
       "source_location": "L21"
     },
     {
-      "id": "plugin_engine_config",
-      "label": "config.ts",
+      "id": "claude_agents_scribe",
+      "label": "scribe.md",
       "_origin": "ast",
-      "community": 4,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "config.ts",
-      "source_file": "plugin/engine/config.ts",
+      "community": 30,
+      "community_name": "scribe.md",
+      "file_type": "document",
+      "frontmatter": {
+        "name": "scribe",
+        "description": "Keeps the documents, chronicle and context files current.",
+        "tools": "Read, Grep, Glob, Bash, Skill"
+      },
+      "node_kind": "page",
+      "norm_label": "scribe.md",
+      "source_file": ".claude/agents/scribe.md",
       "source_location": "L1"
     },
     {
-      "id": "plugin_engine_config_efforts",
-      "label": "EFFORTS",
+      "id": "claude_agents_scribe_keep_the_role_notes",
+      "label": "Keep the role notes",
       "_origin": "ast",
-      "community": 4,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "efforts",
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L10"
+      "community": 30,
+      "community_name": "scribe.md",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "keep the role notes",
+      "source_file": ".claude/agents/scribe.md",
+      "source_location": "L17"
+    },
+    {
+      "id": "claude_agents_scribe_write_the_chronicle_entry",
+      "label": "Write the chronicle entry",
+      "_origin": "ast",
+      "community": 30,
+      "community_name": "scribe.md",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "write the chronicle entry",
+      "source_file": ".claude/agents/scribe.md",
+      "source_location": "L9"
+    },
+    {
+      "id": "plugin_templates_docs",
+      "label": "DOCS.md",
+      "_origin": "ast",
+      "community": 31,
+      "community_name": "DOCS.md",
+      "file_type": "document",
+      "node_kind": "page",
+      "norm_label": "docs.md",
+      "source_file": "plugin/templates/DOCS.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "plugin_templates_docs_documents",
+      "label": "Documents",
+      "_origin": "ast",
+      "community": 31,
+      "community_name": "DOCS.md",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "documents",
+      "source_file": "plugin/templates/DOCS.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "plugin_skills_docs_skill",
+      "label": "docs/SKILL.md",
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "docs/SKILL.md",
+      "file_type": "document",
+      "frontmatter": {
+        "name": "docs",
+        "description": "Bring the README, user documentation and context files (AGENTS.md) up to date with what has been built, with the user&#x27;s approval. Only when the user asks to update the documentation.",
+        "argument-hint": "[what to focus on]",
+        "disable-model-invocation": "true",
+        "allowed-tools": "Bash(factory *)"
+      },
+      "node_kind": "page",
+      "norm_label": "docs/skill.md",
+      "source_file": "plugin/skills/docs/SKILL.md",
+      "source_location": "L1"
     },
     {
       "id": "plugin_engine_config_roles",
@@ -2962,28 +3257,6 @@
       "norm_label": "roles",
       "source_file": "plugin/engine/config.ts",
       "source_location": "L7"
-    },
-    {
-      "id": "plugin_engine_config_runners",
-      "label": "RUNNERS",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "runners",
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L9"
-    },
-    {
-      "id": "plugin_engine_events",
-      "label": "events.ts",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "events.ts",
-      "source_file": "plugin/engine/events.ts",
-      "source_location": "L1"
     },
     {
       "id": "plugin_engine_server",
@@ -3361,7 +3634,7 @@
       "node_kind": "heading",
       "norm_label": "developing and testing",
       "source_file": "docs/PLUGIN.md",
-      "source_location": "L96"
+      "source_location": "L97"
     },
     {
       "id": "docs_plugin_known_gaps",
@@ -3373,7 +3646,7 @@
       "node_kind": "heading",
       "norm_label": "known gaps",
       "source_file": "docs/PLUGIN.md",
-      "source_location": "L128"
+      "source_location": "L129"
     },
     {
       "id": "docs_plugin_layout",
@@ -3397,7 +3670,7 @@
       "node_kind": "heading",
       "norm_label": "release checklist",
       "source_file": "docs/PLUGIN.md",
-      "source_location": "L109"
+      "source_location": "L110"
     },
     {
       "id": "docs_plugin_rules_that_come_from_how_plugins_work",
@@ -3421,7 +3694,7 @@
       "node_kind": "heading",
       "norm_label": "scopes",
       "source_file": "docs/PLUGIN.md",
-      "source_location": "L81"
+      "source_location": "L82"
     },
     {
       "id": "docs_plugin_the_gui_is_source_outside_build_inside",
@@ -3433,7 +3706,7 @@
       "node_kind": "heading",
       "norm_label": "the gui is source outside, build inside",
       "source_file": "docs/PLUGIN.md",
-      "source_location": "L88"
+      "source_location": "L89"
     },
     {
       "id": "docs_plugin_two_things_in_one_repository",
@@ -3469,7 +3742,7 @@
       "node_kind": "heading",
       "norm_label": "configuration",
       "source_file": "README.md",
-      "source_location": "L89"
+      "source_location": "L110"
     },
     {
       "id": "readme_control_plane",
@@ -3481,7 +3754,19 @@
       "node_kind": "heading",
       "norm_label": "control plane",
       "source_file": "README.md",
-      "source_location": "L73"
+      "source_location": "L94"
+    },
+    {
+      "id": "readme_documents_and_memory",
+      "label": "Documents and memory",
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "Software Factory",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "documents and memory",
+      "source_file": "README.md",
+      "source_location": "L57"
     },
     {
       "id": "readme_how_a_task_flows",
@@ -3493,7 +3778,7 @@
       "node_kind": "heading",
       "norm_label": "how a task flows",
       "source_file": "README.md",
-      "source_location": "L57"
+      "source_location": "L78"
     },
     {
       "id": "readme_layout",
@@ -3505,7 +3790,7 @@
       "node_kind": "heading",
       "norm_label": "layout",
       "source_file": "README.md",
-      "source_location": "L146"
+      "source_location": "L167"
     },
     {
       "id": "readme_quick_start",
@@ -3541,7 +3826,7 @@
       "node_kind": "heading",
       "norm_label": "safety model",
       "source_file": "README.md",
-      "source_location": "L112"
+      "source_location": "L133"
     },
     {
       "id": "readme_software_factory",
@@ -3577,7 +3862,7 @@
       "node_kind": "heading",
       "norm_label": "tests",
       "source_file": "README.md",
-      "source_location": "L138"
+      "source_location": "L159"
     },
     {
       "id": "agents_control_plane_gui",
@@ -3880,6 +4165,18 @@
       "source_url": null
     },
     {
+      "id": "ref_bun_sqlite",
+      "label": "ref_bun_sqlite",
+      "_origin": "semantic",
+      "community": 1,
+      "community_name": "factory.test.ts",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_bun_sqlite",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "ref_bun_test",
       "label": "ref_bun_test",
       "_origin": "semantic",
@@ -3924,18 +4221,6 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_node_path",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "ref_bun_sqlite",
-      "label": "ref_bun_sqlite",
-      "_origin": "semantic",
-      "community": 4,
-      "community_name": "server.ts",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_bun_sqlite",
       "source_file": "",
       "type": "external"
     }
@@ -4363,6 +4648,18 @@
     },
     {
       "source": "plugin_engine_cli_editbacklog",
+      "target": "plugin_engine_cli_withlock",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L42",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_editbacklog",
       "target": "plugin_engine_cli_commitpaths",
       "relation": "calls",
       "_origin": "ast",
@@ -4370,7 +4667,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L41",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -4382,7 +4679,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L53",
+      "source_location": "L68",
       "weight": 1.0
     },
     {
@@ -4394,59 +4691,11 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L53",
+      "source_location": "L68",
       "weight": 1.0
     },
     {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_skills_addskill",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L100",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_skills_setskill",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L101",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_cli_commitpaths",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L103",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_init_applyteam",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L116",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
+      "source": "plugin_engine_cli_graphenabled",
       "target": "plugin_engine_config_loadconfig",
       "relation": "calls",
       "_origin": "ast",
@@ -4454,247 +4703,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L123",
+      "source_location": "L50",
       "weight": 1.0
     },
     {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_team_describeteam",
+      "source": "plugin_engine_cli_graphenabled",
+      "target": "plugin_engine_graph_graphifyinstalled",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L125",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_cli_flag",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L143",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_init_configure",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L143",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_init_detect",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L148",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_init_init",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L155",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_pipeline_shellgate",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L165",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_init_doctor",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L172",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_cli_openevents",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L180",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_cli_readitems",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L184",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_cli_find",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L191",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_init_projectdocs",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L197",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_init_nextstep",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L199",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_backlog_move",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L206",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_team_chatprompt",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L213",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_worktree_land",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L218",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_worktree_removeworktree",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L219",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_claude_clauderunner",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L237",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_worktree_ensureworktree",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L259",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_pipeline_runtask",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L262",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_worktree_commitall",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L265",
+      "source_location": "L50",
       "weight": 1.0
     },
     {
@@ -4706,7 +4727,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L88",
+      "source_location": "L103",
       "weight": 1.0
     },
     {
@@ -4718,7 +4739,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L89",
+      "source_location": "L104",
       "weight": 1.0
     },
     {
@@ -4730,7 +4751,355 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L94",
+      "source_location": "L109",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_skills_addskill",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L115",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_skills_setskill",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L116",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_cli_commitpaths",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L118",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_init_applyteam",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L131",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_config_loadconfig",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L138",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_team_describeteam",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L140",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_cli_flag",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L159",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_init_configure",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L159",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_init_detect",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L164",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_init_init",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L171",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_pipeline_shellgate",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L182",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_init_doctor",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L189",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_cli_openevents",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L197",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_cli_readitems",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L201",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_cli_find",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L208",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_init_projectdocs",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L214",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_init_nextstep",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L216",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_backlog_move",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L223",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_team_chatprompt",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L230",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_worktree_land",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L235",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_worktree_removeworktree",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L236",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_cli_recordlanding",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L243",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_cli_withlock",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L243",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_cli_graphenabled",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L246",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_graph_updategraph",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L247",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_claude_clauderunner",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L265",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_worktree_ensureworktree",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L287",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_pipeline_runtask",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L290",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_worktree_commitall",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L293",
       "weight": 1.0
     },
     {
@@ -4742,7 +5111,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L49",
+      "source_location": "L64",
       "weight": 1.0
     },
     {
@@ -4754,7 +5123,79 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L16",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_recordlanding",
+      "target": "plugin_engine_chronicle_parsescribe",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L55",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_recordlanding",
+      "target": "plugin_engine_chronicle_stageoutput",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L55",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_recordlanding",
+      "target": "plugin_engine_chronicle_appendchronicle",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L56",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_recordlanding",
+      "target": "plugin_engine_chronicle_chronicleentry",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L56",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_recordlanding",
+      "target": "plugin_engine_chronicle_appendnotes",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L57",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_recordlanding",
+      "target": "plugin_engine_cli_commitpaths",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L58",
       "weight": 1.0
     },
     {
@@ -4766,7 +5207,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L47",
+      "source_location": "L55",
       "weight": 1.0
     },
     {
@@ -4778,7 +5219,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L25",
+      "source_location": "L27",
       "weight": 1.0
     },
     {
@@ -4790,7 +5231,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L33",
+      "source_location": "L36",
       "weight": 1.0
     },
     {
@@ -4814,7 +5255,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L130",
+      "source_location": "L146",
       "weight": 1.0
     },
     {
@@ -4826,7 +5267,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L132",
+      "source_location": "L148",
       "weight": 1.0
     },
     {
@@ -4838,7 +5279,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L132",
+      "source_location": "L148",
       "weight": 1.0
     },
     {
@@ -4850,7 +5291,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L170",
+      "source_location": "L186",
       "weight": 1.0
     },
     {
@@ -4862,7 +5303,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L171",
+      "source_location": "L187",
       "weight": 1.0
     },
     {
@@ -4874,7 +5315,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L26",
+      "source_location": "L29",
       "weight": 1.0
     },
     {
@@ -4886,7 +5327,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L100",
+      "source_location": "L115",
       "weight": 1.0
     },
     {
@@ -4898,7 +5339,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L104",
+      "source_location": "L119",
       "weight": 1.0
     },
     {
@@ -4910,7 +5351,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L109",
+      "source_location": "L124",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init_doctor",
+      "target": "plugin_engine_graph_graphifyinstalled",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L127",
       "weight": 1.0
     },
     {
@@ -4922,7 +5375,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L51",
+      "source_location": "L54",
       "weight": 1.0
     },
     {
@@ -4934,7 +5387,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L61",
+      "source_location": "L64",
       "weight": 1.0
     },
     {
@@ -4946,7 +5399,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L67",
+      "source_location": "L70",
       "weight": 1.0
     },
     {
@@ -4958,7 +5411,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L68",
+      "source_location": "L71",
       "weight": 1.0
     },
     {
@@ -4970,7 +5423,31 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L71",
+      "source_location": "L75",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init_init",
+      "target": "plugin_engine_graph_graphifyinstalled",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L86",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init_init",
+      "target": "plugin_engine_graph_updategraph",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L90",
       "weight": 1.0
     },
     {
@@ -4982,7 +5459,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L147",
+      "source_location": "L163",
       "weight": 1.0
     },
     {
@@ -4994,7 +5471,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L103",
+      "source_location": "L109",
       "weight": 1.0
     },
     {
@@ -5006,7 +5483,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L116",
+      "source_location": "L129",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_pipeline_runtask",
+      "target": "plugin_engine_chronicle_readnotes",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/pipeline.ts",
+      "source_location": "L89",
       "weight": 1.0
     },
     {
@@ -5018,7 +5507,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L37",
+      "source_location": "L38",
       "weight": 1.0
     },
     {
@@ -5367,7 +5856,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L109",
+      "source_location": "L124",
       "weight": 1.0
     },
     {
@@ -5380,7 +5869,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L179",
+      "source_location": "L196",
       "weight": 1.0
     },
     {
@@ -5888,6 +6377,18 @@
       "weight": 1.0
     },
     {
+      "source": "plugin_engine_chronicle",
+      "target": "plugin_engine_config_roles",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
       "source": "plugin_engine_claude",
       "target": "plugin_engine_pipeline_job",
       "relation": "imports",
@@ -5949,7 +6450,7 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_engine_pipeline_runtask",
+      "target": "plugin_engine_graph_graphifyinstalled",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -5957,6 +6458,78 @@
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
       "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_graph_updategraph",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_team_chatprompt",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_team_default_preset",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_team_describeteam",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_team_presets",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_pipeline_runtask",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -5968,7 +6541,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -5980,7 +6553,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -5992,7 +6565,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -6004,7 +6577,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L11",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -6016,7 +6589,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L11",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -6028,7 +6601,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L11",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -6040,7 +6613,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L12",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -6052,7 +6625,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L12",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -6064,7 +6637,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L12",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -6076,7 +6649,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L12",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -6213,6 +6786,18 @@
     },
     {
       "source": "plugin_engine_cli",
+      "target": "plugin_engine_init_doc_paths",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
       "target": "plugin_engine_init_doctor",
       "relation": "imports",
       "_origin": "ast",
@@ -6261,7 +6846,7 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_engine_team_chatprompt",
+      "target": "plugin_engine_chronicle_appendchronicle",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6273,7 +6858,7 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_engine_team_default_preset",
+      "target": "plugin_engine_chronicle_appendnotes",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6285,7 +6870,7 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_engine_team_describeteam",
+      "target": "plugin_engine_chronicle_chronicleentry",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6297,7 +6882,19 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_engine_team_presets",
+      "target": "plugin_engine_chronicle_parsescribe",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_chronicle_stageoutput",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6310,6 +6907,30 @@
     {
       "source": "plugin_engine_config",
       "target": "plugin_engine_team_activeroles",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_config",
+      "target": "plugin_engine_team_default_preset",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_config",
+      "target": "plugin_engine_team_presets",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6381,7 +7002,7 @@
     },
     {
       "source": "plugin_engine_init",
-      "target": "plugin_engine_skills_roleskills",
+      "target": "plugin_engine_graph_graph_ignore",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6393,7 +7014,31 @@
     },
     {
       "source": "plugin_engine_init",
-      "target": "plugin_engine_team_activeroles",
+      "target": "plugin_engine_graph_graphifyinstalled",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init",
+      "target": "plugin_engine_graph_updategraph",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init",
+      "target": "plugin_engine_skills_roleskills",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6401,6 +7046,18 @@
       "context": "import",
       "source_file": "plugin/engine/init.ts",
       "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init",
+      "target": "plugin_engine_team_activeroles",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L8",
       "weight": 1.0
     },
     {
@@ -6412,7 +7069,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L7",
+      "source_location": "L8",
       "weight": 1.0
     },
     {
@@ -6424,7 +7081,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L7",
+      "source_location": "L8",
       "weight": 1.0
     },
     {
@@ -6436,7 +7093,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L7",
+      "source_location": "L8",
       "weight": 1.0
     },
     {
@@ -6448,7 +7105,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L7",
+      "source_location": "L8",
       "weight": 1.0
     },
     {
@@ -6477,7 +7134,7 @@
     },
     {
       "source": "plugin_engine_pipeline",
-      "target": "plugin_engine_events_store",
+      "target": "plugin_engine_chronicle_readnotes",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6485,6 +7142,18 @@
       "context": "import",
       "source_file": "plugin/engine/pipeline.ts",
       "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_pipeline",
+      "target": "plugin_engine_events_store",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/pipeline.ts",
+      "source_location": "L5",
       "weight": 1.0
     },
     {
@@ -6621,7 +7290,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_engine_init_applyteam",
+      "target": "tests_fixture_backlog",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6629,6 +7298,78 @@
       "context": "import",
       "source_file": "tests/factory.test.ts",
       "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "tests_fixture_config",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "tests_fixture_repo",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "tests_fixture_role",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "tests_fixture_tmp",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_hooks_guard",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_init_applyteam",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -6640,7 +7381,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -6652,7 +7393,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -6664,7 +7405,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -6676,7 +7417,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -6688,7 +7429,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -6700,7 +7441,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L10",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -6712,7 +7453,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L11",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -6724,7 +7465,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L11",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -6736,7 +7477,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L11",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -6748,7 +7489,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L11",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -6760,7 +7501,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L11",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -6772,7 +7513,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L11",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -6784,7 +7525,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L11",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -6796,7 +7537,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L11",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -6808,7 +7549,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L12",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -6820,7 +7561,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L12",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -6832,7 +7573,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L12",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -6844,7 +7585,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L12",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -6856,7 +7597,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L12",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -6868,7 +7609,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L13",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
@@ -6880,7 +7621,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L14",
+      "source_location": "L16",
       "weight": 1.0
     },
     {
@@ -6892,7 +7633,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L14",
+      "source_location": "L16",
       "weight": 1.0
     },
     {
@@ -6904,7 +7645,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L14",
+      "source_location": "L16",
       "weight": 1.0
     },
     {
@@ -6916,7 +7657,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L14",
+      "source_location": "L16",
       "weight": 1.0
     },
     {
@@ -6928,7 +7669,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L14",
+      "source_location": "L16",
       "weight": 1.0
     },
     {
@@ -6940,7 +7681,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L14",
+      "source_location": "L16",
       "weight": 1.0
     },
     {
@@ -6952,7 +7693,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L14",
+      "source_location": "L16",
       "weight": 1.0
     },
     {
@@ -6964,7 +7705,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L14",
+      "source_location": "L16",
       "weight": 1.0
     },
     {
@@ -6976,7 +7717,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L15",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -6988,7 +7729,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L15",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -7000,7 +7741,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L15",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -7012,7 +7753,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L15",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -7089,6 +7830,18 @@
     },
     {
       "source": "tests_factory_test",
+      "target": "plugin_engine_config_loadconfig",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
       "target": "plugin_engine_config_parseconfig",
       "relation": "imports",
       "_origin": "ast",
@@ -7101,7 +7854,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_engine_events_openstore",
+      "target": "plugin_engine_chronicle_appendchronicle",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7113,7 +7866,67 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "tests_fixture_backlog",
+      "target": "plugin_engine_chronicle_appendnotes",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_chronicle_chronicleentry",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_chronicle_parsescribe",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_chronicle_readnotes",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_chronicle_stageoutput",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_graph_graphifyinstalled",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7125,7 +7938,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "tests_fixture_config",
+      "target": "plugin_engine_graph_updategraph",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7137,43 +7950,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "tests_fixture_repo",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "tests/factory.test.ts",
-      "source_location": "L8",
-      "weight": 1.0
-    },
-    {
-      "source": "tests_factory_test",
-      "target": "tests_fixture_role",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "tests/factory.test.ts",
-      "source_location": "L8",
-      "weight": 1.0
-    },
-    {
-      "source": "tests_factory_test",
-      "target": "tests_fixture_tmp",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "tests/factory.test.ts",
-      "source_location": "L8",
-      "weight": 1.0
-    },
-    {
-      "source": "tests_factory_test",
-      "target": "plugin_engine_hooks_guard",
+      "target": "plugin_engine_events_openstore",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7377,6 +8154,42 @@
       "weight": 1.0
     },
     {
+      "source": "plugin_engine_chronicle",
+      "target": "ref_node_fs",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_chronicle",
+      "target": "ref_node_path",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_chronicle",
+      "target": "plugin_engine_config",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
       "source": "plugin_engine_claude",
       "target": "ref_node_fs",
       "relation": "imports_from",
@@ -7426,7 +8239,7 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_engine_pipeline",
+      "target": "plugin_engine_graph",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7438,7 +8251,7 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_engine_skills",
+      "target": "plugin_engine_team",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7450,7 +8263,7 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_engine_worktree",
+      "target": "plugin_engine_pipeline",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7458,6 +8271,30 @@
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
       "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_skills",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_worktree",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -7546,7 +8383,7 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_engine_team",
+      "target": "plugin_engine_chronicle",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7602,6 +8439,30 @@
       "context": "import",
       "source_file": "plugin/engine/events.ts",
       "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_graph",
+      "target": "ref_node_fs",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/graph.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_graph",
+      "target": "ref_node_path",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/graph.ts",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -7690,7 +8551,7 @@
     },
     {
       "source": "plugin_engine_init",
-      "target": "plugin_engine_skills",
+      "target": "plugin_engine_graph",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7702,7 +8563,7 @@
     },
     {
       "source": "plugin_engine_init",
-      "target": "plugin_engine_team",
+      "target": "plugin_engine_skills",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7710,6 +8571,18 @@
       "context": "import",
       "source_file": "plugin/engine/init.ts",
       "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init",
+      "target": "plugin_engine_team",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L8",
       "weight": 1.0
     },
     {
@@ -7751,7 +8624,7 @@
     },
     {
       "source": "plugin_engine_pipeline",
-      "target": "plugin_engine_events",
+      "target": "plugin_engine_chronicle",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7759,6 +8632,18 @@
       "context": "import",
       "source_file": "plugin/engine/pipeline.ts",
       "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_pipeline",
+      "target": "plugin_engine_events",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/pipeline.ts",
+      "source_location": "L5",
       "type_only": true,
       "weight": 1.0
     },
@@ -7944,7 +8829,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_engine_init",
+      "target": "tests_fixture",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7956,7 +8841,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_engine_team",
+      "target": "plugin_engine_hooks",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7968,7 +8853,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_engine_pipeline",
+      "target": "plugin_engine_init",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7980,7 +8865,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_engine_server",
+      "target": "plugin_engine_team",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7992,7 +8877,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_engine_state",
+      "target": "plugin_engine_pipeline",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -8004,7 +8889,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_engine_skills",
+      "target": "plugin_engine_server",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -8012,6 +8897,30 @@
       "context": "import",
       "source_file": "tests/factory.test.ts",
       "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_state",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_skills",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -8076,7 +8985,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_engine_events",
+      "target": "plugin_engine_chronicle",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -8088,7 +8997,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "tests_fixture",
+      "target": "plugin_engine_graph",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -8100,7 +9009,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_engine_hooks",
+      "target": "plugin_engine_events",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -8183,6 +9092,28 @@
       "weight": 1.0
     },
     {
+      "source": "claude_agents_scribe",
+      "target": "claude_agents_scribe_keep_the_role_notes",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".claude/agents/scribe.md",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_agents_scribe",
+      "target": "claude_agents_scribe_write_the_chronicle_entry",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".claude/agents/scribe.md",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
       "source": "docs_plugin",
       "target": "docs_plugin_building_and_publishing_the_plugin",
       "relation": "contains",
@@ -8191,17 +9122,6 @@
       "confidence_score": 1.0,
       "source_file": "docs/PLUGIN.md",
       "source_location": "L1",
-      "weight": 1.0
-    },
-    {
-      "source": "docs_plugin_building_and_publishing_the_plugin",
-      "target": "docs_plugin_release_checklist",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "docs/PLUGIN.md",
-      "source_location": "L109",
       "weight": 1.0
     },
     {
@@ -8217,13 +9137,24 @@
     },
     {
       "source": "docs_plugin_building_and_publishing_the_plugin",
+      "target": "docs_plugin_release_checklist",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/PLUGIN.md",
+      "source_location": "L110",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_plugin_building_and_publishing_the_plugin",
       "target": "docs_plugin_known_gaps",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/PLUGIN.md",
-      "source_location": "L128",
+      "source_location": "L129",
       "weight": 1.0
     },
     {
@@ -8267,7 +9198,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/PLUGIN.md",
-      "source_location": "L81",
+      "source_location": "L82",
       "weight": 1.0
     },
     {
@@ -8278,7 +9209,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/PLUGIN.md",
-      "source_location": "L88",
+      "source_location": "L89",
       "weight": 1.0
     },
     {
@@ -8289,7 +9220,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/PLUGIN.md",
-      "source_location": "L96",
+      "source_location": "L97",
       "weight": 1.0
     },
     {
@@ -8311,7 +9242,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROLES.md",
-      "source_location": "L120",
+      "source_location": "L129",
       "weight": 1.0
     },
     {
@@ -8322,7 +9253,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROLES.md",
-      "source_location": "L165",
+      "source_location": "L174",
       "weight": 1.0
     },
     {
@@ -8333,7 +9264,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROLES.md",
-      "source_location": "L196",
+      "source_location": "L205",
       "weight": 1.0
     },
     {
@@ -8344,7 +9275,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROLES.md",
-      "source_location": "L207",
+      "source_location": "L216",
       "weight": 1.0
     },
     {
@@ -8355,7 +9286,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROLES.md",
-      "source_location": "L227",
+      "source_location": "L236",
       "weight": 1.0
     },
     {
@@ -8366,7 +9297,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROLES.md",
-      "source_location": "L242",
+      "source_location": "L251",
       "weight": 1.0
     },
     {
@@ -8377,7 +9308,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROLES.md",
-      "source_location": "L251",
+      "source_location": "L260",
       "weight": 1.0
     },
     {
@@ -8388,7 +9319,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROLES.md",
-      "source_location": "L258",
+      "source_location": "L267",
       "weight": 1.0
     },
     {
@@ -8399,18 +9330,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROLES.md",
-      "source_location": "L269",
-      "weight": 1.0
-    },
-    {
-      "source": "docs_roles_roles_and_responsibilities",
-      "target": "docs_roles_the_idea",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "docs/ROLES.md",
-      "source_location": "L27",
+      "source_location": "L278",
       "weight": 1.0
     },
     {
@@ -8421,7 +9341,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROLES.md",
-      "source_location": "L286",
+      "source_location": "L295",
       "weight": 1.0
     },
     {
@@ -8432,7 +9352,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROLES.md",
-      "source_location": "L292",
+      "source_location": "L301",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_roles_and_responsibilities",
+      "target": "docs_roles_the_idea",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L36",
       "weight": 1.0
     },
     {
@@ -8443,7 +9374,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROLES.md",
-      "source_location": "L39",
+      "source_location": "L48",
       "weight": 1.0
     },
     {
@@ -8454,7 +9385,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROLES.md",
-      "source_location": "L147",
+      "source_location": "L156",
       "weight": 1.0
     },
     {
@@ -8465,7 +9396,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROLES.md",
-      "source_location": "L157",
+      "source_location": "L166",
       "weight": 1.0
     },
     {
@@ -8476,7 +9407,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROLES.md",
-      "source_location": "L171",
+      "source_location": "L180",
       "weight": 1.0
     },
     {
@@ -8487,7 +9418,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROLES.md",
-      "source_location": "L185",
+      "source_location": "L194",
       "weight": 1.0
     },
     {
@@ -9250,6 +10181,83 @@
       "weight": 1.0
     },
     {
+      "source": "plugin_engine_chronicle",
+      "target": "plugin_engine_chronicle_parsescribe",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_chronicle",
+      "target": "plugin_engine_chronicle_stageoutput",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_chronicle",
+      "target": "plugin_engine_chronicle_chronicleentry",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_chronicle",
+      "target": "plugin_engine_chronicle_appendchronicle",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_chronicle",
+      "target": "plugin_engine_chronicle_appendnotes",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L54",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_chronicle",
+      "target": "plugin_engine_chronicle_readnotes",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L69",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_chronicle",
+      "target": "plugin_engine_chronicle_eventlike",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
       "source": "plugin_engine_claude",
       "target": "plugin_engine_claude_allow",
       "relation": "contains",
@@ -9323,7 +10331,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L14",
+      "source_location": "L16",
       "weight": 1.0
     },
     {
@@ -9334,7 +10342,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L15",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -9345,7 +10353,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L16",
+      "source_location": "L18",
       "weight": 1.0
     },
     {
@@ -9356,7 +10364,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L19",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_cli_withlock",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L29",
       "weight": 1.0
     },
     {
@@ -9367,7 +10386,29 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L26",
+      "source_location": "L41",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_cli_graphenabled",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L50",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_cli_recordlanding",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L53",
       "weight": 1.0
     },
     {
@@ -9378,7 +10419,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L47",
+      "source_location": "L62",
       "weight": 1.0
     },
     {
@@ -9389,7 +10430,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L52",
+      "source_location": "L67",
       "weight": 1.0
     },
     {
@@ -9400,7 +10441,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L61",
+      "source_location": "L76",
       "weight": 1.0
     },
     {
@@ -9411,7 +10452,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L82",
+      "source_location": "L97",
       "weight": 1.0
     },
     {
@@ -9433,7 +10474,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L12",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -9444,7 +10485,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L14",
+      "source_location": "L16",
       "weight": 1.0
     },
     {
@@ -9455,7 +10496,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L16",
+      "source_location": "L18",
       "weight": 1.0
     },
     {
@@ -9466,7 +10507,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L18",
+      "source_location": "L20",
       "weight": 1.0
     },
     {
@@ -9477,7 +10518,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L19",
+      "source_location": "L21",
       "weight": 1.0
     },
     {
@@ -9488,7 +10529,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L22",
+      "source_location": "L24",
       "weight": 1.0
     },
     {
@@ -9499,7 +10540,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L46",
+      "source_location": "L51",
       "weight": 1.0
     },
     {
@@ -9580,6 +10621,39 @@
       "weight": 1.0
     },
     {
+      "source": "plugin_engine_graph",
+      "target": "plugin_engine_graph_updategraph",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/graph.ts",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_graph",
+      "target": "plugin_engine_graph_graph_ignore",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/graph.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_graph",
+      "target": "plugin_engine_graph_graphifyinstalled",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/graph.ts",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
       "source": "plugin_engine_hooks",
       "target": "plugin_engine_hooks_real",
       "relation": "contains",
@@ -9614,13 +10688,35 @@
     },
     {
       "source": "plugin_engine_init",
+      "target": "plugin_engine_init_generated_mark",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init",
       "target": "plugin_engine_init_templates",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L11",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init",
+      "target": "plugin_engine_init_doc_paths",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -9631,18 +10727,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L126",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_init",
-      "target": "plugin_engine_init_ignored",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L13",
+      "source_location": "L142",
       "weight": 1.0
     },
     {
@@ -9653,7 +10738,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L142",
+      "source_location": "L158",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init",
+      "target": "plugin_engine_init_ignored",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L16",
       "weight": 1.0
     },
     {
@@ -9664,18 +10760,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L145",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_init",
-      "target": "plugin_engine_init_read",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L15",
+      "source_location": "L161",
       "weight": 1.0
     },
     {
@@ -9686,7 +10771,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L153",
+      "source_location": "L169",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init",
+      "target": "plugin_engine_init_read",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L18",
       "weight": 1.0
     },
     {
@@ -9697,7 +10793,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L168",
+      "source_location": "L184",
       "weight": 1.0
     },
     {
@@ -9708,7 +10804,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L22",
+      "source_location": "L25",
       "weight": 1.0
     },
     {
@@ -9719,7 +10815,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L50",
+      "source_location": "L53",
       "weight": 1.0
     },
     {
@@ -9730,18 +10826,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L84",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_init",
-      "target": "plugin_engine_init_generated_mark",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L9",
+      "source_location": "L99",
       "weight": 1.0
     },
     {
@@ -9752,7 +10837,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L12",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -9763,7 +10848,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -9774,7 +10859,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
@@ -9785,7 +10870,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L19",
+      "source_location": "L20",
       "weight": 1.0
     },
     {
@@ -9796,7 +10881,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0
     },
     {
@@ -9807,7 +10892,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L27",
+      "source_location": "L28",
       "weight": 1.0
     },
     {
@@ -9818,7 +10903,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L33",
+      "source_location": "L34",
       "weight": 1.0
     },
     {
@@ -9829,7 +10914,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L47",
+      "source_location": "L48",
       "weight": 1.0
     },
     {
@@ -9840,7 +10925,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L53",
+      "source_location": "L57",
       "weight": 1.0
     },
     {
@@ -9851,18 +10936,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L59",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_pipeline",
-      "target": "plugin_engine_pipeline_status",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L6",
+      "source_location": "L63",
       "weight": 1.0
     },
     {
@@ -9873,7 +10947,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L62",
+      "source_location": "L66",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_pipeline",
+      "target": "plugin_engine_pipeline_status",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/pipeline.ts",
+      "source_location": "L7",
       "weight": 1.0
     },
     {
@@ -9884,7 +10969,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L7",
+      "source_location": "L8",
       "weight": 1.0
     },
     {
@@ -10592,6 +11677,17 @@
       "weight": 1.0
     },
     {
+      "source": "plugin_templates_docs",
+      "target": "plugin_templates_docs_documents",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/templates/DOCS.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
       "source": "plugin_templates_rules",
       "target": "plugin_templates_rules_software_factory_rules",
       "relation": "contains",
@@ -10626,13 +11722,24 @@
     },
     {
       "source": "readme_software_factory",
+      "target": "readme_configuration",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L110",
+      "weight": 1.0
+    },
+    {
+      "source": "readme_software_factory",
       "target": "readme_safety_model",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L112",
+      "source_location": "L133",
       "weight": 1.0
     },
     {
@@ -10643,7 +11750,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L138",
+      "source_location": "L159",
       "weight": 1.0
     },
     {
@@ -10654,7 +11761,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L146",
+      "source_location": "L167",
       "weight": 1.0
     },
     {
@@ -10681,7 +11788,7 @@
     },
     {
       "source": "readme_software_factory",
-      "target": "readme_how_a_task_flows",
+      "target": "readme_documents_and_memory",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -10692,24 +11799,24 @@
     },
     {
       "source": "readme_software_factory",
+      "target": "readme_how_a_task_flows",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "L78",
+      "weight": 1.0
+    },
+    {
+      "source": "readme_software_factory",
       "target": "readme_control_plane",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "README.md",
-      "source_location": "L73",
-      "weight": 1.0
-    },
-    {
-      "source": "readme_software_factory",
-      "target": "readme_configuration",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "README.md",
-      "source_location": "L89",
+      "source_location": "L94",
       "weight": 1.0
     },
     {
@@ -10720,7 +11827,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "tests/factory.test.ts",
-      "source_location": "L17",
+      "source_location": "L19",
       "weight": 1.0
     },
     {
@@ -10926,7 +12033,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L252",
+      "source_location": "L280",
       "weight": 1.0
     },
     {
@@ -10938,7 +12045,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L19",
+      "source_location": "L21",
       "weight": 1.0
     },
     {
@@ -11312,5 +12419,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "275678eaa2ec577d2d8cc84b2cb1f3026e81f914"
+  "built_at_commit": "ea48e9a8ca963ee9f4740a9a2399b38fcabcfdcf"
 }

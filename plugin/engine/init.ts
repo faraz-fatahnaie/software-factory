@@ -3,12 +3,15 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import { join } from "node:path";
 import { SECTIONS } from "./backlog";
 import { loadConfig, parseConfig, ROLES } from "./config";
+import { GRAPH_IGNORE, graphifyInstalled, updateGraph } from "./graph";
 import { roleSkills } from "./skills";
 import { activeRoles, DEFAULT_PRESET, GENERATED, presets, renderRole } from "./team";
 
 const GENERATED_MARK = GENERATED.slice(0, 40);
 
 const TEMPLATES = join(import.meta.dir, "..", "templates");
+/** What `factory docs save` commits: documents, never code. */
+export const DOC_PATHS = ["docs", "README.md", "CHANGELOG.md", "AGENTS.md", "CLAUDE.md"];
 const RULES_HEADING = "## Software Factory rules";
 const IGNORED = [".factory/", ".worktrees/"];
 
@@ -65,9 +68,10 @@ export function init(dir: string, opts: { setup?: string[]; gate?: string[] } = 
 
   const team = presets[DEFAULT_PRESET]!;
   const roles = Object.fromEntries(activeRoles(team).map((name) => [name, { runner: "claude", ...team.roles[name]!.defaults! }]));
-  const config = parseConfig({ setup: opts.setup ?? guess.setup, gate: opts.gate ?? guess.gate, roles });
+  const config = parseConfig({ setup: opts.setup ?? guess.setup, gate: opts.gate ?? guess.gate, graph: true, roles });
   create("factory.config.json", `${JSON.stringify(config, null, 2)}\n`);
   create("BACKLOG.md", readFileSync(join(TEMPLATES, "BACKLOG.md"), "utf8"));
+  create("docs/README.md", readFileSync(join(TEMPLATES, "DOCS.md"), "utf8"));
   for (const role of ROLES) create(`.claude/agents/${role}.md`, renderRole(role));
 
   // The rules go into AGENTS.md, and CLAUDE.md imports it so Claude Code loads them.
@@ -77,7 +81,18 @@ export function init(dir: string, opts: { setup?: string[]; gate?: string[] } = 
   const missing = IGNORED.filter((line) => !read(dir, ".gitignore").split("\n").includes(line));
   if (missing.length) append(".gitignore", `${missing.join("\n")}\n`, "ignores factory working folders");
 
-  return { stack: guess.stack, config, done, paths };
+  // The knowledge graph: on by default, optional. It needs graphify and some code to read.
+  let graph: string;
+  if (!graphifyInstalled()) graph = "not built: graphify is not installed. Agents work without it, but it saves them tokens (install: uv tool install graphifyy)";
+  else {
+    const missing = GRAPH_IGNORE.filter((line) => !read(dir, ".gitignore").split("\n").includes(line));
+    if (missing.length) { appendFileSync(join(dir, ".gitignore"), `${missing.join("\n")}\n`); if (!paths.includes(".gitignore")) paths.push(".gitignore"); }
+    const g = updateGraph(dir);
+    if (g.ok) paths.push("graphify-out");
+    graph = g.ok ? `built (${g.message})` : `not built yet (${g.message}); it is built after the first task lands`;
+  }
+
+  return { stack: guess.stack, config, done, paths, graph };
 }
 
 /** Checks the machine and the project. Each line is one check; `ok` is false if any required one failed. */
@@ -109,6 +124,7 @@ export function doctor(dir: string) {
     for (const skill of roleSkills(file))
       check(existsSync(join(dir, ".claude", "skills", skill, "SKILL.md")), `skill ${skill} (attached to ${role}) is installed`, `factory skill detach ${skill} --role ${role}, or install it`);
   }
+  if (config?.graph !== false) check(graphifyInstalled(), "graphify (the knowledge graph that saves tokens)", "install it: uv tool install graphifyy; or set \"graph\": false in factory.config.json", false);
   check(read(dir, "AGENTS.md").includes(RULES_HEADING), "factory rules in AGENTS.md", "run: factory init");
   check(read(dir, "CLAUDE.md").includes("@AGENTS.md"), "CLAUDE.md imports AGENTS.md", "run: factory init");
   check(IGNORED.every((l) => read(dir, ".gitignore").split("\n").includes(l)), ".gitignore covers .factory/ and .worktrees/", "run: factory init");

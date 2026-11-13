@@ -5,7 +5,9 @@ import { add, move, parse, type Item, type Section } from "./backlog";
 import { claudeRunner } from "./claude";
 import { loadConfig } from "./config";
 import { openStore } from "./events";
-import { applyTeam, configure, detect, doctor, init, nextStep, projectDocs } from "./init";
+import { applyTeam, configure, detect, DOC_PATHS, doctor, init, nextStep, projectDocs } from "./init";
+import { appendChronicle, appendNotes, chronicleEntry, parseScribe, stageOutput } from "./chronicle";
+import { graphifyInstalled, updateGraph } from "./graph";
 import { chatPrompt, describeTeam, presets, DEFAULT_PRESET } from "./team";
 import { runTask, shellGate, stopAll, stubRunner } from "./pipeline";
 import { addSkill, searchSkills, setSkill } from "./skills";
@@ -23,9 +25,8 @@ function commitPaths(message: string, ...paths: string[]) {
   if (p.exitCode !== 0 && err && !/not a git repository/.test(err)) console.error(`commit skipped: ${err}`);
 }
 
-function editBacklog(message: string, fn: (text: string) => string) {
-  // Several factory commands can run at once (a run finishing while the GUI approves another
-  // task), so the read-modify-write is serialized with a lock directory.
+/** Runs `fn` while holding the factory lock. Several commands can run at once (a run finishing while the GUI approves another task), so shared files are changed one at a time. */
+function withLock<T>(fn: () => T): T {
   const lock = join(root, ".factory", "backlog.lock");
   mkdirSync(join(root, ".factory"), { recursive: true });
   for (let waited = 0; ; waited += 20) {
@@ -34,14 +35,28 @@ function editBacklog(message: string, fn: (text: string) => string) {
       Bun.sleepSync(20);
     }
   }
-  try {
+  try { return fn(); } finally { rmSync(lock, { recursive: true, force: true }); }
+}
+
+function editBacklog(message: string, fn: (text: string) => string) {
+  withLock(() => {
     // Re-read before every write: a person may edit the file while a run is in flight.
     writeFileSync(backlogPath, fn(readFileSync(backlogPath, "utf8")));
     // A backlog-only commit, so task branches never carry backlog changes.
     commitPaths(`backlog: ${message}`, "BACKLOG.md");
-  } finally {
-    rmSync(lock, { recursive: true, force: true });
-  }
+  });
+}
+
+const graphEnabled = () => { try { return loadConfig(root).graph !== false && graphifyInstalled(); } catch { return false; } };
+
+/** Writes the chronicle entry and role notes for a landed task, and commits the documents. Returns the files changed. */
+function recordLanding(item: Item, where: string, run: string, events: any[]): string[] {
+  const date = new Date().toISOString().slice(0, 10);
+  const scribe = parseScribe(stageOutput(events, "document"));
+  const files = [appendChronicle(root, chronicleEntry({ id: item.id, title: item.title, date, where, run, chronicle: scribe.chronicle, events }), date),
+    ...appendNotes(root, item.id, date, scribe.notes)];
+  commitPaths(`software-factory: record ${item.id}`, "docs");
+  return files;
 }
 
 function openEvents() {
@@ -63,7 +78,7 @@ const flag = (args: string[], name: string) => args.flatMap((a, i) => (a === nam
 const USAGE = `factory init [--setup <cmd>]... [--gate <cmd>]...  set this project up; without flags the commands are detected
 factory detect                                  show the setup and gate commands init would use
 factory gate ["<cmd>"...]                        run the configured gate here, or try the given commands
-factory docs save                               commit the documents under docs/ so task agents can read them
+factory docs save                               commit the documents (docs/, README.md, AGENTS.md...) so task agents can read them
 factory configure [--setup "<cmd>"]... [--gate "<cmd>"]...   change the project's setup and gate commands
 factory skill search "<words>"                  search skills.sh: packages, install counts and review pages
 factory team [apply [--force]]                  show the team, or rebuild the role files from the catalog
@@ -130,10 +145,11 @@ async function main([cmd, ...args]: string[]) {
   }
 
   if (cmd === "docs" && args[0] === "save") {
-    // Only docs/ is committed: a conversation may write documents, never anything else.
-    const dirty = Bun.spawnSync(["git", "status", "--porcelain", "--", "docs"], { cwd: root, stdout: "pipe" }).stdout.toString().trim();
+    // Only documents are committed: a conversation may write these, never anything else.
+    const paths = DOC_PATHS.filter((p) => existsSync(join(root, p)));
+    const dirty = Bun.spawnSync(["git", "status", "--porcelain", "--", ...paths], { cwd: root, stdout: "pipe" }).stdout.toString().trim();
     if (!dirty) return console.log("documents are already saved");
-    commitPaths("software-factory: update documents", "docs");
+    commitPaths("software-factory: update documents", ...paths);
     return console.log(`saved:\n${dirty}`);
   }
 
@@ -156,6 +172,7 @@ async function main([cmd, ...args]: string[]) {
     // Committed, because task worktrees branch from HEAD.
     if (r.paths.length) commitPaths("software-factory: initialize", ...r.paths);
     console.log([`Stack: ${r.stack}`, ...r.done, `setup: ${r.config.setup?.join(" ; ") || "(none)"}`, `gate:  ${r.config.gate.join(" ; ") || "(none: only the reviewer will check a build)"}`,
+      `graph: ${r.graph}`,
       "Next: tell the factory what you want to build: /software-factory:brainstorm <your idea>"].join("\n"));
     return;
   }
@@ -219,8 +236,19 @@ async function main([cmd, ...args]: string[]) {
     removeWorktree(root, item.id);
     editBacklog(`${item.id} → Done`, (t) => move(t, item.id, "Done", where.startsWith("http") ? where : ""));
     const store = openEvents();
-    store.emit({ run: store.lastRun(item.id) ?? "", task: item.id, stage: "pr", type: "task.landed", data: { where } });
-    return console.log(`${item.id} → Done: ${where}`);
+    const run = store.lastRun(item.id) ?? "";
+    store.emit({ run, task: item.id, stage: "pr", type: "task.landed", data: { where } });
+    const events = run ? store.list(run) : [];
+    store.close();
+    const notes = withLock(() => recordLanding(item, where, run, events));
+    // The graph follows the code: only a local merge changes the code on this branch (a pull request lands later).
+    let graph = "";
+    if (where === "merged locally" && graphEnabled()) {
+      const g = updateGraph(root);
+      if (g.ok) commitPaths("software-factory: update the knowledge graph", "graphify-out");
+      graph = `\ngraph: ${g.ok ? g.message : `not updated (${g.message})`}`;
+    }
+    return console.log(`${item.id} → Done: ${where}${notes.length ? `\nrecorded: ${notes.join(", ")}` : ""}${graph}`);
   }
 
   if (cmd === "discard") {

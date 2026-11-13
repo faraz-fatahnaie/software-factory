@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { activeRoles } from "./team";
+import { activeRoles, DEFAULT_PRESET, presets } from "./team";
 
 /** The roles that exist today: those holding at least one built responsibility in the default team. */
 export const ROLES: readonly string[] = activeRoles();
@@ -9,9 +9,11 @@ export type Role = string;
 const RUNNERS = ["claude"];
 const EFFORTS = ["low", "medium", "high", "xhigh", "max"];
 
-export type RoleConfig = { runner: string; model: string; effort: string; fallback: string[] };
+/** `enabled: false` switches an optional role off (today only the scribe is optional). */
+export type RoleConfig = { runner: string; model: string; effort: string; fallback: string[]; enabled?: boolean };
 /** `setup` runs once in each new task worktree (for example `bun install`); `gate` must pass before review. */
-export type Config = { setup?: string[]; gate: string[]; roles: Record<Role, RoleConfig> };
+/** `graph: false` turns off the knowledge graph (it is on by default and needs graphify installed). */
+export type Config = { setup?: string[]; gate: string[]; graph?: boolean; roles: Record<Role, RoleConfig> };
 
 const isStr = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
 // Model names become command-line arguments, so they may not look like an option.
@@ -24,6 +26,7 @@ export function parseConfig(raw: unknown): Config {
   const errs: string[] = [];
   if (!isStrList(c.gate)) errs.push("gate: must be a list of commands");
   if (c.setup !== undefined && !isStrList(c.setup)) errs.push("setup: must be a list of commands");
+  if (c.graph !== undefined && typeof c.graph !== "boolean") errs.push("graph: must be true or false");
   for (const name of Object.keys(c.roles ?? {}))
     if (!ROLES.includes(name as Role)) errs.push(`roles.${name}: unknown role`);
   for (const role of ROLES) {
@@ -33,15 +36,21 @@ export function parseConfig(raw: unknown): Config {
     if (!isModel(r.model)) errs.push(`roles.${role}.model: a model name such as sonnet or claude-opus-5-5`);
     if (!EFFORTS.includes(r.effort)) errs.push(`roles.${role}.effort: must be one of ${EFFORTS}`);
     if (!Array.isArray(r.fallback) || !r.fallback.every(isModel)) errs.push(`roles.${role}.fallback: must be a list of model names`);
+    if (r.enabled !== undefined && typeof r.enabled !== "boolean") errs.push(`roles.${role}.enabled: must be true or false`);
   }
   if (errs.length) throw new Error(`Invalid factory.config.json:\n  ${errs.join("\n  ")}`);
   // Rebuilt from known keys only: this object is also what the GUI's model matrix writes back to disk.
   const roles = Object.fromEntries(ROLES.map((role) => {
-    const { runner, model, effort, fallback } = c.roles[role];
-    return [role, { runner, model, effort, fallback }];
+    const { runner, model, effort, fallback, enabled } = c.roles[role];
+    return [role, { runner, model, effort, fallback, ...(enabled !== undefined && { enabled }) }];
   })) as Record<Role, RoleConfig>;
-  return { ...(c.setup && { setup: c.setup }), gate: c.gate, roles };
+  return { ...(c.setup && { setup: c.setup }), gate: c.gate, ...(c.graph !== undefined && { graph: c.graph }), roles };
 }
 
-export const loadConfig = (dir: string) =>
-  parseConfig(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")));
+/** A config written by an older plugin lacks any role added since: give it that role's default instead of failing. */
+export function loadConfig(dir: string): Config {
+  const raw = JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8"));
+  const roles = { ...(raw?.roles ?? {}) };
+  for (const name of ROLES) if (!roles[name] && presets[DEFAULT_PRESET]!.roles[name]?.defaults) roles[name] = { runner: "claude", ...presets[DEFAULT_PRESET]!.roles[name]!.defaults };
+  return parseConfig({ ...raw, roles });
+}

@@ -126,7 +126,7 @@ function Line({ backlog, tasks, open }: { backlog: Backlog; tasks: Map<string, T
     if (i.section === "Awaiting approval") return 4;
     if (i.section !== "In progress") return -1;
     const active = Object.entries(tasks.get(i.id)?.stages ?? {}).find(([, s]) => s.state === "active")?.[0];
-    return active === "build" ? 2 : active === "check" || active === "review" ? 3 : 1;
+    return active === "build" ? 2 : active === "check" || active === "review" || active === "document" ? 3 : 1;
   };
   const names = ["Queued", "Planning", "Coding", "Testing", "Verified"];
   const hints = ["Ready to run", "Triage and spec", "Build", "Gate and review", "Waiting for your approval"];

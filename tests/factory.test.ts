@@ -3,7 +3,9 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFi
 import { join } from "node:path";
 import { add, move, parse } from "../plugin/engine/backlog";
 import { agentEvents, claudeArgs, classify } from "../plugin/engine/claude";
-import { parseConfig } from "../plugin/engine/config";
+import { loadConfig, parseConfig } from "../plugin/engine/config";
+import { appendChronicle, appendNotes, chronicleEntry, parseScribe, readNotes, stageOutput } from "../plugin/engine/chronicle";
+import { graphifyInstalled, updateGraph } from "../plugin/engine/graph";
 import { openStore } from "../plugin/engine/events";
 import { BACKLOG, config, repo, role, tmp } from "./fixture";
 import { guard } from "../plugin/engine/hooks";
@@ -343,13 +345,13 @@ test("init: detects the stack, writes without overwriting, and doctor confirms t
 
   // A Go project that already has its own rules file and one customised role.
   const dir = project({ "go.mod": "module x", "AGENTS.md": "# House rules\n\nTabs.", ".gitignore": "bin/\n" });
-  const git = (...argv: string[]) => Bun.spawnSync(["git", ...argv], { cwd: dir }).stdout.toString().trim();
+  const git = (...argv: string[]) => Bun.spawnSync(["git", ...argv], { cwd: dir, env: process.env }).stdout.toString().trim();
   git("init", "-q", "-b", "main");
   mkdirSync(join(dir, ".claude/agents"), { recursive: true });
   writeFileSync(join(dir, ".claude/agents/builder.md"), "---\nname: builder\n---\nMine.\n");
   expect(doctor(dir).ok).toBe(false);
 
-  const cli = (...args: string[]) => { const p = Bun.spawnSync([join(import.meta.dir, "../plugin/bin/factory"), ...args], { cwd: dir }); return { code: p.exitCode, out: `${p.stdout}${p.stderr}` }; };
+  const cli = (...args: string[]) => { const p = Bun.spawnSync([join(import.meta.dir, "../plugin/bin/factory"), ...args], { cwd: dir, env: process.env }); return { code: p.exitCode, out: `${p.stdout}${p.stderr}` }; };
   expect(cli("init", "--bogus").out).toMatch(/unknown argument/);
   const first = cli("init", "--gate", "go test ./...");
   expect(first.out).toMatch(/Stack: Go[\s\S]*created  factory.config.json[\s\S]*kept     .claude\/agents\/builder.md[\s\S]*updated  AGENTS.md/);
@@ -372,14 +374,14 @@ test("init: detects the stack, writes without overwriting, and doctor confirms t
   expect(cli("gate", "true")).toMatchObject({ code: 0, out: "gate passed\n" });
   expect(cli("gate", "echo boom; false")).toMatchObject({ code: 1, out: expect.stringMatching(/gate failed[\s\S]*boom/) });
   const outside = tmp();
-  expect(Bun.spawnSync([join(import.meta.dir, "../plugin/bin/factory"), "init"], { cwd: outside }).exitCode).toBe(1); // not a git repository
+  expect(Bun.spawnSync([join(import.meta.dir, "../plugin/bin/factory"), "init"], { cwd: outside, env: process.env }).exitCode).toBe(1); // not a git repository
 }, 60_000);
 
 test("team: the Balanced preset covers the catalog and obeys the enforced rules; bad teams are rejected", () => {
   const balanced = presets[DEFAULT_PRESET]!;
   expect(catalog).toHaveLength(51);
   expect(validateTeam(balanced)).toEqual([]);
-  expect(activeRoles(balanced)).toEqual(["planner", "architect", "builder", "reviewer"]); // the roles that hold something built
+  expect(activeRoles(balanced)).toEqual(["planner", "architect", "builder", "reviewer", "scribe"]); // the roles that hold something built
 
   const copy = () => structuredClone(balanced);
   const moved = copy(); moved.roles.reviewer!.holds = []; moved.roles.builder!.holds.push("C1"); // builder reviews its own work
@@ -407,7 +409,7 @@ test("team: role files are assembled from the responsibilities a role holds", ()
   expect(toolsFor(["C1"])).toEqual(["Read", "Grep", "Glob", "Bash", "Skill"]); // the reviewer cannot edit
   expect(toolsFor(["D1"])).toEqual(["Read", "Grep", "Glob", "Bash", "Skill"]); // nothing built: the safe minimum
   expect(renderRole("reviewer")).toContain("Your first line must be exactly `APPROVE` or `REQUEST_CHANGES`");
-  expect(() => renderRole("scribe")).toThrow(/nothing that is built and runs unattended yet/);
+  expect(() => renderRole("release-engineer")).toThrow(/nothing that is built and runs unattended yet/);
   expect(() => renderRole("janitor")).toThrow(/no role "janitor"/);
 });
 
@@ -446,10 +448,10 @@ test("pipeline: the planner triages ad-hoc items only; items with acceptance che
     return { stages, roles, events: store.list(result.run).map((e) => `${e.stage}:${e.type}`), taskFile: readFileSync(join(dir, ".factory/runs", result.run, "task.md"), "utf8") };
   };
   const adhoc = await run();
-  expect(adhoc.stages).toEqual(["triage", "spec", "build", "review"]);
+  expect(adhoc.stages).toEqual(["triage", "spec", "build", "review", "document"]);
   expect(adhoc.roles[0]).toBe("planner");
   const planned = await run("Acceptance: the value is exported");
-  expect(planned.stages).toEqual(["spec", "build", "review"]);
+  expect(planned.stages).toEqual(["spec", "build", "review", "document"]);
   expect(planned.events).toContain("triage:stage.skipped");
   expect(planned.taskFile).toBe("# F-001 First\n\nAcceptance: the value is exported\n"); // the detail reaches the agents
 
@@ -482,11 +484,11 @@ test("chat roles: prompts are assembled per command; unattended role files stay 
   expect(plan).toContain("Never write a task that deploys"); // deployment stays a separate step, on request
 
   expect(() => chatPrompt("product-partner", ["B2"])).toThrow(/does not hold B2/);
-  expect(() => chatPrompt("scribe")).toThrow(/no conversational responsibilities/);
+  expect(() => chatPrompt("release-engineer")).toThrow(/no conversational responsibilities/);
   expect(() => chatPrompt("janitor")).toThrow(/no role "janitor"/);
 
   // A conversational role has no config entry and no role file; the planner has both, for its unattended triage only.
-  expect(activeRoles()).toEqual(["planner", "architect", "builder", "reviewer"]);
+  expect(activeRoles()).toEqual(["planner", "architect", "builder", "reviewer", "scribe"]);
   expect(() => renderRole("product-partner")).toThrow(/runs unattended/);
   expect(renderRole("planner")).toContain("## Triage an item");
   expect(renderRole("planner")).not.toContain("Write the user stories");
@@ -528,7 +530,7 @@ test("cli: add --detail, ordered promote, role, status documents and the next st
   expect(cli("promote").code).toBe(1);
 
   expect(cli("role", "planner", "P2").out).toMatch(/Break the milestones into tasks/);
-  expect(cli("role", "scribe").code).toBe(1);
+  expect(cli("role", "release-engineer").code).toBe(1);
   expect(cli("role").code).toBe(1);
 
   // Status shows which documents exist and the one command to run next.
@@ -621,4 +623,154 @@ test("docs save: commits only docs/, so task worktrees can read approved documen
   // A task worktree branches from HEAD, so it now sees the document.
   expect(sh("git", "show", "HEAD:docs/product/brief.md").out).toContain("# Brief");
   expect(chatPrompt("product-partner", ["D1"])).toContain("factory docs save");
+});
+
+test("scribe: its reply is parsed defensively; the entry and notes are appended once, in the right files", () => {
+  const reply = "Some preamble.\n## Chronicle\n# A heading the model slipped in\nAdded the login page so people can sign in.\n\n\n\nIt stores nothing yet.\n\n## Role notes\n- builder: Tests live in test/ and run with `npm test`.\n- hacker: this role does not exist\n- reviewer: " + "x".repeat(500) + "\n- planner: one\n- architect: four\n";
+  const { chronicle, notes } = parseScribe(reply);
+  expect(chronicle).toBe("Added the login page so people can sign in.\n\nIt stores nothing yet."); // heading dropped, blank runs collapsed
+  expect(notes.map((n) => n.role)).toEqual(["builder", "reviewer", "planner"]); // unknown role skipped, at most three
+  expect(notes[1]!.note).toHaveLength(300);
+  expect(parseScribe("- none")).toEqual({ chronicle: "", notes: [] });
+  expect(parseScribe("## Chronicle\n" + "word ".repeat(1000)).chronicle).toHaveLength(1200);
+  expect(parseScribe("## Role notes\n- none\n").notes).toEqual([]);
+
+  const events = [
+    { stage: "spec", type: "stage.ok", model: "opus", data: { usage: { costUsd: 0.1 }, output: "the spec" } },
+    { stage: "build", type: "stage.ok", model: "sonnet", data: { usage: { costUsd: 0.2 } } },
+    { stage: "build", type: "stage.ok", model: "sonnet", data: { usage: { costUsd: 0.2 } } },
+    { stage: "review", type: "stage.ok", model: "opus", data: { usage: { costUsd: 0.05 } } },
+    { stage: "document", type: "stage.ok", model: "haiku", data: { output: reply, usage: { costUsd: 0.01 } } },
+  ];
+  expect(stageOutput(events, "document")).toBe(reply);
+  expect(stageOutput(events, "triage")).toBe("");
+  const entry = chronicleEntry({ id: "F-007", title: "Add login", date: "2026-11-13", where: "merged locally", run: "ab12cd34", chronicle, events });
+  expect(entry).toContain("## 2026-11-13 · F-007 Add login\n\nAdded the login page");
+  expect(entry).toContain("- Landed: merged locally");
+  expect(entry).toContain("- Run `ab12cd34`: spec opus, build sonnet ×2, review opus · $0.560");
+  expect(chronicleEntry({ id: "F-8", title: "t", date: "2026-11-13", where: "https://example.invalid/pr/1", chronicle: "", events: [] })).toContain("No summary was written for this task.");
+
+  const dir = tmp();
+  expect(appendChronicle(dir, entry, "2026-11-13")).toBe("docs/chronicle/2026-11.md");
+  appendChronicle(dir, entry.replace("F-007", "F-009"), "2026-11-14");
+  const log = readFileSync(join(dir, "docs/chronicle/2026-11.md"), "utf8");
+  expect(log.match(/^# Chronicle 2026-11$/gm)).toHaveLength(1); // one header, entries appended
+  expect(log.match(/^## 2026-1/gm)).toHaveLength(2);
+  expect(appendNotes(dir, "F-007", "2026-11-13", notes)).toEqual(["docs/roles/builder.md", "docs/roles/reviewer.md", "docs/roles/planner.md"]);
+  expect(appendNotes(dir, "F-009", "2026-11-14", notes)).toEqual([]); // the same facts are not added twice
+  expect(readNotes(dir, "builder")).toContain("- (F-007, 2026-11-13) Tests live in test/ and run with `npm test`.");
+  expect(readNotes(dir, "architect")).toBe("");
+  writeFileSync(join(dir, "docs/roles/builder.md"), "y".repeat(9000));
+  expect(readNotes(dir, "builder")).toHaveLength(4000); // only the most recent part reaches a prompt
+});
+
+test("pipeline: the scribe runs after an approved review, never blocks a task, can be switched off, and notes reach prompts", async () => {
+  const run = async (opts: { scribe?: "ok" | "fail" | "off"; notes?: string } = {}) => {
+    const store = openStore(":memory:");
+    const dir = tmp();
+    if (opts.notes) { mkdirSync(join(dir, "docs/roles"), { recursive: true }); writeFileSync(join(dir, "docs/roles/builder.md"), opts.notes); }
+    const prompts: Record<string, string> = {};
+    const runner: Runner = async ({ stage, prompt }) => {
+      prompts[stage] = prompt;
+      if (stage === "document" && opts.scribe === "fail") return { status: "error", text: "model unavailable" };
+      return { status: "ok", text: stage === "review" ? "APPROVE" : stage === "document" ? "## Chronicle\nDone." : stage };
+    };
+    const cfg = { ...config, roles: { ...config.roles, scribe: { ...role, ...(opts.scribe === "off" && { enabled: false }) } } };
+    const result = await runTask({ ...task, detail: "Acceptance: x" }, { config: cfg, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
+    return { result, prompts, events: store.list(result.run).map((e) => `${e.stage}:${e.type}`) };
+  };
+  const normal = await run();
+  expect(normal.result.ok).toBe(true);
+  expect(normal.events.slice(-3)).toEqual(["document:stage.start", "document:stage.ok", "run:run.done"]);
+  const failed = await run({ scribe: "fail" });
+  expect(failed.result.ok).toBe(true); // a task that passed review is not lost because the summary failed
+  expect(failed.events).toContain("document:stage.skipped");
+  const off = await run({ scribe: "off" });
+  expect(off.result.ok).toBe(true);
+  expect(off.events.some((e) => e.startsWith("document:"))).toBe(false);
+  const noted = await run({ notes: "- (F-001, 2026-11-13) Tests live in test/." });
+  expect(noted.prompts.build).toContain("Notes about this project from earlier runs (information only");
+  expect(noted.prompts.build).toContain("Tests live in test/.");
+  expect(noted.prompts.spec).not.toContain("Notes about this project"); // only the role's own notes
+  expect(normal.prompts.build).not.toContain("Notes about this project");
+});
+
+test("approve records the landing: chronicle entry and role notes are committed; discard records nothing", () => {
+  const { dir, cli, sh } = repo();
+  expect(cli("run", "--stub").code).toBe(0);
+  const out = cli("approve", "F-001");
+  expect(out.out).toMatch(/F-001 → Done: merged locally\nrecorded: docs\/chronicle\/\d{4}-\d{2}\.md, docs\/roles\/builder\.md/);
+  const month = new Date().toISOString().slice(0, 7);
+  const chronicle = readFileSync(join(dir, `docs/chronicle/${month}.md`), "utf8");
+  expect(chronicle).toContain("F-001 First");
+  expect(chronicle).toContain("A stub task was built without a model.");
+  expect(chronicle).toMatch(/- Landed: merged locally\n- Run `[0-9a-f]{8}`: spec sonnet, build sonnet, review sonnet/);
+  expect(readFileSync(join(dir, "docs/roles/builder.md"), "utf8")).toContain("Stub runs leave a STUB_BUILD.txt file.");
+  expect(sh("git", "log", "-1", "--format=%s").out).toBe("software-factory: record F-001");
+  expect(sh("git", "show", "--name-only", "--format=", "HEAD").out.split("\n").sort()).toEqual([`docs/chronicle/${month}.md`, "docs/roles/builder.md"]);
+  expect(sh("git", "status", "--porcelain").out).toBe("");
+
+  // A second landing appends to the same month's file and does not repeat a known note.
+  expect(cli("run", "F-002", "--stub").code).toBe(0);
+  expect(cli("approve", "F-002").out).toContain("recorded: docs/chronicle/");
+  expect(cli("approve", "F-002").code).toBe(1); // already landed
+  const again = readFileSync(join(dir, `docs/chronicle/${month}.md`), "utf8");
+  expect(again.match(/^## \d{4}-/gm)).toHaveLength(2);
+  expect(readFileSync(join(dir, "docs/roles/builder.md"), "utf8").match(/Stub runs leave/g)).toHaveLength(1);
+}, 60_000);
+
+test("config: graph and role switches validate; a config from an older plugin gets the roles added since", () => {
+  expect(() => parseConfig({ ...config, graph: "yes" })).toThrow(/graph: must be true or false/);
+  expect(() => parseConfig({ ...config, roles: { ...config.roles, scribe: { ...role, enabled: "no" } } })).toThrow(/scribe\.enabled: must be true or false/);
+  expect(parseConfig({ ...config, graph: false, roles: { ...config.roles, scribe: { ...role, enabled: false } } })).toMatchObject({ graph: false, roles: { scribe: { enabled: false } } });
+  const { dir } = repo();
+  const { scribe: _dropped, ...older } = config.roles;
+  writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ gate: ["true"], roles: older })); // written before the scribe existed
+  expect(loadConfig(dir).roles.scribe).toEqual({ runner: "claude", model: "haiku", effort: "low", fallback: ["sonnet"] });
+  expect(() => parseConfig({ gate: ["true"], roles: older })).toThrow(/roles\.scribe: missing/); // strict when not loading from disk
+});
+
+test("init: writes the documents map and the scribe's role file; docs save covers README and context files", () => {
+  const { dir, cli, sh } = repo();
+  const fresh = tmp();
+  writeFileSync(join(fresh, "go.mod"), "module x");
+  Bun.spawnSync(["git", "init", "-q", "-b", "main"], { cwd: fresh, env: process.env });
+  const out = Bun.spawnSync([join(import.meta.dir, "../plugin/bin/factory"), "init"], { cwd: fresh, env: process.env });
+  const text = `${out.stdout}`;
+  expect(text).toMatch(/created {2}docs\/README\.md/);
+  expect(text).toMatch(/created {2}\.claude\/agents\/scribe\.md/);
+  expect(text).toMatch(/graph: not built: graphify is not installed/); // the test environment hides it
+  expect(readFileSync(join(fresh, "docs/README.md"), "utf8")).toContain("| `chronicle/YYYY-MM.md` |");
+  expect(JSON.parse(readFileSync(join(fresh, "factory.config.json"), "utf8"))).toMatchObject({ graph: true, roles: { scribe: { model: "haiku", effort: "low" } } });
+  expect(readFileSync(join(fresh, ".claude/agents/scribe.md"), "utf8")).toMatch(/## Write the chronicle entry[\s\S]*## Keep the role notes/);
+  expect(readFileSync(join(fresh, ".claude/agents/scribe.md"), "utf8")).toContain("tools: Read, Grep, Glob, Bash, Skill"); // the scribe only reads: the factory writes its output
+
+  writeFileSync(join(dir, "README.md"), "# Project\n");
+  writeFileSync(join(dir, "AGENTS.md"), "# Rules\n\nChanged.\n");
+  writeFileSync(join(dir, "notes.txt"), "not a document");
+  sh("git", "add", "notes.txt");
+  expect(cli("docs", "save").out).toMatch(/README\.md[\s\S]*AGENTS\.md|AGENTS\.md[\s\S]*README\.md/);
+  expect(sh("git", "show", "--name-only", "--format=", "HEAD").out.split("\n").sort()).toEqual(["AGENTS.md", "README.md"]);
+  expect(sh("git", "status", "--porcelain").out).toBe("A  notes.txt");
+  expect(cli("team").out).toMatch(/● Scribe {2}\[chat \+ agent\] {2}sonnet, medium\n {4}built: {3}K1 K2 K3 K4/);
+});
+
+test.skipIf(!(() => { const p = Bun.spawnSync(["graphify", "--version"], { stdout: "pipe", stderr: "pipe" }); return p.exitCode === 0; })())(
+  "graph: a real graphify build is committed, ignored files stay out, and the switch turns it off", () => {
+  const dir = tmp();
+  const git = (...argv: string[]) => Bun.spawnSync(["git", ...argv], { cwd: dir, env: process.env }).stdout.toString().trim();
+  writeFileSync(join(dir, "app.py"), "def add(a, b):\n    return a + b\n\ndef total(xs):\n    return sum(add(x, 0) for x in xs)\n");
+  git("init", "-q", "-b", "main");
+  const cli = (...args: string[]) => { const p = Bun.spawnSync([join(import.meta.dir, "../plugin/bin/factory"), ...args], { cwd: dir, env: { ...process.env, FACTORY_NO_GRAPH: "" } }); return `${p.stdout}${p.stderr}`; };
+  expect(process.env.FACTORY_NO_GRAPH).toBe("1"); // the rest of the suite stays graph-free
+  const out = cli("init", "--gate", "true");
+  expect(out).toMatch(/graph: built \(\d+ nodes/);
+  expect(existsSync(join(dir, "graphify-out/graph.json"))).toBe(true);
+  expect(existsSync(join(dir, "graphify-out/GRAPH_REPORT.md"))).toBe(true);
+  expect(readFileSync(join(dir, ".gitignore"), "utf8")).toContain("graphify-out/cache/");
+  const tracked = git("ls-files", "graphify-out");
+  expect(tracked).toContain("graphify-out/graph.json"); // committed, so task worktrees see it
+  expect(tracked).not.toContain("graphify-out/cache");
+  expect(updateGraph(dir).ok).toBe(true);
+  expect(graphifyInstalled()).toBe(false); // hidden by the test environment variable
 });
