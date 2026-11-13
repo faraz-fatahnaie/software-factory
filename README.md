@@ -176,7 +176,7 @@ The record builds up as you work:
 | Checks | The factory's own commands as buttons: setup check, status, release information and readiness, secret scan, rebuild role files. |
 | GitHub (on Overview) | What is waiting to go to GitHub: approved tasks that are only on this machine (Push), pull requests with their checks (Merge), Sync, and an Auto-merge switch that is off by default. The rail says where the work stands. |
 | Team | Every role is a robot with a name and a job; responsibilities are cards under it. Pick a preset or a size, move or switch off responsibilities, fold roles together; the agent count and the cost of a normal task update as a preview, and nothing is saved until you say so. |
-| Source | Laid out like VS Code and GitHub: a branch status line, a Changes list with M/A/D/U letters, a branches table, and commits by day with one story per task (and the robot that made it) and a Revert button on a merged task. |
+| Source | A Git tool window like PyCharm's and VS Code's. **Changes**: a folder tree of what is not saved (status-coloured names, M/A/D/U letters, `+/−` bars, Untracked kept apart) with the diff of the picked file beside it. **Log**: the branches, a commit graph across every branch (lanes, merges, HEAD, tags, remote branches), and what the picked commit changed, file by file with diffs, and a Revert button on a merged task. Arrow keys move between files and commits. |
 | Agents | Who is working, the model, effort and fallback chain per role, and spend and pass rate by model, role and task. |
 | Logs | Every event from every task, filterable by kind and task. |
 | Worktrees | Every task worktree with its branch and state. |

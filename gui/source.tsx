@@ -1,175 +1,178 @@
-// Source, laid out the way VS Code and GitHub show version control: a status line, a list of changes with M/A/D/U letters,
-// a branches table, and commits grouped by day. A task's commits read as one story, with the robot that made them.
+// Source, laid out like the Git tool windows of PyCharm and VS Code, so a change can be followed by eye:
+// a toolbar with the branch, sync state and the totals; a Changes tab (folder tree on the left, the diff of the picked file on the right);
+// and a Log tab (branches, the commit graph, and what the picked commit changed, with its files and their diffs).
 import { useEffect, useMemo, useState } from "react";
 import { call, type Item } from "./data";
+import { ago, CommitGraph, type GraphRow } from "./commitgraph";
+import { FileDiff, FileTree, STATUS_TEXT, Stat, type FileItem } from "./diff";
 import { Icon } from "./icons";
-import { Robot } from "./robots";
 import { ViewSkeleton } from "./ui";
 import { StateIcon, type VcsData } from "./vcs";
 
-type Commit = { sha: string; subject: string; date: string; kind: "task" | "merge" | "revert" | "record" | "factory" | "person"; task?: string; role?: string };
 type Lane = { id: string; ahead: number; inProgress: boolean; pushed: boolean; revert: boolean; date: string };
-type Change = { path: string; status: "M" | "A" | "D" | "R" | "U" };
-type SourceData = { branch: string; ahead: number | null; behind: number | null; dirty: { count: number; files: Change[] }; commits: Commit[]; lanes: Lane[] };
-type Group = { task?: string; commits: Commit[] };
-
-const BY = { task: "Built by the team", merge: "Merged", revert: "Reverted", record: "Recorded by the Scribe", factory: "The factory", person: "You" } as const;
-const LETTER = { M: "Modified", A: "Added", D: "Deleted", R: "Renamed", U: "Untracked" } as const;
-
-/** "3 hours ago", as GitHub says it. */
-export function ago(iso: string, now = Date.now()): string {
-  const s = Math.max(0, Math.round((now - Date.parse(iso)) / 1000));
-  const [n, unit] = s < 60 ? [s, "second"] : s < 3600 ? [Math.floor(s / 60), "minute"] : s < 86_400 ? [Math.floor(s / 3600), "hour"] : s < 2_592_000 ? [Math.floor(s / 86_400), "day"] : [Math.floor(s / 2_592_000), "month"];
-  return s < 10 ? "just now" : `${n} ${unit}${n === 1 ? "" : "s"} ago`;
-}
-
-/** Neighbouring commits of one task become one group, so a task reads as one story: its build, its merge, its record. */
-function group(commits: Commit[]): Group[] {
-  const out: Group[] = [];
-  for (const c of commits) {
-    const last = out.at(-1);
-    if (c.task && last?.task === c.task) last.commits.push(c);
-    else out.push({ task: c.task, commits: [c] });
-  }
-  return out;
-}
+type SourceData = { branch: string; ahead: number | null; behind: number | null; dirty: { count: number; files: FileItem[] }; lanes: Lane[] };
+type Detail = { sha: string; parents: string[]; author: string; date: string; message: string; files: FileItem[] };
+type Props = { items: Item[]; vcs: VcsData | null; act: (path: string, body: unknown) => Promise<boolean>; refreshVcs: () => Promise<void>; open: (id: string) => void };
 
 /** `https://github.com/owner/repo.git` or `git@github.com:owner/repo.git` as owner/repo. */
 const repoOf = (remote: string | null) => /github\.com[:/]([^/]+\/[^/]+?)(?:\.git)?$/.exec(remote ?? "")?.[1];
+const sum = (files: FileItem[]) => ({ added: files.reduce((s, f) => s + f.added, 0), removed: files.reduce((s, f) => s + f.removed, 0) });
 
-export function Source(p: { items: Item[]; vcs: VcsData | null; act: (path: string, body: unknown) => Promise<boolean>; refreshVcs: () => Promise<void>; open: (id: string) => void }) {
+export function Source(p: Props) {
   const [src, setSrc] = useState<SourceData | null>(null);
-  const [busy, setBusy] = useState("");
+  const [tab, setTab] = useState<"changes" | "log" | null>(null);
   const load = () => call<SourceData>("/api/source").then((r) => r.ok && setSrc(r.data));
   useEffect(() => { load(); const timer = setInterval(load, 5000); return () => clearInterval(timer); }, []);
-  const days = useMemo(() => {
-    const out = new Map<string, Group[]>();
-    for (const g of group(src?.commits ?? [])) {
-      const day = new Date(g.commits[0]!.date).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" });
-      out.set(day, [...(out.get(day) ?? []), g]);
-    }
-    return [...out];
-  }, [src]);
-  // A task is reverted when a revert commit for it is newer than its merge (the list is newest first).
-  const reverted = useMemo(() => {
-    const done = new Set<string>(), seen = new Set<string>();
-    for (const c of src?.commits ?? []) {
-      if (!c.task) continue;
-      if (c.kind === "revert") seen.add(c.task);
-      if (c.kind === "merge" && seen.has(c.task)) done.add(c.task);
-    }
-    return done;
-  }, [src]);
-  const title = (id: string) => p.items.find((i) => i.id === id)?.title ?? "";
-  const revert = async (id: string) => {
-    if (!confirm(`Revert ${id}? This prepares a change that undoes it. Nothing is pushed or merged until you do that yourself.`)) return;
-    setBusy(id);
-    await p.act("/api/revert", { id });
-    await Promise.all([load(), p.refreshVcs()]);
-    setBusy("");
-  };
-  const pr = (id: string) => p.vcs?.branches.find((b) => b.id === id)?.pr;
+  // Open on what needs reading: the changes when there are any, otherwise the history.
+  useEffect(() => { if (src && tab === null) setTab(src.dirty.count > 0 ? "changes" : "log"); }, [src]);
 
-  if (!src) return <ViewSkeleton kind="list" />;
-  const repo = repoOf(p.vcs?.remote ?? null);
+  if (!src || !tab) return <ViewSkeleton kind="list" />;
+  const repo = repoOf(p.vcs?.remote ?? null), total = sum(src.dirty.files);
   return (
-    <div className="scm source">
-      <div className="statusbar" role="status" aria-label="Branch status">
-        <span><Icon name="branch" /> <b>{src.branch}</b></span>
-        {src.ahead !== null && <span title="Commits on main that are not on GitHub (they travel in the next pull request) / commits on GitHub that are not here"><Icon name="sync" /> {src.behind}<Icon name="down" /> {src.ahead}<Icon name="up" /></span>}
+    <div className="source">
+      <div className="scm-bar" role="status" aria-label="Branch status">
+        <span className="item"><Icon name="branch" size={15} /> <b>{src.branch}</b></span>
+        {src.ahead !== null && <span className="item" title="Commits here that are not on GitHub (they travel in the next pull request), and commits on GitHub that are not here"><Icon name="sync" size={14} /> {src.behind}<Icon name="down" size={13} /> {src.ahead}<Icon name="up" size={13} /></span>}
+        {src.dirty.count > 0 && <span className="item">{src.dirty.count} changed file{src.dirty.count === 1 ? "" : "s"} <Stat {...total} /></span>}
         <span className="grow" />
-        {repo ? <a href={`https://github.com/${repo}`} target="_blank" rel="noreferrer">{repo}</a> : <span className="note">{p.vcs?.remote ? p.vcs.remote : "Not on GitHub"}</span>}
+        <span className="legend" aria-label="What the letters mean">{(["M", "A", "D", "U"] as const).map((l) => <span key={l}><b className={`letter ${l}`}>{l}</b> {STATUS_TEXT[l]}</span>)}</span>
+        {repo ? <a href={`https://github.com/${repo}`} target="_blank" rel="noreferrer">{repo}</a> : <span className="note">{p.vcs?.remote ?? "Not on GitHub"}</span>}
       </div>
-
-      <div className="col">
-        <section className="tile changes" aria-label="Changes">
-          <h2 className="sec-head"><Icon name="chevron" size={14} /> Changes <span className="count">{src.dirty.count}</span></h2>
-          {src.dirty.count === 0 ? <p className="empty">No changes. Your files match the last saved commit.</p> : (
-            <>
-              <p className="note">Tasks start from the last saved commit, so these changes are not part of any new task. Save them with git when they are ready.</p>
-              <ul>
-                {src.dirty.files.map((f) => {
-                  const name = f.path.split("/").at(-1)!, dir = f.path.slice(0, f.path.length - name.length - (f.path.includes("/") ? 1 : 0));
-                  return (
-                    <li key={f.path} title={`${LETTER[f.status]}: ${f.path}`}>
-                      <Icon name="file" /><span className="file">{name}{dir && <span className="dir">{dir}</span>}</span>
-                      <span className={`letter ${f.status}`} aria-label={LETTER[f.status]}>{f.status}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-              {src.dirty.count > src.dirty.files.length && <p className="note">and {src.dirty.count - src.dirty.files.length} more</p>}
-            </>
-          )}
-        </section>
-
-        <section className="tile branches-table" aria-label="Branches">
-          <h2 className="sec-head"><Icon name="chevron" size={14} /> Branches <span className="count">{src.lanes.length + 1}</span></h2>
-          <ul>
-            <li><Icon name="branch" size={15} /><span className="branch-pill">{src.branch}</span><span className="default-tag">Default</span></li>
-            {src.lanes.map((l) => {
-              const info = pr(l.id);
-              return (
-                <li key={l.id}>
-                  {info?.state === "OPEN" ? <StateIcon kind="open" /> : <Icon name="branch" size={15} />}
-                  <span className="branch-pill">factory/{l.id}</span>
-                  {l.ahead > 0 && <span className="ahead" title={`${l.ahead} commit${l.ahead === 1 ? "" : "s"} ahead of ${src.branch}`}>+{l.ahead}</span>}
-                  <span className="upd" title={l.date}>{l.date ? `Updated ${ago(l.date)}` : ""}</span>
-                  <span className="note" style={{ flexBasis: "100%" }}>
-                    <button className="quiet linkish" onClick={() => p.open(l.id)}>{l.id}</button> {title(l.id)} ·{" "}
-                    {l.inProgress ? "Being worked on" : info?.state === "OPEN" ? `Pull request #${info.number}` : l.pushed ? "On GitHub" : l.revert ? "A revert, only here" : "Approved, only here"}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+      <div className="pills" role="tablist" aria-label="Source">
+        <button role="tab" aria-selected={tab === "changes"} onClick={() => setTab("changes")}>Changes{src.dirty.count > 0 && <span className="count">{src.dirty.count}</span>}</button>
+        <button role="tab" aria-selected={tab === "log"} onClick={() => setTab("log")}>Log</button>
       </div>
-
-      <section className="tile timeline" aria-label="Commits">
-        <h2 className="sec-head">Commits</h2>
-        {days.map(([day, groups]) => (
-          <div className="commits-day" key={day}>
-            <h3><Icon name="commit" /> Commits on {day}</h3>
-            <div className="commit-card">
-              {groups.map((g, i) => g.task ? (
-                <div key={i}>
-                  <div className="c-row c-task">
-                    {g.commits.find((c) => c.role) ? <Robot role={g.commits.find((c) => c.role)!.role!} size={32} /> : <span className="state-icon st-local"><Icon name="commit" /></span>}
-                    <div className="c-main">
-                      <span className="c-msg"><button className="chip-id" onClick={() => p.open(g.task!)}>{g.task}</button> {title(g.task) || g.commits[0]!.subject}</span>
-                      <span className="c-by">
-                        {g.commits.some((c) => c.kind === "merge") && !reverted.has(g.task) && <span className="gh-label merged"><Icon name="merge" /> Merged</span>}
-                        {reverted.has(g.task) && <span className="gh-label closed"><Icon name="undo" /> Reverted</span>}
-                        {g.commits.length} commit{g.commits.length > 1 ? "s" : ""}
-                      </span>
-                    </div>
-                    {g.commits.some((c) => c.kind === "merge") && !reverted.has(g.task) && (
-                      <button disabled={busy !== ""} onClick={() => revert(g.task!)}><Icon name="undo" size={13} /> {busy === g.task ? "Reverting…" : "Revert"}</button>
-                    )}
-                  </div>
-                  {g.commits.map((c) => <Row key={c.sha} c={c} sub />)}
-                </div>
-              ) : <Row key={i} c={g.commits[0]!} />)}
-            </div>
-          </div>
-        ))}
-      </section>
+      {tab === "changes" ? <Changes files={src.dirty.files} count={src.dirty.count} toLog={() => setTab("log")} /> : <Log src={src} {...p} />}
     </div>
   );
 }
 
-function Row({ c, sub }: { c: Commit; sub?: boolean }) {
+function Changes({ files, count, toLog }: { files: FileItem[]; count: number; toLog: () => void }) {
+  const [picked, setPicked] = useState("");
+  // Keep a file picked: the first one, and a new one if the picked file is no longer changed.
+  useEffect(() => { if (!files.some((f) => f.path === picked)) setPicked(files[0]?.path ?? ""); }, [files]);
+  const tracked = files.filter((f) => f.status !== "U"), untracked = files.filter((f) => f.status === "U");
+  const file = files.find((f) => f.path === picked);
+  if (count === 0) return (
+    <section className="tile empty-state">
+      <Icon name="check" size={28} />
+      <h2>No changes</h2>
+      <p className="note">Your files match the last saved commit. See what happened before in the <button className="quiet linkish" onClick={toLog}>Log</button>.</p>
+    </section>
+  );
   return (
-    <div className={`c-row${sub ? " c-sub" : ""}`}>
-      <div className="c-main">
-        <span className="c-msg" title={c.subject}>{c.subject}</span>
-        <span className="c-by">
-          {c.role ? <Robot role={c.role} size={18} /> : <span className="state-icon st-local" aria-hidden="true" style={{ width: 18 }}><Icon name="dot" size={14} /></span>}
-          {BY[c.kind]} · <time dateTime={c.date} title={c.date}>{ago(c.date)}</time>
-        </span>
-      </div>
-      <button className="sha" aria-label={`Copy commit ${c.sha}`} title="Copy the commit id" onClick={() => navigator.clipboard?.writeText(c.sha)}>{c.sha.slice(0, 7)} <Icon name="copy" /></button>
+    <div className="scm-split changes-split">
+      <aside className="pane" aria-label="Changed files">
+        {tracked.length > 0 && (
+          <section>
+            <h2 className="pane-h">Changes <span className="count">{tracked.length}</span><Stat {...sum(tracked)} /></h2>
+            <FileTree files={tracked} picked={picked} onPick={setPicked} label="Changed files" />
+          </section>
+        )}
+        {untracked.length > 0 && (
+          <section>
+            <h2 className="pane-h" title="Files git does not know yet">Untracked <span className="count">{untracked.length}</span></h2>
+            <FileTree files={untracked} picked={picked} onPick={setPicked} label="Untracked files" />
+          </section>
+        )}
+        {count > files.length && <p className="note pad">and {count - files.length} more</p>}
+      </aside>
+      <main className="pane main">{file ? <FileDiff path={file.path} status={file.status} /> : <p className="empty">Pick a file to see what changed in it.</p>}</main>
+    </div>
+  );
+}
+
+function Log({ src, items, vcs, act, refreshVcs, open }: { src: SourceData } & Props) {
+  const [branch, setBranch] = useState("");
+  const [graph, setGraph] = useState<{ rows: GraphRow[]; lanes: number } | null>(null);
+  const [picked, setPicked] = useState("");
+  const [detail, setDetail] = useState<Detail | null>(null);
+  const [file, setFile] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    const load = () => call<{ rows: GraphRow[]; lanes: number }>(`/api/graph${branch ? `?branch=${encodeURIComponent(branch)}` : ""}`).then((r) => r.ok && setGraph(r.data));
+    setGraph(null);
+    load();
+    const timer = setInterval(load, 5000);
+    return () => clearInterval(timer);
+  }, [branch]);
+  // The newest commit is picked first, as the Git tool windows do.
+  useEffect(() => { if (graph && !graph.rows.some((r) => r.sha === picked)) setPicked(graph.rows[0]?.sha ?? ""); }, [graph]);
+  useEffect(() => {
+    setDetail(null); setFile("");
+    if (picked) call<Detail>(`/api/commit?sha=${picked}`).then((r) => { if (r.ok) { setDetail(r.data); setFile(r.data.files[0]?.path ?? ""); } });
+  }, [picked]);
+
+  const row = graph?.rows.find((r) => r.sha === picked);
+  const title = (id: string) => items.find((i) => i.id === id)?.title ?? "";
+  // A task is reverted when a revert commit for it is newer than its merge (the rows are newest first).
+  const reverted = useMemo(() => {
+    const done = new Set<string>(), seen = new Set<string>();
+    for (const r of graph?.rows ?? []) { if (!r.task) continue; if (r.kind === "revert") seen.add(r.task); if (r.kind === "merge" && seen.has(r.task)) done.add(r.task); }
+    return done;
+  }, [graph]);
+  const revert = async (id: string) => {
+    if (!confirm(`Revert ${id}? This prepares a change that undoes it. Nothing is pushed or merged until you do that yourself.`)) return;
+    setBusy(true);
+    await act("/api/revert", { id });
+    await refreshVcs();
+    setBusy(false);
+  };
+  const [head, ...rest] = (detail?.message ?? "").split("\n");
+  const body = rest.join("\n").trim();
+  const chosen = detail?.files.find((f) => f.path === file);
+
+  return (
+    <div className="scm-split log-split">
+      <aside className="pane branches" aria-label="Branches">
+        <h2 className="pane-h">Branches <span className="count">{src.lanes.length + 1}</span></h2>
+        <ul>
+          <li><button className="brow" aria-pressed={branch === ""} onClick={() => setBranch("")}><Icon name="commit" size={15} /><span className="name">All branches</span></button></li>
+          <li><button className="brow" aria-pressed={branch === src.branch} onClick={() => setBranch(src.branch)}><Icon name="branch" size={15} /><span className="branch-pill">{src.branch}</span><span className="default-tag">Default</span></button></li>
+          {src.lanes.map((l) => {
+            const info = vcs?.branches.find((b) => b.id === l.id)?.pr;
+            const state = l.inProgress ? "Being worked on" : info?.state === "OPEN" ? `Pull request #${info.number}` : l.pushed ? "On GitHub" : l.revert ? "A revert, only here" : "Approved, only here";
+            return (
+              <li key={l.id}>
+                <button className="brow" aria-pressed={branch === `factory/${l.id}`} onClick={() => setBranch(`factory/${l.id}`)}>
+                  {info?.state === "OPEN" ? <StateIcon kind="open" /> : <Icon name="branch" size={15} />}
+                  <span className="branch-pill">factory/{l.id}</span>
+                  {l.ahead > 0 && <span className="ahead" title={`${l.ahead} commit${l.ahead === 1 ? "" : "s"} ahead of ${src.branch}`}>+{l.ahead}</span>}
+                  <span className="sub">{title(l.id) || l.id} · {state}{l.date ? ` · ${ago(l.date)}` : ""}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </aside>
+
+      <main className="pane graph-pane" aria-label="Commit graph">
+        {graph ? <CommitGraph rows={graph.rows} lanes={graph.lanes} picked={picked} onPick={setPicked} /> : <ViewSkeleton kind="list" />}
+      </main>
+
+      <section className="pane detail-pane" aria-label="Commit details">
+        {!picked ? <p className="empty">Pick a commit to see what it changed.</p> : !detail ? <p className="empty">Loading…</p> : (
+          <>
+            <header className="d-head">
+              <h2>{head}</h2>
+              {row?.kind === "merge" && row.task && !reverted.has(row.task) && (
+                <button disabled={busy} onClick={() => revert(row.task!)}><Icon name="undo" size={13} /> {busy ? "Reverting…" : `Revert ${row.task}`}</button>
+              )}
+              {row?.task && reverted.has(row.task) && row.kind === "merge" && <span className="gh-label closed"><Icon name="undo" /> Reverted later</span>}
+            </header>
+            {body && <pre className="doc">{body}</pre>}
+            <p className="d-meta">
+              <span>{detail.author}</span><span>{new Date(detail.date).toLocaleString()}</span>
+              <code className="sha">{detail.sha.slice(0, 7)}</code>
+              {detail.parents.length > 0 && <span>{detail.parents.length > 1 ? "parents" : "parent"} {detail.parents.map((x) => <button key={x} className="sha" onClick={() => setPicked(x)} title="Go to this commit">{x.slice(0, 7)}</button>)}</span>}
+              {row?.task && <button className="chip-id" onClick={() => open(row.task!)}>{row.task}</button>}
+            </p>
+            <h3 className="pane-h">{detail.parents.length > 1 ? "Changes from the merged branch" : "Files"} <span className="count">{detail.files.length}</span><Stat {...sum(detail.files)} /></h3>
+            {detail.files.length === 0 ? <p className="empty">No file changes.</p> : <FileTree files={detail.files} picked={file} onPick={setFile} label="Files in this commit" />}
+            {chosen && <FileDiff path={chosen.path} sha={detail.sha} status={chosen.status} />}
+          </>
+        )}
+      </section>
     </div>
   );
 }

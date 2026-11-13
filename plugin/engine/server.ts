@@ -7,7 +7,7 @@ import { openStore } from "./events";
 import { parseFind, roleSkills, SKILLS_CLI } from "./skills";
 import { chatPromptFor, holderOf } from "./team";
 import { changeTeam, parseChanges, planTeam, presetList, teamView } from "./teamctl";
-import { sourceInfo } from "./source";
+import { commitDetail, fileDiff, graphInfo, sourceInfo } from "./source";
 import { hasChecks, remoteUrl, vcsStatus } from "./vcs";
 import { listWorktrees } from "./worktree";
 
@@ -113,6 +113,16 @@ export async function serve(root: string, port = 4400) {
       if (route === "GET /api/config") return json(loadConfig(root));
       if (route === "GET /api/team") return json(teamPayload());
       if (route === "GET /api/source") return json(sourceInfo(root, projectTeam(root)));
+      if (route === "GET /api/graph") {
+        try { return json(graphInfo(root, projectTeam(root), 80, url.searchParams.get("branch") ?? undefined)); } catch (e) { return json({ error: (e as Error).message }, 400); }
+      }
+      if (route === "GET /api/filediff") {
+        try { return new Response(fileDiff(root, url.searchParams.get("path") ?? "", url.searchParams.get("sha") ?? undefined), { headers: { "content-type": "text/plain; charset=utf-8" } }); }
+        catch (e) { return json({ error: (e as Error).message }, 400); }
+      }
+      if (route === "GET /api/commit") {
+        try { return json(commitDetail(root, url.searchParams.get("sha") ?? "")); } catch (e) { return json({ error: (e as Error).message }, 400); }
+      }
       if (route === "GET /api/vcs") {
         // Asks GitHub, so the answer is kept for a few seconds; any push, merge or sync clears it.
         if (!vcsCache || vcsCache.remote !== remoteUrl(root) || Date.now() - vcsCache.at > 15_000) {

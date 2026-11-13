@@ -17,7 +17,7 @@ import { addCustom, moveSettings, offSettings, parseChange, planTeam, removeCust
 import { chatArgs, TOPICS } from "../plugin/engine/chat";
 import { estimate } from "../plugin/engine/estimate";
 import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugin/engine/vcs";
-import { classifyCommit, sourceInfo } from "../plugin/engine/source";
+import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, parseRefs, sourceInfo } from "../plugin/engine/source";
 import { followUps, needsTriage, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
 import { costs, elapsed, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
@@ -1638,6 +1638,14 @@ test("version control over HTTP and in conversation: status is readable, actions
     expect((await post("/api/push", {})).status).toBe(400);
     expect((await post("/api/merge", { id: "F-001" })).status).toBe(409); // F-001 is not an approved task here
     expect((await post("/api/vcs/auto-merge", { on: "yes" })).status).toBe(400);
+    const graph = await (await fetch(base + "/api/graph")).json() as any;
+    expect(graph.rows.length).toBeGreaterThan(0);
+    expect(graph.rows[0]).toMatchObject({ col: 0 });
+    expect((await fetch(base + "/api/commit?sha=zz")).status).toBe(400);
+    expect((await fetch(base + "/api/filediff?path=../x")).status).toBe(400);
+    expect((await fetch(base + "/api/filediff?path=README.md&sha=zz")).status).toBe(400);
+    expect((await fetch(base + "/api/graph?branch=nope")).status).toBe(400);
+    expect(((await (await fetch(`${base}/api/commit?sha=${graph.rows[0].sha}`)).json()) as any).sha).toBe(graph.rows[0].sha);
     const topics = await (await fetch(base + "/api/chat/topics")).json() as any[];
     expect(topics.find((t) => t.key === "git")).toMatchObject({ available: true, role: "release-engineer" });
   } finally {
@@ -1663,12 +1671,19 @@ test("source: every commit shape the factory makes is recognised, and the view r
   expect(cli("run", "F-001", "--stub").code).toBe(0);
   writeFileSync(join(dir, "scratch.txt"), "not saved\n");
   let src = sourceInfo(dir, resolveTeam());
-  expect(src).toMatchObject({ branch: "main", ahead: null, dirty: { count: 1, files: [{ path: "scratch.txt", status: "U" }] } });
+  expect(src).toMatchObject({ branch: "main", ahead: null, dirty: { count: 1, files: [{ path: "scratch.txt", status: "U", added: 1, removed: 0 }] } });
   expect(src.lanes).toMatchObject([{ id: "F-001", ahead: 1, inProgress: true, pushed: false, revert: false }]);
   expect(Date.parse(src.lanes[0]!.date)).toBeGreaterThan(0);
   expect(src.commits.find((c) => c.kind === "task")).toBeUndefined(); // the task's commits are on its branch, not on main yet
   writeFileSync(join(dir, "AGENTS.md"), "changed\n"); // a tracked file shows as modified, with its status letter
-  expect(sourceInfo(dir, resolveTeam()).dirty.files).toEqual([{ path: "AGENTS.md", status: "M" }, { path: "scratch.txt", status: "U" }]);
+  expect(sourceInfo(dir, resolveTeam()).dirty.files).toEqual([{ path: "AGENTS.md", status: "M", added: 1, removed: 1 }, { path: "scratch.txt", status: "U", added: 1, removed: 0 }]);
+  expect(fileDiff(dir, "scratch.txt")).toMatch(/\+not saved/); // an untracked file reads as all added
+  expect(fileDiff(dir, "AGENTS.md")).toMatch(/-# Rules\n\+changed/);
+  expect(() => fileDiff(dir, "../etc/passwd")).toThrow(/path/);
+  expect(() => fileDiff(dir, "-rf")).toThrow(/path/);
+  mkdirSync(join(dir, "src/utils"), { recursive: true }); writeFileSync(join(dir, "src/utils/a.ts"), "x\n");
+  expect(sourceInfo(dir, resolveTeam()).dirty.files.map((f) => f.path)).toContain("src/utils/a.ts"); // a new folder lists its files, not just the folder
+  Bun.spawnSync(["rm", "-rf", join(dir, "src")]);
   Bun.spawnSync(["git", "checkout", "--", "AGENTS.md"], { cwd: dir }); Bun.spawnSync(["rm", join(dir, "scratch.txt")]);
 
   // No remote: approve merges, and revert undoes it with a commit on this branch.
@@ -1735,4 +1750,50 @@ test("generated checks: the workflow runs the project's own setup and gate, is w
   expect(p.git("log", "-1", "--format=%s")).toBe("software-factory: add GitHub checks (CI)");
   expect(p.cli("vcs", "ci").code).toBe(1); // never overwritten
   expect(p.cli("vcs", "auto-merge", "on").code).toBe(0); // and now there are checks to wait for
+});
+
+test("commit graph: lanes follow branches, merges and converging tips, and refs are labelled", () => {
+  const lay = (rows: [string, string[]][]) => layoutGraph(rows.map(([sha, parents]) => ({ sha, parents })));
+  // A straight line stays in lane 0.
+  expect(lay([["C", ["B"]], ["B", ["A"]], ["A", []]])).toEqual([
+    { col: 0, converge: [], through: [], out: [0] }, { col: 0, converge: [0], through: [], out: [0] }, { col: 0, converge: [0], through: [], out: [] }]);
+  // A merge opens a second lane for the merged branch; the main line later joins it back at the shared parent.
+  expect(lay([["M", ["B", "F"]], ["F", ["A"]], ["B", ["A"]], ["A", []]])).toEqual([
+    { col: 0, converge: [], through: [], out: [0, 1] }, { col: 1, converge: [1], through: [0], out: [1] },
+    { col: 0, converge: [0], through: [1], out: [1] }, { col: 1, converge: [1], through: [], out: [] }]);
+  // Two tips on the same parent: the second sits in its own lane and curves into the first one's.
+  expect(lay([["X", ["A"]], ["Y", ["A"]], ["A", []]])).toEqual([
+    { col: 0, converge: [], through: [], out: [0] }, { col: 1, converge: [], through: [0], out: [0] }, { col: 0, converge: [0], through: [], out: [] }]);
+
+  expect(parseRefs("HEAD -> main, origin/main, origin/HEAD, tag: v1.0.0, factory/F-002")).toEqual([
+    { name: "main", kind: "branch", head: true }, { name: "origin/main", kind: "remote" }, { name: "v1.0.0", kind: "tag" }, { name: "factory/F-002", kind: "branch" }]);
+  expect(parseRefs("")).toEqual([]);
+
+  // On a real repository: a task branch shows as its own lane, and approving it adds a merge commit joining both.
+  const { dir, cli } = repo();
+  expect(cli("run", "F-001", "--stub").code).toBe(0);
+  let g = graphInfo(dir, resolveTeam());
+  const tip = g.rows.find((r) => r.refs.some((x) => x.name === "factory/F-001"))!;
+  expect(tip).toMatchObject({ kind: "task", task: "F-001", role: "builder" });
+  expect(g.rows.find((r) => r.refs.some((x) => x.head))!.refs.find((x) => x.head)).toMatchObject({ name: "main", kind: "branch" });
+  expect(g.lanes).toBeGreaterThanOrEqual(2);
+  expect(cli("approve", "F-001").code).toBe(0);
+  g = graphInfo(dir, resolveTeam());
+  const merge = g.rows.find((r) => r.kind === "merge")!;
+  expect(merge.parents).toHaveLength(2);
+  expect(merge.out).toHaveLength(2);
+  expect(new Set(g.rows.map((r) => r.sha)).size).toBe(g.rows.length);
+
+  const detail = commitDetail(dir, merge.sha);
+  expect(detail).toMatchObject({ sha: merge.sha, parents: merge.parents });
+  expect(detail.message).toContain("Merge F-001: First");
+  expect(detail.files).toContainEqual(expect.objectContaining({ status: "A", path: "STUB_BUILD.txt", removed: 0 })); // a merge is compared with its first parent
+  expect(detail.files.find((f) => f.path === "STUB_BUILD.txt")!.added).toBeGreaterThan(0);
+  expect(fileDiff(dir, "STUB_BUILD.txt", merge.sha)).toMatch(/^diff --git a\/STUB_BUILD.txt/m);
+  expect(() => fileDiff(dir, "x", "zz")).toThrow(/sha/);
+  expect(graphInfo(dir, resolveTeam(), 80, "main").rows.every((r) => r.sha.length === 40)).toBe(true);
+  expect(() => graphInfo(dir, resolveTeam(), 80, "nope")).toThrow(/no branch/);
+  expect(() => graphInfo(dir, resolveTeam(), 80, "--all")).toThrow(/no branch/);
+  expect(() => commitDetail(dir, "not-a-sha")).toThrow(/sha/);
+  expect(() => commitDetail(dir, "0000000")).toThrow(/no commit/);
 });

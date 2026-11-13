@@ -2,7 +2,7 @@
 // Drives your installed Chrome (no browser download) against a throwaway repo, using dry runs
 // so it makes no model calls. Not part of the gate: it needs Chrome and takes a few seconds.
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
 import { fakeGh, ghPr, repo, tmp } from "../tests/fixture";
@@ -86,12 +86,22 @@ try {
   await page.locator(".link.vcs", { hasText: "In sync with GitHub" }).waitFor();
   assert.match(gh.calls(), /pr merge 7 --merge --delete-branch/);
 
-  // Source: history reads as one story per task, and a merged task can be reverted. With a remote, the revert is a branch to push.
+  // Source, as a Git tool window: an unsaved file shows in Changes with its diff; the Log picks a commit and reverts a merged task from its details.
+  writeFileSync(join(dir, "notes.txt"), "one\ntwo\n");
   await view("Source");
-  const story = page.locator(".commit-card > div", { hasText: "Merge F-001: First" });
-  await story.getByText("Merge F-001: First").waitFor();
-  await story.getByRole("button", { name: "Revert" }).click(); // the dialog is accepted above
-  await page.locator(".branches-table li", { hasText: "F-001" }).getByText("A revert, only here").waitFor();
+  await page.getByRole("tab", { name: /^Changes/ }).click();
+  await page.getByRole("button", { name: /notes\.txt/ }).click();
+  await page.locator(".udiff .ln.add", { hasText: "two" }).waitFor({ timeout: 30_000 });
+  assert.equal(await page.locator(".udiff .ln.add").count(), 2, "both new lines are shown as added");
+  await page.getByRole("complementary", { name: "Changed files" }).getByText("+2").waitFor();
+  Bun.spawnSync(["rm", join(dir, "notes.txt")]);
+  await page.getByRole("tab", { name: "Log" }).click();
+  await page.getByRole("button", { name: /Merge F-001: First/ }).click();
+  const details = page.getByRole("region", { name: "Commit details" });
+  await details.getByRole("heading", { name: "Merge F-001: First" }).waitFor();
+  await details.getByRole("tree", { name: "Files in this commit" }).getByText("STUB_BUILD.txt").waitFor();
+  await details.getByRole("button", { name: "Revert F-001" }).click(); // the dialog is accepted above
+  await page.getByRole("complementary", { name: "Branches" }).getByText("A revert, only here").waitFor();
   assert.match(sh("git", "branch", "--list", "factory/F-001").out, /factory\/F-001/);
   assert.equal(sh("git", "rev-parse", "--abbrev-ref", "HEAD").out, "main", "the checkout did not move");
   await view("Overview");
