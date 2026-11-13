@@ -95,7 +95,7 @@ export function sourceInfo(root: string, team: Preset, limit = 60) {
 
 export type Ref = { name: string; kind: "branch" | "remote" | "tag" | "head"; head?: boolean };
 export type Layout = { col: number; converge: number[]; through: number[]; out: number[] };
-export type GraphRow = Commit & { short: string; parents: string[]; refs: Ref[] } & Layout;
+export type GraphRow = Commit & { short: string; parents: string[]; refs: Ref[]; author: string } & Layout;
 
 /** Reads git's decoration text (`HEAD -> main, origin/main, tag: v1.0.0`) into labelled refs. */
 export function parseRefs(decoration: string): Ref[] {
@@ -131,20 +131,57 @@ export function layoutGraph(rows: { sha: string; parents: string[] }[]): Layout[
   });
 }
 
-/** The newest commits on every branch, remote branch and tag, laid out for drawing. */
-export function graphInfo(root: string, team: Preset, limit = 80, branch?: string): { rows: GraphRow[]; lanes: number } {
+/**
+ * For a search: the parents of each kept commit, rewritten to its nearest kept ancestors, so the lanes stay connected
+ * across the commits that were filtered out. `rows` are newest first, children before parents (`--topo-order`).
+ */
+export function rewriteParents(rows: { sha: string; parents: string[] }[], keep: (sha: string) => boolean): Map<string, string[]> {
+  const nearest = new Map<string, string[]>(); // for any commit: the kept commits first reached going back from it
+  const out = new Map<string, string[]>();
+  for (const r of [...rows].reverse()) {
+    const up = [...new Set(r.parents.flatMap((p) => nearest.get(p) ?? []))]; // a parent beyond the commits read is dropped
+    nearest.set(r.sha, keep(r.sha) ? [r.sha] : up);
+    if (keep(r.sha)) out.set(r.sha, up);
+  }
+  return out;
+}
+
+const MAX_SEARCHED = 5000;
+
+/** Does a commit match what was typed? Message, author, a hash prefix, a branch or tag name, or a task id; case does not matter. */
+export function matchesQuery(r: { sha: string; subject: string; author: string; refs: Ref[]; task?: string }, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return (/^[0-9a-f]{4,40}$/.test(q) && r.sha.startsWith(q)) || r.subject.toLowerCase().includes(q) || r.author.toLowerCase().includes(q)
+    || r.refs.some((f) => f.name.toLowerCase().includes(q)) || r.task?.toLowerCase() === q;
+}
+
+/**
+ * The newest commits on every branch, remote branch and tag (or on one branch), laid out for drawing. With a `query`, the whole
+ * history is searched and only matching commits are shown, joined through the ones that were left out. `matches` counts them all.
+ */
+export function graphInfo(root: string, team: Preset, limit = 80, branch?: string, query = ""): { rows: GraphRow[]; lanes: number; matches?: number } {
   // One branch (and what it came from), or every branch. A branch name is checked against real refs before it reaches git.
   if (branch !== undefined && (!/^[\w./-]{1,100}$/.test(branch) || branch.startsWith("-") || (tryGit(root, "rev-parse", "--verify", "-q", `refs/heads/${branch}`) ?? tryGit(root, "rev-parse", "--verify", "-q", `refs/remotes/${branch}`)) === null))
     throw new Error(`no branch ${branch}`);
-  const raw = tryGit(root, "log", ...(branch ? [branch] : ["--branches", "--remotes", "--tags", "HEAD"]), "--topo-order", `-n${limit}`, "--format=%H%x09%P%x09%D%x09%cI%x09%s") ?? "";
+  if (query.length > 100) throw new Error("search: at most 100 characters");
+  const searching = query.trim() !== "";
+  const raw = tryGit(root, "log", ...(branch ? [branch] : ["--branches", "--remotes", "--tags", "HEAD"]), "--topo-order", `-n${searching ? MAX_SEARCHED : limit}`, "--format=%H%x09%P%x09%D%x09%cI%x09%an%x09%s") ?? "";
   const role = { task: holderOf(team, "B2"), record: holderOf(team, "K2") } as Partial<Record<Kind, string | undefined>>;
-  const parsed = raw.split("\n").filter(Boolean).map((line) => {
-    const [sha, parents, refs, date, ...rest] = line.split("\t"), subject = rest.join("\t"), c = classifyCommit(subject);
-    return { sha: sha!, parents: parents ? parents.split(" ") : [], refs: parseRefs(refs ?? ""), date: date!, subject, ...c, role: role[c.kind] };
+  let parsed = raw.split("\n").filter(Boolean).map((line) => {
+    const [sha, parents, refs, date, author, ...rest] = line.split("\t"), subject = rest.join("\t"), c = classifyCommit(subject);
+    return { sha: sha!, parents: parents ? parents.split(" ") : [], refs: parseRefs(refs ?? ""), date: date!, author: author ?? "", subject, ...c, role: role[c.kind] };
   });
+  let matches: number | undefined;
+  if (searching) {
+    const hit = new Set(parsed.filter((r) => matchesQuery(r, query)).map((r) => r.sha));
+    const rewritten = rewriteParents(parsed, (sha) => hit.has(sha));
+    matches = hit.size;
+    parsed = parsed.filter((r) => hit.has(r.sha)).slice(0, limit).map((r) => ({ ...r, parents: rewritten.get(r.sha) ?? [] }));
+  }
   const layout = layoutGraph(parsed);
   const rows = parsed.map((r, i) => ({ ...r, short: r.sha.slice(0, 7), ...layout[i]! }));
-  return { rows, lanes: Math.max(1, ...rows.map((r) => Math.max(r.col, ...r.out, ...r.through, ...r.converge) + 1)) };
+  return { rows, lanes: Math.max(1, ...rows.map((r) => Math.max(r.col, ...r.out, ...r.through, ...r.converge) + 1)), ...(matches !== undefined && { matches }) };
 }
 
 /** One commit as the details panel shows it: the full message and the files it changed. A merge is compared with its first parent. */

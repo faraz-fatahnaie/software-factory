@@ -48,9 +48,9 @@
     "semantic_hash": ""
   },
   "BACKLOG.md": {
-    "mtime": 1794589934.5912867,
-    "seen": 1794589980.112391,
-    "ast_hash": "909c58e7038fc3bb5e2e4daa8ef19691",
+    "mtime": 1794593045.189155,
+    "seen": 1794593058.902474,
+    "ast_hash": "926ff7993007254a23eebfeeadc4d433",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -60,15 +60,15 @@
     "semantic_hash": "5c27369b226fcf2be8a6cfe52224e767"
   },
   "e2e/gui.e2e.ts": {
-    "mtime": 1794589762.4678473,
-    "seen": 1794589980.112371,
-    "ast_hash": "6c71f2331bc01ebd66d9aedf5d6b8d78",
+    "mtime": 1794592991.258554,
+    "seen": 1794593058.902454,
+    "ast_hash": "eaed30194828d2ead6c8f37c41c57b48",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1794589934.5906794,
-    "seen": 1794589980.112391,
-    "ast_hash": "4f87ab3bff87eee70c64cf06b5307112",
+    "mtime": 1794593045.1890364,
+    "seen": 1794593058.902475,
+    "ast_hash": "cba500043139176a97eee3ab50f51221",
     "semantic_hash": ""
   },
   ".claude-plugin/marketplace.json": {
@@ -132,9 +132,9 @@
     "semantic_hash": ""
   },
   "plugin/engine/server.ts": {
-    "mtime": 1794589559.1165996,
-    "seen": 1794589980.112383,
-    "ast_hash": "5835bad335f39cea90d147e0faa48c4b",
+    "mtime": 1794590998.1619918,
+    "seen": 1794593058.902467,
+    "ast_hash": "99c0a9ab3750f0dd47db7a367d1b39ec",
     "semantic_hash": ""
   },
   "plugin/engine/skills.ts": {
@@ -150,9 +150,9 @@
     "semantic_hash": ""
   },
   "tests/factory.test.ts": {
-    "mtime": 1794589821.0409431,
-    "seen": 1794589980.1123872,
-    "ast_hash": "a5792665c843b09335a72ff4d912ec31",
+    "mtime": 1794591029.299822,
+    "seen": 1794593058.9024708,
+    "ast_hash": "e71567bd7b8add924aea7aaf914e5028",
     "semantic_hash": ""
   },
   "tests/fixture.ts": {
@@ -414,9 +414,9 @@
     "semantic_hash": ""
   },
   "gui/icons.tsx": {
-    "mtime": 1794587799.8805597,
-    "seen": 1794588017.2196212,
-    "ast_hash": "ae1d67439831129283ac3168129704b5",
+    "mtime": 1794591059.8750908,
+    "seen": 1794593058.9024582,
+    "ast_hash": "616ec9ec99ab81ac7b41478402a6debd",
     "semantic_hash": ""
   },
   "gui/talk.tsx": {
@@ -474,21 +474,21 @@
     "semantic_hash": ""
   },
   "gui/source.tsx": {
-    "mtime": 1794589915.966765,
-    "seen": 1794589980.112375,
-    "ast_hash": "cbc5113696f9a3b0e869778fa9be8bb5",
+    "mtime": 1794591059.8753421,
+    "seen": 1794593058.902459,
+    "ast_hash": "5c559bd20432b0f5ebd8bb3822927856",
     "semantic_hash": ""
   },
   "plugin/engine/source.ts": {
-    "mtime": 1794589821.0161874,
-    "seen": 1794589980.112384,
-    "ast_hash": "f82f341477fae9a894c09a7fbce1b762",
+    "mtime": 1794590998.1617713,
+    "seen": 1794593058.902467,
+    "ast_hash": "9642ce429e25c38296c047ce424792d5",
     "semantic_hash": ""
   },
   "gui/commitgraph.tsx": {
-    "mtime": 1794589886.9085088,
-    "seen": 1794589980.1123729,
-    "ast_hash": "7bf592c204d11eb9089828dda8ced85d",
+    "mtime": 1794591059.87521,
+    "seen": 1794593058.902457,
+    "ast_hash": "6382414097955217be3cc8984e32b1e9",
     "semantic_hash": ""
   },
   "gui/diff.tsx": {

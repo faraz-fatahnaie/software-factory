@@ -45,8 +45,16 @@ export const ago = (iso: string) => {
   return s < 10 ? "just now" : `${n} ${unit}${n === 1 ? "" : "s"} ago`;
 };
 
+/** The text with what was searched for in bold, wherever it appears (case does not matter). */
+function Marked({ text, query }: { text: string; query: string }) {
+  const q = query.trim();
+  if (!q) return <>{text}</>;
+  const parts = text.split(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "i"));
+  return <>{parts.map((part, i) => (i % 2 ? <mark key={i}>{part}</mark> : part))}</>;
+}
+
 /** Every commit on every branch, newest first. Pick one with the mouse or the arrow keys; the Source view shows what it changed. */
-export function CommitGraph({ rows, lanes, picked, onPick }: { rows: GraphRow[]; lanes: number; picked: string; onPick: (sha: string) => void }) {
+export function CommitGraph({ rows, lanes, picked, onPick, query = "" }: { rows: GraphRow[]; lanes: number; picked: string; onPick: (sha: string) => void; query?: string }) {
   const move = (e: React.KeyboardEvent, delta: number) => {
     e.preventDefault();
     const next = rows[Math.max(0, Math.min(rows.length - 1, rows.findIndex((r) => r.sha === picked) + delta))];
@@ -60,7 +68,7 @@ export function CommitGraph({ rows, lanes, picked, onPick }: { rows: GraphRow[];
             <Lanes r={r} lanes={lanes} selected={picked === r.sha} />
             <span className="g-text">
               {r.role && <Robot role={r.role} size={20} />}
-              <span className="g-msg" title={r.subject}>{r.subject}</span>
+              <span className="g-msg" title={r.subject}><Marked text={r.subject} query={query} /></span>
               {r.refs.map((f) => (
                 <span key={f.name} className={`ref ${f.kind}${f.head ? " head" : ""}`} title={f.head ? "Where you are now" : f.kind === "remote" ? "On GitHub" : f.kind === "tag" ? "A tag" : "A branch"}>
                   {f.kind === "tag" ? <Icon name="file" size={11} /> : f.kind === "remote" ? <Icon name="sync" size={11} /> : <Icon name="branch" size={11} />}{f.name}

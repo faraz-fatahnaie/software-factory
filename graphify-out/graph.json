@@ -4,32 +4,6 @@
   "graph": {},
   "nodes": [
     {
-      "id": "gui_commitgraph_graphrow",
-      "label": "GraphRow",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "commitgraph.tsx",
-      "file_type": "code",
-      "norm_label": "graphrow",
-      "source_file": "gui/commitgraph.tsx",
-      "source_location": "L7"
-    },
-    {
-      "id": "gui_commitgraph_ref",
-      "label": "Ref",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "commitgraph.tsx",
-      "file_type": "code",
-      "norm_label": "ref",
-      "source_file": "gui/commitgraph.tsx",
-      "source_location": "L6"
-    },
-    {
       "id": "plugin_engine_config_config",
       "label": "Config",
       "_callable": true,
@@ -41,6 +15,19 @@
       "norm_label": "config",
       "source_file": "plugin/engine/config.ts",
       "source_location": "L25"
+    },
+    {
+      "id": "plugin_engine_config_role",
+      "label": "Role",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "team.ts",
+      "file_type": "code",
+      "norm_label": "role",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L5"
     },
     {
       "id": "plugin_engine_config_roleconfig",
@@ -199,30 +186,17 @@
       "source_location": "L3"
     },
     {
-      "id": "plugin_engine_chronicle_eventlike",
-      "label": "EventLike",
+      "id": "plugin_engine_chat_chatrequest",
+      "label": "ChatRequest",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "factory.test.ts",
       "file_type": "code",
-      "norm_label": "eventlike",
-      "source_file": "plugin/engine/chronicle.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "plugin_engine_config_role",
-      "label": "Role",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "role",
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L5"
+      "norm_label": "chatrequest",
+      "source_file": "plugin/engine/chat.ts",
+      "source_location": "L26"
     },
     {
       "id": "plugin_engine_events_factoryevent",
@@ -290,6 +264,45 @@
       "source_location": "L17"
     },
     {
+      "id": "plugin_engine_pipeline_job",
+      "label": "Job",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "job",
+      "source_file": "plugin/engine/pipeline.ts",
+      "source_location": "L10"
+    },
+    {
+      "id": "plugin_engine_pipeline_runner",
+      "label": "Runner",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "runner",
+      "source_file": "plugin/engine/pipeline.ts",
+      "source_location": "L16"
+    },
+    {
+      "id": "plugin_engine_pipeline_runnerresult",
+      "label": "RunnerResult",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "runnerresult",
+      "source_file": "plugin/engine/pipeline.ts",
+      "source_location": "L15"
+    },
+    {
       "id": "plugin_engine_pipeline_status",
       "label": "Status",
       "_callable": true,
@@ -303,13 +316,39 @@
       "source_location": "L9"
     },
     {
-      "id": "plugin_engine_release_check",
-      "label": "Check",
+      "id": "plugin_engine_team_preset",
+      "label": "Preset",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "preset",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L20"
+    },
+    {
+      "id": "plugin_engine_chronicle_eventlike",
+      "label": "EventLike",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "eventlike",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "plugin_engine_release_check",
+      "label": "Check",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
       "file_type": "code",
       "norm_label": "check",
       "source_file": "plugin/engine/release.ts",
@@ -321,8 +360,8 @@
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
+      "community": 4,
+      "community_name": "cli.ts",
       "file_type": "code",
       "norm_label": "versionfile",
       "source_file": "plugin/engine/release.ts",
@@ -334,8 +373,8 @@
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
+      "community": 4,
+      "community_name": "cli.ts",
       "file_type": "code",
       "norm_label": "change",
       "source_file": "plugin/engine/security.ts",
@@ -347,8 +386,8 @@
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
+      "community": 4,
+      "community_name": "cli.ts",
       "file_type": "code",
       "norm_label": "finding",
       "source_file": "plugin/engine/security.ts",
@@ -360,8 +399,8 @@
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
+      "community": 4,
+      "community_name": "cli.ts",
       "file_type": "code",
       "norm_label": "securityconfig",
       "source_file": "plugin/engine/security.ts",
@@ -589,58 +628,6 @@
       "source_location": "L8"
     },
     {
-      "id": "gui_robots_draw",
-      "label": "Draw",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "talk.tsx",
-      "file_type": "code",
-      "norm_label": "draw",
-      "source_file": "gui/robots.tsx",
-      "source_location": "L6"
-    },
-    {
-      "id": "gui_robots_p",
-      "label": "P",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "talk.tsx",
-      "file_type": "code",
-      "norm_label": "p",
-      "source_file": "gui/robots.tsx",
-      "source_location": "L5"
-    },
-    {
-      "id": "gui_robots_presence",
-      "label": "Presence",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "talk.tsx",
-      "file_type": "code",
-      "norm_label": "presence",
-      "source_file": "gui/robots.tsx",
-      "source_location": "L119"
-    },
-    {
-      "id": "gui_robots_robot",
-      "label": "Robot",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "talk.tsx",
-      "file_type": "code",
-      "norm_label": "robot",
-      "source_file": "gui/robots.tsx",
-      "source_location": "L7"
-    },
-    {
       "id": "gui_talk_chat",
       "label": "Chat",
       "_callable": true,
@@ -732,6 +719,71 @@
       "source_location": "L13"
     },
     {
+      "id": "gui_ui_option",
+      "label": "Option",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "talk.tsx",
+      "file_type": "code",
+      "norm_label": "option",
+      "source_file": "gui/ui.tsx",
+      "source_location": "L5"
+    },
+    {
+      "id": "gui_robots_draw",
+      "label": "Draw",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "team.tsx",
+      "file_type": "code",
+      "norm_label": "draw",
+      "source_file": "gui/robots.tsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "gui_robots_p",
+      "label": "P",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "team.tsx",
+      "file_type": "code",
+      "norm_label": "p",
+      "source_file": "gui/robots.tsx",
+      "source_location": "L5"
+    },
+    {
+      "id": "gui_robots_presence",
+      "label": "Presence",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "team.tsx",
+      "file_type": "code",
+      "norm_label": "presence",
+      "source_file": "gui/robots.tsx",
+      "source_location": "L119"
+    },
+    {
+      "id": "gui_robots_robot",
+      "label": "Robot",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "team.tsx",
+      "file_type": "code",
+      "norm_label": "robot",
+      "source_file": "gui/robots.tsx",
+      "source_location": "L7"
+    },
+    {
       "id": "gui_team_change",
       "label": "Change",
       "_callable": true,
@@ -797,30 +849,30 @@
       "source_location": "L12"
     },
     {
-      "id": "gui_ui_option",
-      "label": "Option",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "team.tsx",
-      "file_type": "code",
-      "norm_label": "option",
-      "source_file": "gui/ui.tsx",
-      "source_location": "L5"
-    },
-    {
-      "id": "gui_data_item",
-      "label": "Item",
+      "id": "gui_commitgraph_graphrow",
+      "label": "GraphRow",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 45,
       "community_name": "source.tsx",
       "file_type": "code",
-      "norm_label": "item",
-      "source_file": "gui/data.ts",
+      "norm_label": "graphrow",
+      "source_file": "gui/commitgraph.tsx",
       "source_location": "L7"
+    },
+    {
+      "id": "gui_commitgraph_ref",
+      "label": "Ref",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "source.tsx",
+      "file_type": "code",
+      "norm_label": "ref",
+      "source_file": "gui/commitgraph.tsx",
+      "source_location": "L6"
     },
     {
       "id": "gui_diff_dir",
@@ -914,97 +966,6 @@
       "source_location": "L13"
     },
     {
-      "id": "gui_vcs_vcscheck",
-      "label": "VcsCheck",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 45,
-      "community_name": "source.tsx",
-      "file_type": "code",
-      "norm_label": "vcscheck",
-      "source_file": "gui/vcs.tsx",
-      "source_location": "L7"
-    },
-    {
-      "id": "gui_vcs_vcsdata",
-      "label": "VcsData",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 45,
-      "community_name": "source.tsx",
-      "file_type": "code",
-      "norm_label": "vcsdata",
-      "source_file": "gui/vcs.tsx",
-      "source_location": "L9"
-    },
-    {
-      "id": "gui_vcs_vcspr",
-      "label": "VcsPr",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 45,
-      "community_name": "source.tsx",
-      "file_type": "code",
-      "norm_label": "vcspr",
-      "source_file": "gui/vcs.tsx",
-      "source_location": "L8"
-    },
-    {
-      "id": "plugin_engine_chat_chatrequest",
-      "label": "ChatRequest",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "chatrequest",
-      "source_file": "plugin/engine/chat.ts",
-      "source_location": "L26"
-    },
-    {
-      "id": "plugin_engine_pipeline_job",
-      "label": "Job",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "job",
-      "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L10"
-    },
-    {
-      "id": "plugin_engine_pipeline_runner",
-      "label": "Runner",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "runner",
-      "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L16"
-    },
-    {
-      "id": "plugin_engine_pipeline_runnerresult",
-      "label": "RunnerResult",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "runnerresult",
-      "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L15"
-    },
-    {
       "id": "plugin_engine_source_change",
       "label": "Change",
       "_callable": true,
@@ -1096,19 +1057,6 @@
       "source_location": "L96"
     },
     {
-      "id": "plugin_engine_team_preset",
-      "label": "Preset",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "preset",
-      "source_file": "plugin/engine/team.ts",
-      "source_location": "L20"
-    },
-    {
       "id": "gui_data_backlog",
       "label": "Backlog",
       "_callable": true,
@@ -1120,6 +1068,19 @@
       "norm_label": "backlog",
       "source_file": "gui/data.ts",
       "source_location": "L8"
+    },
+    {
+      "id": "gui_data_item",
+      "label": "Item",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "data.ts",
+      "file_type": "code",
+      "norm_label": "item",
+      "source_file": "gui/data.ts",
+      "source_location": "L7"
     },
     {
       "id": "gui_data_link",
@@ -1135,64 +1096,55 @@
       "source_location": "L9"
     },
     {
-      "id": "gui_commitgraph_agoshort",
-      "label": "agoShort()",
+      "id": "gui_vcs_vcscheck",
+      "label": "VcsCheck",
       "_callable": true,
+      "_callable_class": true,
       "_origin": "ast",
-      "community": 1,
-      "community_name": "commitgraph.tsx",
+      "community": 7,
+      "community_name": "data.ts",
       "file_type": "code",
-      "norm_label": "agoshort()",
-      "source_file": "gui/commitgraph.tsx",
-      "source_location": "L37"
+      "norm_label": "vcscheck",
+      "source_file": "gui/vcs.tsx",
+      "source_location": "L7"
     },
     {
-      "id": "gui_commitgraph_color",
-      "label": "color()",
+      "id": "gui_vcs_vcsdata",
+      "label": "VcsData",
       "_callable": true,
+      "_callable_class": true,
       "_origin": "ast",
-      "community": 1,
-      "community_name": "commitgraph.tsx",
+      "community": 7,
+      "community_name": "data.ts",
       "file_type": "code",
-      "norm_label": "color()",
-      "source_file": "gui/commitgraph.tsx",
-      "source_location": "L15"
+      "norm_label": "vcsdata",
+      "source_file": "gui/vcs.tsx",
+      "source_location": "L9"
     },
     {
-      "id": "gui_commitgraph_commitgraph",
-      "label": "CommitGraph()",
+      "id": "gui_vcs_vcspr",
+      "label": "VcsPr",
       "_callable": true,
+      "_callable_class": true,
       "_origin": "ast",
-      "community": 1,
-      "community_name": "commitgraph.tsx",
+      "community": 7,
+      "community_name": "data.ts",
       "file_type": "code",
-      "norm_label": "commitgraph()",
-      "source_file": "gui/commitgraph.tsx",
-      "source_location": "L49"
+      "norm_label": "vcspr",
+      "source_file": "gui/vcs.tsx",
+      "source_location": "L8"
     },
     {
-      "id": "gui_commitgraph_lanes",
-      "label": "Lanes()",
+      "id": "plugin_engine_cli_graphenabled",
+      "label": "graphEnabled()",
       "_callable": true,
       "_origin": "ast",
-      "community": 1,
-      "community_name": "commitgraph.tsx",
+      "community": 13,
+      "community_name": "team.ts",
       "file_type": "code",
-      "norm_label": "lanes()",
-      "source_file": "gui/commitgraph.tsx",
-      "source_location": "L19"
-    },
-    {
-      "id": "gui_commitgraph_x",
-      "label": "x()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "commitgraph.tsx",
-      "file_type": "code",
-      "norm_label": "x()",
-      "source_file": "gui/commitgraph.tsx",
-      "source_location": "L16"
+      "norm_label": "graphenabled()",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L54"
     },
     {
       "id": "plugin_engine_config_ismodel",
@@ -1231,6 +1183,18 @@
       "source_location": "L30"
     },
     {
+      "id": "plugin_engine_config_loadconfig",
+      "label": "loadConfig()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "team.ts",
+      "file_type": "code",
+      "norm_label": "loadconfig()",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L105"
+    },
+    {
       "id": "plugin_engine_config_parseconfig",
       "label": "parseConfig()",
       "_callable": true,
@@ -1241,6 +1205,18 @@
       "norm_label": "parseconfig()",
       "source_file": "plugin/engine/config.ts",
       "source_location": "L55"
+    },
+    {
+      "id": "plugin_engine_config_projectroles",
+      "label": "projectRoles()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "team.ts",
+      "file_type": "code",
+      "norm_label": "projectroles()",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L52"
     },
     {
       "id": "plugin_engine_config_teamof",
@@ -1291,6 +1267,18 @@
       "source_location": "L13"
     },
     {
+      "id": "plugin_engine_graph_graphifyinstalled",
+      "label": "graphifyInstalled()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "team.ts",
+      "file_type": "code",
+      "norm_label": "graphifyinstalled()",
+      "source_file": "plugin/engine/graph.ts",
+      "source_location": "L9"
+    },
+    {
       "id": "plugin_engine_init_applyteam",
       "label": "applyTeam()",
       "_callable": true,
@@ -1301,6 +1289,18 @@
       "norm_label": "applyteam()",
       "source_file": "plugin/engine/init.ts",
       "source_location": "L144"
+    },
+    {
+      "id": "plugin_engine_init_configure",
+      "label": "configure()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "team.ts",
+      "file_type": "code",
+      "norm_label": "configure()",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L198"
     },
     {
       "id": "plugin_engine_init_detect",
@@ -1315,6 +1315,18 @@
       "source_location": "L25"
     },
     {
+      "id": "plugin_engine_init_doctor",
+      "label": "doctor()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "team.ts",
+      "file_type": "code",
+      "norm_label": "doctor()",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L101"
+    },
+    {
       "id": "plugin_engine_init_init",
       "label": "init()",
       "_callable": true,
@@ -1327,6 +1339,30 @@
       "source_location": "L53"
     },
     {
+      "id": "plugin_engine_init_nextstep",
+      "label": "nextStep()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "team.ts",
+      "file_type": "code",
+      "norm_label": "nextstep()",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L180"
+    },
+    {
+      "id": "plugin_engine_init_projectdocs",
+      "label": "projectDocs()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "team.ts",
+      "file_type": "code",
+      "norm_label": "projectdocs()",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L172"
+    },
+    {
       "id": "plugin_engine_init_read",
       "label": "read()",
       "_callable": true,
@@ -1337,6 +1373,18 @@
       "norm_label": "read()",
       "source_file": "plugin/engine/init.ts",
       "source_location": "L18"
+    },
+    {
+      "id": "plugin_engine_skills_setskill",
+      "label": "setSkill()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "team.ts",
+      "file_type": "code",
+      "norm_label": "setskill()",
+      "source_file": "plugin/engine/skills.ts",
+      "source_location": "L62"
     },
     {
       "id": "plugin_engine_team_activeroles",
@@ -1363,16 +1411,16 @@
       "source_location": "L213"
     },
     {
-      "id": "plugin_engine_team_chatpromptfor",
-      "label": "chatPromptFor()",
+      "id": "plugin_engine_team_chatprompt",
+      "label": "chatPrompt()",
       "_callable": true,
       "_origin": "ast",
       "community": 13,
       "community_name": "team.ts",
       "file_type": "code",
-      "norm_label": "chatpromptfor()",
+      "norm_label": "chatprompt()",
       "source_file": "plugin/engine/team.ts",
-      "source_location": "L238"
+      "source_location": "L224"
     },
     {
       "id": "plugin_engine_team_checksettings",
@@ -1409,18 +1457,6 @@
       "norm_label": "describeteam()",
       "source_file": "plugin/engine/team.ts",
       "source_location": "L265"
-    },
-    {
-      "id": "plugin_engine_team_holderof",
-      "label": "holderOf()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 13,
-      "community_name": "team.ts",
-      "file_type": "code",
-      "norm_label": "holderof()",
-      "source_file": "plugin/engine/team.ts",
-      "source_location": "L168"
     },
     {
       "id": "plugin_engine_team_isbuilt",
@@ -1603,6 +1639,18 @@
       "source_location": "L108"
     },
     {
+      "id": "plugin_engine_teamctl_addcustom",
+      "label": "addCustom()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "team.ts",
+      "file_type": "code",
+      "norm_label": "addcustom()",
+      "source_file": "plugin/engine/teamctl.ts",
+      "source_location": "L36"
+    },
+    {
       "id": "plugin_engine_teamctl_changeteam",
       "label": "changeTeam()",
       "_callable": true,
@@ -1699,16 +1747,16 @@
       "source_location": "L71"
     },
     {
-      "id": "plugin_engine_teamctl_presetlist",
-      "label": "presetList()",
+      "id": "plugin_engine_teamctl_removecustom",
+      "label": "removeCustom()",
       "_callable": true,
       "_origin": "ast",
       "community": 13,
       "community_name": "team.ts",
       "file_type": "code",
-      "norm_label": "presetlist()",
+      "norm_label": "removecustom()",
       "source_file": "plugin/engine/teamctl.ts",
-      "source_location": "L157"
+      "source_location": "L42"
     },
     {
       "id": "plugin_engine_teamctl_renamesettings",
@@ -1721,18 +1769,6 @@
       "norm_label": "renamesettings()",
       "source_file": "plugin/engine/teamctl.ts",
       "source_location": "L31"
-    },
-    {
-      "id": "plugin_engine_teamctl_teamview",
-      "label": "teamView()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 13,
-      "community_name": "team.ts",
-      "file_type": "code",
-      "norm_label": "teamview()",
-      "source_file": "plugin/engine/teamctl.ts",
-      "source_location": "L136"
     },
     {
       "id": "plugin_engine_teamctl_titlesettings",
@@ -1819,54 +1855,6 @@
       "source_location": "L8"
     },
     {
-      "id": "plugin_engine_chronicle_appendchronicle",
-      "label": "appendChronicle()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "appendchronicle()",
-      "source_file": "plugin/engine/chronicle.ts",
-      "source_location": "L44"
-    },
-    {
-      "id": "plugin_engine_chronicle_appendnotes",
-      "label": "appendNotes()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "appendnotes()",
-      "source_file": "plugin/engine/chronicle.ts",
-      "source_location": "L53"
-    },
-    {
-      "id": "plugin_engine_chronicle_chronicleentry",
-      "label": "chronicleEntry()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "chronicleentry()",
-      "source_file": "plugin/engine/chronicle.ts",
-      "source_location": "L26"
-    },
-    {
-      "id": "plugin_engine_chronicle_parsescribe",
-      "label": "parseScribe()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "parsescribe()",
-      "source_file": "plugin/engine/chronicle.ts",
-      "source_location": "L11"
-    },
-    {
       "id": "plugin_engine_chronicle_readnotes",
       "label": "readNotes()",
       "_callable": true,
@@ -1879,40 +1867,64 @@
       "source_location": "L68"
     },
     {
-      "id": "plugin_engine_chronicle_stageoutput",
-      "label": "stageOutput()",
+      "id": "plugin_engine_claude_agentevents",
+      "label": "agentEvents()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "factory.test.ts",
       "file_type": "code",
-      "norm_label": "stageoutput()",
-      "source_file": "plugin/engine/chronicle.ts",
-      "source_location": "L22"
+      "norm_label": "agentevents()",
+      "source_file": "plugin/engine/claude.ts",
+      "source_location": "L55"
     },
     {
-      "id": "plugin_engine_cli_recordlanding",
-      "label": "recordLanding()",
+      "id": "plugin_engine_claude_classify",
+      "label": "classify()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "factory.test.ts",
       "file_type": "code",
-      "norm_label": "recordlanding()",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L57"
+      "norm_label": "classify()",
+      "source_file": "plugin/engine/claude.ts",
+      "source_location": "L68"
     },
     {
-      "id": "plugin_engine_config_projectteam",
-      "label": "projectTeam()",
+      "id": "plugin_engine_claude_claudeargs",
+      "label": "claudeArgs()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "factory.test.ts",
       "file_type": "code",
-      "norm_label": "projectteam()",
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L44"
+      "norm_label": "claudeargs()",
+      "source_file": "plugin/engine/claude.ts",
+      "source_location": "L12"
+    },
+    {
+      "id": "plugin_engine_claude_clauderunner",
+      "label": "claudeRunner()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "clauderunner()",
+      "source_file": "plugin/engine/claude.ts",
+      "source_location": "L103"
+    },
+    {
+      "id": "plugin_engine_claude_hooksettings",
+      "label": "hookSettings()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "hooksettings()",
+      "source_file": "plugin/engine/claude.ts",
+      "source_location": "L38"
     },
     {
       "id": "plugin_engine_graph_updategraph",
@@ -1999,6 +2011,18 @@
       "source_location": "L36"
     },
     {
+      "id": "plugin_engine_pipeline_stopall",
+      "label": "stopAll()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "stopall()",
+      "source_file": "plugin/engine/pipeline.ts",
+      "source_location": "L30"
+    },
+    {
       "id": "plugin_engine_pipeline_stubrunner",
       "label": "stubRunner()",
       "_callable": true,
@@ -2009,6 +2033,18 @@
       "norm_label": "stubrunner()",
       "source_file": "plugin/engine/pipeline.ts",
       "source_location": "L50"
+    },
+    {
+      "id": "plugin_engine_pipeline_track",
+      "label": "track()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "track()",
+      "source_file": "plugin/engine/pipeline.ts",
+      "source_location": "L24"
     },
     {
       "id": "plugin_engine_pipeline_verdictis",
@@ -2023,162 +2059,6 @@
       "source_location": "L66"
     },
     {
-      "id": "plugin_engine_release_approved",
-      "label": "approved()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "approved()",
-      "source_file": "plugin/engine/release.ts",
-      "source_location": "L16"
-    },
-    {
-      "id": "plugin_engine_release_dirtyfiles",
-      "label": "dirtyFiles()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "dirtyfiles()",
-      "source_file": "plugin/engine/release.ts",
-      "source_location": "L36"
-    },
-    {
-      "id": "plugin_engine_release_git",
-      "label": "git()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "git()",
-      "source_file": "plugin/engine/release.ts",
-      "source_location": "L11"
-    },
-    {
-      "id": "plugin_engine_release_read",
-      "label": "read()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "read()",
-      "source_file": "plugin/engine/release.ts",
-      "source_location": "L15"
-    },
-    {
-      "id": "plugin_engine_release_readiness",
-      "label": "readiness()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "readiness()",
-      "source_file": "plugin/engine/release.ts",
-      "source_location": "L70"
-    },
-    {
-      "id": "plugin_engine_release_releaseinfo",
-      "label": "releaseInfo()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "releaseinfo()",
-      "source_file": "plugin/engine/release.ts",
-      "source_location": "L38"
-    },
-    {
-      "id": "plugin_engine_release_tagrelease",
-      "label": "tagRelease()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "tagrelease()",
-      "source_file": "plugin/engine/release.ts",
-      "source_location": "L128"
-    },
-    {
-      "id": "plugin_engine_release_versionfiles",
-      "label": "versionFiles()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "versionfiles()",
-      "source_file": "plugin/engine/release.ts",
-      "source_location": "L23"
-    },
-    {
-      "id": "plugin_engine_security_alltracked",
-      "label": "allTracked()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "alltracked()",
-      "source_file": "plugin/engine/security.ts",
-      "source_location": "L62"
-    },
-    {
-      "id": "plugin_engine_security_changesinworktree",
-      "label": "changesInWorktree()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "changesinworktree()",
-      "source_file": "plugin/engine/security.ts",
-      "source_location": "L48"
-    },
-    {
-      "id": "plugin_engine_security_entropy",
-      "label": "entropy()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "entropy()",
-      "source_file": "plugin/engine/security.ts",
-      "source_location": "L64"
-    },
-    {
-      "id": "plugin_engine_security_git",
-      "label": "git()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "git()",
-      "source_file": "plugin/engine/security.ts",
-      "source_location": "L16"
-    },
-    {
-      "id": "plugin_engine_security_readall",
-      "label": "readAll()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "readall()",
-      "source_file": "plugin/engine/security.ts",
-      "source_location": "L35"
-    },
-    {
       "id": "plugin_engine_security_sensitivereasons",
       "label": "sensitiveReasons()",
       "_callable": true,
@@ -2191,16 +2071,76 @@
       "source_location": "L120"
     },
     {
-      "id": "plugin_engine_security_tidy",
-      "label": "tidy()",
+      "id": "plugin_engine_skills_addskill",
+      "label": "addSkill()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "factory.test.ts",
       "file_type": "code",
-      "norm_label": "tidy()",
-      "source_file": "plugin/engine/security.ts",
-      "source_location": "L45"
+      "norm_label": "addskill()",
+      "source_file": "plugin/engine/skills.ts",
+      "source_location": "L48"
+    },
+    {
+      "id": "plugin_engine_skills_attachskill",
+      "label": "attachSkill()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "attachskill()",
+      "source_file": "plugin/engine/skills.ts",
+      "source_location": "L11"
+    },
+    {
+      "id": "plugin_engine_skills_detachskill",
+      "label": "detachSkill()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "detachskill()",
+      "source_file": "plugin/engine/skills.ts",
+      "source_location": "L29"
+    },
+    {
+      "id": "plugin_engine_skills_parsefind",
+      "label": "parseFind()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "parsefind()",
+      "source_file": "plugin/engine/skills.ts",
+      "source_location": "L39"
+    },
+    {
+      "id": "plugin_engine_skills_roleskills",
+      "label": "roleSkills()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "roleskills()",
+      "source_file": "plugin/engine/skills.ts",
+      "source_location": "L25"
+    },
+    {
+      "id": "plugin_engine_skills_searchskills",
+      "label": "searchSkills()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "searchskills()",
+      "source_file": "plugin/engine/skills.ts",
+      "source_location": "L72"
     },
     {
       "id": "tests_factory_test_added",
@@ -2299,6 +2239,66 @@
       "source_location": "L11"
     },
     {
+      "id": "plugin_engine_chronicle_appendchronicle",
+      "label": "appendChronicle()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "appendchronicle()",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L44"
+    },
+    {
+      "id": "plugin_engine_chronicle_appendnotes",
+      "label": "appendNotes()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "appendnotes()",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L53"
+    },
+    {
+      "id": "plugin_engine_chronicle_chronicleentry",
+      "label": "chronicleEntry()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "chronicleentry()",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L26"
+    },
+    {
+      "id": "plugin_engine_chronicle_parsescribe",
+      "label": "parseScribe()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "parsescribe()",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L11"
+    },
+    {
+      "id": "plugin_engine_chronicle_stageoutput",
+      "label": "stageOutput()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "stageoutput()",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L22"
+    },
+    {
       "id": "plugin_engine_cli_commitpaths",
       "label": "commitPaths()",
       "_callable": true,
@@ -2347,18 +2347,6 @@
       "source_location": "L80"
     },
     {
-      "id": "plugin_engine_cli_graphenabled",
-      "label": "graphEnabled()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "graphenabled()",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L54"
-    },
-    {
       "id": "plugin_engine_cli_main",
       "label": "main()",
       "_callable": true,
@@ -2395,6 +2383,18 @@
       "source_location": "L22"
     },
     {
+      "id": "plugin_engine_cli_recordlanding",
+      "label": "recordLanding()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "recordlanding()",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L57"
+    },
+    {
       "id": "plugin_engine_cli_withlock",
       "label": "withLock()",
       "_callable": true,
@@ -2407,16 +2407,16 @@
       "source_location": "L33"
     },
     {
-      "id": "plugin_engine_config_loadconfig",
-      "label": "loadConfig()",
+      "id": "plugin_engine_config_projectteam",
+      "label": "projectTeam()",
       "_callable": true,
       "_origin": "ast",
       "community": 4,
       "community_name": "cli.ts",
       "file_type": "code",
-      "norm_label": "loadconfig()",
+      "norm_label": "projectteam()",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L105"
+      "source_location": "L44"
     },
     {
       "id": "plugin_engine_events_openstore",
@@ -2431,76 +2431,28 @@
       "source_location": "L17"
     },
     {
-      "id": "plugin_engine_graph_graphifyinstalled",
-      "label": "graphifyInstalled()",
+      "id": "plugin_engine_release_approved",
+      "label": "approved()",
       "_callable": true,
       "_origin": "ast",
       "community": 4,
       "community_name": "cli.ts",
       "file_type": "code",
-      "norm_label": "graphifyinstalled()",
-      "source_file": "plugin/engine/graph.ts",
-      "source_location": "L9"
+      "norm_label": "approved()",
+      "source_file": "plugin/engine/release.ts",
+      "source_location": "L16"
     },
     {
-      "id": "plugin_engine_init_configure",
-      "label": "configure()",
+      "id": "plugin_engine_release_dirtyfiles",
+      "label": "dirtyFiles()",
       "_callable": true,
       "_origin": "ast",
       "community": 4,
       "community_name": "cli.ts",
       "file_type": "code",
-      "norm_label": "configure()",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L198"
-    },
-    {
-      "id": "plugin_engine_init_doctor",
-      "label": "doctor()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "doctor()",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L101"
-    },
-    {
-      "id": "plugin_engine_init_nextstep",
-      "label": "nextStep()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "nextstep()",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L180"
-    },
-    {
-      "id": "plugin_engine_init_projectdocs",
-      "label": "projectDocs()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "projectdocs()",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L172"
-    },
-    {
-      "id": "plugin_engine_pipeline_stopall",
-      "label": "stopAll()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "stopall()",
-      "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L30"
+      "norm_label": "dirtyfiles()",
+      "source_file": "plugin/engine/release.ts",
+      "source_location": "L36"
     },
     {
       "id": "plugin_engine_release_formatchecks",
@@ -2527,6 +2479,102 @@
       "source_location": "L53"
     },
     {
+      "id": "plugin_engine_release_git",
+      "label": "git()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "git()",
+      "source_file": "plugin/engine/release.ts",
+      "source_location": "L11"
+    },
+    {
+      "id": "plugin_engine_release_read",
+      "label": "read()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "read()",
+      "source_file": "plugin/engine/release.ts",
+      "source_location": "L15"
+    },
+    {
+      "id": "plugin_engine_release_readiness",
+      "label": "readiness()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "readiness()",
+      "source_file": "plugin/engine/release.ts",
+      "source_location": "L70"
+    },
+    {
+      "id": "plugin_engine_release_releaseinfo",
+      "label": "releaseInfo()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "releaseinfo()",
+      "source_file": "plugin/engine/release.ts",
+      "source_location": "L38"
+    },
+    {
+      "id": "plugin_engine_release_tagrelease",
+      "label": "tagRelease()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "tagrelease()",
+      "source_file": "plugin/engine/release.ts",
+      "source_location": "L128"
+    },
+    {
+      "id": "plugin_engine_release_versionfiles",
+      "label": "versionFiles()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "versionfiles()",
+      "source_file": "plugin/engine/release.ts",
+      "source_location": "L23"
+    },
+    {
+      "id": "plugin_engine_security_alltracked",
+      "label": "allTracked()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "alltracked()",
+      "source_file": "plugin/engine/security.ts",
+      "source_location": "L62"
+    },
+    {
+      "id": "plugin_engine_security_changesinworktree",
+      "label": "changesInWorktree()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "changesinworktree()",
+      "source_file": "plugin/engine/security.ts",
+      "source_location": "L48"
+    },
+    {
       "id": "plugin_engine_security_changessince",
       "label": "changesSince()",
       "_callable": true,
@@ -2537,6 +2585,18 @@
       "norm_label": "changessince()",
       "source_file": "plugin/engine/security.ts",
       "source_location": "L56"
+    },
+    {
+      "id": "plugin_engine_security_entropy",
+      "label": "entropy()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "entropy()",
+      "source_file": "plugin/engine/security.ts",
+      "source_location": "L64"
     },
     {
       "id": "plugin_engine_security_formatfindings",
@@ -2551,6 +2611,18 @@
       "source_location": "L100"
     },
     {
+      "id": "plugin_engine_security_git",
+      "label": "git()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "git()",
+      "source_file": "plugin/engine/security.ts",
+      "source_location": "L16"
+    },
+    {
       "id": "plugin_engine_security_parsediff",
       "label": "parseDiff()",
       "_callable": true,
@@ -2561,6 +2633,18 @@
       "norm_label": "parsediff()",
       "source_file": "plugin/engine/security.ts",
       "source_location": "L24"
+    },
+    {
+      "id": "plugin_engine_security_readall",
+      "label": "readAll()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "readall()",
+      "source_file": "plugin/engine/security.ts",
+      "source_location": "L35"
     },
     {
       "id": "plugin_engine_security_scansecrets",
@@ -2575,40 +2659,16 @@
       "source_location": "L83"
     },
     {
-      "id": "plugin_engine_team_chatprompt",
-      "label": "chatPrompt()",
+      "id": "plugin_engine_security_tidy",
+      "label": "tidy()",
       "_callable": true,
       "_origin": "ast",
       "community": 4,
       "community_name": "cli.ts",
       "file_type": "code",
-      "norm_label": "chatprompt()",
-      "source_file": "plugin/engine/team.ts",
-      "source_location": "L224"
-    },
-    {
-      "id": "plugin_engine_teamctl_addcustom",
-      "label": "addCustom()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "addcustom()",
-      "source_file": "plugin/engine/teamctl.ts",
-      "source_location": "L36"
-    },
-    {
-      "id": "plugin_engine_teamctl_removecustom",
-      "label": "removeCustom()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "removecustom()",
-      "source_file": "plugin/engine/teamctl.ts",
-      "source_location": "L42"
+      "norm_label": "tidy()",
+      "source_file": "plugin/engine/security.ts",
+      "source_location": "L45"
     },
     {
       "id": "plugin_engine_vcs_armautomerge",
@@ -2621,18 +2681,6 @@
       "norm_label": "armautomerge()",
       "source_file": "plugin/engine/vcs.ts",
       "source_location": "L165"
-    },
-    {
-      "id": "plugin_engine_vcs_basebranch",
-      "label": "baseBranch()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "basebranch()",
-      "source_file": "plugin/engine/vcs.ts",
-      "source_location": "L24"
     },
     {
       "id": "plugin_engine_vcs_checkof",
@@ -2683,6 +2731,18 @@
       "source_location": "L72"
     },
     {
+      "id": "plugin_engine_vcs_gh",
+      "label": "GH()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "gh()",
+      "source_file": "plugin/engine/vcs.ts",
+      "source_location": "L9"
+    },
+    {
       "id": "plugin_engine_vcs_haschecks",
       "label": "hasChecks()",
       "_callable": true,
@@ -2693,18 +2753,6 @@
       "norm_label": "haschecks()",
       "source_file": "plugin/engine/vcs.ts",
       "source_location": "L168"
-    },
-    {
-      "id": "plugin_engine_vcs_hasref",
-      "label": "hasRef()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "hasref()",
-      "source_file": "plugin/engine/vcs.ts",
-      "source_location": "L25"
     },
     {
       "id": "plugin_engine_vcs_isrevert",
@@ -2729,18 +2777,6 @@
       "norm_label": "listprs()",
       "source_file": "plugin/engine/vcs.ts",
       "source_location": "L42"
-    },
-    {
-      "id": "plugin_engine_vcs_mergeof",
-      "label": "mergeOf()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "mergeof()",
-      "source_file": "plugin/engine/vcs.ts",
-      "source_location": "L190"
     },
     {
       "id": "plugin_engine_vcs_mergetask",
@@ -2791,28 +2827,16 @@
       "source_location": "L98"
     },
     {
-      "id": "plugin_engine_vcs_remoteurl",
-      "label": "remoteUrl()",
+      "id": "plugin_engine_vcs_run",
+      "label": "run()",
       "_callable": true,
       "_origin": "ast",
       "community": 4,
       "community_name": "cli.ts",
       "file_type": "code",
-      "norm_label": "remoteurl()",
+      "norm_label": "run()",
       "source_file": "plugin/engine/vcs.ts",
-      "source_location": "L23"
-    },
-    {
-      "id": "plugin_engine_vcs_reverttask",
-      "label": "revertTask()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "reverttask()",
-      "source_file": "plugin/engine/vcs.ts",
-      "source_location": "L203"
+      "source_location": "L10"
     },
     {
       "id": "plugin_engine_vcs_runtexts",
@@ -2849,138 +2873,6 @@
       "norm_label": "syncgithub()",
       "source_file": "plugin/engine/vcs.ts",
       "source_location": "L150"
-    },
-    {
-      "id": "plugin_engine_vcs_tidy",
-      "label": "tidy()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "tidy()",
-      "source_file": "plugin/engine/vcs.ts",
-      "source_location": "L118"
-    },
-    {
-      "id": "plugin_engine_vcs_trygit",
-      "label": "tryGit()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "trygit()",
-      "source_file": "plugin/engine/vcs.ts",
-      "source_location": "L15"
-    },
-    {
-      "id": "plugin_engine_vcs_vcsstatus",
-      "label": "vcsStatus()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "vcsstatus()",
-      "source_file": "plugin/engine/vcs.ts",
-      "source_location": "L57"
-    },
-    {
-      "id": "plugin_engine_worktree_branchof",
-      "label": "branchOf()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "branchof()",
-      "source_file": "plugin/engine/worktree.ts",
-      "source_location": "L5"
-    },
-    {
-      "id": "plugin_engine_worktree_commitall",
-      "label": "commitAll()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "commitall()",
-      "source_file": "plugin/engine/worktree.ts",
-      "source_location": "L39"
-    },
-    {
-      "id": "plugin_engine_worktree_ensureworktree",
-      "label": "ensureWorktree()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "ensureworktree()",
-      "source_file": "plugin/engine/worktree.ts",
-      "source_location": "L16"
-    },
-    {
-      "id": "plugin_engine_worktree_git",
-      "label": "git()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "git()",
-      "source_file": "plugin/engine/worktree.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "plugin_engine_worktree_land",
-      "label": "land()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "land()",
-      "source_file": "plugin/engine/worktree.ts",
-      "source_location": "L59"
-    },
-    {
-      "id": "plugin_engine_worktree_listworktrees",
-      "label": "listWorktrees()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "listworktrees()",
-      "source_file": "plugin/engine/worktree.ts",
-      "source_location": "L23"
-    },
-    {
-      "id": "plugin_engine_worktree_removeworktree",
-      "label": "removeWorktree()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "removeworktree()",
-      "source_file": "plugin/engine/worktree.ts",
-      "source_location": "L47"
-    },
-    {
-      "id": "plugin_engine_worktree_worktreeof",
-      "label": "worktreeOf()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "worktreeof()",
-      "source_file": "plugin/engine/worktree.ts",
-      "source_location": "L6"
     },
     {
       "id": "gui_app_board",
@@ -3307,30 +3199,6 @@
       "source_location": "L23"
     },
     {
-      "id": "gui_app_line",
-      "label": "Line()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "talk.tsx",
-      "file_type": "code",
-      "norm_label": "line()",
-      "source_file": "gui/app.tsx",
-      "source_location": "L152"
-    },
-    {
-      "id": "gui_robots_personafor",
-      "label": "personaFor()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "talk.tsx",
-      "file_type": "code",
-      "norm_label": "personafor()",
-      "source_file": "gui/robots.tsx",
-      "source_location": "L113"
-    },
-    {
       "id": "gui_talk_checks",
       "label": "Checks",
       "_callable": true,
@@ -3355,6 +3223,42 @@
       "source_location": "L32"
     },
     {
+      "id": "gui_ui_select",
+      "label": "Select()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "talk.tsx",
+      "file_type": "code",
+      "norm_label": "select()",
+      "source_file": "gui/ui.tsx",
+      "source_location": "L11"
+    },
+    {
+      "id": "gui_ui_skel",
+      "label": "Skel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "talk.tsx",
+      "file_type": "code",
+      "norm_label": "skel()",
+      "source_file": "gui/ui.tsx",
+      "source_location": "L103"
+    },
+    {
+      "id": "gui_ui_viewskeleton",
+      "label": "ViewSkeleton()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "talk.tsx",
+      "file_type": "code",
+      "norm_label": "viewskeleton()",
+      "source_file": "gui/ui.tsx",
+      "source_location": "L107"
+    },
+    {
       "id": "plugin_engine_state_toolline",
       "label": "toolLine()",
       "_callable": true,
@@ -3365,6 +3269,30 @@
       "norm_label": "toolline()",
       "source_file": "plugin/engine/state.ts",
       "source_location": "L60"
+    },
+    {
+      "id": "gui_app_line",
+      "label": "Line()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "team.tsx",
+      "file_type": "code",
+      "norm_label": "line()",
+      "source_file": "gui/app.tsx",
+      "source_location": "L152"
+    },
+    {
+      "id": "gui_robots_personafor",
+      "label": "personaFor()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "team.tsx",
+      "file_type": "code",
+      "norm_label": "personafor()",
+      "source_file": "gui/robots.tsx",
+      "source_location": "L113"
     },
     {
       "id": "gui_team_money",
@@ -3415,42 +3343,6 @@
       "source_location": "L35"
     },
     {
-      "id": "gui_ui_select",
-      "label": "Select()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "team.tsx",
-      "file_type": "code",
-      "norm_label": "select()",
-      "source_file": "gui/ui.tsx",
-      "source_location": "L11"
-    },
-    {
-      "id": "gui_ui_skel",
-      "label": "Skel()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "team.tsx",
-      "file_type": "code",
-      "norm_label": "skel()",
-      "source_file": "gui/ui.tsx",
-      "source_location": "L103"
-    },
-    {
-      "id": "gui_ui_viewskeleton",
-      "label": "ViewSkeleton()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "team.tsx",
-      "file_type": "code",
-      "norm_label": "viewskeleton()",
-      "source_file": "gui/ui.tsx",
-      "source_location": "L107"
-    },
-    {
       "id": "gui_commitgraph_ago",
       "label": "ago()",
       "_callable": true,
@@ -3461,6 +3353,78 @@
       "norm_label": "ago()",
       "source_file": "gui/commitgraph.tsx",
       "source_location": "L42"
+    },
+    {
+      "id": "gui_commitgraph_agoshort",
+      "label": "agoShort()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "source.tsx",
+      "file_type": "code",
+      "norm_label": "agoshort()",
+      "source_file": "gui/commitgraph.tsx",
+      "source_location": "L37"
+    },
+    {
+      "id": "gui_commitgraph_color",
+      "label": "color()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "source.tsx",
+      "file_type": "code",
+      "norm_label": "color()",
+      "source_file": "gui/commitgraph.tsx",
+      "source_location": "L15"
+    },
+    {
+      "id": "gui_commitgraph_commitgraph",
+      "label": "CommitGraph()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "source.tsx",
+      "file_type": "code",
+      "norm_label": "commitgraph()",
+      "source_file": "gui/commitgraph.tsx",
+      "source_location": "L57"
+    },
+    {
+      "id": "gui_commitgraph_lanes",
+      "label": "Lanes()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "source.tsx",
+      "file_type": "code",
+      "norm_label": "lanes()",
+      "source_file": "gui/commitgraph.tsx",
+      "source_location": "L19"
+    },
+    {
+      "id": "gui_commitgraph_marked",
+      "label": "Marked()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "source.tsx",
+      "file_type": "code",
+      "norm_label": "marked()",
+      "source_file": "gui/commitgraph.tsx",
+      "source_location": "L49"
+    },
+    {
+      "id": "gui_commitgraph_x",
+      "label": "x()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "source.tsx",
+      "file_type": "code",
+      "norm_label": "x()",
+      "source_file": "gui/commitgraph.tsx",
+      "source_location": "L16"
     },
     {
       "id": "gui_diff_filediff",
@@ -3520,7 +3484,7 @@
       "file_type": "code",
       "norm_label": "icon()",
       "source_file": "gui/icons.tsx",
-      "source_location": "L32"
+      "source_location": "L33"
     },
     {
       "id": "gui_source_changes",
@@ -3583,54 +3547,6 @@
       "source_location": "L19"
     },
     {
-      "id": "gui_vcs_github",
-      "label": "GitHub()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 45,
-      "community_name": "source.tsx",
-      "file_type": "code",
-      "norm_label": "github()",
-      "source_file": "gui/vcs.tsx",
-      "source_location": "L74"
-    },
-    {
-      "id": "gui_vcs_mergebox",
-      "label": "MergeBox()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 45,
-      "community_name": "source.tsx",
-      "file_type": "code",
-      "norm_label": "mergebox()",
-      "source_file": "gui/vcs.tsx",
-      "source_location": "L39"
-    },
-    {
-      "id": "gui_vcs_stateicon",
-      "label": "StateIcon()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 45,
-      "community_name": "source.tsx",
-      "file_type": "code",
-      "norm_label": "stateicon()",
-      "source_file": "gui/vcs.tsx",
-      "source_location": "L34"
-    },
-    {
-      "id": "gui_vcs_vcschip",
-      "label": "vcsChip()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 45,
-      "community_name": "source.tsx",
-      "file_type": "code",
-      "norm_label": "vcschip()",
-      "source_file": "gui/vcs.tsx",
-      "source_location": "L15"
-    },
-    {
       "id": "plugin_engine_chat_chatargs",
       "label": "chatArgs()",
       "_callable": true,
@@ -3653,90 +3569,6 @@
       "norm_label": "chatturn()",
       "source_file": "plugin/engine/chat.ts",
       "source_location": "L50"
-    },
-    {
-      "id": "plugin_engine_claude_agentevents",
-      "label": "agentEvents()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "agentevents()",
-      "source_file": "plugin/engine/claude.ts",
-      "source_location": "L55"
-    },
-    {
-      "id": "plugin_engine_claude_classify",
-      "label": "classify()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "classify()",
-      "source_file": "plugin/engine/claude.ts",
-      "source_location": "L68"
-    },
-    {
-      "id": "plugin_engine_claude_claudeargs",
-      "label": "claudeArgs()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "claudeargs()",
-      "source_file": "plugin/engine/claude.ts",
-      "source_location": "L12"
-    },
-    {
-      "id": "plugin_engine_claude_clauderunner",
-      "label": "claudeRunner()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "clauderunner()",
-      "source_file": "plugin/engine/claude.ts",
-      "source_location": "L103"
-    },
-    {
-      "id": "plugin_engine_claude_hooksettings",
-      "label": "hookSettings()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "hooksettings()",
-      "source_file": "plugin/engine/claude.ts",
-      "source_location": "L38"
-    },
-    {
-      "id": "plugin_engine_config_projectroles",
-      "label": "projectRoles()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "projectroles()",
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L52"
-    },
-    {
-      "id": "plugin_engine_pipeline_track",
-      "label": "track()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "track()",
-      "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L24"
     },
     {
       "id": "plugin_engine_server_buildgui",
@@ -3787,90 +3619,6 @@
       "source_location": "L44"
     },
     {
-      "id": "plugin_engine_skills_addskill",
-      "label": "addSkill()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "addskill()",
-      "source_file": "plugin/engine/skills.ts",
-      "source_location": "L48"
-    },
-    {
-      "id": "plugin_engine_skills_attachskill",
-      "label": "attachSkill()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "attachskill()",
-      "source_file": "plugin/engine/skills.ts",
-      "source_location": "L11"
-    },
-    {
-      "id": "plugin_engine_skills_detachskill",
-      "label": "detachSkill()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "detachskill()",
-      "source_file": "plugin/engine/skills.ts",
-      "source_location": "L29"
-    },
-    {
-      "id": "plugin_engine_skills_parsefind",
-      "label": "parseFind()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "parsefind()",
-      "source_file": "plugin/engine/skills.ts",
-      "source_location": "L39"
-    },
-    {
-      "id": "plugin_engine_skills_roleskills",
-      "label": "roleSkills()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "roleskills()",
-      "source_file": "plugin/engine/skills.ts",
-      "source_location": "L25"
-    },
-    {
-      "id": "plugin_engine_skills_searchskills",
-      "label": "searchSkills()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "searchskills()",
-      "source_file": "plugin/engine/skills.ts",
-      "source_location": "L72"
-    },
-    {
-      "id": "plugin_engine_skills_setskill",
-      "label": "setSkill()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "setskill()",
-      "source_file": "plugin/engine/skills.ts",
-      "source_location": "L62"
-    },
-    {
       "id": "plugin_engine_source_changedfiles",
       "label": "changedFiles()",
       "_callable": true,
@@ -3904,7 +3652,7 @@
       "file_type": "code",
       "norm_label": "commitdetail()",
       "source_file": "plugin/engine/source.ts",
-      "source_location": "L151"
+      "source_location": "L188"
     },
     {
       "id": "plugin_engine_source_filediff",
@@ -3916,7 +3664,7 @@
       "file_type": "code",
       "norm_label": "filediff()",
       "source_file": "plugin/engine/source.ts",
-      "source_location": "L169"
+      "source_location": "L206"
     },
     {
       "id": "plugin_engine_source_graphinfo",
@@ -3928,7 +3676,7 @@
       "file_type": "code",
       "norm_label": "graphinfo()",
       "source_file": "plugin/engine/source.ts",
-      "source_location": "L135"
+      "source_location": "L163"
     },
     {
       "id": "plugin_engine_source_layoutgraph",
@@ -3955,6 +3703,18 @@
       "source_location": "L25"
     },
     {
+      "id": "plugin_engine_source_matchesquery",
+      "label": "matchesQuery()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "matchesquery()",
+      "source_file": "plugin/engine/source.ts",
+      "source_location": "L152"
+    },
+    {
       "id": "plugin_engine_source_numstat",
       "label": "numstat()",
       "_callable": true,
@@ -3977,6 +3737,18 @@
       "norm_label": "parserefs()",
       "source_file": "plugin/engine/source.ts",
       "source_location": "L101"
+    },
+    {
+      "id": "plugin_engine_source_rewriteparents",
+      "label": "rewriteParents()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "rewriteparents()",
+      "source_file": "plugin/engine/source.ts",
+      "source_location": "L138"
     },
     {
       "id": "plugin_engine_source_sourceinfo",
@@ -4003,28 +3775,244 @@
       "source_location": "L61"
     },
     {
-      "id": "plugin_engine_vcs_gh",
-      "label": "GH()",
+      "id": "plugin_engine_team_chatpromptfor",
+      "label": "chatPromptFor()",
       "_callable": true,
       "_origin": "ast",
       "community": 48,
       "community_name": "server.ts",
       "file_type": "code",
-      "norm_label": "gh()",
-      "source_file": "plugin/engine/vcs.ts",
-      "source_location": "L9"
+      "norm_label": "chatpromptfor()",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L238"
     },
     {
-      "id": "plugin_engine_vcs_run",
-      "label": "run()",
+      "id": "plugin_engine_team_holderof",
+      "label": "holderOf()",
       "_callable": true,
       "_origin": "ast",
       "community": 48,
       "community_name": "server.ts",
       "file_type": "code",
-      "norm_label": "run()",
+      "norm_label": "holderof()",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L168"
+    },
+    {
+      "id": "plugin_engine_teamctl_presetlist",
+      "label": "presetList()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "presetlist()",
+      "source_file": "plugin/engine/teamctl.ts",
+      "source_location": "L157"
+    },
+    {
+      "id": "plugin_engine_teamctl_teamview",
+      "label": "teamView()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "teamview()",
+      "source_file": "plugin/engine/teamctl.ts",
+      "source_location": "L136"
+    },
+    {
+      "id": "plugin_engine_vcs_basebranch",
+      "label": "baseBranch()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "basebranch()",
       "source_file": "plugin/engine/vcs.ts",
-      "source_location": "L10"
+      "source_location": "L24"
+    },
+    {
+      "id": "plugin_engine_vcs_hasref",
+      "label": "hasRef()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "hasref()",
+      "source_file": "plugin/engine/vcs.ts",
+      "source_location": "L25"
+    },
+    {
+      "id": "plugin_engine_vcs_mergeof",
+      "label": "mergeOf()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "mergeof()",
+      "source_file": "plugin/engine/vcs.ts",
+      "source_location": "L190"
+    },
+    {
+      "id": "plugin_engine_vcs_remoteurl",
+      "label": "remoteUrl()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "remoteurl()",
+      "source_file": "plugin/engine/vcs.ts",
+      "source_location": "L23"
+    },
+    {
+      "id": "plugin_engine_vcs_reverttask",
+      "label": "revertTask()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "reverttask()",
+      "source_file": "plugin/engine/vcs.ts",
+      "source_location": "L203"
+    },
+    {
+      "id": "plugin_engine_vcs_tidy",
+      "label": "tidy()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "tidy()",
+      "source_file": "plugin/engine/vcs.ts",
+      "source_location": "L118"
+    },
+    {
+      "id": "plugin_engine_vcs_trygit",
+      "label": "tryGit()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "trygit()",
+      "source_file": "plugin/engine/vcs.ts",
+      "source_location": "L15"
+    },
+    {
+      "id": "plugin_engine_vcs_vcsstatus",
+      "label": "vcsStatus()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "vcsstatus()",
+      "source_file": "plugin/engine/vcs.ts",
+      "source_location": "L57"
+    },
+    {
+      "id": "plugin_engine_worktree_branchof",
+      "label": "branchOf()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "branchof()",
+      "source_file": "plugin/engine/worktree.ts",
+      "source_location": "L5"
+    },
+    {
+      "id": "plugin_engine_worktree_commitall",
+      "label": "commitAll()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "commitall()",
+      "source_file": "plugin/engine/worktree.ts",
+      "source_location": "L39"
+    },
+    {
+      "id": "plugin_engine_worktree_ensureworktree",
+      "label": "ensureWorktree()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "ensureworktree()",
+      "source_file": "plugin/engine/worktree.ts",
+      "source_location": "L16"
+    },
+    {
+      "id": "plugin_engine_worktree_git",
+      "label": "git()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "git()",
+      "source_file": "plugin/engine/worktree.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "plugin_engine_worktree_land",
+      "label": "land()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "land()",
+      "source_file": "plugin/engine/worktree.ts",
+      "source_location": "L59"
+    },
+    {
+      "id": "plugin_engine_worktree_listworktrees",
+      "label": "listWorktrees()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "listworktrees()",
+      "source_file": "plugin/engine/worktree.ts",
+      "source_location": "L23"
+    },
+    {
+      "id": "plugin_engine_worktree_removeworktree",
+      "label": "removeWorktree()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "removeworktree()",
+      "source_file": "plugin/engine/worktree.ts",
+      "source_location": "L47"
+    },
+    {
+      "id": "plugin_engine_worktree_worktreeof",
+      "label": "worktreeOf()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "worktreeof()",
+      "source_file": "plugin/engine/worktree.ts",
+      "source_location": "L6"
     },
     {
       "id": "gui_app_app",
@@ -4123,26 +4111,52 @@
       "source_location": "L129"
     },
     {
-      "id": "gui_commitgraph",
-      "label": "commitgraph.tsx",
+      "id": "gui_vcs_github",
+      "label": "GitHub()",
+      "_callable": true,
       "_origin": "ast",
-      "community": 1,
-      "community_name": "commitgraph.tsx",
+      "community": 7,
+      "community_name": "data.ts",
       "file_type": "code",
-      "norm_label": "commitgraph.tsx",
-      "source_file": "gui/commitgraph.tsx",
-      "source_location": "L1"
+      "norm_label": "github()",
+      "source_file": "gui/vcs.tsx",
+      "source_location": "L74"
     },
     {
-      "id": "gui_commitgraph_colors",
-      "label": "COLORS",
+      "id": "gui_vcs_mergebox",
+      "label": "MergeBox()",
+      "_callable": true,
       "_origin": "ast",
-      "community": 1,
-      "community_name": "commitgraph.tsx",
+      "community": 7,
+      "community_name": "data.ts",
       "file_type": "code",
-      "norm_label": "colors",
-      "source_file": "gui/commitgraph.tsx",
-      "source_location": "L14"
+      "norm_label": "mergebox()",
+      "source_file": "gui/vcs.tsx",
+      "source_location": "L39"
+    },
+    {
+      "id": "gui_vcs_stateicon",
+      "label": "StateIcon()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "data.ts",
+      "file_type": "code",
+      "norm_label": "stateicon()",
+      "source_file": "gui/vcs.tsx",
+      "source_location": "L34"
+    },
+    {
+      "id": "gui_vcs_vcschip",
+      "label": "vcsChip()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "data.ts",
+      "file_type": "code",
+      "norm_label": "vcschip()",
+      "source_file": "gui/vcs.tsx",
+      "source_location": "L15"
     },
     {
       "id": "plugin_templates_backlog",
@@ -4950,15 +4964,81 @@
       "source_location": "L2"
     },
     {
-      "id": "plugin_engine_chronicle",
-      "label": "chronicle.ts",
+      "id": "plugin_engine_chat",
+      "label": "chat.ts",
       "_origin": "ast",
       "community": 2,
       "community_name": "factory.test.ts",
       "file_type": "code",
-      "norm_label": "chronicle.ts",
-      "source_file": "plugin/engine/chronicle.ts",
+      "norm_label": "chat.ts",
+      "source_file": "plugin/engine/chat.ts",
       "source_location": "L1"
+    },
+    {
+      "id": "plugin_engine_chat_allow",
+      "label": "ALLOW",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "allow",
+      "source_file": "plugin/engine/chat.ts",
+      "source_location": "L22"
+    },
+    {
+      "id": "plugin_engine_chat_efforts",
+      "label": "EFFORTS",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "efforts",
+      "source_file": "plugin/engine/chat.ts",
+      "source_location": "L20"
+    },
+    {
+      "id": "plugin_engine_chat_models",
+      "label": "MODELS",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "models",
+      "source_file": "plugin/engine/chat.ts",
+      "source_location": "L20"
+    },
+    {
+      "id": "plugin_engine_chat_topics",
+      "label": "TOPICS",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "topics",
+      "source_file": "plugin/engine/chat.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "plugin_engine_claude",
+      "label": "claude.ts",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "claude.ts",
+      "source_file": "plugin/engine/claude.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "plugin_engine_claude_allow",
+      "label": "ALLOW",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "allow",
+      "source_file": "plugin/engine/claude.ts",
+      "source_location": "L10"
     },
     {
       "id": "plugin_engine_events",
@@ -5016,81 +5096,26 @@
       "source_location": "L22"
     },
     {
-      "id": "plugin_engine_release",
-      "label": "release.ts",
+      "id": "plugin_engine_skills",
+      "label": "skills.ts",
       "_origin": "ast",
       "community": 2,
       "community_name": "factory.test.ts",
       "file_type": "code",
-      "norm_label": "release.ts",
-      "source_file": "plugin/engine/release.ts",
+      "norm_label": "skills.ts",
+      "source_file": "plugin/engine/skills.ts",
       "source_location": "L1"
     },
     {
-      "id": "plugin_engine_release_json_files",
-      "label": "JSON_FILES",
+      "id": "plugin_engine_skills_skills_cli",
+      "label": "SKILLS_CLI",
       "_origin": "ast",
       "community": 2,
       "community_name": "factory.test.ts",
       "file_type": "code",
-      "norm_label": "json_files",
-      "source_file": "plugin/engine/release.ts",
-      "source_location": "L19"
-    },
-    {
-      "id": "plugin_engine_release_toml_files",
-      "label": "TOML_FILES",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "toml_files",
-      "source_file": "plugin/engine/release.ts",
-      "source_location": "L20"
-    },
-    {
-      "id": "plugin_engine_security",
-      "label": "security.ts",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "security.ts",
-      "source_file": "plugin/engine/security.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "plugin_engine_security_content_rules",
-      "label": "CONTENT_RULES",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "content_rules",
-      "source_file": "plugin/engine/security.ts",
-      "source_location": "L110"
-    },
-    {
-      "id": "plugin_engine_security_path_rules",
-      "label": "PATH_RULES",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "path_rules",
-      "source_file": "plugin/engine/security.ts",
-      "source_location": "L103"
-    },
-    {
-      "id": "plugin_engine_security_tokens",
-      "label": "TOKENS",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "tokens",
-      "source_file": "plugin/engine/security.ts",
-      "source_location": "L68"
+      "norm_label": "skills_cli",
+      "source_file": "plugin/engine/skills.ts",
+      "source_location": "L6"
     },
     {
       "id": "tests_factory_test",
@@ -5588,17 +5613,6 @@
       "source_location": "L20"
     },
     {
-      "id": "ref_react_dom",
-      "label": "react-dom",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "package.json",
-      "file_type": "concept",
-      "norm_label": "react-dom",
-      "source_file": "package.json",
-      "source_location": "L14"
-    },
-    {
       "id": "ref_types_bun",
       "label": "@types/bun",
       "_origin": "ast",
@@ -5875,6 +5889,17 @@
       "source_location": "L1"
     },
     {
+      "id": "plugin_engine_chronicle",
+      "label": "chronicle.ts",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "chronicle.ts",
+      "source_file": "plugin/engine/chronicle.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "plugin_engine_cli",
       "label": "cli.ts",
       "_origin": "ast",
@@ -5908,6 +5933,83 @@
       "source_location": "L20"
     },
     {
+      "id": "plugin_engine_release",
+      "label": "release.ts",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "release.ts",
+      "source_file": "plugin/engine/release.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "plugin_engine_release_json_files",
+      "label": "JSON_FILES",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "json_files",
+      "source_file": "plugin/engine/release.ts",
+      "source_location": "L19"
+    },
+    {
+      "id": "plugin_engine_release_toml_files",
+      "label": "TOML_FILES",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "toml_files",
+      "source_file": "plugin/engine/release.ts",
+      "source_location": "L20"
+    },
+    {
+      "id": "plugin_engine_security",
+      "label": "security.ts",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "security.ts",
+      "source_file": "plugin/engine/security.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "plugin_engine_security_content_rules",
+      "label": "CONTENT_RULES",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "content_rules",
+      "source_file": "plugin/engine/security.ts",
+      "source_location": "L110"
+    },
+    {
+      "id": "plugin_engine_security_path_rules",
+      "label": "PATH_RULES",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "path_rules",
+      "source_file": "plugin/engine/security.ts",
+      "source_location": "L103"
+    },
+    {
+      "id": "plugin_engine_security_tokens",
+      "label": "TOKENS",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "tokens",
+      "source_file": "plugin/engine/security.ts",
+      "source_location": "L68"
+    },
+    {
       "id": "plugin_engine_vcs",
       "label": "vcs.ts",
       "_origin": "ast",
@@ -5928,17 +6030,6 @@
       "norm_label": "failed",
       "source_file": "plugin/engine/vcs.ts",
       "source_location": "L27"
-    },
-    {
-      "id": "plugin_engine_worktree",
-      "label": "worktree.ts",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "cli.ts",
-      "file_type": "code",
-      "norm_label": "worktree.ts",
-      "source_file": "plugin/engine/worktree.ts",
-      "source_location": "L1"
     },
     {
       "id": "plugin_engine_worktree_approved",
@@ -6136,61 +6227,6 @@
       "source_location": "L20"
     },
     {
-      "id": "gui_robots",
-      "label": "robots.tsx",
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "talk.tsx",
-      "file_type": "code",
-      "norm_label": "robots.tsx",
-      "source_file": "gui/robots.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "gui_robots_ids",
-      "label": "IDS",
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "talk.tsx",
-      "file_type": "code",
-      "norm_label": "ids",
-      "source_file": "gui/robots.tsx",
-      "source_location": "L112"
-    },
-    {
-      "id": "gui_robots_of_role",
-      "label": "OF_ROLE",
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "talk.tsx",
-      "file_type": "code",
-      "norm_label": "of_role",
-      "source_file": "gui/robots.tsx",
-      "source_location": "L108"
-    },
-    {
-      "id": "gui_robots_presence_text",
-      "label": "PRESENCE_TEXT",
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "talk.tsx",
-      "file_type": "code",
-      "norm_label": "presence_text",
-      "source_file": "gui/robots.tsx",
-      "source_location": "L120"
-    },
-    {
-      "id": "gui_robots_robots",
-      "label": "ROBOTS",
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "talk.tsx",
-      "file_type": "code",
-      "norm_label": "robots",
-      "source_file": "gui/robots.tsx",
-      "source_location": "L9"
-    },
-    {
       "id": "gui_talk",
       "label": "talk.tsx",
       "_origin": "ast",
@@ -6233,6 +6269,94 @@
       "norm_label": "models",
       "source_file": "gui/talk.tsx",
       "source_location": "L16"
+    },
+    {
+      "id": "gui_ui",
+      "label": "ui.tsx",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "talk.tsx",
+      "file_type": "code",
+      "norm_label": "ui.tsx",
+      "source_file": "gui/ui.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "ref_react",
+      "label": "react",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "talk.tsx",
+      "file_type": "concept",
+      "norm_label": "react",
+      "source_file": "package.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_react_dom",
+      "label": "react-dom",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "talk.tsx",
+      "file_type": "concept",
+      "norm_label": "react-dom",
+      "source_file": "package.json",
+      "source_location": "L14"
+    },
+    {
+      "id": "gui_robots",
+      "label": "robots.tsx",
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "team.tsx",
+      "file_type": "code",
+      "norm_label": "robots.tsx",
+      "source_file": "gui/robots.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "gui_robots_ids",
+      "label": "IDS",
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "team.tsx",
+      "file_type": "code",
+      "norm_label": "ids",
+      "source_file": "gui/robots.tsx",
+      "source_location": "L112"
+    },
+    {
+      "id": "gui_robots_of_role",
+      "label": "OF_ROLE",
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "team.tsx",
+      "file_type": "code",
+      "norm_label": "of_role",
+      "source_file": "gui/robots.tsx",
+      "source_location": "L108"
+    },
+    {
+      "id": "gui_robots_presence_text",
+      "label": "PRESENCE_TEXT",
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "team.tsx",
+      "file_type": "code",
+      "norm_label": "presence_text",
+      "source_file": "gui/robots.tsx",
+      "source_location": "L120"
+    },
+    {
+      "id": "gui_robots_robots",
+      "label": "ROBOTS",
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "team.tsx",
+      "file_type": "code",
+      "norm_label": "robots",
+      "source_file": "gui/robots.tsx",
+      "source_location": "L9"
     },
     {
       "id": "gui_team",
@@ -6279,15 +6403,26 @@
       "source_location": "L24"
     },
     {
-      "id": "gui_ui",
-      "label": "ui.tsx",
+      "id": "gui_commitgraph",
+      "label": "commitgraph.tsx",
       "_origin": "ast",
-      "community": 44,
-      "community_name": "team.tsx",
+      "community": 45,
+      "community_name": "source.tsx",
       "file_type": "code",
-      "norm_label": "ui.tsx",
-      "source_file": "gui/ui.tsx",
+      "norm_label": "commitgraph.tsx",
+      "source_file": "gui/commitgraph.tsx",
       "source_location": "L1"
+    },
+    {
+      "id": "gui_commitgraph_colors",
+      "label": "COLORS",
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "source.tsx",
+      "file_type": "code",
+      "norm_label": "colors",
+      "source_file": "gui/commitgraph.tsx",
+      "source_location": "L14"
     },
     {
       "id": "gui_diff",
@@ -6345,50 +6480,6 @@
       "source_location": "L1"
     },
     {
-      "id": "gui_vcs",
-      "label": "vcs.tsx",
-      "_origin": "ast",
-      "community": 45,
-      "community_name": "source.tsx",
-      "file_type": "code",
-      "norm_label": "vcs.tsx",
-      "source_file": "gui/vcs.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "gui_vcs_check_state",
-      "label": "CHECK_STATE",
-      "_origin": "ast",
-      "community": 45,
-      "community_name": "source.tsx",
-      "file_type": "code",
-      "norm_label": "check_state",
-      "source_file": "gui/vcs.tsx",
-      "source_location": "L31"
-    },
-    {
-      "id": "gui_vcs_summary",
-      "label": "SUMMARY",
-      "_origin": "ast",
-      "community": 45,
-      "community_name": "source.tsx",
-      "file_type": "code",
-      "norm_label": "summary",
-      "source_file": "gui/vcs.tsx",
-      "source_location": "L25"
-    },
-    {
-      "id": "ref_react",
-      "label": "react",
-      "_origin": "ast",
-      "community": 45,
-      "community_name": "source.tsx",
-      "file_type": "concept",
-      "norm_label": "react",
-      "source_file": "package.json",
-      "source_location": "L13"
-    },
-    {
       "id": "plugin_skills_git_skill",
       "label": "git/SKILL.md",
       "_origin": "ast",
@@ -6406,83 +6497,6 @@
       "norm_label": "git/skill.md",
       "source_file": "plugin/skills/git/SKILL.md",
       "source_location": "L1"
-    },
-    {
-      "id": "plugin_engine_chat",
-      "label": "chat.ts",
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "chat.ts",
-      "source_file": "plugin/engine/chat.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "plugin_engine_chat_allow",
-      "label": "ALLOW",
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "allow",
-      "source_file": "plugin/engine/chat.ts",
-      "source_location": "L22"
-    },
-    {
-      "id": "plugin_engine_chat_efforts",
-      "label": "EFFORTS",
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "efforts",
-      "source_file": "plugin/engine/chat.ts",
-      "source_location": "L20"
-    },
-    {
-      "id": "plugin_engine_chat_models",
-      "label": "MODELS",
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "models",
-      "source_file": "plugin/engine/chat.ts",
-      "source_location": "L20"
-    },
-    {
-      "id": "plugin_engine_chat_topics",
-      "label": "TOPICS",
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "topics",
-      "source_file": "plugin/engine/chat.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "plugin_engine_claude",
-      "label": "claude.ts",
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "claude.ts",
-      "source_file": "plugin/engine/claude.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "plugin_engine_claude_allow",
-      "label": "ALLOW",
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "allow",
-      "source_file": "plugin/engine/claude.ts",
-      "source_location": "L10"
     },
     {
       "id": "plugin_engine_server",
@@ -6540,28 +6554,6 @@
       "source_location": "L25"
     },
     {
-      "id": "plugin_engine_skills",
-      "label": "skills.ts",
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "skills.ts",
-      "source_file": "plugin/engine/skills.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "plugin_engine_skills_skills_cli",
-      "label": "SKILLS_CLI",
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "server.ts",
-      "file_type": "code",
-      "norm_label": "skills_cli",
-      "source_file": "plugin/engine/skills.ts",
-      "source_location": "L6"
-    },
-    {
       "id": "plugin_engine_source",
       "label": "source.ts",
       "_origin": "ast",
@@ -6570,6 +6562,17 @@
       "file_type": "code",
       "norm_label": "source.ts",
       "source_file": "plugin/engine/source.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "plugin_engine_worktree",
+      "label": "worktree.ts",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "server.ts",
+      "file_type": "code",
+      "norm_label": "worktree.ts",
+      "source_file": "plugin/engine/worktree.ts",
       "source_location": "L1"
     },
     {
@@ -6725,6 +6728,39 @@
       "norm_label": "data.ts",
       "source_file": "gui/data.ts",
       "source_location": "L1"
+    },
+    {
+      "id": "gui_vcs",
+      "label": "vcs.tsx",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "data.ts",
+      "file_type": "code",
+      "norm_label": "vcs.tsx",
+      "source_file": "gui/vcs.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "gui_vcs_check_state",
+      "label": "CHECK_STATE",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "data.ts",
+      "file_type": "code",
+      "norm_label": "check_state",
+      "source_file": "gui/vcs.tsx",
+      "source_location": "L31"
+    },
+    {
+      "id": "gui_vcs_summary",
+      "label": "SUMMARY",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "data.ts",
+      "file_type": "code",
+      "norm_label": "summary",
+      "source_file": "gui/vcs.tsx",
+      "source_location": "L25"
     },
     {
       "id": "docs_plugin",
@@ -7697,7 +7733,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "gui/commitgraph.tsx",
-      "source_location": "L70",
+      "source_location": "L78",
       "weight": 1.0
     },
     {
@@ -7762,18 +7798,6 @@
     },
     {
       "source": "gui_source_log",
-      "target": "gui_commitgraph_ago",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "gui/source.tsx",
-      "source_location": "L141",
-      "weight": 1.0
-    },
-    {
-      "source": "gui_source_log",
       "target": "gui_data_call",
       "relation": "calls",
       "_origin": "ast",
@@ -7781,7 +7805,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "gui/source.tsx",
-      "source_location": "L93",
+      "source_location": "L109",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_source_log",
+      "target": "gui_commitgraph_ago",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/source.tsx",
+      "source_location": "L156",
       "weight": 1.0
     },
     {
@@ -10697,7 +10733,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/source.ts",
-      "source_location": "L153",
+      "source_location": "L190",
       "weight": 1.0
     },
     {
@@ -10709,7 +10745,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/source.ts",
-      "source_location": "L157",
+      "source_location": "L194",
       "weight": 1.0
     },
     {
@@ -10721,7 +10757,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/source.ts",
-      "source_location": "L175",
+      "source_location": "L212",
       "weight": 1.0
     },
     {
@@ -10733,7 +10769,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/source.ts",
-      "source_location": "L176",
+      "source_location": "L213",
       "weight": 1.0
     },
     {
@@ -10745,7 +10781,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/source.ts",
-      "source_location": "L178",
+      "source_location": "L215",
       "weight": 1.0
     },
     {
@@ -10757,7 +10793,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/source.ts",
-      "source_location": "L137",
+      "source_location": "L165",
       "weight": 1.0
     },
     {
@@ -10769,7 +10805,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/source.ts",
-      "source_location": "L140",
+      "source_location": "L170",
       "weight": 1.0
     },
     {
@@ -10781,7 +10817,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/source.ts",
-      "source_location": "L142",
+      "source_location": "L172",
       "weight": 1.0
     },
     {
@@ -10793,7 +10829,31 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/source.ts",
-      "source_location": "L143",
+      "source_location": "L173",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_source_graphinfo",
+      "target": "plugin_engine_source_matchesquery",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/source.ts",
+      "source_location": "L177",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_source_graphinfo",
+      "target": "plugin_engine_source_rewriteparents",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/source.ts",
+      "source_location": "L178",
       "weight": 1.0
     },
     {
@@ -10805,7 +10865,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/source.ts",
-      "source_location": "L145",
+      "source_location": "L182",
       "weight": 1.0
     },
     {
@@ -16896,7 +16956,31 @@
     },
     {
       "source": "tests_factory_test",
+      "target": "plugin_engine_source_matchesquery",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
       "target": "plugin_engine_source_parserefs",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_source_rewriteparents",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -20248,13 +20332,24 @@
     },
     {
       "source": "gui_commitgraph",
-      "target": "gui_commitgraph_commitgraph",
+      "target": "gui_commitgraph_marked",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "gui/commitgraph.tsx",
       "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_commitgraph",
+      "target": "gui_commitgraph_commitgraph",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "gui/commitgraph.tsx",
+      "source_location": "L57",
       "weight": 1.0
     },
     {
@@ -20518,7 +20613,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "gui/icons.tsx",
-      "source_location": "L32",
+      "source_location": "L33",
       "weight": 1.0
     },
     {
@@ -23163,13 +23258,13 @@
     },
     {
       "source": "plugin_engine_source",
-      "target": "plugin_engine_source_graphinfo",
+      "target": "plugin_engine_source_rewriteparents",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/source.ts",
-      "source_location": "L135",
+      "source_location": "L138",
       "weight": 1.0
     },
     {
@@ -23185,13 +23280,35 @@
     },
     {
       "source": "plugin_engine_source",
+      "target": "plugin_engine_source_matchesquery",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/source.ts",
+      "source_location": "L152",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_source",
+      "target": "plugin_engine_source_graphinfo",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/source.ts",
+      "source_location": "L163",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_source",
       "target": "plugin_engine_source_commitdetail",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/source.ts",
-      "source_location": "L151",
+      "source_location": "L188",
       "weight": 1.0
     },
     {
@@ -23202,7 +23319,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/source.ts",
-      "source_location": "L169",
+      "source_location": "L206",
       "weight": 1.0
     },
     {
@@ -25409,5 +25526,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "a228fbb187b6a178680d1f346233b36e962dba93"
+  "built_at_commit": "f6214b25f55aedd426d3592a03d0455f4ffd3b60"
 }

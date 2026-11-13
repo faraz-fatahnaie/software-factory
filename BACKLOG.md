@@ -103,6 +103,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   The text is a trimmed spec and review today; one cheap stage could write it in plain words.
 - [x] F-055 (P2) Commit graph and a Git tool window for Source
   A lane graph across all branches (merges, HEAD, tags, remote branches), a Changes tab (folder tree, status colours, +/- counts, diff) and a Log tab (branch filter, graph, commit files and diffs), after PyCharm and VS Code.
+- [x] F-056 (P1) Search over the commit graph
+  Whole-history search by message, author, hash prefix, ref or task id; parents rewritten to the nearest matching ancestors so lanes stay connected; match count, highlighting, `/` shortcut, Escape to clear.
 - [ ] F-049 (P2) Set models per role and per stage from the command line
   Today only by editing factory.config.json or the Models page (roles only); stage settings are set automatically when a stage moves.
 - [ ] F-050 (P3) Custom unattended checks beyond advisory

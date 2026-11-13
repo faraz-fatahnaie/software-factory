@@ -96,6 +96,17 @@ try {
   await page.getByRole("complementary", { name: "Changed files" }).getByText("+2").waitFor();
   Bun.spawnSync(["rm", join(dir, "notes.txt")]);
   await page.getByRole("tab", { name: "Log" }).click();
+  // Search: "/" focuses the box, typing narrows the graph across the whole history to the matching commits, Escape brings everything back.
+  await page.locator(".g-row").first().waitFor();
+  const everything = await page.locator(".g-row").count();
+  await page.locator("body").click({ position: { x: 5, y: 5 } });
+  await page.keyboard.press("/");
+  await page.keyboard.type("Merge F-001");
+  await page.getByRole("status").filter({ hasText: "1 match" }).waitFor();
+  assert.equal(await page.locator(".g-row").count(), 1, "only the merge commit matches");
+  await page.locator(".g-msg mark", { hasText: "Merge F-001" }).waitFor();
+  await page.getByLabel("Search commits").press("Escape");
+  await page.waitForFunction((n) => document.querySelectorAll(".g-row").length === n, everything);
   await page.getByRole("button", { name: /Merge F-001: First/ }).click();
   const details = page.getByRole("region", { name: "Commit details" });
   await details.getByRole("heading", { name: "Merge F-001: First" }).waitFor();

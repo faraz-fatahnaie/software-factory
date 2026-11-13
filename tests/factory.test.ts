@@ -17,7 +17,7 @@ import { addCustom, moveSettings, offSettings, parseChange, planTeam, removeCust
 import { chatArgs, TOPICS } from "../plugin/engine/chat";
 import { estimate } from "../plugin/engine/estimate";
 import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugin/engine/vcs";
-import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, parseRefs, sourceInfo } from "../plugin/engine/source";
+import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
 import { followUps, needsTriage, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
 import { costs, elapsed, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
@@ -1645,6 +1645,8 @@ test("version control over HTTP and in conversation: status is readable, actions
     expect((await fetch(base + "/api/filediff?path=../x")).status).toBe(400);
     expect((await fetch(base + "/api/filediff?path=README.md&sha=zz")).status).toBe(400);
     expect((await fetch(base + "/api/graph?branch=nope")).status).toBe(400);
+    expect((await fetch(base + "/api/graph?q=" + "x".repeat(101))).status).toBe(400);
+    expect(((await (await fetch(base + "/api/graph?q=zzzznomatch")).json()) as any)).toMatchObject({ rows: [], matches: 0 });
     expect(((await (await fetch(`${base}/api/commit?sha=${graph.rows[0].sha}`)).json()) as any).sha).toBe(graph.rows[0].sha);
     const topics = await (await fetch(base + "/api/chat/topics")).json() as any[];
     expect(topics.find((t) => t.key === "git")).toMatchObject({ available: true, role: "release-engineer" });
@@ -1796,4 +1798,41 @@ test("commit graph: lanes follow branches, merges and converging tips, and refs 
   expect(() => graphInfo(dir, resolveTeam(), 80, "--all")).toThrow(/no branch/);
   expect(() => commitDetail(dir, "not-a-sha")).toThrow(/sha/);
   expect(() => commitDetail(dir, "0000000")).toThrow(/no commit/);
+});
+
+test("graph search: matches are found in the whole history and stay joined through the commits that were left out", () => {
+  // A <- B <- C <- D (A newest). Keep A and D: A's parent becomes D, skipping B and C.
+  const chain = [{ sha: "A", parents: ["B"] }, { sha: "B", parents: ["C"] }, { sha: "C", parents: ["D"] }, { sha: "D", parents: [] }];
+  expect(rewriteParents(chain, (s) => s === "A" || s === "D")).toEqual(new Map([["A", ["D"]], ["D", []]]));
+  // A merge: M has parents [B, F]; B and F both lead to A. Keep M and A: M reaches A through both lines, once.
+  const fork = [{ sha: "M", parents: ["B", "F"] }, { sha: "F", parents: ["A"] }, { sha: "B", parents: ["A"] }, { sha: "A", parents: [] }];
+  expect(rewriteParents(fork, (s) => s === "M" || s === "A").get("M")).toEqual(["A"]);
+  // Keeping the merge's two branches keeps both parents, in order.
+  expect(rewriteParents(fork, (s) => s !== "A").get("M")).toEqual(["B", "F"]);
+  // The rewritten rows still lay out as a connected graph.
+  const lay = layoutGraph([{ sha: "A", parents: ["D"] }, { sha: "D", parents: [] }]);
+  expect(lay[0]).toMatchObject({ col: 0, out: [0] });
+
+  const ref = (name: string) => ({ name, kind: "branch" as const });
+  const c = { sha: "9f2ab3c0", subject: "Fix the Login form", author: "Faraz", refs: [ref("factory/F-014")], task: "F-014" };
+  for (const q of ["login", "LOGIN FORM", "faraz", "9f2a", "factory/f-014", "f-014", ""]) expect(matchesQuery(c, q)).toBe(true);
+  for (const q of ["logout", "9f2b", "f-015", "zzzz"]) expect(matchesQuery(c, q)).toBe(false); // a hash needs a prefix of 4+ hex digits; a task id must match whole
+
+  const { dir, cli } = repo();
+  expect(cli("run", "F-001", "--stub").code).toBe(0);
+  expect(cli("approve", "F-001").code).toBe(0);
+  const all = graphInfo(dir, resolveTeam());
+  const found = graphInfo(dir, resolveTeam(), 80, undefined, "backlog: F-001");
+  expect(found.matches).toBe(found.rows.length);
+  expect(found.rows.length).toBeGreaterThan(1);
+  expect(found.rows.length).toBeLessThan(all.rows.length);
+  expect(found.rows.every((r) => r.subject.includes("backlog: F-001"))).toBe(true);
+  // Each match's parent is the next match down, never a commit that was filtered out.
+  const shas = new Set(found.rows.map((r) => r.sha));
+  for (const r of found.rows) for (const p of r.parents) expect(shas.has(p)).toBe(true);
+  expect(graphInfo(dir, resolveTeam(), 80, undefined, "no such text anywhere")).toMatchObject({ rows: [], matches: 0 });
+  expect(graphInfo(dir, resolveTeam(), 1, undefined, "backlog").rows).toHaveLength(1); // the list is capped, the count is not
+  expect(graphInfo(dir, resolveTeam(), 1, undefined, "backlog").matches).toBeGreaterThan(1);
+  expect(graphInfo(dir, resolveTeam(), 80, "main", "merge F-001").rows).toHaveLength(1);
+  expect(() => graphInfo(dir, resolveTeam(), 80, undefined, "x".repeat(101))).toThrow(/search/);
 });

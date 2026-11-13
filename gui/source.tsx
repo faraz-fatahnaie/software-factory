@@ -1,7 +1,7 @@
 // Source, laid out like the Git tool windows of PyCharm and VS Code, so a change can be followed by eye:
 // a toolbar with the branch, sync state and the totals; a Changes tab (folder tree on the left, the diff of the picked file on the right);
 // and a Log tab (branches, the commit graph, and what the picked commit changed, with its files and their diffs).
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { call, type Item } from "./data";
 import { ago, CommitGraph, type GraphRow } from "./commitgraph";
 import { FileDiff, FileTree, STATUS_TEXT, Stat, type FileItem } from "./diff";
@@ -84,18 +84,33 @@ function Changes({ files, count, toLog }: { files: FileItem[]; count: number; to
 
 function Log({ src, items, vcs, act, refreshVcs, open }: { src: SourceData } & Props) {
   const [branch, setBranch] = useState("");
-  const [graph, setGraph] = useState<{ rows: GraphRow[]; lanes: number } | null>(null);
+  const [graph, setGraph] = useState<{ rows: GraphRow[]; lanes: number; matches?: number } | null>(null);
+  const [query, setQuery] = useState("");
+  const [term, setTerm] = useState(""); // what is searched: the typed text, once typing pauses
+  const box = useRef<HTMLInputElement>(null);
   const [picked, setPicked] = useState("");
   const [detail, setDetail] = useState<Detail | null>(null);
   const [file, setFile] = useState("");
   const [busy, setBusy] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setTerm(query.trim()), 250); return () => clearTimeout(t); }, [query]);
+  // "/" jumps to the search box, as on GitHub, unless you are typing somewhere.
   useEffect(() => {
-    const load = () => call<{ rows: GraphRow[]; lanes: number }>(`/api/graph${branch ? `?branch=${encodeURIComponent(branch)}` : ""}`).then((r) => r.ok && setGraph(r.data));
-    setGraph(null);
+    const key = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (e.key === "/" && !/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) && !el.isContentEditable) { e.preventDefault(); box.current?.focus(); }
+    };
+    addEventListener("keydown", key);
+    return () => removeEventListener("keydown", key);
+  }, []);
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (branch) params.set("branch", branch);
+    if (term) params.set("q", term);
+    const load = () => call<{ rows: GraphRow[]; lanes: number; matches?: number }>(`/api/graph${params.size ? `?${params}` : ""}`).then((r) => r.ok && setGraph(r.data));
     load();
     const timer = setInterval(load, 5000);
     return () => clearInterval(timer);
-  }, [branch]);
+  }, [branch, term]);
   // The newest commit is picked first, as the Git tool windows do.
   useEffect(() => { if (graph && !graph.rows.some((r) => r.sha === picked)) setPicked(graph.rows[0]?.sha ?? ""); }, [graph]);
   useEffect(() => {
@@ -147,7 +162,14 @@ function Log({ src, items, vcs, act, refreshVcs, open }: { src: SourceData } & P
       </aside>
 
       <main className="pane graph-pane" aria-label="Commit graph">
-        {graph ? <CommitGraph rows={graph.rows} lanes={graph.lanes} picked={picked} onPick={setPicked} /> : <ViewSkeleton kind="list" />}
+        <div className="g-search" role="search">
+          <Icon name="search" size={15} />
+          <input ref={box} type="search" aria-label="Search commits" placeholder="Search commits: message, author, hash, branch, tag or task  ( / )" value={query} maxLength={100}
+            onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") { setQuery(""); setTerm(""); } }} />
+          <span className="note" role="status">{term && graph ? `${graph.matches ?? 0} match${graph.matches === 1 ? "" : "es"}${(graph.matches ?? 0) > graph.rows.length ? `, showing ${graph.rows.length}` : ""}` : ""}</span>
+        </div>
+        {!graph ? <ViewSkeleton kind="list" /> : term && graph.rows.length === 0 ? <p className="empty">No commits match “{term}”.</p>
+          : <CommitGraph rows={graph.rows} lanes={graph.lanes} picked={picked} onPick={setPicked} query={term} />}
       </main>
 
       <section className="pane detail-pane" aria-label="Commit details">

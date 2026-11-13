@@ -114,7 +114,7 @@ export async function serve(root: string, port = 4400) {
       if (route === "GET /api/team") return json(teamPayload());
       if (route === "GET /api/source") return json(sourceInfo(root, projectTeam(root)));
       if (route === "GET /api/graph") {
-        try { return json(graphInfo(root, projectTeam(root), 80, url.searchParams.get("branch") ?? undefined)); } catch (e) { return json({ error: (e as Error).message }, 400); }
+        try { return json(graphInfo(root, projectTeam(root), 80, url.searchParams.get("branch") ?? undefined, url.searchParams.get("q") ?? "")); } catch (e) { return json({ error: (e as Error).message }, 400); }
       }
       if (route === "GET /api/filediff") {
         try { return new Response(fileDiff(root, url.searchParams.get("path") ?? "", url.searchParams.get("sha") ?? undefined), { headers: { "content-type": "text/plain; charset=utf-8" } }); }

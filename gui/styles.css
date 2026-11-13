@@ -747,3 +747,10 @@ button.linkish:hover { color: var(--accent); text-decoration: underline; }
 .g-msg { flex: 1 1 120px; min-width: 80px; }
 .g-text .ref { flex: 0 1 auto; min-width: 0; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .g-text .robot { flex: none; }
+
+/* Searching the commit graph */
+.g-search { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--pop); border-bottom: 1px solid var(--line); }
+.g-search svg { flex: none; color: var(--muted); }
+.g-search input { flex: 1; min-width: 0; min-height: 32px; }
+.g-search .note { flex: none; white-space: nowrap; }
+.g-msg mark { background: color-mix(in srgb, var(--warn) 35%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
