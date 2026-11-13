@@ -12,7 +12,7 @@
   "10": "Backlog",
   "11": "factory",
   "12": "RULES.md",
-  "13": "init.ts",
+  "13": "team.ts",
   "14": "Roles and responsibilities",
   "15": "design/SKILL.md",
   "16": "Only the orchestrator writes BACKLOG.md (rule)",
@@ -35,7 +35,9 @@
   "33": "security-performance.md",
   "34": "secure/SKILL.md",
   "35": "test/SKILL.md",
-  "36": "release.ts",
+  "36": "init.ts",
   "37": "deploy/SKILL.md",
-  "38": "release/SKILL.md"
+  "38": "release/SKILL.md",
+  "39": "ask/SKILL.md",
+  "40": "team/SKILL.md"
 }

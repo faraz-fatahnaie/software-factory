@@ -1,11 +1,11 @@
 // Setting a project up for the factory, and checking that setup. Works on any stack.
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { SECTIONS } from "./backlog";
-import { loadConfig, parseConfig, ROLES } from "./config";
+import { loadConfig, parseConfig, projectRoles, teamOf } from "./config";
 import { GRAPH_IGNORE, graphifyInstalled, updateGraph } from "./graph";
 import { roleSkills } from "./skills";
-import { activeRoles, DEFAULT_PRESET, GENERATED, presets, renderRole } from "./team";
+import { activeRoles, DEFAULT_PRESET, GENERATED, presets, renderRole, resolveTeam } from "./team";
 
 const GENERATED_MARK = GENERATED.slice(0, 40);
 
@@ -50,7 +50,7 @@ export function detect(dir: string): { stack: string; setup: string[]; gate: str
  * Writes the factory's files into a project. Never overwrites: a file that exists is left
  * alone, so running it again is safe. Returns what it did and which paths to commit.
  */
-export function init(dir: string, opts: { setup?: string[]; gate?: string[] } = {}) {
+export function init(dir: string, opts: { setup?: string[]; gate?: string[]; team?: string } = {}) {
   const guess = detect(dir);
   const done: string[] = [], paths: string[] = [];
   const create = (file: string, content: string) => {
@@ -66,13 +66,15 @@ export function init(dir: string, opts: { setup?: string[]; gate?: string[] } = 
     done.push(`updated  ${file} (${why})`);
   };
 
-  const team = presets[DEFAULT_PRESET]!;
+  const preset = opts.team ?? DEFAULT_PRESET;
+  if (!presets[preset]) throw new Error(`there is no team preset "${preset}" (there are: ${Object.keys(presets).join(", ")})`);
+  const team = resolveTeam({ preset });
   const roles = Object.fromEntries(activeRoles(team).map((name) => [name, { runner: "claude", ...team.roles[name]!.defaults! }]));
-  const config = parseConfig({ setup: opts.setup ?? guess.setup, gate: opts.gate ?? guess.gate, graph: true, roles });
+  const config = parseConfig({ setup: opts.setup ?? guess.setup, gate: opts.gate ?? guess.gate, graph: true, team: { preset }, roles });
   create("factory.config.json", `${JSON.stringify(config, null, 2)}\n`);
   create("BACKLOG.md", readFileSync(join(TEMPLATES, "BACKLOG.md"), "utf8"));
   create("docs/README.md", readFileSync(join(TEMPLATES, "DOCS.md"), "utf8"));
-  for (const role of ROLES) create(`.claude/agents/${role}.md`, renderRole(role));
+  for (const role of activeRoles(team)) create(`.claude/agents/${role}.md`, renderRole(role, team));
 
   // The rules go into AGENTS.md, and CLAUDE.md imports it so Claude Code loads them.
   if (!read(dir, "AGENTS.md").includes(RULES_HEADING))
@@ -118,7 +120,7 @@ export function doctor(dir: string) {
 
   const backlog = read(dir, "BACKLOG.md");
   check(SECTIONS.every((s) => backlog.split("\n").includes(`## ${s}`)), "BACKLOG.md with all six sections", "run: factory init");
-  for (const role of ROLES) {
+  for (const role of projectRoles(dir)) {
     const file = read(dir, `.claude/agents/${role}.md`);
     check(!!file, `role file .claude/agents/${role}.md`, "run: factory init");
     for (const skill of roleSkills(file))
@@ -141,16 +143,25 @@ export function doctor(dir: string) {
  */
 export function applyTeam(dir: string, force = false) {
   const lines: string[] = [], paths: string[] = [];
-  for (const role of ROLES) {
+  const team = teamOf(JSON.parse(read(dir, "factory.config.json") || "{}"));
+  const wanted = activeRoles(team);
+  for (const role of wanted) {
     const file = `.claude/agents/${role}.md`, path = join(dir, file);
     const current = read(dir, file);
     if (current && !current.includes(GENERATED_MARK) && !force) { lines.push(`kept     ${file} (edited by hand; --force rebuilds it)`); continue; }
-    const next = renderRole(role, undefined, roleSkills(current));
+    const next = renderRole(role, team, roleSkills(current));
     if (next === current) { lines.push(`current  ${file}`); continue; }
     mkdirSync(join(path, ".."), { recursive: true });
     writeFileSync(path, next);
     paths.push(file);
     lines.push(`${current ? "rebuilt " : "created "} ${file}`);
+  }
+  // Role files the team no longer has. Listed, never deleted: a person decides.
+  const dirAgents = join(dir, ".claude", "agents");
+  for (const f of existsSync(dirAgents) ? readdirSync(dirAgents).sort() : []) {
+    const role = f.replace(/\.md$/, "");
+    if (f.endsWith(".md") && !wanted.includes(role) && read(dir, `.claude/agents/${f}`).includes(GENERATED_MARK))
+      lines.push(`unused   .claude/agents/${f} (not part of this team; remove it with: git rm .claude/agents/${f})`);
   }
   return { lines, paths };
 }

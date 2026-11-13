@@ -154,5 +154,310 @@
       "K5"
     ],
     "off": []
+  },
+  "lean": {
+    "title": "Lean",
+    "summary": "Six roles, for small or personal projects. The same per-task path (spec, build, review); the reviewer also does the security and performance review when a change needs it.",
+    "roles": {
+      "product-partner": {
+        "title": "Product Partner",
+        "description": "Draws out the idea, researches similar products, writes the brief, plans the work and triages ad-hoc items.",
+        "holds": [
+          "D1",
+          "D2",
+          "D3",
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "P1",
+          "P2",
+          "P3",
+          "P4"
+        ],
+        "defaults": {
+          "model": "haiku",
+          "effort": "low",
+          "fallback": [
+            "sonnet"
+          ]
+        }
+      },
+      "architect": {
+        "title": "Architect",
+        "description": "Chooses the stack, designs the system, writes the threat model and the spec for each task.",
+        "holds": [
+          "A1",
+          "A2",
+          "A4",
+          "A3",
+          "A5",
+          "F3",
+          "B1",
+          "Q1",
+          "X1"
+        ],
+        "defaults": {
+          "model": "opus",
+          "effort": "high",
+          "fallback": [
+            "sonnet"
+          ]
+        }
+      },
+      "builder": {
+        "title": "Builder",
+        "description": "Implements one spec, tests first, until the gate passes.",
+        "holds": [
+          "B2",
+          "V1",
+          "F1",
+          "F2",
+          "F4",
+          "O1"
+        ],
+        "defaults": {
+          "model": "sonnet",
+          "effort": "medium",
+          "fallback": [
+            "haiku"
+          ]
+        }
+      },
+      "reviewer": {
+        "title": "Reviewer",
+        "description": "Reviews a build for correctness, scope, security and performance, and checks the product against its stories.",
+        "holds": [
+          "C1",
+          "S1",
+          "S3",
+          "S5",
+          "Q2",
+          "V2",
+          "V3"
+        ],
+        "defaults": {
+          "model": "opus",
+          "effort": "high",
+          "fallback": [
+            "sonnet"
+          ]
+        }
+      },
+      "release-engineer": {
+        "title": "Release Engineer",
+        "description": "Prepares releases and deployment, audits before a release, and deploys only when asked.",
+        "holds": [
+          "L2",
+          "L3",
+          "O2",
+          "L1",
+          "L4",
+          "L5",
+          "O3",
+          "S4",
+          "S6",
+          "Q3",
+          "Q4"
+        ]
+      },
+      "scribe": {
+        "title": "Scribe",
+        "description": "Keeps the documents, chronicle and context files current.",
+        "holds": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "defaults": {
+          "model": "haiku",
+          "effort": "low",
+          "fallback": [
+            "sonnet"
+          ]
+        }
+      }
+    },
+    "scripts": [
+      "S2",
+      "V4",
+      "K5"
+    ],
+    "off": []
+  },
+  "full": {
+    "title": "Full",
+    "summary": "Twelve roles, for products that handle personal data or payments, or that several people depend on. Each concern has its own specialist; the per-task path is still spec, build, review, with security and performance on trigger.",
+    "roles": {
+      "researcher": {
+        "title": "Researcher",
+        "description": "Researches similar products and what already exists.",
+        "holds": [
+          "D2"
+        ]
+      },
+      "product-partner": {
+        "title": "Product Partner",
+        "description": "Draws out the idea with the user and writes the brief.",
+        "holds": [
+          "D1",
+          "D3"
+        ]
+      },
+      "planner": {
+        "title": "Planner",
+        "description": "Turns the brief into requirements, milestones and tasks, and triages ad-hoc backlog items.",
+        "holds": [
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "P1",
+          "P2",
+          "P3",
+          "P4"
+        ],
+        "defaults": {
+          "model": "haiku",
+          "effort": "low",
+          "fallback": [
+            "sonnet"
+          ]
+        }
+      },
+      "designer": {
+        "title": "Designer",
+        "description": "Checks accessibility and usability of anything with an interface.",
+        "holds": [
+          "V3"
+        ]
+      },
+      "architect": {
+        "title": "Architect",
+        "description": "Chooses the stack and design, and writes the spec for each task.",
+        "holds": [
+          "A1",
+          "A2",
+          "A4",
+          "A3",
+          "F3",
+          "B1",
+          "X1"
+        ],
+        "defaults": {
+          "model": "opus",
+          "effort": "high",
+          "fallback": [
+            "sonnet"
+          ]
+        }
+      },
+      "builder": {
+        "title": "Builder",
+        "description": "Implements one spec, tests first, until the gate passes.",
+        "holds": [
+          "B2",
+          "V1",
+          "F1",
+          "F2",
+          "F4"
+        ],
+        "defaults": {
+          "model": "sonnet",
+          "effort": "medium",
+          "fallback": [
+            "haiku"
+          ]
+        }
+      },
+      "tester": {
+        "title": "Tester",
+        "description": "Checks the product against the user stories.",
+        "holds": [
+          "V2"
+        ]
+      },
+      "reviewer": {
+        "title": "Reviewer",
+        "description": "Reviews a build for correctness and scope against its spec.",
+        "holds": [
+          "C1"
+        ],
+        "defaults": {
+          "model": "opus",
+          "effort": "high",
+          "fallback": [
+            "sonnet"
+          ]
+        }
+      },
+      "security-performance": {
+        "title": "Security and Performance Engineer",
+        "description": "Keeps the code safe and fast through four gates.",
+        "holds": [
+          "A5",
+          "S3",
+          "Q1",
+          "S4",
+          "S1",
+          "S5",
+          "S6",
+          "Q2",
+          "Q3",
+          "Q4"
+        ],
+        "defaults": {
+          "model": "opus",
+          "effort": "high",
+          "fallback": [
+            "sonnet"
+          ]
+        }
+      },
+      "release-engineer": {
+        "title": "Release Engineer",
+        "description": "Prepares releases and deployment, and deploys only when asked.",
+        "holds": [
+          "L2",
+          "L3",
+          "O2",
+          "L1",
+          "L4",
+          "L5"
+        ]
+      },
+      "operations-engineer": {
+        "title": "Operations Engineer",
+        "description": "Logging, health checks, runbooks and maintenance intake.",
+        "holds": [
+          "O1",
+          "O3"
+        ]
+      },
+      "scribe": {
+        "title": "Scribe",
+        "description": "Keeps the documents, chronicle and context files current.",
+        "holds": [
+          "K1",
+          "K2",
+          "K3",
+          "K4"
+        ],
+        "defaults": {
+          "model": "haiku",
+          "effort": "low",
+          "fallback": [
+            "sonnet"
+          ]
+        }
+      }
+    },
+    "scripts": [
+      "S2",
+      "V4",
+      "K5"
+    ],
+    "off": []
   }
 }

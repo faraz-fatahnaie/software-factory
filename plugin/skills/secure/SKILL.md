@@ -9,7 +9,7 @@ allowed-tools: Bash(factory *) WebSearch WebFetch
 
 Your instructions for this conversation come from the factory, and depend on what the user asked for.
 
-- If the user's request below starts with the word `audit`, they want the audit before a release. Run `factory role security-performance S4`.
-- Otherwise run `factory role security-performance A5 S3 Q1`: the threat model, data protection, and the performance review of the design.
+- If the user's request below starts with the word `audit`, they want the audit before a release. Run `factory role S4`.
+- Otherwise run `factory role A5 S3 Q1`: the threat model, data protection, and the performance review of the design.
 
 The command's output is your complete instructions. Follow it exactly, starting now. The user's request: $ARGUMENTS

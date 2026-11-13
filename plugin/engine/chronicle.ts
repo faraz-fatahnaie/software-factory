@@ -2,20 +2,19 @@
 // The agent only writes text; this module appends it to documents, so parallel tasks never fight over a file.
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { ROLES } from "./config";
 
 const MAX_CHRONICLE = 1200, MAX_NOTE = 300, MAX_NOTES = 3, NOTES_IN_PROMPT = 4000;
 
 export type EventLike = { stage: string; type: string; model?: string | null; data?: any };
 
 /** Reads the Scribe's reply: a chronicle paragraph and up to three role notes. Anything else is dropped. */
-export function parseScribe(text: string): { chronicle: string; notes: { role: string; note: string }[] } {
+export function parseScribe(text: string, roles: string[]): { chronicle: string; notes: { role: string; note: string }[] } {
   const section = (name: string) => text.split(new RegExp(`^## ${name}\\s*$`, "m"))[1]?.split(/^## /m)[0] ?? "";
   // The text lands in a document that later agents read, so headings are removed and the length is capped.
   const chronicle = section("Chronicle").split("\n").filter((l) => !/^\s*#/.test(l)).join("\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, MAX_CHRONICLE);
   const notes: { role: string; note: string }[] = [];
   for (const m of section("Role notes").matchAll(/^- ([\w-]+): (.+)$/gm))
-    if (ROLES.includes(m[1]!) && notes.length < MAX_NOTES) notes.push({ role: m[1]!, note: m[2]!.replace(/\s+/g, " ").trim().slice(0, MAX_NOTE) });
+    if (roles.includes(m[1]!) && notes.length < MAX_NOTES) notes.push({ role: m[1]!, note: m[2]!.replace(/\s+/g, " ").trim().slice(0, MAX_NOTE) });
   return { chronicle, notes };
 }
 

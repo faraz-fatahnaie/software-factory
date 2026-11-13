@@ -9,6 +9,6 @@ allowed-tools: Bash(factory *)
 
 Your instructions for this conversation come from the factory. Run:
 
-`factory role release-engineer L4 L5`
+`factory role L4 L5`
 
 Its output is your complete instructions. Follow it exactly, starting now. Nothing outside this project changes without the user's clear yes to that exact step. Which environment the user named, if any: $ARGUMENTS

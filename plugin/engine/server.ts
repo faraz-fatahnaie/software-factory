@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { parse } from "./backlog";
-import { loadConfig, parseConfig, ROLES } from "./config";
+import { loadConfig, parseConfig, projectRoles } from "./config";
 import { openStore } from "./events";
 import { parseFind, roleSkills, SKILLS_CLI } from "./skills";
 import { listWorktrees } from "./worktree";
@@ -127,7 +127,7 @@ export async function serve(root: string, port = 4400) {
         const dir = join(root, ".claude", "skills");
         const installed = existsSync(dir) ? [...new Bun.Glob("*/SKILL.md").scanSync({ cwd: dir })].map((f) => f.split("/")[0]!).sort() : [];
         const agent = (role: string) => join(root, ".claude", "agents", `${role}.md`);
-        return json({ installed, roles: Object.fromEntries(ROLES.map((r) => [r, existsSync(agent(r)) ? roleSkills(readFileSync(agent(r), "utf8")) : []])) });
+        return json({ installed, roles: Object.fromEntries(projectRoles(root).map((r) => [r, existsSync(agent(r)) ? roleSkills(readFileSync(agent(r), "utf8")) : []])) });
       }
       if (route === "GET /api/skills/search") {
         const q = url.searchParams.get("q") ?? "";

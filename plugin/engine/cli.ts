@@ -3,14 +3,15 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { join } from "node:path";
 import { add, move, parse, type Item, type Section } from "./backlog";
 import { claudeRunner } from "./claude";
-import { loadConfig } from "./config";
+import { loadConfig, projectTeam } from "./config";
 import { openStore } from "./events";
 import { applyTeam, configure, detect, DOC_PATHS, doctor, init, nextStep, projectDocs } from "./init";
 import { appendChronicle, appendNotes, chronicleEntry, parseScribe, stageOutput } from "./chronicle";
 import { graphifyInstalled, updateGraph } from "./graph";
 import { formatChecks, formatInfo, readiness, releaseInfo, tagRelease } from "./release";
 import { allTracked, changesSince, formatFindings, scanSecrets } from "./security";
-import { chatPrompt, describeTeam, presets, DEFAULT_PRESET } from "./team";
+import { activeRoles, chatPrompt, chatPromptFor, describeTeam, perTask, presets, resolveTeam, ROLE_NAME } from "./team";
+import { addCustom, changeTeam, moveSettings, offSettings, onSettings, removeCustom, renameSettings, teamForAgents, titleSettings, useSettings } from "./teamctl";
 import { runTask, shellGate, stopAll, stubRunner } from "./pipeline";
 import { addSkill, searchSkills, setSkill } from "./skills";
 import { commitAll, ensureWorktree, land, removeWorktree } from "./worktree";
@@ -54,7 +55,7 @@ const graphEnabled = () => { try { return loadConfig(root).graph !== false && gr
 /** Writes the chronicle entry and role notes for a landed task, and commits the documents. Returns the files changed. */
 function recordLanding(item: Item, where: string, run: string, events: any[]): string[] {
   const date = new Date().toISOString().slice(0, 10);
-  const scribe = parseScribe(stageOutput(events, "document"));
+  const scribe = parseScribe(stageOutput(events, "document"), activeRoles(projectTeam(root)));
   const files = [appendChronicle(root, chronicleEntry({ id: item.id, title: item.title, date, where, run, chronicle: scribe.chronicle, events }), date),
     ...appendNotes(root, item.id, date, scribe.notes)];
   commitPaths(`software-factory: record ${item.id}`, "docs");
@@ -77,7 +78,7 @@ function find(id: string | undefined, ...sections: Section[]): Item {
 /** Every value given for a repeated flag: --gate "a" --gate "b" gives ["a", "b"]. */
 const flag = (args: string[], name: string) => args.flatMap((a, i) => (a === name && args[i + 1] !== undefined ? [args[i + 1]!] : []));
 
-const USAGE = `factory init [--setup <cmd>]... [--gate <cmd>]...  set this project up; without flags the commands are detected
+const USAGE = `factory init [--setup <cmd>]... [--gate <cmd>]... [--team lean|balanced|full]   set this project up; without flags the commands are detected and the team is balanced
 factory detect                                  show the setup and gate commands init would use
 factory gate ["<cmd>"...]                        run the configured gate here, or try the given commands
 factory release info | check [--deploy] | tag <version>   what a release holds, whether the project is ready, and tag it (never pushes)
@@ -90,7 +91,7 @@ factory doctor                                  check the machine and this proje
 factory status                                  what is ready, running, waiting for you or blocked
 factory run [F-id...] [--parallel N] [--stub]   run the top Ready item(s) or the named ones, each in its own worktree
 factory promote <F-id>...                       move Inbox items to Ready, in the order given
-factory role <role> [id...]                     print a conversational role's instructions (used by the brainstorm, research and plan commands)
+factory role <id>... | <role> [id...]            print the instructions of a conversation, by responsibility or role (used by the commands)
 factory approve <F-id>                          land an approved task: pull request if the repo has an origin, else a local merge
 factory discard <F-id>                          delete a task's worktree and branch, and return it to Ready
 factory serve [port]                            start the local control plane (default 127.0.0.1:4400)
@@ -131,21 +132,77 @@ async function main([cmd, ...args]: string[]) {
   }
 
   if (cmd === "team") {
-    if (args[0] === "apply") {
-      const r = applyTeam(root, args.includes("--force"));
+    const [sub, ...rest] = args;
+    // Flags with a value (--to d2); everything else is positional. Unknown flags are errors, not silently ignored.
+    const parse = (names: string[]) => {
+      const flags: Record<string, string> = {}, pos: string[] = [];
+      for (let i = 0; i < rest.length; i++) {
+        if (!rest[i]!.startsWith("--")) { pos.push(rest[i]!); continue; }
+        if (!names.includes(rest[i]!) || rest[i + 1] === undefined) throw new Error(`${rest[i]} is not understood here (expected: ${names.join(", ") || "no options"}), or it needs a value`);
+        flags[rest[i]!] = rest[++i]!;
+      }
+      return { flags, pos };
+    };
+    const show = () => {
+      const team = projectTeam(root);
+      let config: ReturnType<typeof loadConfig> | undefined;
+      try { config = loadConfig(root); } catch { /* not initialized: show the defaults */ }
+      const t = perTask(team);
+      console.log(`${team.title} team, ${Object.keys(team.roles).length} roles. A normal task uses ${t.always} agents (spec, build, review).${t.sometimes.length ? `\nSometimes more: ${t.sometimes.join("; ")}.` : ""}\n`);
+      for (const r of describeTeam(team)) {
+        const c = config?.roles[r.name] ?? team.roles[r.name]!.defaults;
+        console.log(`${r.active ? "●" : "○"} ${r.title} (${r.name})${r.modes.length ? `  [${r.modes.join(" + ")}]` : ""}${c && r.modes.includes("agent") ? `  ${c.model}, ${c.effort}${config?.roles[r.name]?.enabled === false ? ", switched off" : ""}` : ""}\n    built:   ${r.built.join(" ") || "none yet"}\n    planned: ${r.planned.join(" ") || "none"}${Object.entries(config?.roles[r.name]?.stages ?? {}).map(([k, v]) => `\n    ${k} stage: ${v.model}, ${v.effort}`).join("")}`);
+      }
+      if (team.off.length) console.log(`\nSwitched off: ${team.off.join(" ")}`);
+      console.log("\n● has built responsibilities and runs today; ○ is planned.");
+    };
+    const change = (what: string, edit: Parameters<typeof changeTeam>[1], opts?: Parameters<typeof changeTeam>[2]) => {
+      const r = changeTeam(root, edit, opts);
+      commitPaths(`software-factory: team ${what}`, ...r.paths);
+      const notable = r.lines.filter((l) => !l.startsWith("current"));
+      show();
+      if (notable.length) console.log(`\nRole files:\n${notable.map((l) => `  ${l}`).join("\n")}`);
+    };
+    if (!sub) return show();
+    if (sub === "presets") {
+      parse([]);
+      for (const [name, p] of Object.entries(presets)) {
+        const t = perTask(resolveTeam({ preset: name }));
+        console.log(`${name === (projectTeam(root).title.toLowerCase()) ? "*" : " "} ${name}: ${Object.keys(p.roles).length} roles. ${p.summary}\n    a normal task uses ${t.always} agents; roles: ${Object.keys(p.roles).join(", ")}`);
+      }
+      return console.log("\n* is this project's team. Change it with: factory team use <preset>, or ask for a size with: factory team agents <n>");
+    }
+    if (sub === "apply") {
+      const r = applyTeam(root, rest.includes("--force"));
       if (r.paths.length) commitPaths("software-factory: rebuild role files from the catalog", ...r.paths);
       return console.log(r.lines.join("\n"));
     }
-    if (args.length) throw new Error("usage: factory team [apply [--force]]");
-    const preset = presets[DEFAULT_PRESET]!;
-    let config: ReturnType<typeof loadConfig> | undefined;
-    try { config = loadConfig(root); } catch { /* not initialized: show the defaults */ }
-    console.log(`${preset.title} team: ${preset.summary}\n`);
-    for (const r of describeTeam(preset)) {
-      const c = config?.roles[r.name] ?? preset.roles[r.name]!.defaults;
-      console.log(`${r.active ? "●" : "○"} ${r.title}${r.modes.length ? `  [${r.modes.join(" + ")}]` : ""}${c && r.modes.includes("agent") ? `  ${c.model}, ${c.effort}` : ""}\n    built:   ${r.built.join(" ") || "none yet"}\n    planned: ${r.planned.join(" ") || "none"}`);
+    if (sub === "use") { const { pos } = parse([]); if (pos.length !== 1) throw new Error("usage: factory team use <preset>"); return change(`use ${pos[0]}`, (t) => useSettings(t, pos[0]!)); }
+    if (sub === "agents") { const { pos } = parse([]); if (pos.length !== 1) throw new Error("usage: factory team agents <number>"); return change(`size ${pos[0]}`, (t) => teamForAgents(Number(pos[0]), t)); }
+    if (sub === "move") { const { flags, pos } = parse(["--to"]); if (!pos.length || !flags["--to"]) throw new Error("usage: factory team move <id>... --to <role>"); return change(`move ${pos.join(" ")} to ${flags["--to"]}`, (t) => moveSettings(t, pos, flags["--to"]!)); }
+    if (sub === "merge") { const { pos } = parse([]); if (pos.length !== 2) throw new Error("usage: factory team merge <role> <into-role>"); return change(`merge ${pos[0]} into ${pos[1]}`, (t) => renameSettings(t, pos[0]!, pos[1]!)); }
+    if (sub === "rename") {
+      const { pos } = parse([]);
+      if (pos.length < 2 || pos.length > 3) throw new Error('usage: factory team rename <role> <new-name> ["New Title"]');
+      if (!ROLE_NAME.test(pos[1]!)) throw new Error(`"${pos[1]}" is not a role name (lowercase letters, digits and dashes)`);
+      return change(`rename ${pos[0]} to ${pos[1]}`, (t) => renameSettings(t, pos[0]!, pos[1]!, pos[2]), { rename: { [pos[0]!]: pos[1]! } });
     }
-    return console.log("\n● has built responsibilities and runs today; ○ is planned.");
+    if (sub === "title") { const { pos } = parse([]); if (pos.length !== 2) throw new Error('usage: factory team title <role> "<Title>"'); return change(`title ${pos[0]}`, (t) => titleSettings(t, pos[0]!, pos[1]!)); }
+    if (sub === "off" || sub === "on") {
+      const { pos } = parse([]);
+      if (!pos.length) throw new Error(`usage: factory team ${sub} <id>...`);
+      return change(`${sub} ${pos.join(" ")}`, (t) => (sub === "off" ? offSettings(t, pos) : onSettings(t, pos)));
+    }
+    if (sub === "add") {
+      const { flags, pos } = parse(["--role", "--when", "--instruction", "--summary", "--access"]);
+      if (pos.length !== 1 || !flags["--role"] || !flags["--when"] || !flags["--instruction"]) throw new Error('usage: factory team add "<title>" --role <role> --when request|task --instruction "<what it does>" [--summary "<one line>"] [--access read,web]');
+      return change(`add responsibility ${pos[0]}`, (t) => addCustom(t, {
+        title: pos[0]!, summary: flags["--summary"] ?? pos[0]!, when: flags["--when"] as "request" | "task",
+        access: flags["--access"]?.split(",").map((a) => a.trim()) ?? ["read"], instruction: flags["--instruction"]!, role: flags["--role"]!,
+      }));
+    }
+    if (sub === "remove") { const { pos } = parse([]); if (pos.length !== 1) throw new Error("usage: factory team remove <U-id>"); return change(`remove ${pos[0]}`, (t) => removeCustom(t, pos[0]!)); }
+    throw new Error("usage: factory team [presets | use <preset> | agents <n> | move <id>... --to <role> | merge <role> <into> | rename <role> <new> | title <role> <title> | off|on <id>... | add ... | remove <U-id> | apply [--force]]");
   }
 
   if (cmd === "release") {
@@ -196,9 +253,10 @@ async function main([cmd, ...args]: string[]) {
   if (cmd === "init") {
     if (Bun.spawnSync(["git", "rev-parse", "--is-inside-work-tree"], { cwd: root }).exitCode !== 0)
       throw new Error("not a git repository. Run `git init` first: the factory works in git worktrees.");
-    const unknown = args.filter((a, i) => a !== "--setup" && a !== "--gate" && args[i - 1] !== "--setup" && args[i - 1] !== "--gate");
+    const flagged = ["--setup", "--gate", "--team"];
+    const unknown = args.filter((a, i) => !flagged.includes(a) && !flagged.includes(args[i - 1] ?? ""));
     if (unknown.length) throw new Error(`unknown argument: ${unknown.join(" ")}`);
-    const r = init(root, { ...(args.includes("--setup") && { setup: flag(args, "--setup") }), ...(args.includes("--gate") && { gate: flag(args, "--gate") }) });
+    const r = init(root, { ...(args.includes("--setup") && { setup: flag(args, "--setup") }), ...(args.includes("--gate") && { gate: flag(args, "--gate") }), ...(args.includes("--team") && { team: flag(args, "--team")[0] }) });
     // Committed, because task worktrees branch from HEAD.
     if (r.paths.length) commitPaths("software-factory: initialize", ...r.paths);
     console.log([`Stack: ${r.stack}`, ...r.done, `setup: ${r.config.setup?.join(" ; ") || "(none)"}`, `gate:  ${r.config.gate.join(" ; ") || "(none: only the reviewer will check a build)"}`,
@@ -256,8 +314,9 @@ async function main([cmd, ...args]: string[]) {
 
   if (cmd === "role") {
     const [name, ...ids] = args;
-    if (!name) throw new Error("usage: factory role <role> [responsibility-id...]");
-    return console.log(chatPrompt(name, ids));
+    if (!name) throw new Error("usage: factory role <role> [id...]  or  factory role <id>...");
+    // Named by responsibility (D1 D3), so the commands keep working however the team is grouped; or by role.
+    return console.log(/^[A-Z]\d{1,3}$/.test(name) ? chatPromptFor(args, projectTeam(root)) : chatPrompt(name, ids, projectTeam(root)));
   }
 
   if (cmd === "approve") {

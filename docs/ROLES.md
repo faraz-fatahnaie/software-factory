@@ -54,6 +54,22 @@ version files and the changelog; never pushes). **Still planned:** the unattende
 triggered preparation (the headless half of L1 and L3), maintenance intake (O3), logging and
 health checks as builder tasks (O1), and the GUI for all of it.
 
+Step 7 is done too: a project's team is a preset (Lean 6 roles, Balanced 9, Full 12) plus its own
+changes, stored under `team` in `factory.config.json` and checked against the rules above before
+anything is written. `factory team` shows it; `use`, `agents <n>` (3 to 12; a size between presets
+folds roles of the next larger preset together; the user's own roles come on top), `move`, `merge`,
+`rename`, `title`, `off`/`on`, `add`/`remove` (custom responsibilities) change it, and a change that
+breaks a rule is refused with the reason and changes nothing. The pipeline finds each stage's role by
+who holds the stage's responsibility (triage P4, spec B1, build B2, security S1, review C1, summary
+K2) and tells that role which part of its job the stage is, so one role can do several. The
+conversation commands name responsibilities, not roles, so they work in every team: when the jobs
+of a command sit with several roles, all of them hold the conversation. Regrouping does not change
+what a stage costs: a stage moved into another role keeps its model settings as a per-stage
+setting (for example the summary stage stays on the cheap model when the scribe is folded into the
+architect). In a Lean team the reviewer does the security pass as a separate stage, so the
+saving is fewer roles to configure, not fewer runs. **Still planned:** the Team view in the GUI,
+editing model settings per stage from the command line, and custom unattended checks in the GUI.
+
 **Conventions step 2 set:** a conversation saves a document only after the user approves a
 draft, and every document starts with `Status: approved by the user on <date>`. Backlog items
 written by the Planner carry `Milestone:`, `Stories:`, `Depends on:`, `Acceptance:` and
@@ -172,7 +188,7 @@ personal data or heavy traffic) and shows the agents-per-task estimate for each.
 | Reviewer | C1 S1 S3 S5 Q2 V2 V3 | C1 | C1 |
 | Security and Performance Engineer | | A5 S1 S3–S6 Q1–Q4 | A5 S1 S3–S6 Q1–Q4 |
 | Release Engineer | L1–L5 O2 O3 S4 S6 Q3 Q4 | L1–L5 O2 O3 | L1–L5 |
-| Operations Engineer | | | O1 O2 O3 |
+| Operations Engineer | | | O1 O3 |
 | Scribe | K1–K4 | K1–K4 | K1–K4 |
 | *Scripts (no agent)* | S2 V4 K5 | S2 V4 K5 | S2 V4 K5 |
 | **Agents on a normal task** | 3 (spec, build, review) | 3, plus Security and Performance on trigger | 3, plus Security and Performance on trigger |
@@ -198,6 +214,9 @@ regrouping never means rewriting prompts.
 3. **Chat and headless do not mix in one run.** A role may hold both kinds, as separate modes.
 4. **Nothing core is silently dropped.** Every catalog entry is assigned, or switched off by the user on purpose.
 5. **Outward actions wait for the user.** See the next section.
+6. **The pipeline's own jobs cannot be switched off:** B1 (spec), B2 (build) and C1 (review).
+7. **Parts of one pass stay with one role,** because they run as one stage: B2 with V1, S1 with S5 and Q2, K2 with K4. A member may be switched off; the rest still move together.
+8. **A custom responsibility only reads.** It can search the web, never edit files. It is either a conversation the user starts (`when: request`) or an advisory check on every task (`when: task`) that reports to the reviewer and the backlog and never blocks.
 
 ## The Security and Performance Engineer
 
@@ -334,7 +353,7 @@ later; every command should eventually also be an action in the GUI.
 4. Scribe and the document structure; the graph on by default. (done)
 5. Tester, and the Security and Performance Engineer with its four gates (`test`, `secure`). (gate 2 and the conversations done; gate 1 at task time and the opt-in dynamic work planned)
 6. Release Engineer (`release`, `deploy`) with the deployment interview. (done)
-7. Lean and Full presets, free regrouping, custom responsibilities (`team`).
+7. Lean and Full presets, free regrouping, custom responsibilities (`team`). (done)
 8. GUI: Team view, command actions, chat.
 
 **Conversations commit their documents** (`factory docs save`, which commits only `docs/`) because task agents work from the last commit. The usual order is brainstorm, research (optional), plan (requirements), design, plan (milestones and tasks); `plan` pauses for `design` when the project has no code and no approved design, and resumes after it.

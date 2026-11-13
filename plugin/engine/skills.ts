@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { ROLES, type Role } from "./config";
+import { projectRoles } from "./config";
 
 // Pinned: `npx -y` would otherwise run whatever version was published most recently.
 export const SKILLS_CLI = "skills@1.8.1";
@@ -47,7 +47,7 @@ export function parseFind(stdout: string): { pkg: string; installs: string; url:
 /** Installs a skills.sh package at project level and attaches it to one role. */
 export function addSkill(cwd: string, pkg: string, role: string) {
   if (!PKG.test(pkg)) throw new Error(`skill must look like owner/repo@skill, got "${pkg}"`);
-  if (!ROLES.includes(role as Role)) throw new Error(`--role must be one of ${ROLES.join(", ")}`);
+  if (!projectRoles(cwd).includes(role)) throw new Error(`--role must be one of ${projectRoles(cwd).join(", ")}`);
   // argv array, no shell: the package string is never interpreted.
   const p = Bun.spawnSync(["npx", "-y", SKILLS_CLI, "add", pkg, "-a", "claude-code", "-y"], {
     cwd,
@@ -61,7 +61,7 @@ export function addSkill(cwd: string, pkg: string, role: string) {
 /** Attaches or detaches a skill that is already installed in this project. */
 export function setSkill(cwd: string, action: "attach" | "detach", skill: string, role: string) {
   if (!/^[A-Za-z0-9][\w.:-]*$/.test(skill)) throw new Error(`bad skill name "${skill}"`);
-  if (!ROLES.includes(role as Role)) throw new Error(`--role must be one of ${ROLES.join(", ")}`);
+  if (!projectRoles(cwd).includes(role)) throw new Error(`--role must be one of ${projectRoles(cwd).join(", ")}`);
   if (action === "attach" && !existsSync(join(cwd, ".claude", "skills", skill, "SKILL.md")))
     throw new Error(`${skill} is not installed here; use: factory skill add <owner/repo@${skill}> --role ${role}`);
   const file = join(cwd, ".claude", "agents", `${role}.md`);

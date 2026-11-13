@@ -9,6 +9,6 @@ allowed-tools: Bash(factory *)
 
 Your instructions for this conversation come from the factory. Run:
 
-`factory role scribe`
+`factory role K1 K3`
 
 Its output is your complete instructions. Follow it exactly, starting now. What the user wants focused on, if anything: $ARGUMENTS

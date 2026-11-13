@@ -12,8 +12,9 @@ import { openStore } from "../plugin/engine/events";
 import { BACKLOG, config, repo, role, tmp } from "./fixture";
 import { guard } from "../plugin/engine/hooks";
 import { applyTeam, configure, detect, doctor, init, nextStep, projectDocs } from "../plugin/engine/init";
-import { activeRoles, catalog, chatPrompt, DEFAULT_PRESET, presets, renderRole, toolsFor, validateTeam } from "../plugin/engine/team";
-import { followUps, needsTriage, runTask, shellGate, type Runner } from "../plugin/engine/pipeline";
+import { activeRoles, catalog, chatPrompt, chatPromptFor, checkSettings, customStages, DEFAULT_PRESET, describeTeam, perTask, presets, renderRole, resolveTeam, stageDuties, stageRole, teamForAgents, toolsFor, validateTeam, type TeamSettings } from "../plugin/engine/team";
+import { addCustom, moveSettings, offSettings, removeCustom, renameSettings } from "../plugin/engine/teamctl";
+import { followUps, needsTriage, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
 import { costs, elapsed, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
 import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
@@ -98,7 +99,7 @@ test("claude: classifies results from real CLI output shapes", () => {
   expect(args.join(" ")).toContain("--permission-mode acceptEdits");
   expect(args.join(" ")).toContain("--setting-sources project");
   expect(args.join(" ")).toContain("--output-format stream-json --verbose");
-  const readOnly = claudeArgs({ ...job, role: "reviewer" }, []);
+  const readOnly = claudeArgs({ ...job, role: "reviewer", stage: "review" }, []); // write access and the gate hook follow the stage, not a role name
   expect(readOnly[2]).toBe("Stage: build.");
   expect(readOnly.join(" ")).toContain("--permission-mode dontAsk");
   const hooks = (a: string[]) => Object.keys(JSON.parse(a[a.indexOf("--settings") + 1]!).hooks);
@@ -432,7 +433,7 @@ test("team apply: rebuilds generated files, keeps skills, leaves hand-edited fil
   expect(readFileSync(file("architect"), "utf8")).toContain("  - tdd"); // attached skills survive a rebuild
   expect(readFileSync(file("architect"), "utf8")).not.toContain("outdated");
   expect(cli("team", "apply", "--force").out).toMatch(/rebuilt  \.claude\/agents\/reviewer\.md/);
-  expect(cli("team").out).toMatch(/● Product Partner {2}\[chat\]\n {4}built: {3}D1 D2 D3[\s\S]*● Planner {2}\[chat \+ agent\] {2}sonnet, medium\n {4}built: {3}R1 R2 R3 R4 P1 P2 P3 P4/);
+  expect(cli("team").out).toMatch(/● Product Partner \(product-partner\) {2}\[chat\]\n {4}built: {3}D1 D2 D3[\s\S]*● Planner \(planner\) {2}\[chat \+ agent\] {2}sonnet, medium\n {4}built: {3}R1 R2 R3 R4 P1 P2 P3 P4/);
   expect(cli("team", "bogus").code).toBe(1);
 }, 60_000);
 
@@ -537,7 +538,7 @@ test("cli: add --detail, ordered promote, role, status documents and the next st
 
   // Status shows which documents exist and the one command to run next.
   expect(status()).toMatch(/Documents: brief – · research – · requirements – · architecture – · roadmap – · deployment –\nNext: \/software-factory:run/); // Ready items exist, so run them
-  expect(cli("team").out).toContain("● Release Engineer  [chat]"); // every role in the Balanced team now has something built
+  expect(cli("team").out).toContain("● Release Engineer (release-engineer)  [chat]"); // every role in the Balanced team now has something built
 }, 60_000);
 
 test("next step: follows the documents and the backlog", () => {
@@ -633,13 +634,14 @@ test("docs save: commits only docs/, so task worktrees can read approved documen
 
 test("scribe: its reply is parsed defensively; the entry and notes are appended once, in the right files", () => {
   const reply = "Some preamble.\n## Chronicle\n# A heading the model slipped in\nAdded the login page so people can sign in.\n\n\n\nIt stores nothing yet.\n\n## Role notes\n- builder: Tests live in test/ and run with `npm test`.\n- hacker: this role does not exist\n- reviewer: " + "x".repeat(500) + "\n- planner: one\n- architect: four\n";
-  const { chronicle, notes } = parseScribe(reply);
+  const roles = ["planner", "architect", "builder", "reviewer", "scribe", "security-performance"];
+  const { chronicle, notes } = parseScribe(reply, roles);
   expect(chronicle).toBe("Added the login page so people can sign in.\n\nIt stores nothing yet."); // heading dropped, blank runs collapsed
   expect(notes.map((n) => n.role)).toEqual(["builder", "reviewer", "planner"]); // unknown role skipped, at most three
   expect(notes[1]!.note).toHaveLength(300);
-  expect(parseScribe("- none")).toEqual({ chronicle: "", notes: [] });
-  expect(parseScribe("## Chronicle\n" + "word ".repeat(1000)).chronicle).toHaveLength(1200);
-  expect(parseScribe("## Role notes\n- none\n").notes).toEqual([]);
+  expect(parseScribe("- none", roles)).toEqual({ chronicle: "", notes: [] });
+  expect(parseScribe("## Chronicle\n" + "word ".repeat(1000), roles).chronicle).toHaveLength(1200);
+  expect(parseScribe("## Role notes\n- none\n", roles).notes).toEqual([]);
 
   const events = [
     { stage: "spec", type: "stage.ok", model: "opus", data: { usage: { costUsd: 0.1 }, output: "the spec" } },
@@ -758,7 +760,7 @@ test("init: writes the documents map and the scribe's role file; docs save cover
   expect(cli("docs", "save").out).toMatch(/README\.md[\s\S]*AGENTS\.md|AGENTS\.md[\s\S]*README\.md/);
   expect(sh("git", "show", "--name-only", "--format=", "HEAD").out.split("\n").sort()).toEqual(["AGENTS.md", "README.md"]);
   expect(sh("git", "status", "--porcelain").out).toBe("A  notes.txt");
-  expect(cli("team").out).toMatch(/● Scribe {2}\[chat \+ agent\] {2}sonnet, medium\n {4}built: {3}K1 K2 K3 K4/);
+  expect(cli("team").out).toMatch(/● Scribe \(scribe\) {2}\[chat \+ agent\] {2}sonnet, medium\n {4}built: {3}K1 K2 K3 K4/);
 });
 
 test.skipIf(!(() => { const p = Bun.spawnSync(["graphify", "--version"], { stdout: "pipe", stderr: "pipe" }); return p.exitCode === 0; })())(
@@ -1083,3 +1085,365 @@ test("release commands and prompts: the preparation conversation is ordered, dep
   }
   expect(readFileSync(join(import.meta.dir, "../plugin/skills/deploy/SKILL.md"), "utf8")).toContain("allowed-tools: Bash(factory *)\n"); // no provider tool is pre-approved
 });
+
+/** A config for a team, with the default model settings of every role that runs unattended. */
+const configFor = (settings: TeamSettings) => {
+  const team = resolveTeam(settings);
+  return parseConfig({ gate: ["true"], team: settings, roles: Object.fromEntries(activeRoles(team).map((n) => [n, { runner: "claude", ...team.roles[n]!.defaults! }])) });
+};
+
+/** A fresh git project set up with `factory init`. */
+function project(team?: string) {
+  const dir = tmp();
+  const git = (...argv: string[]) => { const p = Bun.spawnSync(["git", ...argv], { cwd: dir, env: process.env }); return `${p.stdout}${p.stderr}`.trim(); };
+  git("init", "-q", "-b", "main"); writeFileSync(join(dir, "README.md"), "# x\n"); git("add", "-A"); git("commit", "-q", "-m", "base");
+  const cli = (...args: string[]) => { const p = Bun.spawnSync([join(import.meta.dir, "../plugin/bin/factory"), ...args], { cwd: dir, env: process.env }); return { code: p.exitCode, out: `${p.stdout}${p.stderr}`.trim() }; };
+  expect(cli("init", "--gate", "true", ...(team ? ["--team", team] : [])).code).toBe(0);
+  const config = () => JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8"));
+  return { dir, git, cli, config, agents: () => Bun.spawnSync(["ls", join(dir, ".claude/agents")]).stdout.toString().trim().split("\n") };
+}
+
+test("presets: lean, balanced and full each cover the catalog once, obey every rule, and differ as designed", () => {
+  const sizes = Object.fromEntries(Object.entries(presets).map(([n, p]) => [n, Object.keys(p.roles).length]));
+  expect(sizes).toEqual({ balanced: 9, lean: 6, full: 12 });
+  for (const name of Object.keys(presets)) {
+    const team = resolveTeam({ preset: name });
+    expect(validateTeam(team)).toEqual([]);
+    for (const role of activeRoles(team)) expect(team.roles[role]!.defaults).toBeDefined(); // every unattended role has default models
+    expect(perTask(team).always).toBe(3); // spec, build, review in every team
+  }
+  const lean = resolveTeam({ preset: "lean" }), full = resolveTeam({ preset: "full" }), balanced = resolveTeam();
+  expect([stageRole(lean, "triage"), stageRole(lean, "spec"), stageRole(lean, "build"), stageRole(lean, "security"), stageRole(lean, "review"), stageRole(lean, "document")])
+    .toEqual(["product-partner", "architect", "builder", "reviewer", "reviewer", "scribe"]); // the reviewer also reviews security
+  expect([stageRole(balanced, "triage"), stageRole(balanced, "security")]).toEqual(["planner", "security-performance"]);
+  expect([stageRole(full, "triage"), stageRole(full, "security"), stageRole(full, "review")]).toEqual(["planner", "security-performance", "reviewer"]);
+  expect(activeRoles(lean)).toEqual(["product-partner", "architect", "builder", "reviewer", "scribe"]);
+  expect(activeRoles(full)).toEqual(["planner", "architect", "builder", "reviewer", "security-performance", "scribe"]);
+  expect(stageDuties(lean, "security", "reviewer")).toEqual(["Review the change for security", "Review configuration and infrastructure", "Review the change for performance"]);
+  expect(stageDuties(lean, "review", "reviewer")).toEqual(["Review the build"]); // the same role, a different part of its job
+  expect(renderRole("reviewer", lean)).toMatch(/## Review the build[\s\S]*## Review the change for security/); // one role file holds both
+  expect(perTask(lean).sometimes).toContain("Product Partner triages ad-hoc items");
+  expect(describeTeam(full).filter((r) => !r.active).map((r) => r.name)).toEqual(["operations-engineer"]); // logging and maintenance intake are still planned
+});
+
+test("team rules: regrouping is checked, and a team that breaks a rule is refused with the reason", () => {
+  const problems = (s: TeamSettings) => validateTeam(resolveTeam(s));
+  expect(problems({ move: { C1: "builder" } }).join("\n")).toMatch(/builder holds B2 and also C1: the author cannot review their own work/);
+  expect(problems({ off: ["C1"] }).join("\n")).toMatch(/C1 cannot be switched off: the pipeline needs it/);
+  expect(problems({ off: ["B1", "B2"] }).join("\n")).toMatch(/B1 cannot be switched off[\s\S]*B2 cannot be switched off[\s\S]*exactly one role must hold B2 .*found 0/);
+  expect(problems({ move: { Q2: "scribe" } }).join("\n")).toMatch(/S1, S5, Q2 must be held by one role, because they run as one stage; they are split across security-performance and scribe/);
+  expect(problems({ move: { V1: "tester" } }).join("\n")).toMatch(/B2, V1 must be held by one role/);
+  expect(problems({ move: { K4: "planner" } }).join("\n")).toMatch(/K2, K4 must be held by one role/);
+  // Fine: moving a whole pass together, switching a member of a pass off, and merging whole roles.
+  expect(problems({ move: { S1: "reviewer", S5: "reviewer", Q2: "reviewer" } })).toEqual([]);
+  expect(problems({ off: ["Q2", "S6", "Q3", "Q4"] })).toEqual([]);
+  expect(problems({ off: ["O3"] })).toEqual([]);
+  const merged = renameSettings({}, "scribe", "release-engineer");
+  expect(problems(merged)).toEqual([]);
+  expect(Object.keys(resolveTeam(merged).roles)).toHaveLength(8); // a role everything was moved out of is gone
+  expect(resolveTeam(merged).roles["release-engineer"]!.defaults).toEqual({ model: "sonnet", effort: "medium", fallback: ["haiku"] }); // gained unattended work: default models
+
+  expect(() => resolveTeam({ preset: "huge" })).toThrow(/there is no team preset "huge" \(there are: balanced, lean, full\)/);
+  expect(() => resolveTeam({ move: { Z9: "x-role" } })).toThrow(/there is no such responsibility/);
+  expect(() => resolveTeam({ move: { S2: "tester" } })).toThrow(/S2 is a script, not a job for an agent/);
+  expect(() => resolveTeam({ move: { D1: "Bad Name" } })).toThrow(/is not a role name/);
+  expect(() => resolveTeam({ off: ["Z9"] })).toThrow(/cannot switch off Z9/);
+  expect(resolveTeam({ titles: { tester: "QA Lead" } }).roles.tester!.title).toBe("QA Lead");
+  expect(resolveTeam({ off: ["O3"] }).off).toEqual(["O3"]);
+  expect(offSettings({ move: { O3: "scribe" } }, ["O3"])).toEqual({ move: {}, off: ["O3"] }); // off wins over an earlier move
+  expect(moveSettings({ off: ["O3"] }, ["O3"], "scribe")).toEqual({ move: { O3: "scribe" }, off: [] }); // moving switches it back on
+  expect(() => moveSettings({}, ["d1"], "tester")).toThrow(/is not a responsibility id/);
+});
+
+test("team size: any number of agents from 3 to 12 gives a valid team of exactly that size", () => {
+  for (let n = 3; n <= 12; n++) {
+    const s = teamForAgents(n);
+    const team = resolveTeam(s);
+    expect([n, Object.keys(team.roles).length, validateTeam(team)]).toEqual([n, n, []]);
+    const config = configFor(s); // the config for it validates too
+    expect(Object.keys(config.roles).sort()).toEqual(activeRoles(team).sort());
+  }
+  expect(teamForAgents(6).preset).toBe("lean"); // an exact preset size is that preset
+  expect(teamForAgents(9).preset).toBe("balanced");
+  expect(teamForAgents(12).preset).toBe("full");
+  expect(teamForAgents(7).preset).toBe("balanced"); // between presets: the next larger one, with roles folded together
+  expect(teamForAgents(11).preset).toBe("full");
+  expect(teamForAgents(4).preset).toBe("lean");
+  const three = resolveTeam(teamForAgents(3));
+  expect(Object.keys(three.roles).sort()).toEqual(["architect", "builder", "reviewer"]); // the minimum: someone builds, someone reviews, someone does the rest
+  expect(stageRole(three, "triage")).toBe("architect");
+  expect(() => teamForAgents(2)).toThrow(/a team can have 3 to 12 agents/);
+  expect(() => teamForAgents(13)).toThrow(/3 to 12/);
+  expect(() => teamForAgents(7.5)).toThrow(/3 to 12/);
+  const custom = addCustom({}, { title: "Docs check", summary: "x", when: "request", instruction: "Check the docs read well.", role: "docs-checker" });
+  const resized = resolveTeam(teamForAgents(5, custom));
+  expect(resized.roles["docs-checker"]!.holds).toEqual(["U1"]); // the user's own role survives a resize and comes on top of the five
+  expect(Object.keys(resized.roles)).toHaveLength(6);
+});
+
+test("custom responsibilities: validated, never able to edit, conversations and task checks", () => {
+  const base = { title: "Docs check", summary: "Reads the docs", when: "request" as const, instruction: "Read the docs and say what is unclear.", role: "docs-checker" };
+  const s = addCustom({}, base);
+  expect(s.custom![0]).toMatchObject({ id: "U1", how: "chat", access: ["read"] });
+  expect(addCustom(s, { ...base, title: "Second", when: "task" }).custom!.map((c) => [c.id, c.how])).toEqual([["U1", "chat"], ["U2", "headless"]]);
+  const team = resolveTeam(s);
+  expect(team.roles["docs-checker"]!.holds).toEqual(["U1"]);
+  expect(validateTeam(team)).toEqual([]);
+  expect(chatPrompt("docs-checker", [], team)).toContain("Read the docs and say what is unclear.");
+  expect(chatPromptFor(["U1"], team)).toContain("You are the Docs Checker");
+  expect(activeRoles(team)).not.toContain("docs-checker"); // a conversation: no model settings, no role file
+  const task = resolveTeam(addCustom({}, { ...base, when: "task" }));
+  expect(activeRoles(task)).toContain("docs-checker"); // a check on every task runs unattended
+  expect(customStages(task)).toEqual([{ role: "docs-checker", titles: ["Docs check"] }]);
+  expect(toolsFor(task.roles["docs-checker"]!.holds, task)).toEqual(["Read", "Grep", "Glob", "Bash", "Skill"]);
+  expect(renderRole("docs-checker", task)).toContain("## Docs check");
+  expect(perTask(task).sometimes.at(-1)).toBe("Docs Checker runs your own check on every task");
+  expect(removeCustom(addCustom({}, base), "U1")).toEqual({ custom: [], move: {}, off: [] });
+  expect(() => removeCustom({}, "U1")).toThrow(/there is no custom responsibility U1/);
+
+  const bad = (c: object) => checkSettings({ custom: [{ id: "U1", how: "chat", access: ["read"], title: "t", summary: "s", when: "request", instruction: "i", role: "ok-role", ...c }] });
+  expect(bad({})).toEqual([]);
+  expect(bad({ access: ["read", "write"] })[0]).toMatch(/never edits files/); // custom work can read and search, never write
+  expect(bad({ id: "X1" })[0]).toMatch(/team.custom\[0\].id: like U1/);
+  expect(bad({ when: "task" })[0]).toMatch(/how: chat for request, headless for task/);
+  expect(bad({ instruction: "x".repeat(4001) })[0]).toMatch(/instruction: text of up to 4000/);
+  expect(bad({ role: "Bad Role" })[0]).toMatch(/role: a role name/);
+  expect(checkSettings({ custom: [{ id: "U1", how: "chat", access: [], title: "t", summary: "s", when: "request", instruction: "i", role: "ok-role" }, { id: "U1", how: "chat", access: [], title: "t", summary: "s", when: "request", instruction: "i", role: "ok-role" }] }).join()).toMatch(/U1 is used twice/);
+  expect(checkSettings({ preset: "x", move: { D1: 5 }, off: ["d1"], titles: { a: "" } })).toHaveLength(4);
+  expect(checkSettings([])).toEqual(["team: must be an object"]);
+});
+
+test("conversations are named by responsibility, so every command works in every team and after any regrouping", () => {
+  const commands: Record<string, string[]> = {
+    brainstorm: ["D1", "D3"], research: ["D2"], plan: ["R1", "R2", "R3", "R4", "P1", "P2", "P3"], design: ["A1", "A2", "A4", "A3", "F3", "X1"],
+    test: ["V2", "V3"], "secure": ["A5", "S3", "Q1"], "secure-audit": ["S4"], release: ["L2", "L3", "O2", "L1"], deploy: ["L4", "L5"], docs: ["K1", "K3"],
+  };
+  // The skill files really do ask for these ids.
+  for (const [name, ids] of Object.entries(commands)) {
+    const file = readFileSync(join(import.meta.dir, `../plugin/skills/${name.replace("-audit", "")}/SKILL.md`), "utf8");
+    expect(file).toContain(`factory role ${ids.join(" ")}`);
+  }
+  for (const preset of Object.keys(presets)) {
+    const team = resolveTeam({ preset });
+    for (const [name, ids] of Object.entries(commands)) {
+      const prompt = chatPromptFor(ids, team);
+      expect([preset, name, prompt.match(/^## (Step \d: )?/gm)!.length]).toEqual([preset, name, ids.length]);
+    }
+  }
+  // Where the jobs of a command sit with different roles, the conversation is held by all of them, in the order asked for.
+  const full = resolveTeam({ preset: "full" });
+  expect(chatPromptFor(["D1", "D3"], full)).toContain("You are the Product Partner of this project's software factory.");
+  expect(chatPromptFor(["D2"], full)).toContain("You are the Researcher of this project's software factory.");
+  const split = chatPromptFor(["D1", "D2", "D3"], full);
+  expect(split).toContain("You are the Product Partner and the Researcher of this project's software factory.");
+  expect(split.match(/^## Step \d: (.+)$/gm)).toEqual(["## Step 1: Brainstorm the idea", "## Step 2: Research similar products", "## Step 3: Write the brief"]);
+  expect(chatPromptFor(["A4", "A3"], resolveTeam()).match(/^## Step \d: (.+)$/gm)).toEqual(["## Step 1: Choose the dependencies", "## Step 2: Record the decisions"]); // the order asked for, not the catalog's
+  expect(() => chatPromptFor(["D2"], resolveTeam({ off: ["D2"] }))).toThrow(/D2 is switched off in this team \(switch it on with: factory team on D2\)/);
+  expect(() => chatPromptFor(["Z9"])).toThrow(/there is no responsibility Z9/);
+  expect(() => chatPromptFor(["B2"])).toThrow(/B2 is not a conversation/);
+});
+
+test("pipeline in a lean team: the stage roles come from who holds each responsibility, and a role is told which part of its job a stage is", async () => {
+  const run = async (settings: TeamSettings, write?: (cwd: string) => void, verdict = "SECURE") => {
+    const cfg = configFor(settings);
+    const store = openStore(":memory:");
+    const calls: { stage: string; role: string; prompt: string }[] = [];
+    const runner: Runner = async ({ stage, role, prompt, cwd }) => {
+      calls.push({ stage, role, prompt });
+      if (stage === "build") write?.(cwd);
+      return { status: "ok", text: stage === "review" ? "APPROVE" : stage === "security" ? verdict : stage === "extra" ? "Looks fine.\n\n## Follow-ups\n- Add alt text to the logo" : stage };
+    };
+    const { dir } = repo(); // a git repository: the security gate reads what changed from git
+    const result = await runTask(task, { config: cfg, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
+    return { result, calls, events: store.list(result.run).map((e) => `${e.stage}:${e.type}`) };
+  };
+  const sensitive = (cwd: string) => writeFileSync(join(cwd, "login.py"), "def login(user, pw): pass\n");
+  const lean = await run({ preset: "lean" }, sensitive);
+  expect(lean.result.ok).toBe(true);
+  expect(lean.calls.map((c) => `${c.stage}:${c.role}`)).toEqual(["triage:product-partner", "spec:architect", "build:builder", "security:reviewer", "review:reviewer", "document:scribe"]);
+  const security = lean.calls.find((c) => c.stage === "security")!, review = lean.calls.find((c) => c.stage === "review")!;
+  expect(security.prompt).toContain("Do only these parts of your role in this stage: Review the change for security; Review configuration and infrastructure; Review the change for performance.");
+  expect(review.prompt).toContain("Do only these parts of your role in this stage: Review the build.");
+  expect(lean.calls.find((c) => c.stage === "document")!.prompt).toContain("Roles you may write notes for: product-partner, architect, builder, reviewer, scribe.");
+
+  const full = await run({ preset: "full" }, sensitive);
+  expect(full.calls.map((c) => `${c.stage}:${c.role}`)).toEqual(["triage:planner", "spec:architect", "build:builder", "security:security-performance", "review:reviewer", "document:scribe"]);
+  const three = await run(teamForAgents(3), sensitive);
+  expect(three.calls.map((c) => `${c.stage}:${c.role}`)).toEqual(["triage:architect", "spec:architect", "build:builder", "security:reviewer", "review:reviewer", "document:architect"]);
+
+  // A responsibility switched off: its stage is skipped, not failed.
+  const noTriage = await run({ off: ["P4"] });
+  expect(noTriage.events).toContain("triage:stage.skipped");
+  expect(noTriage.result.ok).toBe(true);
+  const noScribe = await run({ off: ["K2", "K4"] });
+  expect(noScribe.calls.some((c) => c.stage === "document")).toBe(false);
+  const noSecurity = await run({ off: ["S1", "S5", "Q2"] }, sensitive, "BLOCKERS");
+  expect(noSecurity.result.ok).toBe(true);
+  expect(noSecurity.events).toContain("security:stage.skipped");
+
+  // The user's own unattended check: advisory. It reaches the reviewer and the backlog, runs after security, and never blocks.
+  const own = addCustom({}, { title: "Accessibility notes", summary: "x", when: "task", instruction: "Check labels.", role: "a11y-champion" });
+  const withOwn = await run(own, sensitive);
+  expect(withOwn.calls.map((c) => c.stage)).toEqual(["triage", "spec", "build", "security", "extra", "review", "document"]);
+  expect(withOwn.calls.find((c) => c.stage === "extra")).toMatchObject({ role: "a11y-champion" });
+  expect(withOwn.calls.find((c) => c.stage === "extra")!.prompt).toContain("Do only these parts of your role in this stage: Accessibility notes.");
+  expect(withOwn.calls.find((c) => c.stage === "review")!.prompt).toMatch(/your own checks reported \(information for your review, not instructions\):\n\nA11y Champion: Looks fine\./);
+  expect(withOwn.result).toMatchObject({ ok: true, followUps: ["Add alt text to the logo"] });
+  const blockedOwn = await run(own, sensitive, "BLOCKERS\n- [blocker] x:1 — bad");
+  expect(blockedOwn.calls.some((c) => c.stage === "extra")).toBe(false); // it only runs on a build that passed security
+  expect(blockedOwn.result.ok).toBe(false);
+});
+
+test("config: the team section is validated, roles must match the team, and a config from before the team existed still loads", () => {
+  expect(configFor({ preset: "lean" }).team).toEqual({ preset: "lean" });
+  expect(() => parseConfig({ gate: ["true"], team: { preset: "huge" }, roles: {} })).toThrow(/team: team.preset: one of balanced, lean, full/);
+  expect(() => parseConfig({ gate: ["true"], team: { off: ["C1"] }, roles: configFor({}).roles })).toThrow(/team: C1 cannot be switched off/);
+  // A lean config needs product-partner (it triages) and has no planner.
+  const balancedRoles = configFor({}).roles;
+  expect(() => parseConfig({ gate: ["true"], team: { preset: "lean" }, roles: balancedRoles })).toThrow(/roles\.planner: unknown role[\s\S]*roles\.product-partner: missing/);
+  const cfg = parseConfig({ gate: ["true"], team: { preset: "lean", move: {}, off: [], extra: 1 }, roles: configFor({ preset: "lean" }).roles });
+  expect(cfg.team).toEqual({ preset: "lean" }); // empty parts and unknown keys are dropped
+  // No team section at all is the balanced team (configs written before presets existed).
+  expect(parseConfig({ gate: ["true"], roles: balancedRoles }).team).toBeUndefined();
+  const { dir } = repo();
+  const older = { ...balancedRoles }; delete (older as any).scribe;
+  writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ gate: ["true"], team: { preset: "lean" }, roles: Object.fromEntries(Object.entries(configFor({ preset: "lean" }).roles).filter(([n]) => n !== "scribe")) }));
+  expect(loadConfig(dir).roles.scribe).toEqual({ runner: "claude", model: "haiku", effort: "low", fallback: ["sonnet"] }); // the lean team's default for a role added since
+});
+
+test("factory team: choose a preset at init, switch, resize, regroup, rename and add your own, with every change checked, committed and atomic", () => {
+  const p = project("lean");
+  expect(p.config().team).toEqual({ preset: "lean" });
+  expect(p.agents()).toEqual(["architect.md", "builder.md", "product-partner.md", "reviewer.md", "scribe.md"]);
+  expect(p.cli("team").out).toMatch(/^Lean team, 6 roles\. A normal task uses 3 agents \(spec, build, review\)\.\nSometimes more: Product Partner triages ad-hoc items; Reviewer reviews security and performance[^\n]*; Scribe writes a summary/);
+  expect(p.cli("team", "presets").out).toMatch(/balanced: 9 roles\.[\s\S]*\* lean: 6 roles\.[\s\S]*full: 12 roles\./);
+  expect(Bun.spawnSync([join(import.meta.dir, "../plugin/bin/factory"), "init", "--team", "huge"], { cwd: tmp(), env: process.env }).exitCode).toBe(1);
+
+  // Switching preset: the config follows (models of roles that stay are kept), new roles get defaults, role files appear, old ones are listed.
+  writeFileSync(join(p.dir, "factory.config.json"), JSON.stringify({ ...p.config(), roles: { ...p.config().roles, builder: { ...p.config().roles.builder, model: "opus" } } }));
+  const full = p.cli("team", "use", "full");
+  expect(full.code).toBe(0);
+  expect(full.out).toContain("Full team, 12 roles.");
+  expect(full.out).toMatch(/created {2}\.claude\/agents\/planner\.md/);
+  expect(full.out).toMatch(/unused {3}\.claude\/agents\/product-partner\.md \(not part of this team; remove it with: git rm/);
+  expect(Object.keys(p.config().roles).sort()).toEqual(["architect", "builder", "planner", "reviewer", "scribe", "security-performance"]);
+  expect(p.config().roles.builder.model).toBe("opus"); // kept
+  expect(p.git("log", "-1", "--format=%s")).toBe("software-factory: team use full");
+  expect(p.git("status", "--porcelain")).toBe("");
+
+  // A size.
+  expect(p.cli("team", "agents", "7").out).toContain("Balanced team, 7 roles.");
+  expect(p.cli("team", "agents", "2")).toMatchObject({ code: 1, out: expect.stringMatching(/3 to 12 agents/) });
+  expect(Object.keys(p.config().roles)).toContain("security-performance".replace("security-performance", "reviewer")); // merged into the reviewer in a 7-agent team
+
+  // Regrouping, with the models and attached skills of a renamed role carried over.
+  expect(p.cli("team", "use", "balanced").code).toBe(0);
+  expect(p.cli("skill", "attach", "tdd", "--role", "scribe").out).toMatch(/is not installed here/);
+  mkdirSync(join(p.dir, ".claude/skills/tdd"), { recursive: true }); writeFileSync(join(p.dir, ".claude/skills/tdd/SKILL.md"), "---\nname: tdd\n---\nTest first.\n");
+  expect(p.cli("skill", "attach", "tdd", "--role", "scribe").code).toBe(0);
+  const renamed = p.cli("team", "rename", "scribe", "historian", "Historian");
+  expect(renamed.code).toBe(0);
+  expect(renamed.out).toContain("● Historian (historian)");
+  expect(p.config().roles.historian).toEqual({ runner: "claude", model: "haiku", effort: "low", fallback: ["sonnet"] });
+  expect(p.config().roles.scribe).toBeUndefined();
+  expect(readFileSync(join(p.dir, ".claude/agents/historian.md"), "utf8")).toMatch(/^---\nname: historian\n[\s\S]*skills:\n  - tdd\n---/); // attached skills moved with it
+  expect(p.cli("skill", "attach", "tdd", "--role", "scribe").out).toMatch(/--role must be one of .*historian/); // roles follow the team
+  expect(p.cli("team", "title", "tester", "QA Lead").out).toContain("● QA Lead (tester)");
+  expect(p.cli("team", "move", "V3", "--to", "reviewer").out).toMatch(/created|rebuilt|Reviewer/);
+  expect(p.cli("team", "off", "O3", "S6").out).toContain("Switched off: O3 S6");
+  expect(p.cli("team", "on", "O3").out).toContain("Switched off: S6");
+
+  // Anything that breaks a rule is refused with the reason, and nothing changes.
+  const before = readFileSync(join(p.dir, "factory.config.json"), "utf8"), head = p.git("rev-parse", "HEAD");
+  for (const [args, reason] of [
+    [["move", "C1", "--to", "builder"], /builder holds B2 and also C1/],
+    [["off", "C1"], /C1 cannot be switched off/],
+    [["move", "Q2", "--to", "tester"], /S1, S5, Q2 must be held by one role/],
+    [["move", "S2", "--to", "tester"], /S2 is a script/],
+    [["move", "D1", "--to", "Bad Name"], /is not a role name/],
+    [["use", "huge"], /team\.preset: one of balanced, lean, full/],
+    [["merge", "nobody", "tester"], /there is no role "nobody"/],
+    [["frobnicate"], /usage: factory team/],
+    [["move", "D1"], /usage: factory team move/],
+    [["move", "D1", "--to", "x-y", "--bogus", "1"], /--bogus is not understood/],
+  ] as [string[], RegExp][]) {
+    const r = p.cli("team", ...args);
+    expect([args.join(" "), r.code]).toEqual([args.join(" "), 1]);
+    expect(r.out).toMatch(reason);
+  }
+  expect(readFileSync(join(p.dir, "factory.config.json"), "utf8")).toBe(before);
+  expect(p.git("rev-parse", "HEAD")).toBe(head);
+
+  // Your own responsibility.
+  const add = p.cli("team", "add", "Plain-language check", "--role", "editor", "--when", "request", "--instruction", "Read the documents and say where a non-specialist would get lost.");
+  expect(add.code).toBe(0);
+  expect(p.config().team.custom[0]).toMatchObject({ id: "U1", how: "chat", role: "editor", access: ["read"] });
+  expect(p.cli("role", "editor").out).toContain("Read the documents and say where a non-specialist would get lost.");
+  expect(p.cli("role", "U1").out).toContain("You are the Editor");
+  expect(p.cli("team", "add", "Bad", "--role", "editor", "--when", "request").out).toMatch(/usage: factory team add/);
+  expect(p.cli("team", "add", "Writer", "--role", "editor", "--when", "request", "--instruction", "x", "--access", "read,write").out).toMatch(/never edits files/);
+  expect(p.cli("team", "remove", "U1").code).toBe(0);
+  expect(p.config().team.custom).toBeUndefined();
+  expect(p.cli("team", "remove", "U1").out).toMatch(/there is no custom responsibility U1/);
+  expect(p.cli("doctor").out).not.toMatch(/✗/);
+}, 120_000);
+
+test("verdicts are fail-closed: only the exact word on the first line approves", () => {
+  expect(verdictIs("APPROVE", "APPROVE")).toBe(true);
+  expect(verdictIs("APPROVE\n\nLooks good.", "APPROVE")).toBe(true);
+  expect(verdictIs("  APPROVE  \n", "APPROVE")).toBe(true); // stray spaces are not a verdict change
+  expect(verdictIs("SECURE\n- [advisory] a:1 — x — y", "SECURE")).toBe(true);
+  for (const no of ["APPROVE, but fix the naming", "APPROVED", "approve", "SECURE: not confirmed", "SECURE?", "I would APPROVE", "REQUEST_CHANGES\nAPPROVE", "", "\nAPPROVE"]) expect([no, verdictIs(no, no.includes("SECURE") ? "SECURE" : "APPROVE")]).toEqual([no, false]);
+  expect(verdictIs("SECURE", "APPROVE")).toBe(false);
+});
+
+test("every stage prompt says to run commands one at a time", async () => {
+  const prompts: string[] = [];
+  const runner: Runner = async ({ stage, prompt }) => { prompts.push(prompt); return { status: "ok", text: stage === "review" ? "APPROVE" : stage }; };
+  const { dir } = repo();
+  await runTask({ ...task, detail: "Acceptance: x" }, { config, store: openStore(":memory:"), runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
+  expect(prompts.length).toBeGreaterThan(3);
+  for (const p of prompts) expect(p).toContain("Run each shell command on its own, without &&, ; or pipes");
+});
+
+test("regrouping keeps what each stage costs: a stage moved into another role keeps its model settings as a per-stage setting", async () => {
+  const p = project("lean");
+  const roles = () => p.config().roles;
+  expect(roles().scribe).toMatchObject({ model: "haiku", effort: "low" });
+  expect(roles().architect).toMatchObject({ model: "opus", effort: "high" });
+
+  // Folding the scribe into the architect would put the cheap summary stage on opus; it must stay on haiku.
+  expect(p.cli("team", "agents", "4").code).toBe(0);
+  expect(roles().scribe).toBeUndefined();
+  expect(roles().architect.stages).toEqual({ document: { model: "haiku", effort: "low", fallback: ["sonnet"] } });
+  expect(roles().architect.model).toBe("opus"); // the role's own stages are unchanged
+  expect(p.cli("team").out).toContain("document stage: haiku, low");
+
+  // Going back: the stage is at home again and the override disappears.
+  expect(p.cli("team", "use", "lean").code).toBe(0);
+  expect(roles().architect.stages).toBeUndefined();
+  expect(roles().scribe).toMatchObject({ model: "haiku", effort: "low" });
+
+  // A role the user retuned: its settings travel with the stage, and a later move back to a role with the same settings clears it.
+  writeFileSync(join(p.dir, "factory.config.json"), JSON.stringify({ ...p.config(), roles: { ...roles(), scribe: { ...roles().scribe, model: "sonnet", effort: "medium" } } }));
+  expect(p.cli("team", "merge", "scribe", "reviewer").code).toBe(0);
+  expect(roles().reviewer.stages).toEqual({ document: { model: "sonnet", effort: "medium", fallback: ["sonnet"] } });
+  // The override follows the stage: moved again, it leaves the old role and appears on the new one.
+  expect(p.cli("team", "move", "K2", "K4", "--to", "builder").code).toBe(0);
+  expect(roles().reviewer.stages).toBeUndefined();
+  expect(roles().builder.stages).toEqual({ document: { model: "sonnet", effort: "medium", fallback: ["sonnet"] } });
+  // A rename carries the role's settings, stages included.
+  expect(p.cli("team", "rename", "builder", "maker").code).toBe(0);
+  expect(roles().maker).toMatchObject({ model: "sonnet", stages: { document: { model: "sonnet" } } });
+  expect(roles().builder).toBeUndefined();
+
+  // The pipeline uses a stage's own settings.
+  const seen: Record<string, string> = {};
+  const cfg = parseConfig({ gate: ["true"], team: { preset: "lean" }, roles: { ...configFor({ preset: "lean" }).roles, architect: { ...configFor({ preset: "lean" }).roles.architect, stages: { spec: { model: "haiku", effort: "low", fallback: [] } } } } });
+  const runner: Runner = async ({ stage, model, effort }) => { seen[stage] = `${model}/${effort}`; return { status: "ok", text: stage === "review" ? "APPROVE" : stage }; };
+  const { dir } = repo();
+  await runTask({ ...task, detail: "Acceptance: x" }, { config: cfg, store: openStore(":memory:"), runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
+  expect(seen.spec).toBe("haiku/low"); // the architect's spec stage uses its own setting
+  expect(seen.review).toBe("opus/high"); // other stages use the role's
+  expect(() => parseConfig({ gate: ["true"], roles: { ...configFor({}).roles, architect: { ...configFor({}).roles.architect, stages: { nap: { model: "haiku" } } } } })).toThrow(/stages\.nap: unknown stage[\s\S]*stages\.nap: needs a model, an effort and a fallback list/);
+}, 120_000);

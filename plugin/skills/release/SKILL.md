@@ -9,6 +9,6 @@ allowed-tools: Bash(factory *) WebSearch WebFetch
 
 Your instructions for this conversation come from the factory. Run:
 
-`factory role release-engineer L2 L3 O2 L1`
+`factory role L2 L3 O2 L1`
 
 Its output is your complete instructions. Follow it exactly, starting now. This command prepares and tags; it never deploys or publishes anything. What the user said they want, if anything: $ARGUMENTS

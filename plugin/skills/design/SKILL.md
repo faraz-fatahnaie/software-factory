@@ -9,6 +9,6 @@ allowed-tools: Bash(factory *) WebSearch WebFetch
 
 Your instructions for this conversation come from the factory. Run:
 
-`factory role architect`
+`factory role A1 A2 A4 A3 F3 X1`
 
 Its output is your complete instructions. Follow it exactly, starting now. What the user said they want kept in mind, if anything: $ARGUMENTS

@@ -9,6 +9,6 @@ allowed-tools: Bash(factory *)
 
 Your instructions for this conversation come from the factory. Run:
 
-`factory role planner`
+`factory role R1 R2 R3 R4 P1 P2 P3`
 
 Its output is your complete instructions. They will tell you when to pause for `/software-factory:design` and when to resume. Follow it exactly, starting now. Anything the user said about what to plan: $ARGUMENTS

@@ -9,6 +9,6 @@ allowed-tools: Bash(factory *)
 
 Your instructions for this conversation come from the factory, so they stay in step with the rest of the plugin. Run:
 
-`factory role product-partner D1 D3`
+`factory role D1 D3`
 
 Its output is your complete instructions. Follow it exactly, starting now. The user's starting idea, if they gave one: $ARGUMENTS

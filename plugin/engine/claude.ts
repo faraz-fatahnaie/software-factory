@@ -22,20 +22,20 @@ export function claudeArgs(job: Job, gate: string[], skills: string[] = []): str
     "--effort", job.effort,
     // One JSON line per message, so tool calls reach the event log while the stage runs.
     "--output-format", "stream-json", "--verbose",
-    // Only the builder may change files. dontAsk still permits read-only shell commands
+    // Only the build stage may change files. dontAsk still permits read-only shell commands
     // inside the project and the allow list below, and denies everything else.
-    "--permission-mode", job.role === "builder" ? "acceptEdits" : "dontAsk",
+    "--permission-mode", job.stage === "build" ? "acceptEdits" : "dontAsk",
     "--allowedTools", ...ALLOW, ...gate.map((cmd) => `Bash(${cmd}:*)`), ...skills.map((s) => `Skill(${s})`),
     // Project settings only. User-level plugins and hooks inject text into agent output
     // (which breaks the reviewer's first-line verdict) and cost about six times the startup tokens.
     "--setting-sources", "project",
     "--strict-mcp-config",
-    "--settings", hookSettings(job.role),
+    "--settings", hookSettings(job.stage),
   ];
 }
 
 /** Hooks for factory runs only, passed on the command line so your own sessions are unaffected. */
-function hookSettings(role: string): string {
+function hookSettings(stage: string): string {
   const quoted = (s: string) => `'${s.replaceAll("'", `'\\''`)}'`;
   const hook = (mode: string) => ({
     type: "command",
@@ -46,7 +46,7 @@ function hookSettings(role: string): string {
     hooks: {
       PreToolUse: [{ matcher: "Bash|Edit|Write|NotebookEdit", hooks: [hook("guard")] }],
       // The builder cannot finish while the gate fails.
-      ...(role === "builder" && { Stop: [{ hooks: [hook("stop")] }] }),
+      ...(stage === "build" && { Stop: [{ hooks: [hook("stop")] }] }),
     },
   });
 }

@@ -9,6 +9,6 @@ allowed-tools: Bash(factory *) WebSearch WebFetch
 
 Your instructions for this conversation come from the factory. Run:
 
-`factory role product-partner D2`
+`factory role D2`
 
 Its output is your complete instructions. Follow it exactly, starting now. What the user wants researched, if they said: $ARGUMENTS

@@ -6,6 +6,10 @@
     "bun test",
     "bun run typecheck"
   ],
+  "graph": true,
+  "team": {
+    "preset": "balanced"
+  },
   "roles": {
     "planner": {
       "runner": "claude",
@@ -55,6 +59,5 @@
         "sonnet"
       ]
     }
-  },
-  "graph": true
+  }
 }

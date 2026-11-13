@@ -54,6 +54,31 @@ Nothing is written until you approve a draft, every document starts with a
 promote them (`factory promote F-010 F-011 ...`, in the order given). Documents are committed as they are saved (`factory docs save`), because task agents work from the last commit. `factory status` shows
 which documents exist and the one command to run next.
 
+## The team
+
+Every job a software project needs is a *responsibility*; a *role* is a group of them done by one
+agent. A normal task uses three agents (spec, build, review) in every team. The size of the team
+is yours to choose:
+
+| Preset | Roles | For |
+| --- | --- | --- |
+| Lean | 6 | A small or personal project where nothing sensitive is handled |
+| Balanced | 9 (default) | Most projects |
+| Full | 12 | A product that handles personal data or payments, or that several people depend on |
+
+`factory init --team lean|balanced|full` picks one, and `/software-factory:team` helps you choose
+and change it in a conversation. From the command line: `factory team` shows the team,
+`factory team presets` compares the options, `factory team agents 7` gives the closest valid team
+of that size (3 to 12), and `move`, `merge`, `rename`, `title` and `off`/`on` regroup it. A change
+that breaks a rule (the builder reviewing its own work, switching off the spec, build or review,
+splitting a pass that runs as one stage) is refused with the reason and changes nothing.
+
+Add your own with `factory team add "<title>" --role <role> --when request|task --instruction "..."`:
+a conversation you start with `/software-factory:ask <role>`, or an advisory check on every task
+that reports to the reviewer and the backlog and never blocks. Custom responsibilities only read.
+Regrouping never changes what a stage costs: a stage moved to another role keeps its model
+settings (`factory team` shows them as, for example, `document stage: haiku, low`).
+
 ## Security and quality
 
 - **On every task, at no cost in tokens:** after the tests pass and before the review, a script

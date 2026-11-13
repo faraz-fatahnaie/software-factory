@@ -9,6 +9,6 @@ allowed-tools: Bash(factory *)
 
 Your instructions for this conversation come from the factory. Run:
 
-`factory role tester`
+`factory role V2 V3`
 
 Its output is your complete instructions. Follow it exactly, starting now. What the user wants checked, if they said: $ARGUMENTS
