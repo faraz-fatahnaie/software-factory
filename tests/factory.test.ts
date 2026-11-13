@@ -7,8 +7,9 @@ import { parseConfig } from "../plugin/engine/config";
 import { openStore } from "../plugin/engine/events";
 import { BACKLOG, config, repo, role, tmp } from "./fixture";
 import { guard } from "../plugin/engine/hooks";
-import { detect, doctor, init } from "../plugin/engine/init";
-import { followUps, runTask, shellGate, type Runner } from "../plugin/engine/pipeline";
+import { applyTeam, detect, doctor, init } from "../plugin/engine/init";
+import { activeRoles, catalog, DEFAULT_PRESET, presets, renderRole, toolsFor, validateTeam } from "../plugin/engine/team";
+import { followUps, needsTriage, runTask, shellGate, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
 import { costs, elapsed, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
 import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
@@ -19,7 +20,7 @@ test("config: rejects bad input and names every problem", () => {
   expect(parseConfig(config)).toEqual(config);
   const bad = { gate: "bun test", roles: { ...config.roles, builder: { ...role, runner: "gemini", effort: "extreme" }, qa: role } };
   expect(() => parseConfig(bad)).toThrow(/gate:[\s\S]*roles\.qa: unknown[\s\S]*builder\.runner[\s\S]*builder\.effort/);
-  expect(() => parseConfig(null)).toThrow(/roles\.triage: missing/);
+  expect(() => parseConfig(null)).toThrow(/roles\.planner: missing/);
   expect(() => parseConfig({ ...config, setup: "bun install" })).toThrow(/setup:/);
   // Model names become command-line arguments: nothing that reads as an option, and no stray keys.
   expect(() => parseConfig({ ...config, roles: { ...config.roles, builder: { ...role, model: "--dangerously-skip-permissions" } } })).toThrow(/builder\.model/);
@@ -373,3 +374,90 @@ test("init: detects the stack, writes without overwriting, and doctor confirms t
   const outside = tmp();
   expect(Bun.spawnSync([join(import.meta.dir, "../plugin/bin/factory"), "init"], { cwd: outside }).exitCode).toBe(1); // not a git repository
 }, 60_000);
+
+test("team: the Balanced preset covers the catalog and obeys the enforced rules; bad teams are rejected", () => {
+  const balanced = presets[DEFAULT_PRESET]!;
+  expect(catalog).toHaveLength(51);
+  expect(validateTeam(balanced)).toEqual([]);
+  expect(activeRoles(balanced)).toEqual(["planner", "architect", "builder", "reviewer"]); // the roles that hold something built
+
+  const copy = () => structuredClone(balanced);
+  const moved = copy(); moved.roles.reviewer!.holds = []; moved.roles.builder!.holds.push("C1"); // builder reviews its own work
+  expect(validateTeam(moved).join("\n")).toMatch(/builder holds B2 and also C1: the author cannot review/);
+  const dropped = copy(); dropped.roles.scribe!.holds = ["K1", "K2", "K3"]; // K4 forgotten
+  expect(validateTeam(dropped)).toEqual(["K4 is not held by any role and not switched off"]);
+  const off = copy(); off.roles.scribe!.holds = ["K1", "K2", "K3"]; off.off = ["K4"]; // dropped on purpose
+  expect(validateTeam(off)).toEqual([]);
+  const twice = copy(); twice.roles.tester!.holds.push("C1");
+  expect(validateTeam(twice).join("\n")).toMatch(/C1 is held twice \(tester and reviewer\)/);
+  const noBuilder = copy(); noBuilder.roles.builder!.holds = noBuilder.roles.builder!.holds.filter((id) => id !== "B2"); noBuilder.off = ["B2"];
+  expect(validateTeam(noBuilder).join("\n")).toMatch(/exactly one role must hold B2/);
+  const script = copy(); script.scripts.push("D1"); script.roles.product_partner = script.roles["product-partner"]!; delete script.roles["product-partner"];
+  expect(validateTeam(script).join("\n")).toMatch(/D1 is not a script responsibility/);
+  expect(validateTeam({ ...balanced, off: ["Z9"] }).join("\n")).toMatch(/unknown responsibility Z9/);
+});
+
+test("team: role files are assembled from the responsibilities a role holds", () => {
+  const builder = renderRole("builder", undefined, ["tdd"]);
+  expect(builder).toStartWith("---\nname: builder\ndescription: Implements one spec");
+  expect(builder).toContain("tools: Read, Grep, Glob, Bash, Edit, Write, Skill\nskills:\n  - tdd\n---\n<!-- Generated");
+  expect(builder).toMatch(/## Implement the spec[\s\S]*## Test the change/); // B2 then V1; F1, F2, F4, O1 are not built, so absent
+  expect(builder).not.toContain("scaffold");
+  expect(toolsFor(["B1"])).toEqual(["Read", "Grep", "Glob", "Bash", "WebSearch", "WebFetch", "Skill"]); // the spec role may search the web
+  expect(toolsFor(["C1"])).toEqual(["Read", "Grep", "Glob", "Bash", "Skill"]); // the reviewer cannot edit
+  expect(toolsFor(["D1"])).toEqual(["Read", "Grep", "Glob", "Bash", "Skill"]); // nothing built: the safe minimum
+  expect(renderRole("reviewer")).toContain("Your first line must be exactly `APPROVE` or `REQUEST_CHANGES`");
+  expect(() => renderRole("scribe")).toThrow(/nothing that is built yet/);
+  expect(() => renderRole("janitor")).toThrow(/no role "janitor"/);
+});
+
+test("team apply: rebuilds generated files, keeps skills, leaves hand-edited files alone", () => {
+  const { dir, cli } = repo();
+  expect(cli("init").code).toBe(0);
+  const file = (role: string) => join(dir, ".claude/agents", `${role}.md`);
+  expect(readFileSync(file("planner"), "utf8")).toContain("## Triage an item"); // init wrote the generated files
+  expect(applyTeam(dir).lines.every((l) => l.startsWith("current") || l.startsWith("kept"))).toBe(true);
+
+  writeFileSync(file("reviewer"), "---\nname: reviewer\n---\nMy own reviewer.\n"); // a hand-written file has no marker
+  writeFileSync(file("architect"), readFileSync(file("architect"), "utf8").replace("## Write the spec", "## Write the spec (outdated)"));
+  expect(cli("skill", "attach", "tdd", "--role", "architect").code).toBe(0);
+  const out = cli("team", "apply").out;
+  expect(out).toMatch(/kept     \.claude\/agents\/reviewer\.md \(edited by hand/);
+  expect(out).toMatch(/rebuilt  \.claude\/agents\/architect\.md/);
+  expect(readFileSync(file("reviewer"), "utf8")).toContain("My own reviewer.");
+  expect(readFileSync(file("architect"), "utf8")).toContain("  - tdd"); // attached skills survive a rebuild
+  expect(readFileSync(file("architect"), "utf8")).not.toContain("outdated");
+  expect(cli("team", "apply", "--force").out).toMatch(/rebuilt  \.claude\/agents\/reviewer\.md/);
+  expect(cli("team").out).toMatch(/○ Product Partner[\s\S]*● Planner {2}sonnet, medium\n {4}built: {3}P4/);
+  expect(cli("team", "bogus").code).toBe(1);
+}, 60_000);
+
+test("pipeline: the planner triages ad-hoc items only; items with acceptance checks skip it", async () => {
+  expect(needsTriage({})).toBe(true);
+  expect(needsTriage({ detail: "Export it from config.\nAcceptance: a test asserts the value" })).toBe(false);
+  expect(needsTriage({ detail: "An acceptable approach is fine." })).toBe(true); // a whole word, not a prefix
+
+  const run = async (detail?: string) => {
+    const store = openStore(":memory:");
+    const stages: string[] = [], roles: string[] = [];
+    const runner: Runner = async ({ stage, role }) => { stages.push(stage); roles.push(role); return { status: "ok", text: stage === "review" ? "APPROVE" : stage }; };
+    const dir = tmp();
+    const result = await runTask({ ...task, detail }, { config, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
+    return { stages, roles, events: store.list(result.run).map((e) => `${e.stage}:${e.type}`), taskFile: readFileSync(join(dir, ".factory/runs", result.run, "task.md"), "utf8") };
+  };
+  const adhoc = await run();
+  expect(adhoc.stages).toEqual(["triage", "spec", "build", "review"]);
+  expect(adhoc.roles[0]).toBe("planner");
+  const planned = await run("Acceptance: the value is exported");
+  expect(planned.stages).toEqual(["spec", "build", "review"]);
+  expect(planned.events).toContain("triage:stage.skipped");
+  expect(planned.taskFile).toBe("# F-001 First\n\nAcceptance: the value is exported\n"); // the detail reaches the agents
+
+  const log = [{ seq: 1, ts: "2026-01-01T00:00:00.000Z", run: "r", task: "F-001", stage: "run", type: "run.start" }, { seq: 2, ts: "2026-01-01T00:00:00.000Z", run: "r", task: "F-001", stage: "triage", type: "stage.skipped", data: "carries acceptance checks" }];
+  expect(summarize(log as Ev[]).tasks.get("F-001")!.stages.triage!.state).toBe("skipped"); // not shown as a failure
+});
+
+test("backlog: indented lines under an item are its detail", () => {
+  const text = "# Backlog\n\n## Ready\n- [ ] F-001 (P1) First\n  detail line\n   second line\n- [ ] F-002 Second\n\n## Done\n";
+  expect(parse(text).map((i) => [i.id, i.detail])).toEqual([["F-001", "detail line\nsecond line"], ["F-002", ""]]);
+});

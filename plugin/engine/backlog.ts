@@ -1,7 +1,7 @@
 // BACKLOG.md is the intake queue. Only the orchestrator writes it; agents never do.
 export const SECTIONS = ["Inbox", "Ready", "In progress", "Awaiting approval", "Blocked", "Done"] as const;
 export type Section = (typeof SECTIONS)[number];
-export type Item = { id: string; prio?: string; title: string; section: string };
+export type Item = { id: string; prio?: string; title: string; section: string; detail: string };
 
 const ITEM = /^- \[[ x]\] (F-\d+) (?:\((P\d)\) )?(.+)$/;
 
@@ -12,9 +12,13 @@ export function parse(text: string): Item[] {
     const h = line.match(/^## (.+)$/);
     if (h) { section = h[1]!.trim(); continue; }
     const m = line.match(ITEM);
-    if (!m) continue;
+    if (!m) {
+      // Indented lines under an item are its detail (what a person or the planner wrote about it).
+      if (items.length && /^\s+\S/.test(line)) { const last = items.at(-1)!; last.detail = last.detail ? `${last.detail}\n${line.trim()}` : line.trim(); }
+      continue;
+    }
     if (items.some((i) => i.id === m[1])) throw new Error(`BACKLOG.md: duplicate id ${m[1]}`);
-    items.push({ id: m[1]!, prio: m[2], title: m[3]!, section });
+    items.push({ id: m[1]!, prio: m[2], title: m[3]!, section, detail: "" });
   }
   return items;
 }

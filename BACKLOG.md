@@ -65,3 +65,5 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Eight skills over the engine; init with stack detection, gate trial and doctor; verified through --plugin-dir on a Python project.
 - [x] F-031 (P1) Phase 10: dashboard redesign and prebuilt GUI
   Overview with KPIs, pipeline line, throughput chart, live feed and roster; dark and light themes; connection status; page shipped prebuilt in plugin/dist.
+- [x] F-035 (P1) Roles step 1: catalog, Balanced preset, assembled role files
+  Catalog and preset as data, team rules validated, role files built from responsibilities, factory team and team apply, Triage only for ad-hoc items.

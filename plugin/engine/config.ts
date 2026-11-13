@@ -1,8 +1,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-export const ROLES = ["triage", "architect", "builder", "reviewer"] as const;
-export type Role = (typeof ROLES)[number];
+import { activeRoles } from "./team";
+
+/** The roles that exist today: those holding at least one built responsibility in the default team. */
+export const ROLES: readonly string[] = activeRoles();
+export type Role = string;
 const RUNNERS = ["claude"];
 const EFFORTS = ["low", "medium", "high", "xhigh", "max"];
 

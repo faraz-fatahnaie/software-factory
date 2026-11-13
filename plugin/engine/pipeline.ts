@@ -55,15 +55,18 @@ export function followUps(text: string): string[] {
   return [...body.matchAll(/^- (.+)$/gm)].map((m) => m[1]!);
 }
 
-/** Triage → Spec → Build → Check → Review, looping Build on gate or review failure. */
+/** An item written by the planner carries its acceptance checks; anything else is an ad-hoc item that needs triage first. */
+export const needsTriage = (task: { detail?: string }) => !/\bacceptance\b/i.test(task.detail ?? "");
+
+/** [Triage →] Spec → Build → Check → Review, looping Build on gate or review failure. Triage runs only for ad-hoc items. */
 export async function runTask(
-  task: { id: string; title: string },
+  task: { id: string; title: string; detail?: string },
   o: { config: Config; store: Store; runner: Runner; gate: Gate; cwd: string },
 ) {
   const run = crypto.randomUUID().slice(0, 8);
   const dir = join(o.cwd, ".factory", "runs", run);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "task.md"), `# ${task.id} ${task.title}\n`);
+  writeFileSync(join(dir, "task.md"), `# ${task.id} ${task.title}\n${task.detail ? `\n${task.detail}\n` : ""}`);
   const emit = (stage: string, type: string, extra: { role?: Role; model?: string; data?: unknown } = {}) =>
     o.store.emit({ run, task: task.id, stage, type, ...extra });
 
@@ -97,7 +100,8 @@ export async function runTask(
 
   try {
     emit("run", "run.start");
-    await stage("triage", "triage");
+    if (needsTriage(task)) await stage("triage", "planner");
+    else emit("triage", "stage.skipped", { data: "the item already carries acceptance checks" });
     await stage("spec", "architect");
     let feedback = "";
     for (let attempt = 1; ; attempt++) {

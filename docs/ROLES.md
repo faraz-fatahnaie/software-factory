@@ -2,8 +2,11 @@
 
 The design for how the software factory covers a whole software project, from an idea to a
 deployed and maintained product, for a user who is not a software engineer. Agreed with the
-project owner on 2026-11-13. **This is a design: none of it is built yet** beyond the four
-existing task roles (Triage, Architect, Builder, Reviewer).
+project owner on 2026-11-13. **Build status:** step 1 of the build order is done: the catalog
+and the Balanced preset are data (`plugin/templates/catalog.json`, `presets.json`), role files
+are assembled from them, and the per-task path has no mandatory Triage stage. A catalog entry
+with an `instruction` is built; the rest are planned. Today four roles run: Planner (P4),
+Architect (B1), Builder (B2, V1) and Reviewer (C1).
 
 ## The idea
 

@@ -39,6 +39,7 @@ export function logLine(e: Ev): { cls: string; text: string } | null {
       cls: "ok",
       text: `${e.stage} passed${usage ? ` · $${(usage.costUsd ?? 0).toFixed(4)} · ${usage.turns ?? "?"} turns` : ""}${usage?.denials?.length ? ` · denied: ${usage.denials.join("; ")}` : ""}`,
     };
+    case "stage.skipped": return { cls: "head", text: `${e.stage} skipped: ${e.data}` };
     case "stage.rate_limited": return { cls: "warn", text: `Rate limited on ${e.model}; trying the next model in the chain` };
     case "run.done": return { cls: "ok", text: "Review approved. Waiting for a person." };
     case "run.failed": return { cls: "bad", text: `Run failed: ${e.data}` };

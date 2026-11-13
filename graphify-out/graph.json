@@ -1,40 +1,7 @@
 {
   "directed": false,
   "multigraph": false,
-  "graph": {
-    "hyperedges": [
-      {
-        "id": "pipeline_stage_roles",
-        "label": "Pipeline stage roles",
-        "nodes": [
-          "agents_pipeline",
-          "claude_agents_triage",
-          "claude_agents_architect",
-          "claude_agents_builder",
-          "claude_agents_reviewer"
-        ],
-        "relation": "participate_in",
-        "confidence": "INFERRED",
-        "confidence_score": 0.85,
-        "source_file": "AGENTS.md"
-      },
-      {
-        "id": "run_directory_file_handoff",
-        "label": "Run-directory file handoff",
-        "nodes": [
-          "agents_factory_runs",
-          "claude_agents_triage",
-          "claude_agents_architect",
-          "claude_agents_builder",
-          "claude_agents_reviewer"
-        ],
-        "relation": "participate_in",
-        "confidence": "INFERRED",
-        "confidence_score": 0.85,
-        "source_file": "AGENTS.md"
-      }
-    ]
-  },
+  "graph": {},
   "nodes": [
     {
       "id": "plugin_engine_events_factoryevent",
@@ -141,13 +108,65 @@
       "source_location": "L6"
     },
     {
+      "id": "plugin_engine_team_preset",
+      "label": "Preset",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "preset",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L16"
+    },
+    {
+      "id": "plugin_engine_team_responsibility",
+      "label": "Responsibility",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "responsibility",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L7"
+    },
+    {
+      "id": "plugin_engine_team_roledef",
+      "label": "RoleDef",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "roledef",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L12"
+    },
+    {
+      "id": "plugin_engine_hooks_hookinput",
+      "label": "HookInput",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "hooks.ts",
+      "file_type": "code",
+      "norm_label": "hookinput",
+      "source_file": "plugin/engine/hooks.ts",
+      "source_location": "L8"
+    },
+    {
       "id": "plugin_engine_backlog_item",
       "label": "Item",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
+      "community": 2,
+      "community_name": "cli.ts",
       "file_type": "code",
       "norm_label": "item",
       "source_file": "plugin/engine/backlog.ts",
@@ -159,8 +178,8 @@
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
+      "community": 2,
+      "community_name": "cli.ts",
       "file_type": "code",
       "norm_label": "section",
       "source_file": "plugin/engine/backlog.ts",
@@ -173,11 +192,11 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "config",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L11"
+      "source_location": "L14"
     },
     {
       "id": "plugin_engine_config_role",
@@ -186,11 +205,11 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "role",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L5"
+      "source_location": "L8"
     },
     {
       "id": "plugin_engine_config_roleconfig",
@@ -199,24 +218,11 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "roleconfig",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L9"
-    },
-    {
-      "id": "plugin_engine_hooks_hookinput",
-      "label": "HookInput",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "hookinput",
-      "source_file": "plugin/engine/hooks.ts",
-      "source_location": "L8"
+      "source_location": "L12"
     },
     {
       "id": "gui_app_act",
@@ -473,6 +479,18 @@
       "source_location": "L53"
     },
     {
+      "id": "plugin_engine_pipeline_needstriage",
+      "label": "needsTriage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "pipeline.ts",
+      "file_type": "code",
+      "norm_label": "needstriage()",
+      "source_file": "plugin/engine/pipeline.ts",
+      "source_location": "L59"
+    },
+    {
       "id": "plugin_engine_pipeline_runtask",
       "label": "runTask()",
       "_callable": true,
@@ -482,7 +500,7 @@
       "file_type": "code",
       "norm_label": "runtask()",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L59"
+      "source_location": "L62"
     },
     {
       "id": "plugin_engine_pipeline_stubrunner",
@@ -509,16 +527,220 @@
       "source_location": "L21"
     },
     {
+      "id": "plugin_engine_init_applyteam",
+      "label": "applyTeam()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "applyteam()",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L126"
+    },
+    {
+      "id": "plugin_engine_init_detect",
+      "label": "detect()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "detect()",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L22"
+    },
+    {
+      "id": "plugin_engine_init_doctor",
+      "label": "doctor()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "doctor()",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L84"
+    },
+    {
+      "id": "plugin_engine_init_init",
+      "label": "init()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "init()",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L50"
+    },
+    {
+      "id": "plugin_engine_init_read",
+      "label": "read()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "read()",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L15"
+    },
+    {
       "id": "plugin_engine_skills_roleskills",
       "label": "roleSkills()",
       "_callable": true,
       "_origin": "ast",
-      "community": 1,
-      "community_name": "pipeline.ts",
+      "community": 13,
+      "community_name": "factory.test.ts",
       "file_type": "code",
       "norm_label": "roleskills()",
       "source_file": "plugin/engine/skills.ts",
       "source_location": "L25"
+    },
+    {
+      "id": "plugin_engine_team_activeroles",
+      "label": "activeRoles()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "activeroles()",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L27"
+    },
+    {
+      "id": "plugin_engine_team_isbuilt",
+      "label": "isBuilt()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "isbuilt()",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L24"
+    },
+    {
+      "id": "plugin_engine_team_load",
+      "label": "load()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "load()",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L18"
+    },
+    {
+      "id": "plugin_engine_team_renderrole",
+      "label": "renderRole()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "renderrole()",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L68"
+    },
+    {
+      "id": "plugin_engine_team_toolsfor",
+      "label": "toolsFor()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "toolsfor()",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L59"
+    },
+    {
+      "id": "plugin_engine_team_validateteam",
+      "label": "validateTeam()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "validateteam()",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L34"
+    },
+    {
+      "id": "plugin_engine_hooks_guard",
+      "label": "guard()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "hooks.ts",
+      "file_type": "code",
+      "norm_label": "guard()",
+      "source_file": "plugin/engine/hooks.ts",
+      "source_location": "L37"
+    },
+    {
+      "id": "plugin_engine_hooks_real",
+      "label": "real()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "hooks.ts",
+      "file_type": "code",
+      "norm_label": "real()",
+      "source_file": "plugin/engine/hooks.ts",
+      "source_location": "L27"
+    },
+    {
+      "id": "plugin_engine_backlog_add",
+      "label": "add()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "add()",
+      "source_file": "plugin/engine/backlog.ts",
+      "source_location": "L50"
+    },
+    {
+      "id": "plugin_engine_backlog_endof",
+      "label": "endOf()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "endof()",
+      "source_file": "plugin/engine/backlog.ts",
+      "source_location": "L27"
+    },
+    {
+      "id": "plugin_engine_backlog_move",
+      "label": "move()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "move()",
+      "source_file": "plugin/engine/backlog.ts",
+      "source_location": "L37"
+    },
+    {
+      "id": "plugin_engine_backlog_parse",
+      "label": "parse()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "parse()",
+      "source_file": "plugin/engine/backlog.ts",
+      "source_location": "L8"
     },
     {
       "id": "plugin_engine_cli_commitpaths",
@@ -530,7 +752,7 @@
       "file_type": "code",
       "norm_label": "commitpaths()",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L18"
+      "source_location": "L19"
     },
     {
       "id": "plugin_engine_cli_editbacklog",
@@ -542,7 +764,7 @@
       "file_type": "code",
       "norm_label": "editbacklog()",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L25"
+      "source_location": "L26"
     },
     {
       "id": "plugin_engine_cli_find",
@@ -554,7 +776,7 @@
       "file_type": "code",
       "norm_label": "find()",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L51"
+      "source_location": "L52"
     },
     {
       "id": "plugin_engine_cli_main",
@@ -566,7 +788,7 @@
       "file_type": "code",
       "norm_label": "main()",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L73"
+      "source_location": "L75"
     },
     {
       "id": "plugin_engine_cli_openevents",
@@ -578,7 +800,7 @@
       "file_type": "code",
       "norm_label": "openevents()",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L46"
+      "source_location": "L47"
     },
     {
       "id": "plugin_engine_cli_readitems",
@@ -590,7 +812,7 @@
       "file_type": "code",
       "norm_label": "readitems()",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L15"
+      "source_location": "L16"
     },
     {
       "id": "plugin_engine_pipeline_shellgate",
@@ -627,6 +849,18 @@
       "norm_label": "setskill()",
       "source_file": "plugin/engine/skills.ts",
       "source_location": "L62"
+    },
+    {
+      "id": "plugin_engine_team_describeteam",
+      "label": "describeTeam()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "describeteam()",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L80"
     },
     {
       "id": "plugin_engine_worktree_branchof",
@@ -725,64 +959,16 @@
       "source_location": "L6"
     },
     {
-      "id": "plugin_engine_backlog_add",
-      "label": "add()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "add()",
-      "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L46"
-    },
-    {
-      "id": "plugin_engine_backlog_endof",
-      "label": "endOf()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "endof()",
-      "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L23"
-    },
-    {
-      "id": "plugin_engine_backlog_move",
-      "label": "move()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "move()",
-      "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L33"
-    },
-    {
-      "id": "plugin_engine_backlog_parse",
-      "label": "parse()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "parse()",
-      "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L8"
-    },
-    {
       "id": "plugin_engine_config_ismodel",
       "label": "isModel()",
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "ismodel()",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L15"
+      "source_location": "L18"
     },
     {
       "id": "plugin_engine_config_isstr",
@@ -790,11 +976,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "isstr()",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L13"
+      "source_location": "L16"
     },
     {
       "id": "plugin_engine_config_isstrlist",
@@ -802,11 +988,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "isstrlist()",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L16"
+      "source_location": "L19"
     },
     {
       "id": "plugin_engine_config_loadconfig",
@@ -814,11 +1000,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "loadconfig()",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L43"
+      "source_location": "L46"
     },
     {
       "id": "plugin_engine_config_parseconfig",
@@ -826,11 +1012,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "parseconfig()",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L19"
+      "source_location": "L22"
     },
     {
       "id": "plugin_engine_events_openstore",
@@ -838,83 +1024,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "openstore()",
       "source_file": "plugin/engine/events.ts",
       "source_location": "L17"
-    },
-    {
-      "id": "plugin_engine_hooks_guard",
-      "label": "guard()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "guard()",
-      "source_file": "plugin/engine/hooks.ts",
-      "source_location": "L37"
-    },
-    {
-      "id": "plugin_engine_hooks_real",
-      "label": "real()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "real()",
-      "source_file": "plugin/engine/hooks.ts",
-      "source_location": "L27"
-    },
-    {
-      "id": "plugin_engine_init_detect",
-      "label": "detect()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "detect()",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L19"
-    },
-    {
-      "id": "plugin_engine_init_doctor",
-      "label": "doctor()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "doctor()",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L80"
-    },
-    {
-      "id": "plugin_engine_init_init",
-      "label": "init()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "init()",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L47"
-    },
-    {
-      "id": "plugin_engine_init_read",
-      "label": "read()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "read()",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L12"
     },
     {
       "id": "plugin_engine_server_buildgui",
@@ -922,7 +1036,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "buildgui()",
       "source_file": "plugin/engine/server.ts",
@@ -934,7 +1048,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "json()",
       "source_file": "plugin/engine/server.ts",
@@ -946,7 +1060,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "serve()",
       "source_file": "plugin/engine/server.ts",
@@ -958,7 +1072,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "addskill()",
       "source_file": "plugin/engine/skills.ts",
@@ -970,7 +1084,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "attachskill()",
       "source_file": "plugin/engine/skills.ts",
@@ -982,7 +1096,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "detachskill()",
       "source_file": "plugin/engine/skills.ts",
@@ -994,7 +1108,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "parsefind()",
       "source_file": "plugin/engine/skills.ts",
@@ -1006,7 +1120,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "repo()",
       "source_file": "tests/fixture.ts",
@@ -1018,7 +1132,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "tmp()",
       "source_file": "tests/fixture.ts",
@@ -1034,7 +1148,7 @@
       "file_type": "code",
       "norm_label": "app()",
       "source_file": "gui/app.tsx",
-      "source_location": "L409"
+      "source_location": "L410"
     },
     {
       "id": "gui_app_board",
@@ -1046,7 +1160,7 @@
       "file_type": "code",
       "norm_label": "board()",
       "source_file": "gui/app.tsx",
-      "source_location": "L360"
+      "source_location": "L361"
     },
     {
       "id": "gui_app_card",
@@ -1058,7 +1172,7 @@
       "file_type": "code",
       "norm_label": "card()",
       "source_file": "gui/app.tsx",
-      "source_location": "L253"
+      "source_location": "L254"
     },
     {
       "id": "gui_app_detail",
@@ -1070,7 +1184,7 @@
       "file_type": "code",
       "norm_label": "detail()",
       "source_file": "gui/app.tsx",
-      "source_location": "L302"
+      "source_location": "L303"
     },
     {
       "id": "gui_app_diff",
@@ -1082,7 +1196,7 @@
       "file_type": "code",
       "norm_label": "diff()",
       "source_file": "gui/app.tsx",
-      "source_location": "L287"
+      "source_location": "L288"
     },
     {
       "id": "gui_app_feed",
@@ -1094,7 +1208,7 @@
       "file_type": "code",
       "norm_label": "feed()",
       "source_file": "gui/app.tsx",
-      "source_location": "L153"
+      "source_location": "L154"
     },
     {
       "id": "gui_app_kpi",
@@ -1106,7 +1220,7 @@
       "file_type": "code",
       "norm_label": "kpi()",
       "source_file": "gui/app.tsx",
-      "source_location": "L67"
+      "source_location": "L68"
     },
     {
       "id": "gui_app_line",
@@ -1118,7 +1232,7 @@
       "file_type": "code",
       "norm_label": "line()",
       "source_file": "gui/app.tsx",
-      "source_location": "L122"
+      "source_location": "L123"
     },
     {
       "id": "gui_app_logline",
@@ -1142,7 +1256,7 @@
       "file_type": "code",
       "norm_label": "overview()",
       "source_file": "gui/app.tsx",
-      "source_location": "L181"
+      "source_location": "L182"
     },
     {
       "id": "gui_app_spark",
@@ -1154,7 +1268,7 @@
       "file_type": "code",
       "norm_label": "spark()",
       "source_file": "gui/app.tsx",
-      "source_location": "L57"
+      "source_location": "L58"
     },
     {
       "id": "gui_app_stagestrip",
@@ -1178,7 +1292,7 @@
       "file_type": "code",
       "norm_label": "throughput()",
       "source_file": "gui/app.tsx",
-      "source_location": "L81"
+      "source_location": "L82"
     },
     {
       "id": "gui_data_post",
@@ -1626,71 +1740,407 @@
       "source_location": "L1"
     },
     {
-      "id": "plugin_templates_agents_architect",
-      "label": "architect.md",
+      "id": "plugin_engine_init",
+      "label": "init.ts",
       "_origin": "ast",
       "community": 13,
-      "community_name": "architect.md",
-      "file_type": "document",
-      "frontmatter": {
-        "name": "architect",
-        "description": "Turns a triaged task into a short spec the builder can implement without guessing.",
-        "tools": "Read, Grep, Glob, Bash, WebSearch, WebFetch, Skill"
-      },
-      "node_kind": "page",
-      "norm_label": "architect.md",
-      "source_file": "plugin/templates/agents/architect.md",
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "init.ts",
+      "source_file": "plugin/engine/init.ts",
       "source_location": "L1"
     },
     {
-      "id": "plugin_templates_agents_builder",
-      "label": "builder.md",
+      "id": "plugin_engine_init_generated_mark",
+      "label": "GENERATED_MARK",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "generated_mark",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L9"
+    },
+    {
+      "id": "plugin_engine_init_ignored",
+      "label": "IGNORED",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "ignored",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L13"
+    },
+    {
+      "id": "plugin_engine_init_templates",
+      "label": "TEMPLATES",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "templates",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L11"
+    },
+    {
+      "id": "plugin_engine_team",
+      "label": "team.ts",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "team.ts",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "plugin_engine_team_byid",
+      "label": "byId",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "byid",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L23"
+    },
+    {
+      "id": "plugin_engine_team_catalog",
+      "label": "catalog",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "catalog",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L19"
+    },
+    {
+      "id": "plugin_engine_team_data",
+      "label": "DATA",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "data",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L5"
+    },
+    {
+      "id": "plugin_engine_team_default_preset",
+      "label": "DEFAULT_PRESET",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "default_preset",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L21"
+    },
+    {
+      "id": "plugin_engine_team_generated",
+      "label": "GENERATED",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "generated",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L65"
+    },
+    {
+      "id": "plugin_engine_team_presets",
+      "label": "presets",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "presets",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L20"
+    },
+    {
+      "id": "plugin_engine_team_reviewing",
+      "label": "REVIEWING",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "reviewing",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L31"
+    },
+    {
+      "id": "plugin_engine_team_tools",
+      "label": "TOOLS",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "tools",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L56"
+    },
+    {
+      "id": "tests_factory_test",
+      "label": "factory.test.ts",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "factory.test.ts",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "tests_factory_test_task",
+      "label": "task",
+      "_origin": "ast",
+      "community": 13,
+      "community_name": "factory.test.ts",
+      "file_type": "code",
+      "norm_label": "task",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L17"
+    },
+    {
+      "id": "docs_roles",
+      "label": "ROLES.md",
       "_origin": "ast",
       "community": 14,
-      "community_name": "builder.md",
+      "community_name": "Roles and responsibilities",
       "file_type": "document",
-      "frontmatter": {
-        "name": "builder",
-        "description": "Implements one spec, tests first, until the gate passes.",
-        "tools": "Read, Edit, Write, Bash, Grep, Glob, Skill"
-      },
       "node_kind": "page",
-      "norm_label": "builder.md",
-      "source_file": "plugin/templates/agents/builder.md",
+      "norm_label": "roles.md",
+      "source_file": "docs/ROLES.md",
       "source_location": "L1"
     },
     {
-      "id": "plugin_templates_agents_reviewer",
-      "label": "reviewer.md",
+      "id": "docs_roles_commands",
+      "label": "Commands",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "commands",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L242"
+    },
+    {
+      "id": "docs_roles_configuration",
+      "label": "Configuration",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "configuration",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L235"
+    },
+    {
+      "id": "docs_roles_customizing",
+      "label": "Customizing",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "customizing",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L131"
+    },
+    {
+      "id": "docs_roles_decisions_on_record",
+      "label": "Decisions on record",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "decisions on record",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L253"
+    },
+    {
+      "id": "docs_roles_documents",
+      "label": "Documents",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "documents",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L211"
+    },
+    {
+      "id": "docs_roles_how_it_reports",
+      "label": "How it reports",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "how it reports",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L169"
+    },
+    {
+      "id": "docs_roles_knowledge_graph_and_memory",
+      "label": "Knowledge graph and memory",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "knowledge graph and memory",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L226"
+    },
+    {
+      "id": "docs_roles_responsibility_catalog",
+      "label": "Responsibility catalog",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "responsibility catalog",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L23"
+    },
+    {
+      "id": "docs_roles_roles_and_responsibilities",
+      "label": "Roles and responsibilities",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "roles and responsibilities",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_roles_rules_the_tool_enforces_whatever_the_grouping",
+      "label": "Rules the tool enforces whatever the grouping",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "rules the tool enforces whatever the grouping",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L141"
+    },
+    {
+      "id": "docs_roles_skills",
+      "label": "Skills",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "skills",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L180"
+    },
+    {
+      "id": "docs_roles_still_to_decide",
+      "label": "Still to decide",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "still to decide",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L270"
+    },
+    {
+      "id": "docs_roles_suggested_build_order",
+      "label": "Suggested build order",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "suggested build order",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L276"
+    },
+    {
+      "id": "docs_roles_team_presets",
+      "label": "Team presets",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "team presets",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L104"
+    },
+    {
+      "id": "docs_roles_the_four_gates",
+      "label": "The four gates",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "the four gates",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L155"
+    },
+    {
+      "id": "docs_roles_the_idea",
+      "label": "The idea",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "the idea",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L11"
+    },
+    {
+      "id": "docs_roles_the_security_and_performance_engineer",
+      "label": "The Security and Performance Engineer",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "the security and performance engineer",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L149"
+    },
+    {
+      "id": "docs_roles_what_needs_the_user",
+      "label": "What needs the user",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "Roles and responsibilities",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "what needs the user",
+      "source_file": "docs/ROLES.md",
+      "source_location": "L191"
+    },
+    {
+      "id": "plugin_engine_hooks",
+      "label": "hooks.ts",
       "_origin": "ast",
       "community": 15,
-      "community_name": "reviewer.md",
-      "file_type": "document",
-      "frontmatter": {
-        "name": "reviewer",
-        "description": "Reviews a build for correctness, security and scope against its spec.",
-        "tools": "Read, Grep, Glob, Bash, Skill"
-      },
-      "node_kind": "page",
-      "norm_label": "reviewer.md",
-      "source_file": "plugin/templates/agents/reviewer.md",
-      "source_location": "L1"
-    },
-    {
-      "id": "plugin_templates_agents_triage",
-      "label": "triage.md",
-      "_origin": "ast",
-      "community": 16,
-      "community_name": "triage.md",
-      "file_type": "document",
-      "frontmatter": {
-        "name": "triage",
-        "description": "Sizes and clarifies one backlog item before any design work.",
-        "tools": "Read, Grep, Glob, Bash, Skill"
-      },
-      "node_kind": "page",
-      "norm_label": "triage.md",
-      "source_file": "plugin/templates/agents/triage.md",
+      "community_name": "hooks.ts",
+      "file_type": "code",
+      "norm_label": "hooks.ts",
+      "source_file": "plugin/engine/hooks.ts",
       "source_location": "L1"
     },
     {
@@ -1750,6 +2200,28 @@
       "source_location": "L1"
     },
     {
+      "id": "plugin_engine_backlog",
+      "label": "backlog.ts",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "backlog.ts",
+      "source_file": "plugin/engine/backlog.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "plugin_engine_backlog_sections",
+      "label": "SECTIONS",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "cli.ts",
+      "file_type": "code",
+      "norm_label": "sections",
+      "source_file": "plugin/engine/backlog.ts",
+      "source_location": "L2"
+    },
+    {
       "id": "plugin_engine_cli",
       "label": "cli.ts",
       "_origin": "ast",
@@ -1769,7 +2241,7 @@
       "file_type": "code",
       "norm_label": "backlogpath",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L14"
+      "source_location": "L15"
     },
     {
       "id": "plugin_engine_cli_root",
@@ -1780,7 +2252,7 @@
       "file_type": "code",
       "norm_label": "root",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L13"
+      "source_location": "L14"
     },
     {
       "id": "plugin_engine_worktree",
@@ -1881,6 +2353,35 @@
       "norm_label": "status/skill.md",
       "source_file": "plugin/skills/status/SKILL.md",
       "source_location": "L1"
+    },
+    {
+      "id": "claude_agents_planner",
+      "label": "planner.md",
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "planner.md",
+      "file_type": "document",
+      "frontmatter": {
+        "name": "planner",
+        "description": "Turns the brief into requirements, milestones and tasks, and triages ad-hoc backlog items.",
+        "tools": "Read, Grep, Glob, Bash, Skill"
+      },
+      "node_kind": "page",
+      "norm_label": "planner.md",
+      "source_file": ".claude/agents/planner.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "claude_agents_planner_triage_an_item",
+      "label": "Triage an item",
+      "_origin": "ast",
+      "community": 25,
+      "community_name": "planner.md",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "triage an item",
+      "source_file": ".claude/agents/planner.md",
+      "source_location": "L9"
     },
     {
       "id": "package",
@@ -2103,6 +2604,28 @@
       "source_location": "L3"
     },
     {
+      "id": "ref_playwright_core",
+      "label": "playwright-core",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "package.json",
+      "file_type": "concept",
+      "norm_label": "playwright-core",
+      "source_file": "package.json",
+      "source_location": "L20"
+    },
+    {
+      "id": "ref_react",
+      "label": "react",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "package.json",
+      "file_type": "concept",
+      "norm_label": "react",
+      "source_file": "package.json",
+      "source_location": "L13"
+    },
+    {
       "id": "ref_react_dom",
       "label": "react-dom",
       "_origin": "ast",
@@ -2162,7 +2685,7 @@
       "label": "gui.e2e.ts",
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "gui.e2e.ts",
       "source_file": "e2e/gui.e2e.ts",
@@ -2173,40 +2696,18 @@
       "label": "{ dir, sh, section }",
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "{ dir, sh, section }",
       "source_file": "e2e/gui.e2e.ts",
       "source_location": "L11"
     },
     {
-      "id": "plugin_engine_backlog",
-      "label": "backlog.ts",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "backlog.ts",
-      "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "plugin_engine_backlog_sections",
-      "label": "SECTIONS",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "sections",
-      "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L2"
-    },
-    {
       "id": "plugin_engine_config",
       "label": "config.ts",
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "config.ts",
       "source_file": "plugin/engine/config.ts",
@@ -2217,84 +2718,40 @@
       "label": "EFFORTS",
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "efforts",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L7"
+      "source_location": "L10"
     },
     {
       "id": "plugin_engine_config_roles",
       "label": "ROLES",
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "roles",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L4"
+      "source_location": "L7"
     },
     {
       "id": "plugin_engine_config_runners",
       "label": "RUNNERS",
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "runners",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L6"
-    },
-    {
-      "id": "plugin_engine_hooks",
-      "label": "hooks.ts",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "hooks.ts",
-      "source_file": "plugin/engine/hooks.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "plugin_engine_init",
-      "label": "init.ts",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "init.ts",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "plugin_engine_init_ignored",
-      "label": "IGNORED",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "ignored",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L10"
-    },
-    {
-      "id": "plugin_engine_init_templates",
-      "label": "TEMPLATES",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "templates",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L8"
+      "source_location": "L9"
     },
     {
       "id": "plugin_engine_server",
       "label": "server.ts",
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "server.ts",
       "source_file": "plugin/engine/server.ts",
@@ -2305,7 +2762,7 @@
       "label": "CLI",
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "cli",
       "source_file": "plugin/engine/server.ts",
@@ -2316,7 +2773,7 @@
       "label": "DIST",
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "dist",
       "source_file": "plugin/engine/server.ts",
@@ -2327,7 +2784,7 @@
       "label": "SOURCE",
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "source",
       "source_file": "plugin/engine/server.ts",
@@ -2338,7 +2795,7 @@
       "label": "skills.ts",
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "skills.ts",
       "source_file": "plugin/engine/skills.ts",
@@ -2349,40 +2806,18 @@
       "label": "SKILLS_CLI",
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "skills_cli",
       "source_file": "plugin/engine/skills.ts",
       "source_location": "L6"
     },
     {
-      "id": "tests_factory_test",
-      "label": "factory.test.ts",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "factory.test.ts",
-      "source_file": "tests/factory.test.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "tests_factory_test_task",
-      "label": "task",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "code",
-      "norm_label": "task",
-      "source_file": "tests/factory.test.ts",
-      "source_location": "L16"
-    },
-    {
       "id": "tests_fixture",
       "label": "fixture.ts",
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "fixture.ts",
       "source_file": "tests/fixture.ts",
@@ -2393,7 +2828,7 @@
       "label": "BACKLOG",
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "backlog",
       "source_file": "tests/fixture.ts",
@@ -2404,7 +2839,7 @@
       "label": "config",
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "config",
       "source_file": "tests/fixture.ts",
@@ -2415,22 +2850,11 @@
       "label": "role",
       "_origin": "ast",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "file_type": "code",
       "norm_label": "role",
       "source_file": "tests/fixture.ts",
       "source_location": "L8"
-    },
-    {
-      "id": "ref_playwright_core",
-      "label": "playwright-core",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "factory.test.ts",
-      "file_type": "concept",
-      "norm_label": "playwright-core",
-      "source_file": "package.json",
-      "source_location": "L20"
     },
     {
       "id": "tsconfig",
@@ -2617,7 +3041,7 @@
       "file_type": "code",
       "norm_label": "windows",
       "source_file": "gui/app.tsx",
-      "source_location": "L78"
+      "source_location": "L79"
     },
     {
       "id": "gui_data",
@@ -2684,17 +3108,6 @@
       "norm_label": "stages",
       "source_file": "plugin/engine/state.ts",
       "source_location": "L20"
-    },
-    {
-      "id": "ref_react",
-      "label": "react",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "app.tsx",
-      "file_type": "concept",
-      "norm_label": "react",
-      "source_file": "package.json",
-      "source_location": "L13"
     },
     {
       "id": "docs_plugin",
@@ -3054,21 +3467,6 @@
       "source_url": null
     },
     {
-      "id": "claude_agents_triage",
-      "label": "Triage (sizing role)",
-      "_origin": "semantic",
-      "author": null,
-      "captured_at": null,
-      "community": 0,
-      "community_name": "Software Factory (AGENTS.md)",
-      "contributor": null,
-      "file_type": "concept",
-      "norm_label": "triage (sizing role)",
-      "source_file": ".claude/agents/triage.md",
-      "source_location": null,
-      "source_url": null
-    },
-    {
       "id": "agents_factory_config",
       "label": "factory.config.json",
       "_origin": "semantic",
@@ -3110,21 +3508,6 @@
       "file_type": "document",
       "norm_label": "software factory (agents.md)",
       "source_file": "AGENTS.md",
-      "source_location": null,
-      "source_url": null
-    },
-    {
-      "id": "backlog_backlog",
-      "label": "BACKLOG.md intake queue",
-      "_origin": "semantic",
-      "author": null,
-      "captured_at": null,
-      "community": 0,
-      "community_name": "Software Factory (AGENTS.md)",
-      "contributor": null,
-      "file_type": "document",
-      "norm_label": "backlog.md intake queue",
-      "source_file": "BACKLOG.md",
       "source_location": null,
       "source_url": null
     },
@@ -3234,13 +3617,28 @@
       "source_url": null
     },
     {
+      "id": "backlog_backlog",
+      "label": "BACKLOG.md intake queue",
+      "_origin": "semantic",
+      "author": null,
+      "captured_at": null,
+      "community": 16,
+      "community_name": "Only the orchestrator writes BACKLOG.md (rule)",
+      "contributor": null,
+      "file_type": "document",
+      "norm_label": "backlog.md intake queue",
+      "source_file": "BACKLOG.md",
+      "source_location": null,
+      "source_url": null
+    },
+    {
       "id": "agents_never_edit_backlog_rule",
       "label": "Only the orchestrator writes BACKLOG.md (rule)",
       "_origin": "semantic",
       "author": null,
       "captured_at": null,
-      "community": 0,
-      "community_name": "Software Factory (AGENTS.md)",
+      "community": 16,
+      "community_name": "Only the orchestrator writes BACKLOG.md (rule)",
       "contributor": null,
       "file_type": "rationale",
       "norm_label": "only the orchestrator writes backlog.md (rule)",
@@ -3279,7 +3677,7 @@
       "id": "ref_bun_test",
       "label": "ref_bun_test",
       "_origin": "semantic",
-      "community": 4,
+      "community": 13,
       "community_name": "factory.test.ts",
       "external": true,
       "file_type": "concept",
@@ -3292,7 +3690,7 @@
       "label": "ref_node_fs",
       "_origin": "semantic",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_node_fs",
@@ -3304,7 +3702,7 @@
       "label": "ref_node_os",
       "_origin": "semantic",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_node_os",
@@ -3316,7 +3714,7 @@
       "label": "ref_node_path",
       "_origin": "semantic",
       "community": 4,
-      "community_name": "factory.test.ts",
+      "community_name": "server.ts",
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_node_path",
@@ -3334,24 +3732,12 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "gui/app.tsx",
-      "source_location": "L410",
-      "weight": 1.0
-    },
-    {
-      "source": "gui_app_app",
-      "target": "plugin_engine_state_summarize",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "gui/app.tsx",
       "source_location": "L411",
       "weight": 1.0
     },
     {
       "source": "gui_app_app",
-      "target": "gui_data_usebacklog",
+      "target": "plugin_engine_state_summarize",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -3363,7 +3749,7 @@
     },
     {
       "source": "gui_app_app",
-      "target": "gui_data_usehash",
+      "target": "gui_data_usebacklog",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -3375,7 +3761,7 @@
     },
     {
       "source": "gui_app_app",
-      "target": "gui_data_usetheme",
+      "target": "gui_data_usehash",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -3387,6 +3773,18 @@
     },
     {
       "source": "gui_app_app",
+      "target": "gui_data_usetheme",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L415",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_app",
       "target": "gui_data_post",
       "relation": "calls",
       "_origin": "ast",
@@ -3394,7 +3792,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "gui/app.tsx",
-      "source_location": "L421",
+      "source_location": "L422",
       "weight": 1.0
     },
     {
@@ -3406,7 +3804,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "gui/app.tsx",
-      "source_location": "L364",
+      "source_location": "L365",
       "weight": 1.0
     },
     {
@@ -3418,7 +3816,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "gui/app.tsx",
-      "source_location": "L268",
+      "source_location": "L269",
       "weight": 1.0
     },
     {
@@ -3430,7 +3828,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "gui/app.tsx",
-      "source_location": "L311",
+      "source_location": "L312",
       "weight": 1.0
     },
     {
@@ -3442,7 +3840,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "gui/app.tsx",
-      "source_location": "L348",
+      "source_location": "L349",
       "weight": 1.0
     },
     {
@@ -3454,7 +3852,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "gui/app.tsx",
-      "source_location": "L155",
+      "source_location": "L156",
       "weight": 1.0
     },
     {
@@ -3478,7 +3876,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "gui/app.tsx",
-      "source_location": "L182",
+      "source_location": "L183",
       "weight": 1.0
     },
     {
@@ -3490,24 +3888,12 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "gui/app.tsx",
-      "source_location": "L183",
-      "weight": 1.0
-    },
-    {
-      "source": "gui_app_overview",
-      "target": "plugin_engine_state_series",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "gui/app.tsx",
       "source_location": "L184",
       "weight": 1.0
     },
     {
       "source": "gui_app_overview",
-      "target": "plugin_engine_state_passrates",
+      "target": "plugin_engine_state_series",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -3519,6 +3905,18 @@
     },
     {
       "source": "gui_app_overview",
+      "target": "plugin_engine_state_passrates",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "gui/app.tsx",
+      "source_location": "L186",
+      "weight": 1.0
+    },
+    {
+      "source": "gui_app_overview",
       "target": "plugin_engine_state_elapsed",
       "relation": "calls",
       "_origin": "ast",
@@ -3526,7 +3924,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "gui/app.tsx",
-      "source_location": "L223",
+      "source_location": "L224",
       "weight": 1.0
     },
     {
@@ -3538,7 +3936,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "gui/app.tsx",
-      "source_location": "L85",
+      "source_location": "L86",
       "weight": 1.0
     },
     {
@@ -3646,7 +4044,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L49",
+      "source_location": "L53",
       "weight": 1.0
     },
     {
@@ -3658,7 +4056,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L52",
+      "source_location": "L56",
       "weight": 1.0
     },
     {
@@ -3670,7 +4068,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L41",
+      "source_location": "L45",
       "weight": 1.0
     },
     {
@@ -3754,7 +4152,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0
     },
     {
@@ -3766,7 +4164,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L52",
+      "source_location": "L53",
       "weight": 1.0
     },
     {
@@ -3778,19 +4176,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L52",
+      "source_location": "L53",
       "weight": 1.0
     },
     {
       "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_init_init",
+      "target": "plugin_engine_init_applyteam",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L104",
+      "source_location": "L100",
       "weight": 1.0
     },
     {
@@ -3802,211 +4200,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L114",
+      "source_location": "L107",
       "weight": 1.0
     },
     {
       "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_pipeline_shellgate",
+      "target": "plugin_engine_team_describeteam",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L114",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_init_doctor",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L121",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_cli_openevents",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L129",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_cli_readitems",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L133",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_cli_find",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L140",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_backlog_move",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L151",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_worktree_land",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L157",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_worktree_removeworktree",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L158",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_claude_clauderunner",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L176",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_worktree_ensureworktree",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L198",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_pipeline_runtask",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L201",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_worktree_commitall",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L204",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_backlog_add",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L75",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_cli_editbacklog",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L76",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_skills_addskill",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L82",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_skills_setskill",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L83",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_cli_main",
-      "target": "plugin_engine_cli_commitpaths",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L85",
+      "source_location": "L109",
       "weight": 1.0
     },
     {
@@ -4018,7 +4224,223 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L96",
+      "source_location": "L116",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_init_init",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L124",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_pipeline_shellgate",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L134",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_init_doctor",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L141",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_cli_openevents",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L149",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_cli_readitems",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L153",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_cli_find",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L160",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_backlog_move",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L171",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_worktree_land",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L177",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_worktree_removeworktree",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L178",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_claude_clauderunner",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L196",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_worktree_ensureworktree",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L218",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_pipeline_runtask",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L221",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_worktree_commitall",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L224",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_backlog_add",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L77",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_cli_editbacklog",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L78",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_skills_addskill",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L84",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_skills_setskill",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L85",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli_main",
+      "target": "plugin_engine_cli_commitpaths",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L87",
       "weight": 1.0
     },
     {
@@ -4030,7 +4452,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L48",
+      "source_location": "L49",
       "weight": 1.0
     },
     {
@@ -4042,7 +4464,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L15",
+      "source_location": "L16",
       "weight": 1.0
     },
     {
@@ -4054,7 +4476,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L44",
+      "source_location": "L47",
       "weight": 1.0
     },
     {
@@ -4066,7 +4488,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L22",
+      "source_location": "L25",
       "weight": 1.0
     },
     {
@@ -4078,7 +4500,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L30",
+      "source_location": "L33",
       "weight": 1.0
     },
     {
@@ -4094,6 +4516,42 @@
       "weight": 1.0
     },
     {
+      "source": "plugin_engine_init_applyteam",
+      "target": "plugin_engine_init_read",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L130",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init_applyteam",
+      "target": "plugin_engine_skills_roleskills",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L132",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init_applyteam",
+      "target": "plugin_engine_team_renderrole",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L132",
+      "weight": 1.0
+    },
+    {
       "source": "plugin_engine_init_detect",
       "target": "plugin_engine_init_read",
       "relation": "calls",
@@ -4102,31 +4560,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L23",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_init_doctor",
-      "target": "plugin_engine_init_read",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L100",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_init_doctor",
-      "target": "plugin_engine_skills_roleskills",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L105",
+      "source_location": "L26",
       "weight": 1.0
     },
     {
@@ -4138,7 +4572,31 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L96",
+      "source_location": "L100",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init_doctor",
+      "target": "plugin_engine_init_read",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L104",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init_doctor",
+      "target": "plugin_engine_skills_roleskills",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L109",
       "weight": 1.0
     },
     {
@@ -4150,7 +4608,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L48",
+      "source_location": "L51",
       "weight": 1.0
     },
     {
@@ -4162,7 +4620,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L58",
+      "source_location": "L61",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init_init",
+      "target": "plugin_engine_team_activeroles",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L67",
       "weight": 1.0
     },
     {
@@ -4174,7 +4644,31 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L64",
+      "source_location": "L68",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init_init",
+      "target": "plugin_engine_team_renderrole",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L71",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_pipeline_runtask",
+      "target": "plugin_engine_pipeline_needstriage",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/pipeline.ts",
+      "source_location": "L103",
       "weight": 1.0
     },
     {
@@ -4186,7 +4680,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "plugin/engine/pipeline.ts",
-      "source_location": "L112",
+      "source_location": "L116",
       "weight": 1.0
     },
     {
@@ -4319,6 +4813,18 @@
       "context": "call",
       "source_file": "plugin/engine/skills.ts",
       "source_location": "L58",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team_renderrole",
+      "target": "plugin_engine_team_toolsfor",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L74",
       "weight": 1.0
     },
     {
@@ -4487,7 +4993,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L128",
+      "source_location": "L148",
       "weight": 1.0
     },
     {
@@ -4500,7 +5006,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L91",
+      "source_location": "L93",
       "weight": 1.0
     },
     {
@@ -5069,7 +5575,7 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_engine_skills_addskill",
+      "target": "plugin_engine_pipeline_runtask",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -5077,6 +5583,54 @@
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
       "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_pipeline_shellgate",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_pipeline_stopall",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_pipeline_stubrunner",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_skills_addskill",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L11",
       "weight": 1.0
     },
     {
@@ -5088,7 +5642,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L10",
+      "source_location": "L11",
       "weight": 1.0
     },
     {
@@ -5100,7 +5654,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L11",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -5112,7 +5666,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L11",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -5124,7 +5678,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L11",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -5136,7 +5690,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L11",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -5237,6 +5791,18 @@
     },
     {
       "source": "plugin_engine_cli",
+      "target": "plugin_engine_init_applyteam",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
       "target": "plugin_engine_init_detect",
       "relation": "imports",
       "_origin": "ast",
@@ -5273,7 +5839,7 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_engine_pipeline_runtask",
+      "target": "plugin_engine_team_default_preset",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -5285,7 +5851,7 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_engine_pipeline_shellgate",
+      "target": "plugin_engine_team_describeteam",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -5297,7 +5863,7 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_engine_pipeline_stopall",
+      "target": "plugin_engine_team_presets",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -5308,15 +5874,15 @@
       "weight": 1.0
     },
     {
-      "source": "plugin_engine_cli",
-      "target": "plugin_engine_pipeline_stubrunner",
+      "source": "plugin_engine_config",
+      "target": "plugin_engine_team_activeroles",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "context": "import",
-      "source_file": "plugin/engine/cli.ts",
-      "source_location": "L9",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -5389,6 +5955,66 @@
       "context": "import",
       "source_file": "plugin/engine/init.ts",
       "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init",
+      "target": "plugin_engine_team_activeroles",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init",
+      "target": "plugin_engine_team_default_preset",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init",
+      "target": "plugin_engine_team_generated",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init",
+      "target": "plugin_engine_team_presets",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init",
+      "target": "plugin_engine_team_renderrole",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L7",
       "weight": 1.0
     },
     {
@@ -5561,6 +6187,18 @@
     },
     {
       "source": "tests_factory_test",
+      "target": "plugin_engine_init_applyteam",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
       "target": "plugin_engine_init_detect",
       "relation": "imports",
       "_origin": "ast",
@@ -5597,55 +6235,91 @@
     },
     {
       "source": "tests_factory_test",
+      "target": "plugin_engine_team_activeroles",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_team_catalog",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_team_default_preset",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_team_presets",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_team_renderrole",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_team_toolsfor",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_team_validateteam",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
       "target": "plugin_engine_pipeline_followups",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "tests/factory.test.ts",
-      "source_location": "L11",
-      "weight": 1.0
-    },
-    {
-      "source": "tests_factory_test",
-      "target": "plugin_engine_pipeline_runner",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "tests/factory.test.ts",
-      "source_location": "L11",
-      "weight": 1.0
-    },
-    {
-      "source": "tests_factory_test",
-      "target": "plugin_engine_pipeline_runtask",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "tests/factory.test.ts",
-      "source_location": "L11",
-      "weight": 1.0
-    },
-    {
-      "source": "tests_factory_test",
-      "target": "plugin_engine_pipeline_shellgate",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "tests/factory.test.ts",
-      "source_location": "L11",
-      "weight": 1.0
-    },
-    {
-      "source": "tests_factory_test",
-      "target": "plugin_engine_server_serve",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -5657,7 +6331,55 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_engine_state_costs",
+      "target": "plugin_engine_pipeline_needstriage",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_pipeline_runner",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_pipeline_runtask",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_pipeline_shellgate",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_server_serve",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -5665,6 +6387,18 @@
       "context": "import",
       "source_file": "tests/factory.test.ts",
       "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_state_costs",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -5676,7 +6410,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -5688,7 +6422,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -5700,7 +6434,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -5712,7 +6446,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -5724,7 +6458,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -5736,7 +6470,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -5748,7 +6482,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -5760,7 +6494,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
@@ -5772,7 +6506,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
@@ -5784,7 +6518,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
@@ -5796,7 +6530,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "tests/factory.test.ts",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
@@ -6210,7 +6944,7 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_engine_skills",
+      "target": "plugin_engine_pipeline",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6222,7 +6956,7 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_engine_worktree",
+      "target": "plugin_engine_skills",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6230,6 +6964,18 @@
       "context": "import",
       "source_file": "plugin/engine/cli.ts",
       "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_cli",
+      "target": "plugin_engine_worktree",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/cli.ts",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -6318,7 +7064,7 @@
     },
     {
       "source": "plugin_engine_cli",
-      "target": "plugin_engine_pipeline",
+      "target": "plugin_engine_team",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6350,6 +7096,18 @@
       "context": "import",
       "source_file": "plugin/engine/config.ts",
       "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_config",
+      "target": "plugin_engine_team",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -6461,6 +7219,18 @@
       "weight": 1.0
     },
     {
+      "source": "plugin_engine_init",
+      "target": "plugin_engine_team",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
       "source": "plugin_engine_pipeline",
       "target": "ref_node_fs",
       "relation": "imports_from",
@@ -6631,6 +7401,30 @@
       "weight": 1.0
     },
     {
+      "source": "plugin_engine_team",
+      "target": "ref_node_fs",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "ref_node_path",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
       "source": "plugin_engine_worktree",
       "target": "ref_node_fs",
       "relation": "imports_from",
@@ -6680,7 +7474,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_engine_pipeline",
+      "target": "plugin_engine_team",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6692,7 +7486,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_engine_server",
+      "target": "plugin_engine_pipeline",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6704,7 +7498,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_engine_state",
+      "target": "plugin_engine_server",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6716,7 +7510,7 @@
     },
     {
       "source": "tests_factory_test",
-      "target": "plugin_engine_skills",
+      "target": "plugin_engine_state",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -6724,6 +7518,18 @@
       "context": "import",
       "source_file": "tests/factory.test.ts",
       "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "tests_factory_test",
+      "target": "plugin_engine_skills",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "tests/factory.test.ts",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
@@ -6884,6 +7690,17 @@
       "weight": 1.0
     },
     {
+      "source": "claude_agents_planner",
+      "target": "claude_agents_planner_triage_an_item",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".claude/agents/planner.md",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
       "source": "docs_plugin",
       "target": "docs_plugin_building_and_publishing_the_plugin",
       "relation": "contains",
@@ -6994,6 +7811,204 @@
       "weight": 1.0
     },
     {
+      "source": "docs_roles",
+      "target": "docs_roles_roles_and_responsibilities",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_roles_and_responsibilities",
+      "target": "docs_roles_team_presets",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L104",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_roles_and_responsibilities",
+      "target": "docs_roles_the_idea",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_roles_and_responsibilities",
+      "target": "docs_roles_the_security_and_performance_engineer",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L149",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_roles_and_responsibilities",
+      "target": "docs_roles_skills",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L180",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_roles_and_responsibilities",
+      "target": "docs_roles_what_needs_the_user",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L191",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_roles_and_responsibilities",
+      "target": "docs_roles_documents",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L211",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_roles_and_responsibilities",
+      "target": "docs_roles_knowledge_graph_and_memory",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L226",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_roles_and_responsibilities",
+      "target": "docs_roles_responsibility_catalog",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_roles_and_responsibilities",
+      "target": "docs_roles_configuration",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L235",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_roles_and_responsibilities",
+      "target": "docs_roles_commands",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L242",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_roles_and_responsibilities",
+      "target": "docs_roles_decisions_on_record",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L253",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_roles_and_responsibilities",
+      "target": "docs_roles_still_to_decide",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L270",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_roles_and_responsibilities",
+      "target": "docs_roles_suggested_build_order",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L276",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_team_presets",
+      "target": "docs_roles_customizing",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L131",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_team_presets",
+      "target": "docs_roles_rules_the_tool_enforces_whatever_the_grouping",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L141",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_the_security_and_performance_engineer",
+      "target": "docs_roles_the_four_gates",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L155",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_roles_the_security_and_performance_engineer",
+      "target": "docs_roles_how_it_reports",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/ROLES.md",
+      "source_location": "L169",
+      "weight": 1.0
+    },
+    {
       "source": "e2e_gui_e2e",
       "target": "e2e_gui_e2e_dir_sh_section",
       "relation": "contains",
@@ -7034,7 +8049,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "gui/app.tsx",
-      "source_location": "L122",
+      "source_location": "L123",
       "weight": 1.0
     },
     {
@@ -7056,7 +8071,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "gui/app.tsx",
-      "source_location": "L153",
+      "source_location": "L154",
       "weight": 1.0
     },
     {
@@ -7067,7 +8082,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "gui/app.tsx",
-      "source_location": "L181",
+      "source_location": "L182",
       "weight": 1.0
     },
     {
@@ -7078,7 +8093,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "gui/app.tsx",
-      "source_location": "L253",
+      "source_location": "L254",
       "weight": 1.0
     },
     {
@@ -7089,7 +8104,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "gui/app.tsx",
-      "source_location": "L287",
+      "source_location": "L288",
       "weight": 1.0
     },
     {
@@ -7111,7 +8126,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "gui/app.tsx",
-      "source_location": "L302",
+      "source_location": "L303",
       "weight": 1.0
     },
     {
@@ -7122,7 +8137,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "gui/app.tsx",
-      "source_location": "L360",
+      "source_location": "L361",
       "weight": 1.0
     },
     {
@@ -7133,7 +8148,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "gui/app.tsx",
-      "source_location": "L409",
+      "source_location": "L410",
       "weight": 1.0
     },
     {
@@ -7144,7 +8159,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "gui/app.tsx",
-      "source_location": "L57",
+      "source_location": "L58",
       "weight": 1.0
     },
     {
@@ -7155,7 +8170,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "gui/app.tsx",
-      "source_location": "L67",
+      "source_location": "L68",
       "weight": 1.0
     },
     {
@@ -7177,7 +8192,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "gui/app.tsx",
-      "source_location": "L78",
+      "source_location": "L79",
       "weight": 1.0
     },
     {
@@ -7188,7 +8203,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "gui/app.tsx",
-      "source_location": "L81",
+      "source_location": "L82",
       "weight": 1.0
     },
     {
@@ -7694,7 +8709,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L23",
+      "source_location": "L27",
       "weight": 1.0
     },
     {
@@ -7716,7 +8731,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L33",
+      "source_location": "L37",
       "weight": 1.0
     },
     {
@@ -7738,7 +8753,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/backlog.ts",
-      "source_location": "L46",
+      "source_location": "L50",
       "weight": 1.0
     },
     {
@@ -7826,7 +8841,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -7837,7 +8852,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L14",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
@@ -7848,7 +8863,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L15",
+      "source_location": "L16",
       "weight": 1.0
     },
     {
@@ -7859,7 +8874,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L18",
+      "source_location": "L19",
       "weight": 1.0
     },
     {
@@ -7870,7 +8885,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L25",
+      "source_location": "L26",
       "weight": 1.0
     },
     {
@@ -7881,7 +8896,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L46",
+      "source_location": "L47",
       "weight": 1.0
     },
     {
@@ -7892,7 +8907,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L51",
+      "source_location": "L52",
       "weight": 1.0
     },
     {
@@ -7903,106 +8918,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L73",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_config",
-      "target": "plugin_engine_config_config",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L11",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_config",
-      "target": "plugin_engine_config_isstr",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L13",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_config",
-      "target": "plugin_engine_config_ismodel",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L15",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_config",
-      "target": "plugin_engine_config_isstrlist",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L16",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_config",
-      "target": "plugin_engine_config_parseconfig",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L19",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_config",
-      "target": "plugin_engine_config_roles",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L4",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_config",
-      "target": "plugin_engine_config_loadconfig",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L43",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_config",
-      "target": "plugin_engine_config_role",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L5",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_config",
-      "target": "plugin_engine_config_runners",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/engine/config.ts",
-      "source_location": "L6",
+      "source_location": "L75",
       "weight": 1.0
     },
     {
@@ -8013,12 +8929,111 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L7",
+      "source_location": "L10",
       "weight": 1.0
     },
     {
       "source": "plugin_engine_config",
       "target": "plugin_engine_config_roleconfig",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_config",
+      "target": "plugin_engine_config_config",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_config",
+      "target": "plugin_engine_config_isstr",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_config",
+      "target": "plugin_engine_config_ismodel",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_config",
+      "target": "plugin_engine_config_isstrlist",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_config",
+      "target": "plugin_engine_config_parseconfig",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_config",
+      "target": "plugin_engine_config_loadconfig",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L46",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_config",
+      "target": "plugin_engine_config_roles",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_config",
+      "target": "plugin_engine_config_role",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/config.ts",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_config",
+      "target": "plugin_engine_config_runners",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -8106,13 +9121,35 @@
     },
     {
       "source": "plugin_engine_init",
+      "target": "plugin_engine_init_templates",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init",
+      "target": "plugin_engine_init_applyteam",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L126",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init",
       "target": "plugin_engine_init_ignored",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L10",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -8123,7 +9160,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L12",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
@@ -8134,7 +9171,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L19",
+      "source_location": "L22",
       "weight": 1.0
     },
     {
@@ -8145,18 +9182,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L47",
-      "weight": 1.0
-    },
-    {
-      "source": "plugin_engine_init",
-      "target": "plugin_engine_init_templates",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugin/engine/init.ts",
-      "source_location": "L8",
+      "source_location": "L50",
       "weight": 1.0
     },
     {
@@ -8167,7 +9193,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "plugin/engine/init.ts",
-      "source_location": "L80",
+      "source_location": "L84",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_init",
+      "target": "plugin_engine_init_generated_mark",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/init.ts",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
@@ -8271,7 +9308,7 @@
     },
     {
       "source": "plugin_engine_pipeline",
-      "target": "plugin_engine_pipeline_runtask",
+      "target": "plugin_engine_pipeline_needstriage",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -8289,6 +9326,17 @@
       "confidence_score": 1.0,
       "source_file": "plugin/engine/pipeline.ts",
       "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_pipeline",
+      "target": "plugin_engine_pipeline_runtask",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/pipeline.ts",
+      "source_location": "L62",
       "weight": 1.0
     },
     {
@@ -8589,6 +9637,204 @@
       "weight": 1.0
     },
     {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_roledef",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_preset",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_load",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_catalog",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_presets",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_default_preset",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_byid",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_isbuilt",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_activeroles",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_reviewing",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L31",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_validateteam",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_data",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_tools",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L56",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_toolsfor",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_generated",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L65",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_renderrole",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L68",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_responsibility",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team",
+      "target": "plugin_engine_team_describeteam",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L80",
+      "weight": 1.0
+    },
+    {
       "source": "plugin_engine_worktree",
       "target": "plugin_engine_worktree_ensureworktree",
       "relation": "contains",
@@ -8871,7 +10117,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "tests/factory.test.ts",
-      "source_location": "L16",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -9077,7 +10323,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "plugin/engine/cli.ts",
-      "source_location": "L191",
+      "source_location": "L211",
       "weight": 1.0
     },
     {
@@ -9089,7 +10335,55 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "plugin/engine/config.ts",
-      "source_location": "L16",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team_activeroles",
+      "target": "plugin_engine_team_isbuilt",
+      "relation": "indirect_call",
+      "_origin": "ast",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "context": "argument",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team_describeteam",
+      "target": "plugin_engine_team_isbuilt",
+      "relation": "indirect_call",
+      "_origin": "ast",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "context": "argument",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L82",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team_renderrole",
+      "target": "plugin_engine_team_isbuilt",
+      "relation": "indirect_call",
+      "_origin": "ast",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "context": "argument",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L71",
+      "weight": 1.0
+    },
+    {
+      "source": "plugin_engine_team_toolsfor",
+      "target": "plugin_engine_team_isbuilt",
+      "relation": "indirect_call",
+      "_origin": "ast",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "context": "argument",
+      "source_file": "plugin/engine/team.ts",
+      "source_location": "L60",
       "weight": 1.0
     },
     {
@@ -9225,17 +10519,6 @@
       "weight": 1.0
     },
     {
-      "source": "agents_software_factory",
-      "target": "claude_agents_triage",
-      "relation": "references",
-      "_origin": "semantic",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "AGENTS.md",
-      "source_location": null,
-      "weight": 1.0
-    },
-    {
       "source": "backlog_f_003",
       "target": "agents_gate",
       "relation": "references",
@@ -9298,28 +10581,6 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": ".claude/agents/builder.md",
-      "source_location": null,
-      "weight": 1.0
-    },
-    {
-      "source": "claude_agents_triage",
-      "target": "agents_factory_runs",
-      "relation": "references",
-      "_origin": "semantic",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": ".claude/agents/triage.md",
-      "source_location": null,
-      "weight": 1.0
-    },
-    {
-      "source": "claude_agents_triage",
-      "target": "backlog_backlog",
-      "relation": "references",
-      "_origin": "semantic",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": ".claude/agents/triage.md",
       "source_location": null,
       "weight": 1.0
     },
@@ -9401,28 +10662,6 @@
       "weight": 1.0
     },
     {
-      "source": "claude_agents_triage",
-      "target": "agents_pipeline",
-      "relation": "implements",
-      "_origin": "semantic",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "source_file": "AGENTS.md",
-      "source_location": null,
-      "weight": 1.0
-    },
-    {
-      "source": "claude_agents_architect",
-      "target": "claude_agents_triage",
-      "relation": "shares_data_with",
-      "_origin": "semantic",
-      "confidence": "INFERRED",
-      "confidence_score": 0.95,
-      "source_file": ".claude/agents/architect.md",
-      "source_location": null,
-      "weight": 1.0
-    },
-    {
       "source": "claude_agents_builder",
       "target": "claude_agents_architect",
       "relation": "shares_data_with",
@@ -9445,37 +10684,6 @@
       "weight": 1.0
     }
   ],
-  "hyperedges": [
-    {
-      "id": "pipeline_stage_roles",
-      "label": "Pipeline stage roles",
-      "nodes": [
-        "agents_pipeline",
-        "claude_agents_triage",
-        "claude_agents_architect",
-        "claude_agents_builder",
-        "claude_agents_reviewer"
-      ],
-      "relation": "participate_in",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "source_file": "AGENTS.md"
-    },
-    {
-      "id": "run_directory_file_handoff",
-      "label": "Run-directory file handoff",
-      "nodes": [
-        "agents_factory_runs",
-        "claude_agents_triage",
-        "claude_agents_architect",
-        "claude_agents_builder",
-        "claude_agents_reviewer"
-      ],
-      "relation": "participate_in",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "source_file": "AGENTS.md"
-    }
-  ],
-  "built_at_commit": "04c225cf3cc8b013d49f21fac6801dd1938dcb0c"
+  "hyperedges": [],
+  "built_at_commit": "53cdabdbaf39dbd423e963463c995cf8a7275b9a"
 }

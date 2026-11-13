@@ -175,6 +175,7 @@ main.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 
 .stages .failed { border-color: var(--bad); color: var(--bad); }
 .stages .failed::before { content: "✗ "; }
 .stages .limited { border-color: var(--warn); color: var(--warn); }
+.stages .skipped { opacity: 0.55; text-decoration: line-through; }
 .stages .active { border-color: var(--accent); color: var(--accent); font-weight: 600; background: var(--accent-soft); }
 .stages .active::before { content: "● "; }
 

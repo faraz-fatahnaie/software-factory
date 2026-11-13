@@ -1,0 +1,528 @@
+[
+  {
+    "id": "D1",
+    "area": "Discovery",
+    "summary": "Brainstorm with the user: draw out the idea, challenge it, make it concrete",
+    "when": "project",
+    "how": "chat",
+    "access": [
+      "read"
+    ]
+  },
+  {
+    "id": "D2",
+    "area": "Discovery",
+    "summary": "Research similar products and competitors on the web; share findings; help the idea evolve",
+    "when": "project",
+    "how": "chat",
+    "access": [
+      "read",
+      "web"
+    ]
+  },
+  {
+    "id": "D3",
+    "area": "Discovery",
+    "summary": "Write the brief once the user approves: problem, users, goals, success criteria, non-goals",
+    "when": "project",
+    "how": "chat",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "R1",
+    "area": "Requirements",
+    "summary": "User stories, each with acceptance criteria",
+    "when": "project",
+    "how": "chat",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "R2",
+    "area": "Requirements",
+    "summary": "Non-functional requirements: performance, privacy, accessibility, platforms, languages",
+    "when": "project",
+    "how": "chat",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "R3",
+    "area": "Requirements",
+    "summary": "Constraints, risks and assumptions",
+    "when": "project",
+    "how": "chat",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "R4",
+    "area": "Requirements",
+    "summary": "Scope the first release; park the rest",
+    "when": "project",
+    "how": "chat",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "A1",
+    "area": "Architecture",
+    "summary": "Choose the stack for an empty project, with reasons the user can follow",
+    "when": "project",
+    "how": "chat",
+    "access": [
+      "read",
+      "web"
+    ]
+  },
+  {
+    "id": "A2",
+    "area": "Architecture",
+    "summary": "System design: components, data model, interfaces",
+    "when": "project",
+    "how": "chat",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "A3",
+    "area": "Architecture",
+    "summary": "Record each significant decision and why",
+    "when": "project, task",
+    "how": "headless",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "A4",
+    "area": "Architecture",
+    "summary": "Choose dependencies; check their licences and health",
+    "when": "project, task",
+    "how": "headless",
+    "access": [
+      "read",
+      "web"
+    ]
+  },
+  {
+    "id": "A5",
+    "area": "Architecture",
+    "summary": "Threat model: what must be protected, from whom, how",
+    "when": "project",
+    "how": "chat",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "P1",
+    "area": "Planning",
+    "summary": "Milestones",
+    "when": "project",
+    "how": "chat",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "P2",
+    "area": "Planning",
+    "summary": "Break milestones into backlog tasks sized for one pipeline run, in dependency order",
+    "when": "project, milestone",
+    "how": "chat",
+    "access": [
+      "backlog"
+    ]
+  },
+  {
+    "id": "P3",
+    "area": "Planning",
+    "summary": "Definition of done for the project",
+    "when": "project",
+    "how": "chat",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "P4",
+    "area": "Planning",
+    "summary": "Triage an ad-hoc item: type, size, overlap, acceptance checks",
+    "when": "trigger: item not produced by P2",
+    "how": "headless",
+    "access": [
+      "read"
+    ],
+    "title": "Triage an item",
+    "instruction": "Read `task.md` in the run directory and `BACKLOG.md`.\n\nWrite:\n- **Type**: feature, bug, chore or docs.\n- **Size**: small, medium or large. If large, say how to split it and stop.\n- **Overlap**: backlog items that duplicate or block this one, by id.\n- **Acceptance**: the checks that prove the task is done, as a short list.\n- **Open questions**: only ones a person must answer. None is a fine answer.\n\nDo not design or write code."
+  },
+  {
+    "id": "F1",
+    "area": "Foundation",
+    "summary": "Project scaffold, formatter, linter, test framework",
+    "when": "project (as tasks)",
+    "how": "headless",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "F2",
+    "area": "Foundation",
+    "summary": "Continuous integration",
+    "when": "project (as tasks)",
+    "how": "headless",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "F3",
+    "area": "Foundation",
+    "summary": "Gate commands: the fast checks every build must pass",
+    "when": "project",
+    "how": "chat",
+    "access": [
+      "config"
+    ]
+  },
+  {
+    "id": "F4",
+    "area": "Foundation",
+    "summary": "Secrets handling: nothing sensitive in files or history",
+    "when": "project (as tasks)",
+    "how": "headless",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "B1",
+    "area": "Build",
+    "summary": "Spec for one task: change, files, tests, out of scope",
+    "when": "task",
+    "how": "headless",
+    "access": [
+      "read",
+      "web"
+    ],
+    "title": "Write the spec",
+    "instruction": "Read `task.md`, and `triage.md` if the run has one, in the run directory. If the project has `graphify-out/GRAPH_REPORT.md`, read it before any source file.\n\nWrite:\n- **Change**: what will exist afterwards, in two or three sentences.\n- **Files**: each file to touch and what changes in it. Name existing code to reuse.\n- **Tests**: the cases that must pass, including one failure case.\n- **Out of scope**: what the builder must not do.\n\nFollow the project's existing language, tools and conventions. Prefer the smallest change that meets the acceptance checks. Do not write the code."
+  },
+  {
+    "id": "B2",
+    "area": "Build",
+    "summary": "Implement the spec, test first, least code, until the gate passes",
+    "when": "task",
+    "how": "headless",
+    "access": [
+      "write"
+    ],
+    "title": "Implement the spec",
+    "instruction": "Read `spec.md` in the run directory; it is the contract. Write the least code that meets it, using the project's existing language, tools and conventions.\n\nRun the gate commands given in your prompt until all of them pass. If you were given feedback from the gate or a reviewer, fix exactly that.\n\nFinish with a short summary: what changed, per file, and how you verified it. Do not push, open pull requests, or edit files outside the working directory you were started in."
+  },
+  {
+    "id": "V1",
+    "area": "Verification",
+    "summary": "Unit and integration tests for the change (written with it)",
+    "when": "task",
+    "how": "headless",
+    "access": [
+      "write"
+    ],
+    "title": "Test the change",
+    "instruction": "Write the failing test from the spec before the code. Cover every case the spec lists, including its failure case, and keep the tests in the project's existing test framework. A change is not done while its tests are missing, skipped or weakened."
+  },
+  {
+    "id": "V2",
+    "area": "Verification",
+    "summary": "Acceptance and end-to-end tests against the user stories",
+    "when": "milestone",
+    "how": "headless",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "V3",
+    "area": "Verification",
+    "summary": "Accessibility and usability checks for anything with an interface",
+    "when": "milestone",
+    "how": "headless",
+    "access": [
+      "read"
+    ]
+  },
+  {
+    "id": "V4",
+    "area": "Verification",
+    "summary": "Regression run of the whole suite",
+    "when": "milestone",
+    "how": "script",
+    "access": [
+      "read"
+    ]
+  },
+  {
+    "id": "C1",
+    "area": "Review",
+    "summary": "Review a build: correctness, scope, maintainability, no weakened guardrails",
+    "when": "task",
+    "how": "headless",
+    "access": [
+      "read"
+    ],
+    "title": "Review the build",
+    "instruction": "Read `spec.md` and `build.md` in the run directory, then the change: `git status --short` and `git diff HEAD`, and read new files in full. Run the gate commands given in your prompt yourself.\n\nCheck, in order: it does what the spec says; tests cover the listed cases; no security problem (injection, secrets, unvalidated input, unsafe file or shell use); nothing outside the spec was changed; nothing was built that the spec did not need.\n\nRequest changes if the diff weakens a guardrail the spec did not ask to change: tests removed, skipped or loosened, or checks and linters switched off.\n\nYour first line must be exactly `APPROVE` or `REQUEST_CHANGES`. Anything else is treated as a rejection. After it, list findings as `file:line — problem — fix`, most serious first. Request changes only for defects, not preferences. You do not edit code."
+  },
+  {
+    "id": "S1",
+    "area": "Security",
+    "summary": "Secure-code review: trace untrusted input from entry points to database, file and shell sinks; OWASP Top 10 flaws; every new endpoint has authentication, authorization and input validation",
+    "when": "trigger (see the four gates)",
+    "how": "headless",
+    "access": [
+      "read"
+    ]
+  },
+  {
+    "id": "S2",
+    "area": "Security",
+    "summary": "Static checks: secret scan, dependency audit for known vulnerabilities, static security scan and complexity check where the stack has a tool for it",
+    "when": "task",
+    "how": "script (in the gate)",
+    "access": [
+      "read"
+    ]
+  },
+  {
+    "id": "S3",
+    "area": "Security",
+    "summary": "Data protection: what personal data exists, where it goes, how it is protected",
+    "when": "project, milestone",
+    "how": "headless",
+    "access": [
+      "read"
+    ]
+  },
+  {
+    "id": "S4",
+    "area": "Security",
+    "summary": "Security audit before a release, including licence compliance of dependencies",
+    "when": "request (with release)",
+    "how": "headless",
+    "access": [
+      "read"
+    ]
+  },
+  {
+    "id": "S5",
+    "area": "Security",
+    "summary": "Configuration and infrastructure review: Dockerfiles, CI pipelines, infrastructure code, CORS and permission policies, weak cryptography",
+    "when": "trigger: change touches those files",
+    "how": "headless",
+    "access": [
+      "read"
+    ]
+  },
+  {
+    "id": "S6",
+    "area": "Security",
+    "summary": "Dynamic security probes against a running test environment",
+    "when": "opt-in, request",
+    "how": "headless",
+    "access": [
+      "outward"
+    ]
+  },
+  {
+    "id": "Q1",
+    "area": "Performance",
+    "summary": "Design review for performance: query patterns that will not scale, missing indexes, unpaginated lists, caching strategy",
+    "when": "project, and trigger: a spec changes the data model or an interface",
+    "how": "headless",
+    "access": [
+      "read"
+    ]
+  },
+  {
+    "id": "Q2",
+    "area": "Performance",
+    "summary": "Code-level performance review: repeated queries in loops, blocking work on a main thread, leaks and unclosed handles, oversized payloads and bundles",
+    "when": "trigger (see the four gates)",
+    "how": "headless",
+    "access": [
+      "read"
+    ]
+  },
+  {
+    "id": "Q3",
+    "area": "Performance",
+    "summary": "Load and stress benchmarks against latency and throughput targets",
+    "when": "opt-in, request",
+    "how": "headless",
+    "access": [
+      "outward"
+    ]
+  },
+  {
+    "id": "Q4",
+    "area": "Performance",
+    "summary": "After deployment: read error rates, latency and newly disclosed vulnerabilities in existing dependencies",
+    "when": "opt-in, request",
+    "how": "headless",
+    "access": [
+      "read",
+      "outward"
+    ]
+  },
+  {
+    "id": "X1",
+    "area": "Skills",
+    "summary": "Suggest skills for each role from skills.sh, based on the project's stack and requirements; show source and install count; install only what the user accepts",
+    "when": "project (after the architecture is approved), request",
+    "how": "chat",
+    "access": [
+      "read",
+      "web"
+    ]
+  },
+  {
+    "id": "L1",
+    "area": "Release and deployment",
+    "summary": "Version and changelog",
+    "when": "milestone",
+    "how": "headless",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "L2",
+    "area": "Release and deployment",
+    "summary": "Deployment interview: ask the user where and how they want to deploy",
+    "when": "request",
+    "how": "chat",
+    "access": [
+      "read"
+    ]
+  },
+  {
+    "id": "L3",
+    "area": "Release and deployment",
+    "summary": "Deployment preparation: hosting recommendation, environments, scripts, runbook, rollback plan",
+    "when": "milestone",
+    "how": "headless",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "L4",
+    "area": "Release and deployment",
+    "summary": "Deploy",
+    "when": "request only",
+    "how": "headless, each step approved",
+    "access": [
+      "outward"
+    ]
+  },
+  {
+    "id": "L5",
+    "area": "Release and deployment",
+    "summary": "Smoke test the live version; roll back if it fails",
+    "when": "with L4",
+    "how": "headless",
+    "access": [
+      "outward"
+    ]
+  },
+  {
+    "id": "O1",
+    "area": "Operations",
+    "summary": "Logging, health checks, alerts",
+    "when": "milestone (as tasks)",
+    "how": "headless",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "O2",
+    "area": "Operations",
+    "summary": "Runbooks: deploy, rollback, incident",
+    "when": "milestone",
+    "how": "headless",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "O3",
+    "area": "Operations",
+    "summary": "Maintenance intake: bug reports and dependency updates become backlog items",
+    "when": "request",
+    "how": "headless",
+    "access": [
+      "backlog"
+    ]
+  },
+  {
+    "id": "K1",
+    "area": "Documentation and knowledge",
+    "summary": "README and user documentation",
+    "when": "milestone",
+    "how": "headless",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "K2",
+    "area": "Documentation and knowledge",
+    "summary": "Chronicle: what was done, by which role, and why",
+    "when": "task (on landing)",
+    "how": "headless, cheap model",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "K3",
+    "area": "Documentation and knowledge",
+    "summary": "Context files (AGENTS.md) kept current as the project changes",
+    "when": "milestone, request",
+    "how": "headless",
+    "access": [
+      "governance"
+    ]
+  },
+  {
+    "id": "K4",
+    "area": "Documentation and knowledge",
+    "summary": "Each role's working notes",
+    "when": "when the role runs",
+    "how": "headless",
+    "access": [
+      "write"
+    ]
+  },
+  {
+    "id": "K5",
+    "area": "Documentation and knowledge",
+    "summary": "Knowledge graph kept current",
+    "when": "task (on landing)",
+    "how": "script",
+    "access": [
+      "write"
+    ]
+  }
+]

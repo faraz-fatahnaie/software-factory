@@ -4,6 +4,9 @@ import { join } from "node:path";
 import { SECTIONS } from "./backlog";
 import { loadConfig, parseConfig, ROLES } from "./config";
 import { roleSkills } from "./skills";
+import { activeRoles, DEFAULT_PRESET, GENERATED, presets, renderRole } from "./team";
+
+const GENERATED_MARK = GENERATED.slice(0, 40);
 
 const TEMPLATES = join(import.meta.dir, "..", "templates");
 const RULES_HEADING = "## Software Factory rules";
@@ -60,11 +63,12 @@ export function init(dir: string, opts: { setup?: string[]; gate?: string[] } = 
     done.push(`updated  ${file} (${why})`);
   };
 
-  const template = JSON.parse(readFileSync(join(TEMPLATES, "factory.config.json"), "utf8"));
-  const config = parseConfig({ ...template, setup: opts.setup ?? guess.setup, gate: opts.gate ?? guess.gate });
+  const team = presets[DEFAULT_PRESET]!;
+  const roles = Object.fromEntries(activeRoles(team).map((name) => [name, { runner: "claude", ...team.roles[name]!.defaults! }]));
+  const config = parseConfig({ setup: opts.setup ?? guess.setup, gate: opts.gate ?? guess.gate, roles });
   create("factory.config.json", `${JSON.stringify(config, null, 2)}\n`);
   create("BACKLOG.md", readFileSync(join(TEMPLATES, "BACKLOG.md"), "utf8"));
-  for (const role of ROLES) create(`.claude/agents/${role}.md`, readFileSync(join(TEMPLATES, "agents", `${role}.md`), "utf8"));
+  for (const role of ROLES) create(`.claude/agents/${role}.md`, renderRole(role));
 
   // The rules go into AGENTS.md, and CLAUDE.md imports it so Claude Code loads them.
   if (!read(dir, "AGENTS.md").includes(RULES_HEADING))
@@ -112,4 +116,25 @@ export function doctor(dir: string) {
   const dirty = Bun.spawnSync(["git", "status", "--porcelain", "--", "factory.config.json", ".claude/agents", "AGENTS.md", "CLAUDE.md", ".gitignore"], { cwd: dir, stdout: "pipe", stderr: "pipe" }).stdout.toString().trim();
   check(!dirty, "factory setup is committed", "commit the role files, AGENTS.md, CLAUDE.md and .gitignore", false);
   return { ok, lines };
+}
+
+/**
+ * Rebuilds the role files from the catalog. A file that carries the generated marker is rebuilt
+ * (keeping its attached skills); a file without it was edited by hand and is left alone unless
+ * `force` is set. Returns one line per file and the paths that changed.
+ */
+export function applyTeam(dir: string, force = false) {
+  const lines: string[] = [], paths: string[] = [];
+  for (const role of ROLES) {
+    const file = `.claude/agents/${role}.md`, path = join(dir, file);
+    const current = read(dir, file);
+    if (current && !current.includes(GENERATED_MARK) && !force) { lines.push(`kept     ${file} (edited by hand; --force rebuilds it)`); continue; }
+    const next = renderRole(role, undefined, roleSkills(current));
+    if (next === current) { lines.push(`current  ${file}`); continue; }
+    mkdirSync(join(path, ".."), { recursive: true });
+    writeFileSync(path, next);
+    paths.push(file);
+    lines.push(`${current ? "rebuilt " : "created "} ${file}`);
+  }
+  return { lines, paths };
 }

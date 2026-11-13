@@ -5,7 +5,8 @@ import { add, move, parse, type Item, type Section } from "./backlog";
 import { claudeRunner } from "./claude";
 import { loadConfig } from "./config";
 import { openStore } from "./events";
-import { detect, doctor, init } from "./init";
+import { applyTeam, detect, doctor, init } from "./init";
+import { describeTeam, presets, DEFAULT_PRESET } from "./team";
 import { runTask, shellGate, stopAll, stubRunner } from "./pipeline";
 import { addSkill, setSkill } from "./skills";
 import { commitAll, ensureWorktree, land, removeWorktree } from "./worktree";
@@ -59,6 +60,7 @@ function find(id: string | undefined, ...sections: Section[]): Item {
 const USAGE = `factory init [--setup <cmd>]... [--gate <cmd>]...  set this project up; without flags the commands are detected
 factory detect                                  show the setup and gate commands init would use
 factory gate ["<cmd>"...]                        run the configured gate here, or try the given commands
+factory team [apply [--force]]                  show the team, or rebuild the role files from the catalog
 factory doctor                                  check the machine and this project's setup
 factory status                                  what is ready, running, waiting for you or blocked
 factory run [F-id...] [--parallel N] [--stub]   run the top Ready item(s) or the named ones, each in its own worktree
@@ -91,6 +93,24 @@ async function main([cmd, ...args]: string[]) {
     const { serve } = await import("./server");
     const server = await serve(root, args[0] === undefined ? 4400 : Number(args[0]));
     return console.log(`factory control plane: http://127.0.0.1:${server.port}`);
+  }
+
+  if (cmd === "team") {
+    if (args[0] === "apply") {
+      const r = applyTeam(root, args.includes("--force"));
+      if (r.paths.length) commitPaths("software-factory: rebuild role files from the catalog", ...r.paths);
+      return console.log(r.lines.join("\n"));
+    }
+    if (args.length) throw new Error("usage: factory team [apply [--force]]");
+    const preset = presets[DEFAULT_PRESET]!;
+    let config: ReturnType<typeof loadConfig> | undefined;
+    try { config = loadConfig(root); } catch { /* not initialized: show the defaults */ }
+    console.log(`${preset.title} team: ${preset.summary}\n`);
+    for (const r of describeTeam(preset)) {
+      const c = config?.roles[r.name] ?? preset.roles[r.name]!.defaults;
+      console.log(`${r.active ? "●" : "○"} ${r.title}${c ? `  ${c.model}, ${c.effort}` : ""}\n    built:   ${r.built.join(" ") || "none yet"}\n    planned: ${r.planned.join(" ") || "none"}`);
+    }
+    return console.log("\n● has built responsibilities and runs today; ○ is planned.");
   }
 
   if (cmd === "detect") return console.log(JSON.stringify(detect(root), null, 2));

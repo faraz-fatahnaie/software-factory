@@ -41,7 +41,7 @@ bun run factory approve F-026      # or: discard F-026
    after that, and each move is its own commit.
 2. **Isolation.** Each task gets a git worktree at `.worktrees/<F-id>/` on branch
    `factory/<F-id>`. Your checkout is never touched by a build, and tasks can run in parallel.
-3. **Stages.** Triage sizes the task, the Architect writes a spec, the Builder implements it,
+3. **Stages.** For an ad-hoc item the Planner triages it first (an item that already carries an `Acceptance` line in its backlog detail skips this), then the Architect writes a spec, the Builder implements it,
    the gate (`gate` in `factory.config.json`) runs, and the Reviewer checks the result against
    the spec. A failed gate or a rejected review sends the task back to Build, up to three times.
    Stages hand off through files in the worktree's `.factory/runs/<run>/`, never shared memory.
@@ -81,9 +81,9 @@ The header shows whether the live connection is up and switches between the dark
 ```
 
 - `setup` runs once in each new worktree. `gate` must pass before a build is reviewed.
-- Each of the four roles (`triage`, `architect`, `builder`, `reviewer`) has a model, an effort
+- Each role that exists today (`planner`, `architect`, `builder`, `reviewer`) has a model, an effort
   level and a fallback chain. A rate limit moves the stage to the next model in the chain.
-- Role prompts and tools live in `.claude/agents/<role>.md`. `AGENTS.md` holds the rules every
+- Role prompts and tools live in `.claude/agents/<role>.md`, assembled from the responsibilities the role holds (`factory team` shows the team; `factory team apply` rebuilds the files). `AGENTS.md` holds the rules every
   role follows.
 - Skills are per role: `bun run factory skill add <owner/repo@skill> --role <role>` installs one
   from [skills.sh](https://skills.sh) and attaches it. A skill is third-party instructions your

@@ -4,7 +4,7 @@ export type Ev = {
   seq: number; ts: string; run: string; task: string; stage: string; type: string;
   role?: string; model?: string; data?: any;
 };
-export type StageState = "active" | "ok" | "failed" | "limited";
+export type StageState = "active" | "ok" | "failed" | "limited" | "skipped";
 export type TaskRun = {
   run: string;
   started: string;
@@ -39,7 +39,7 @@ export function summarize(events: Ev[]) {
       const kind = e.type.slice(6);
       t.stages[e.stage] = {
         ...t.stages[e.stage],
-        state: kind === "ok" ? "ok" : kind === "rate_limited" ? "limited" : "failed",
+        state: kind === "ok" ? "ok" : kind === "rate_limited" ? "limited" : kind === "skipped" ? "skipped" : "failed",
         model: e.model ?? t.stages[e.stage]?.model,
       };
       t.cost += e.data?.usage?.costUsd ?? 0;

@@ -3,7 +3,7 @@
   "1": "pipeline.ts",
   "2": "cli.ts",
   "3": "package.json",
-  "4": "factory.test.ts",
+  "4": "server.ts",
   "5": "compilerOptions",
   "6": "F-002 Phase 2: Claude runner",
   "7": "app.tsx",
@@ -12,10 +12,10 @@
   "10": "Backlog",
   "11": "factory",
   "12": "RULES.md",
-  "13": "architect.md",
-  "14": "builder.md",
-  "15": "reviewer.md",
-  "16": "triage.md",
+  "13": "factory.test.ts",
+  "14": "Roles and responsibilities",
+  "15": "hooks.ts",
+  "16": "Only the orchestrator writes BACKLOG.md (rule)",
   "17": "add/SKILL.md",
   "18": "approve/SKILL.md",
   "19": "discard/SKILL.md",
@@ -23,5 +23,6 @@
   "21": "init/SKILL.md",
   "22": "open/SKILL.md",
   "23": "run/SKILL.md",
-  "24": "status/SKILL.md"
+  "24": "status/SKILL.md",
+  "25": "planner.md"
 }

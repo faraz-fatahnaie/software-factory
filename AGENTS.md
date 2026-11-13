@@ -20,7 +20,8 @@ model working here; `CLAUDE.md` only imports it.
 - `plugin/engine/` — orchestrator: `config`, `events` (SQLite log), `backlog`, `pipeline`, `claude` (headless runner), `worktree`, `hooks` (guard and gate), `server`, `skills`, `cli`.
 - `gui/` — source of the control plane page (React, plain CSS): `data.ts` holds the hooks (event stream, polled backlog, theme), `app.tsx` the shell, Overview and Backlog, `views.tsx` the Agents, Logs, Worktrees and Studio views. It is built into `plugin/dist/`, which is committed. `plugin/engine/state.ts` folds the event log into what the page and `factory status` show.
 - `plugin/skills/` — the slash commands (`/software-factory:init`, `add`, `run`, `status`, `open`, `approve`, `discard`, `doctor`). Each is a thin wrapper over `factory`; put logic in the engine.
-- `plugin/templates/` — role files, rules, backlog and config that init writes into a project. `plugin/bin/factory` is the executable.
+- `plugin/templates/catalog.json`, `presets.json` — the responsibility catalog and the team presets (see `docs/ROLES.md`); `plugin/engine/team.ts` validates a team and assembles role files from it. Add a responsibility's `instruction` to the catalog to make it real.
+- `plugin/templates/` — rules and backlog that init writes into a project (role files and config come from the catalog). `plugin/bin/factory` is the executable.
 - `tests/` — unit and HTTP tests. `e2e/` — the browser test. `tests/fixture.ts` builds the throwaway repo both test suites use.
 - `.worktrees/<F-id>/` — one git worktree and `factory/<F-id>` branch per task. Not committed.
 - `factory.config.json` — model, effort and fallback chain per role. It owns model choice; agent files do not set `model`.
@@ -31,7 +32,7 @@ model working here; `CLAUDE.md` only imports it.
 ## Rules
 
 1. **Graph first.** Read `graphify-out/GRAPH_REPORT.md` or run `graphify query "<question>"` before opening source files.
-2. **Files are the handoff.** Each run has a directory under `.factory/runs/` holding `task.md`, `triage.md`, `spec.md`, `build.md`, `review.md`. Read what earlier stages wrote; do not assume shared memory with another model. Your final reply is your stage's output: the orchestrator saves it, so do not write into `.factory/` yourself.
+2. **Files are the handoff.** Each run has a directory under `.factory/runs/` holding `task.md`, `triage.md` (only for ad-hoc items), `spec.md`, `build.md`, `review.md`. Read what earlier stages wrote; do not assume shared memory with another model. Your final reply is your stage's output: the orchestrator saves it, so do not write into `.factory/` yourself.
 3. **Never edit governance files:** `BACKLOG.md`, `factory.config.json`, `AGENTS.md`, `CLAUDE.md`, `.claude/`, `.git`, `.factory/`, `graphify-out/`. A guard hook blocks it. Never commit, push or open pull requests; the orchestrator does that after a person approves. If you find work outside your task, end your output with a `## Follow-ups` heading and one `- ` line per item; it goes to Inbox for a person to promote.
 4. **Stay in scope.** Do the task in `task.md` and nothing else.
 5. **Least code that works.** Reuse what is in this repo, then the standard library, then the platform, then an installed dependency. No new dependency for what a few lines do. No abstractions, config or scaffolding for needs that do not exist yet.
