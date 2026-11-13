@@ -1515,7 +1515,7 @@ test("server: the team is read, previewed and changed over HTTP with the same ch
     expect(team.presets.map((x: any) => x.name)).toEqual(["balanced", "lean", "full"]);
     expect(team.estimate.agents.always).toBe(3);
     const topics = await (await fetch(base + "/api/chat/topics")).json() as any[];
-    expect(topics.find((t) => t.key === "brainstorm").available).toBe(true);
+    expect(topics.find((t) => t.key === "brainstorm")).toMatchObject({ available: true, role: "product-partner", roleTitle: "Product Partner" }); // the page shows the person who holds the job
 
     const preview = await post("/api/team/preview", { changes: [{ op: "use", preset: "lean" }] });
     expect((await preview.json() as any).roles.length).toBe(6);

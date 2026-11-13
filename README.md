@@ -169,14 +169,14 @@ The record builds up as you work:
 | Backlog | The backlog as a board. Cards show stage state, model, elapsed time and cost. A task panel has the live log with replay, the spec, the review and the diff, with Approve and Discard. |
 | Talk | Conversations with the roles that work with you (brainstorm, research, plan, design, test, security review, audit, documents), in the page. They read the project and write documents; they cannot change code. |
 | Checks | The factory's own commands as buttons: setup check, status, release information and readiness, secret scan, rebuild role files. |
-| Team | Roles as columns and responsibilities as cards. Pick a preset or a size, move or switch off responsibilities, fold roles together; the agent count and the cost of a normal task update as a preview, and nothing is saved until you say so. |
+| Team | Every role is a robot with a name and a job; responsibilities are cards under it. Pick a preset or a size, move or switch off responsibilities, fold roles together; the agent count and the cost of a normal task update as a preview, and nothing is saved until you say so. |
 | Agents | Who is working, the model, effort and fallback chain per role, and spend and pass rate by model, role and task. |
 | Logs | Every event from every task, filterable by kind and task. |
 | Worktrees | Every task worktree with its branch and state. |
 | Studio | Edit `AGENTS.md`, role files and skills; each save is a commit and older versions can be restored. Attach, detach, search and install skills per role. |
 | Graph | The graphify knowledge graph of this repository. |
 
-The side rail groups the views, shows whether the live connection is up, and switches between the dark and light themes. On a phone it becomes a bar across the top.
+The look is glass: translucent panels over a soft colour backdrop, in light and dark. Views show skeleton placeholders while they load, and every menu is the page's own list, not the browser's. The side rail groups the views, shows whether the live connection is up, and switches between the dark and light themes. On a phone it becomes a bar across the top.
 
 ## Configuration
 

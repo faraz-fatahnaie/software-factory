@@ -1,6 +1,7 @@
 // Data hooks for the page: the live event stream, the polled backlog, the clock and the theme.
 import { useEffect, useRef, useState } from "react";
 import type { Ev } from "../plugin/engine/state";
+import type { TeamData } from "./team";
 
 export type Item = { id: string; prio?: string; title: string; section: string };
 export type Backlog = { items: Item[]; running: string[] };
@@ -114,4 +115,11 @@ export async function call<T>(path: string, body?: unknown): Promise<{ ok: true;
   } catch {
     return { ok: false, error: "The factory server did not answer. Is `factory serve` still running?" };
   }
+}
+
+/** The team as the Team view reads it, refreshed when `key` changes (for example after more stages finish). null until the first answer. */
+export function useTeam(key: number): TeamData | null {
+  const [team, setTeam] = useState<TeamData | null>(null);
+  useEffect(() => { call<TeamData>("/api/team").then((r) => r.ok && setTeam(r.data)); }, [key]);
+  return team;
 }

@@ -5,7 +5,7 @@ import { chatArgs, chatTurn, TOPICS } from "./chat";
 import { loadConfig, parseConfig, projectRoles, projectTeam } from "./config";
 import { openStore } from "./events";
 import { parseFind, roleSkills, SKILLS_CLI } from "./skills";
-import { chatPromptFor } from "./team";
+import { chatPromptFor, holderOf } from "./team";
 import { changeTeam, parseChanges, planTeam, presetList, teamView } from "./teamctl";
 import { listWorktrees } from "./worktree";
 
@@ -107,8 +107,10 @@ export async function serve(root: string, port = 4400) {
       if (route === "GET /api/chat/topics") {
         const team = projectTeam(root);
         return json(Object.entries(TOPICS).map(([key, t]) => {
-          try { chatPromptFor(t.ids, team); return { key, title: t.title, summary: t.summary, first: t.first, available: true }; }
-          catch (e) { return { key, title: t.title, summary: t.summary, first: t.first, available: false, reason: (e as Error).message }; }
+          // The role that holds the conversation's first responsibility, so the page shows the right person even after a regrouping.
+          const role = holderOf(team, t.ids[0]!), base = { key, title: t.title, summary: t.summary, first: t.first, role, roleTitle: role ? team.roles[role]!.title : undefined };
+          try { chatPromptFor(t.ids, team); return { ...base, available: true }; }
+          catch (e) { return { ...base, available: false, reason: (e as Error).message }; }
         }));
       }
       if (route === "GET /api/events") {

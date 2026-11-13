@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { costs, elapsed, roster, type CostRow, type Ev, type TaskRun } from "../plugin/engine/state";
 import { Feed, logLine } from "./app";
 import { post, useNow } from "./data";
+import { personaFor, Robot } from "./robots";
+import { Select, ViewSkeleton } from "./ui";
 
 type SetError = (e: string) => void;
 
@@ -51,7 +53,7 @@ export function Worktrees({ open, discard }: { open: (id: string) => void; disca
     const timer = setInterval(load, 3000);
     return () => clearInterval(timer);
   }, []);
-  if (!rows) return <p className="empty">Loading…</p>;
+  if (!rows) return <ViewSkeleton kind="list" />;
   if (!rows.length) return <p className="empty">No task worktrees. Each run creates one under .worktrees/.</p>;
   return (
     <section className="tile wide page">
@@ -184,12 +186,9 @@ export function Studio({ setError }: { setError: SetError }) {
           {role && <RoleSkills role={role} changed={() => { loadFiles(); open(path); }} setError={setError} />}
           <p className="toolbar">
             <code>{path}</code>
-            <label>Version{" "}
-              <select value={rev} onChange={(e) => (!dirty || confirm("Discard unsaved changes?")) && open(path, e.target.value)}>
-                <option value="">current</option>
-                {doc.history.map((h) => <option key={h.sha} value={h.sha}>{h.date} {h.sha} {h.subject}</option>)}
-              </select>
-            </label>
+            <Select small label="Version" prefix="Version" value={rev} minWidth={320}
+              options={[{ value: "", label: "current" }, ...doc.history.map((h) => ({ value: h.sha, label: `${h.date} ${h.sha}`, hint: h.subject }))]}
+              onChange={(v) => (!dirty || confirm("Discard unsaved changes?")) && open(path, v)} />
             <button className="primary" disabled={!dirty && !rev} onClick={save}>{rev ? "Restore this version" : "Save"}</button>
             <span role="status">{status}</span>
           </p>
@@ -203,12 +202,14 @@ export function Studio({ setError }: { setError: SetError }) {
 type RoleConfig = { runner: string; model: string; effort: string; fallback: string[] };
 const MODELS = ["fable", "opus", "sonnet", "haiku"];
 const EFFORTS = ["low", "medium", "high", "xhigh", "max"];
+const MODEL_HINT: Record<string, string> = { fable: "Most capable", opus: "Deepest thinking, slower", sonnet: "Balanced", haiku: "Fast and cheap" };
+const EFFORT_HINT: Record<string, string> = { low: "Quick", medium: "Balanced", high: "Thorough", xhigh: "Very thorough", max: "As deep as it goes" };
 
 function Models({ setError }: { setError: (e: string) => void }) {
   const [config, setConfig] = useState<{ roles: Record<string, RoleConfig> } | null>(null);
   const [saved, setSaved] = useState(false);
   useEffect(() => { fetch("/api/config").then((r) => r.json()).then(setConfig); }, []);
-  if (!config) return <p className="empty">Loading…</p>;
+  if (!config) return <ViewSkeleton kind="list" />;
   const set = (role: string, patch: Partial<RoleConfig>) => {
     setSaved(false);
     setConfig({ ...config, roles: { ...config.roles, [role]: { ...config.roles[role]!, ...patch } } });
@@ -229,17 +230,9 @@ function Models({ setError }: { setError: (e: string) => void }) {
         <tbody>
           {Object.entries(config.roles).map(([role, r]) => (
             <tr key={role}>
-              <th scope="row">{role}</th>
-              <td>
-                <select aria-label={`${role} model`} value={r.model} onChange={(e) => set(role, { model: e.target.value })}>
-                  {[...new Set([...MODELS, r.model])].map((m) => <option key={m}>{m}</option>)}
-                </select>
-              </td>
-              <td>
-                <select aria-label={`${role} effort`} value={r.effort} onChange={(e) => set(role, { effort: e.target.value })}>
-                  {EFFORTS.map((x) => <option key={x}>{x}</option>)}
-                </select>
-              </td>
+              <th scope="row"><span className="row gap-s"><Robot role={role} size={30} /><span><b>{personaFor(role).name}</b> <span className="note">{role}</span></span></span></th>
+              <td><Select small label={`${role} model`} value={r.model} options={[...new Set([...MODELS, r.model])].map((m) => ({ value: m, label: m, hint: MODEL_HINT[m] }))} onChange={(v) => set(role, { model: v })} /></td>
+              <td><Select small label={`${role} effort`} value={r.effort} options={EFFORTS.map((x) => ({ value: x, label: x, hint: EFFORT_HINT[x] }))} onChange={(v) => set(role, { effort: v })} /></td>
               <td>
                 <input
                   aria-label={`${role} fallback models, comma separated`}
@@ -309,7 +302,7 @@ export function Logs({ events }: { events: Ev[] }) {
           <span className="pills" role="group" aria-label="Kind of event">
             {Object.keys(KINDS).map((k) => <button key={k} aria-pressed={kind === k} onClick={() => setKind(k)}>{k}</button>)}
           </span>
-          <label>Task <select value={task} onChange={(e) => setTask(e.target.value)}><option value="">all</option>{ids.map((id) => <option key={id}>{id}</option>)}</select></label>
+          <Select small label="Task" prefix="Task" value={task} options={[{ value: "", label: "all" }, ...ids.map((id) => ({ value: id, label: id }))]} onChange={setTask} minWidth={160} />
           <span className="note num">{shown.length} events</span>
         </p>
         <Feed events={shown} limit={500} />

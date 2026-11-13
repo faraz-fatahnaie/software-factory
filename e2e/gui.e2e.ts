@@ -59,7 +59,8 @@ try {
 
   // Models: a change is validated and written to the config file.
   await view("Agents");
-  await page.getByLabel("builder model").selectOption("opus");
+  await page.getByRole("button", { name: /^builder model/ }).click();
+  await page.getByRole("option", { name: /^opus/ }).click();
   await page.getByRole("button", { name: "Save" }).click();
   await page.getByText("Saved to factory.config.json").waitFor();
   assert.equal(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).roles.builder.model, "opus");
@@ -104,7 +105,7 @@ try {
   await page.locator(".role").first().waitFor();
   assert.equal(await page.locator(".role").count(), 9, "the balanced team has nine roles");
   await page.getByRole("button", { name: /^Lean/ }).click();
-  await page.locator(".draft", { hasText: "Switch to the lean team" }).waitFor();
+  await page.locator(".draft", { hasText: "switch to the lean team" }).waitFor();
   await page.waitForFunction(() => document.querySelectorAll(".role").length === 6);
   assert.equal(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).team, undefined, "a preview writes nothing");
   await page.getByRole("button", { name: "Save to project" }).click();
@@ -112,7 +113,8 @@ try {
   assert.equal(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).team.preset, "lean");
   assert.match(sh("git", "log", "-1", "--format=%s").out, /team use lean/);
   // A move that breaks a rule is refused with the reason, and the draft stays empty.
-  await page.getByLabel(/^Move C1 /).selectOption({ label: "Builder" });
+  await page.getByRole("button", { name: /^Hand C1 / }).click();
+  await page.getByRole("option", { name: /Builder/ }).click();
   await page.getByRole("alert").waitFor();
   assert.equal(await page.locator(".draft").count(), 0);
 

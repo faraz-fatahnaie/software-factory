@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { elapsed, passRates, roster, series, STAGES, summarize, toolLine, type Ev, type TaskRun } from "../plugin/engine/state";
-import { post, useBacklog, useEvents, useHash, useNow, useTheme, type Backlog, type Item, type Link } from "./data";
+import { post, useBacklog, useEvents, useHash, useNow, useTeam, useTheme, type Backlog, type Item, type Link } from "./data";
 import { Agents, Logs, Studio, Worktrees } from "./views";
 import { Checks, Talk, type Chats } from "./talk";
-import { Team } from "./team";
+import { presenceOf, Team, type TeamData } from "./team";
 import { Icon } from "./icons";
+import { personaFor, PRESENCE_TEXT, Robot } from "./robots";
+import { ViewSkeleton } from "./ui";
 
 export type Act = (path: string, body: unknown) => Promise<boolean>;
 
@@ -141,8 +143,8 @@ function Throughput({ events, now }: { events: Ev[]; now: number }) {
   );
 }
 
-/** The factory as a line of five stations, with each task sitting at the station it has reached. */
-function Line({ backlog, tasks, open }: { backlog: Backlog; tasks: Map<string, TaskRun>; open: (id: string) => void }) {
+/** The factory as a line of five stations. The three in the middle have a person (robot) at them: whoever runs that stage in this team. */
+function Line({ backlog, tasks, open, team }: { backlog: Backlog; tasks: Map<string, TaskRun>; open: (id: string) => void; team: TeamData | null }) {
   const station = (i: Item): number => {
     if (i.section === "Ready") return 0;
     if (i.section === "Awaiting approval") return 4;
@@ -152,22 +154,29 @@ function Line({ backlog, tasks, open }: { backlog: Backlog; tasks: Map<string, T
   };
   const names = ["Queued", "Planning", "Coding", "Testing", "Verified"];
   const hints = ["Ready to run", "Triage and spec", "Build", "Gate and review", "Waiting for your approval"];
+  const stageOf = [undefined, "spec", "build", "review", undefined];
+  const roleAt = (n: number) => team?.estimate.stages.find((st) => st.stage === stageOf[n])?.role;
   const at = names.map((_, n) => backlog.items.filter((i) => station(i) === n));
   return (
     <article className="tile line">
       <header><h2>Pipeline</h2><p className="note">{backlog.items.filter((i) => i.section === "Done").length} done · {backlog.items.filter((i) => i.section === "Blocked").length} blocked</p></header>
       <ol style={{ "--reach": Math.max(0, ...at.map((list, n) => (list.length ? n : 0))) } as React.CSSProperties}>
-        {names.map((name, n) => (
-          <li key={name} className={at[n]!.length ? "busy" : ""}>
-            <span className="count">{at[n]!.length}</span>
-            <span className="name">{name}</span>
-            <span className="hint">{hints[n]}</span>
-            <span className="chips">
-              {at[n]!.slice(0, 6).map((i) => <button key={i.id} className="chip-id" title={i.title} onClick={() => open(i.id)}>{i.id}</button>)}
-              {at[n]!.length > 6 && <span className="more">+{at[n]!.length - 6}</span>}
-            </span>
-          </li>
-        ))}
+        {names.map((name, n) => {
+          const role = roleAt(n);
+          return (
+            <li key={name} className={at[n]!.length ? "busy" : ""}>
+              {role ? (
+                <span className="station"><Robot role={role} size={46} status={at[n]!.length ? "working" : undefined} />{at[n]!.length > 0 && <span className="count small">{at[n]!.length}</span>}</span>
+              ) : <span className="count">{at[n]!.length}</span>}
+              <span className="name">{name}</span>
+              <span className="hint">{role ? `${personaFor(role).name} · ${hints[n]}` : hints[n]}</span>
+              <span className="chips">
+                {at[n]!.slice(0, 6).map((i) => <button key={i.id} className="chip-id" title={i.title} onClick={() => open(i.id)}>{i.id}</button>)}
+                {at[n]!.length > 6 && <span className="more">+{at[n]!.length - 6}</span>}
+              </span>
+            </li>
+          );
+        })}
       </ol>
     </article>
   );
@@ -201,7 +210,9 @@ export function Feed({ events, limit, open }: { events: Ev[]; limit: number; ope
   );
 }
 
-function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any; backlog: Backlog; open: (id: string) => void }) {
+const DOING: Record<string, string> = { triage: "Triaging", spec: "Writing the spec for", build: "Building", check: "Running the checks on", security: "Checking the security of", review: "Reviewing", document: "Writing the summary of" };
+
+function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any; backlog: Backlog; open: (id: string) => void; team: TeamData | null }) {
   const working = useMemo(() => roster(p.tasks), [p.tasks]);
   const now = useNow(true, working.length ? 1000 : 30_000);
   const day = useMemo(() => series(p.events, now - 86_400_000, now, 24), [p.events, Math.floor(now / 60_000)]);
@@ -212,6 +223,15 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
   const five = p.rateLimit?.unifiedWindows?.five_hour, week = p.rateLimit?.unifiedWindows?.seven_day;
   const pct = (r: { ok: number; total: number }) => (r.total ? `${Math.round((r.ok / r.total) * 100)}` : "–");
   const needsYou = items.filter((i) => i.section === "Awaiting approval" || i.section === "Blocked");
+  const busy = useMemo(() => presenceOf(p.tasks), [p.tasks]);
+  const free = (p.team?.roles ?? []).filter((r) => !busy.has(r.name));
+  const titleOf = (role: string) => p.team?.roles.find((r) => r.name === role)?.title ?? role;
+  // The person behind a waiting task: whoever ran the stage that ended it (the reviewer who approved, the stage that failed).
+  const behind = (i: Item) => {
+    const stages = Object.entries(p.tasks.get(i.id)?.stages ?? {});
+    return (i.section === "Blocked" ? stages.find(([, s]) => s.state === "failed") : stages.find(([k]) => k === "review"))?.[1].role ?? (i.section === "Blocked" ? "builder" : "reviewer");
+  };
+  const progress = (run: TaskRun | undefined) => Math.round((Object.values(run?.stages ?? {}).filter((s) => s.state === "ok").length / 5) * 100);
 
   return (
     <div className="bento">
@@ -222,19 +242,22 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
           <>
             <header><h2>{needsYou.length === 1 ? "1 task needs you" : `${needsYou.length} tasks need you`}</h2></header>
             <ul>
-              {needsYou.map((i) => (
-                <li key={i.id}>
-                  <button className="chip-id" onClick={() => p.open(i.id)}>{i.id}</button>
-                  <span className="what">{i.title}</span>
-                  <span className={`badge ${i.section === "Blocked" ? "bad" : "ok"}`}>{i.section === "Blocked" ? "⚠ Blocked" : "✓ Ready to review"}</span>
-                  <button className={i.section === "Blocked" ? "" : "primary"} onClick={() => p.open(i.id)}>{i.section === "Blocked" ? "Look into it" : "Review"}</button>
-                </li>
-              ))}
+              {needsYou.map((i) => {
+                const role = behind(i), blocked = i.section === "Blocked";
+                return (
+                  <li key={i.id}>
+                    <Robot role={role} size={40} />
+                    <span className="what"><b>{personaFor(role).name}</b> {blocked ? "got stuck on" : "finished and is waiting for your review of"} <button className="chip-id" onClick={() => p.open(i.id)}>{i.id}</button> {i.title}</span>
+                    <span className={`badge ${blocked ? "bad" : "ok"}`}>{blocked ? "⚠ Blocked" : "✓ Ready to review"}</span>
+                    <button className={blocked ? "" : "primary"} onClick={() => p.open(i.id)}>{blocked ? "Look into it" : "Review"}</button>
+                  </li>
+                );
+              })}
             </ul>
           </>
         )}
       </article>
-      <Kpi title="Agents working" value={String(working.length)} note={`${items.filter((i) => i.section === "In progress").length} tasks in progress, ${items.filter((i) => i.section === "Ready").length} ready`}>
+      <Kpi title="People working" value={String(working.length)} unit={p.team ? ` of ${p.team.roles.length}` : ""} note={`${items.filter((i) => i.section === "In progress").length} tasks in progress, ${items.filter((i) => i.section === "Ready").length} ready`}>
         <Spark values={day.map((b) => b.stages)} label="Stages passed per hour, last 24 hours" />
       </Kpi>
       <Kpi title="Backlog done" value={String(done)} unit={` of ${items.length}`} note={`${landed} landed in the last 7 days`}>
@@ -248,31 +271,39 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
         {rates.gate.total > 0 && <meter value={rates.gate.ok / rates.gate.total} low={0.5} optimum={1} max={1} aria-label="Gate pass rate" />}
       </Kpi>
 
-      <Line backlog={p.backlog} tasks={p.tasks} open={p.open} />
+      {working.length > 0 && (
+        <section className="shift" aria-label="On shift">
+          {working.map((w) => (
+            <article key={w.task} className="tile person-card">
+              <header>
+                <Robot role={w.role} size={52} status="working" />
+                <div className="grow">
+                  <h3>{personaFor(w.role).name} <span className="note">{titleOf(w.role)}</span></h3>
+                  <p>{DOING[w.stage] ?? "Working on"} <button className="chip-id" onClick={() => p.open(w.task)}>{w.task}</button></p>
+                </div>
+              </header>
+              <div className="bar" role="progressbar" aria-label={`${personaFor(w.role).name}'s task progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress(p.tasks.get(w.task))}><span style={{ width: `${progress(p.tasks.get(w.task))}%` }} /></div>
+              <p className="note split-line"><span className="num">{w.stage} · {elapsed(w.since, now)}</span><code>{w.model || "gate"}</code></p>
+            </article>
+          ))}
+        </section>
+      )}
 
+      <Line backlog={p.backlog} tasks={p.tasks} open={p.open} team={p.team} />
       <Throughput events={p.events} now={now} />
 
       <article className="tile roster">
-        <header><h2>Working now</h2></header>
-        {working.length === 0 ? <p className="empty">No agents are running.</p> : (
-          <table>
-            <thead><tr><th scope="col">Task</th><th scope="col">Stage</th><th scope="col">Role and model</th><th scope="col">Running for</th></tr></thead>
-            <tbody>
-              {working.map((w) => (
-                <tr key={w.task}>
-                  <td><button className="chip-id" onClick={() => p.open(w.task)}>{w.task}</button></td>
-                  <td>{w.stage}</td>
-                  <td><span className="tag">{w.role}{w.model ? ` · ${w.model}` : ""}</span></td>
-                  <td className="num">{elapsed(w.since, now)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <header><h2>Free right now</h2><p className="note">{free.length} of {p.team?.roles.length ?? 0}</p></header>
+        {free.length === 0 ? <p className="empty">{p.team ? "Everyone is working." : "Loading the team…"}</p> : (
+          <ul className="free-list">
+            {free.map((r) => (
+              <li key={r.name}><Robot role={r.name} size={36} status="free" /><span><b>{personaFor(r.name).name}</b><span className="note">{r.title}</span></span><span className="note right">{PRESENCE_TEXT.free}</span></li>
+            ))}
+          </ul>
         )}
       </article>
 
       <article className="tile activity"><Feed events={p.events} limit={60} open={p.open} /></article>
-
     </div>
   );
 }
@@ -443,6 +474,9 @@ function App() {
   const [theme, toggleTheme] = useTheme();
   const [selected, setSelected] = useState<string | null>(null);
   const [chats, setChats] = useState<Chats>({});
+  const [topic, setTopic] = useState("");
+  const ran = events.filter((e) => e.type === "stage.ok").length;
+  const team = useTeam(ran);
   const [error, setError] = useState("");
   // A run that failed before it started (bad state, git error) only shows up as this event.
   useEffect(() => { if (notice) setError(`${notice.task}: ${notice.data?.error ?? "command failed"}`); }, [notice?.seq]);
@@ -465,6 +499,7 @@ function App() {
     return r.ok;
   };
   const open = (id: string) => { setSelected(id); setView("Backlog"); };
+  const talkTo = (key: string) => { setTopic(key); setView("Talk"); };
   const [title, blurb] = HEADS[view];
 
   return (
@@ -502,13 +537,13 @@ function App() {
         <header className="page-head">
           <div><h1>{title}</h1><p>{blurb}</p></div>
         </header>
-        {!loaded ? <p className="empty loading">Loading the backlog…</p> : (
+        {!loaded ? <><p className="sr" role="status">Loading…</p><ViewSkeleton kind={view === "Overview" ? "overview" : view === "Backlog" ? "board" : view === "Team" ? "team" : "list"} /></> : (
           <>
-            {view === "Overview" && <Overview events={events} tasks={tasks} rateLimit={rateLimit} backlog={backlog} open={open} />}
+            {view === "Overview" && <Overview events={events} tasks={tasks} rateLimit={rateLimit} backlog={backlog} open={open} team={team} />}
             {view === "Backlog" && <Board backlog={backlog} tasks={tasks} act={act} selected={selected} select={setSelected} />}
-            {view === "Talk" && <Talk chats={chats} setChats={setChats} />}
+            {view === "Talk" && <Talk chats={chats} setChats={setChats} topic={topic} />}
             {view === "Checks" && <Checks />}
-            {view === "Team" && <Team events={events} setError={setError} />}
+            {view === "Team" && <Team events={events} tasks={tasks} setError={setError} talkTo={talkTo} />}
             {view === "Agents" && <Agents events={events} tasks={tasks} setError={setError} open={open} />}
             {view === "Logs" && <Logs events={events} />}
             {view === "Worktrees" && <div className="stack"><Worktrees open={open} discard={(id) => act("/api/discard", { id })} /></div>}
