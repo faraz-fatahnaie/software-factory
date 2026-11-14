@@ -1,10 +1,11 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Config, Role } from "./config";
 import { readNotes } from "./chronicle";
 import { changesInWorktree, formatFindings, scanSecrets, sensitiveReasons } from "./security";
 import { activeRoles, customStages, resolveTeam, stageDuties, stageRole } from "./team";
 import type { Store } from "./events";
+import { unresolved } from "./worktree";
 
 export type Status = "ok" | "rate_limited" | "auth" | "error";
 export type Job = {
@@ -48,7 +49,11 @@ export function shellGate(cmds: string[]): Gate {
 
 /** Canned runner for `factory run --stub` and tests: exercises the pipeline without a model. */
 export const stubRunner: Runner = async ({ stage, cwd }) => {
-  if (stage === "build") writeFileSync(join(cwd, "STUB_BUILD.txt"), `stub build ${new Date().toISOString()}\n`);
+  if (stage === "build") {
+    writeFileSync(join(cwd, "STUB_BUILD.txt"), `stub build ${new Date().toISOString()}\n`);
+    // An update from main leaves clashes: the stub keeps both sides, like a Builder that finds them compatible.
+    for (const f of unresolved(cwd, ["."])) writeFileSync(join(cwd, f), readFileSync(join(cwd, f), "utf8").split("\n").filter((l) => !/^(<<<<<<<|=======|>>>>>>>)( |$)/.test(l)).join("\n"));
+  }
   const text = stage === "review" ? "APPROVE\n\nStub review."
     : stage === "security" ? "SECURE\n\nStub security review."
     : stage === "document" ? "## Chronicle\nA stub task was built without a model.\n\n## Role notes\n- builder: Stub runs leave a STUB_BUILD.txt file."
@@ -69,10 +74,11 @@ export const verdictIs = (text: string, word: string) => text.split("\n")[0]!.tr
 export const needsTriage = (task: { detail?: string }) => !/\bacceptance\b/i.test(task.detail ?? "");
 
 /** A person sent a finished task back: the spec of the earlier round, what they said, which files it is about, and which round this is (2 for the first send-back). */
-export type Resume = { spec: string; feedback: string; files: string[]; round: number };
+export type Resume = { spec: string; feedback: string; files: string[]; round: number; /** The round is an update from main (files = the clashes to resolve), not a person's comments. */ update?: boolean };
 
 /** What the Builder is told in the first build of a round that a person asked for. Written as their request: it cannot change the rules or what the Builder may touch. */
-export const peopleFeedback = (r: Pick<Resume, "feedback" | "files">) =>
+export const peopleFeedback = (r: Pick<Resume, "feedback" | "files" | "update">) =>
+  r.update ? `Main moved on, and merging it into this branch left conflicts in: ${r.files.join(", ")}. Resolve each conflict (the <<<<<<<, ======= and >>>>>>> markers), keeping what both sides intended, and change nothing else.` :
   `A person reviewed the earlier build and asked for changes. Address exactly this feedback and change nothing else:\n\n“${r.feedback.trim()}”${r.files.length ? `\n(about: ${r.files.join(", ")})` : ""}`;
 
 /** [Triage →] Spec → Build → Check → Review, looping Build on gate or review failure. Triage runs only for ad-hoc items. A send-back (`resume`) keeps the earlier spec and starts at Build. */
@@ -161,8 +167,8 @@ export async function runTask(
   };
 
   try {
-    emit("run", "run.start", o.resume ? { data: { round: o.resume.round, feedback: o.resume.feedback, files: o.resume.files } } : {});
-    if (o.resume) { emit("triage", "stage.skipped", { data: "a person sent it back; the earlier spec is kept" }); emit("spec", "stage.skipped", { data: `the spec is kept from round ${o.resume.round - 1}` }); }
+    emit("run", "run.start", o.resume ? { data: { round: o.resume.round, feedback: o.resume.feedback, files: o.resume.files, update: o.resume.update } } : {});
+    if (o.resume) { emit("triage", "stage.skipped", { data: o.resume.update ? "updated from main; the earlier spec is kept" : "a person sent it back; the earlier spec is kept" }); emit("spec", "stage.skipped", { data: `the spec is kept from round ${o.resume.round - 1}` }); }
     else if (!needsTriage(task)) emit("triage", "stage.skipped", { data: "the item already carries acceptance checks" });
     else if (roleFor("triage")) await stage("triage", roleFor("triage")!);
     else emit("triage", "stage.skipped", { data: "triage is switched off in this team" });

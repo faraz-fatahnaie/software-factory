@@ -18,7 +18,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 - [ ] F-019 Run builder stages inside an OS-level sandbox; the guard hook is a text match, not containment
 - [x] F-020 Reject with feedback
   `factory reject <F-id> --feedback "…"`, `POST /api/reject`, `/software-factory:reject` and a Send back with comments box in the task panel. Same branch and spec, a new round (Build to Review again), the comments recorded on the run and shown on the card and in the panel.
-- [ ] F-021 Rebase a task branch automatically when approve hits a merge conflict
+- [x] F-021 Update a waiting task when main moves on
+  `factory update <F-id>`, `POST /api/update`, `/software-factory:update`, a "Main moved on" tag and an Update this task button. Merges main into the task's own branch (nothing pushed): clean means only Check runs again; a clash goes to the Builder as a new round; if it cannot be finished the branch is put back. Limit: only for a task still waiting for a decision. A pull request that conflicts after approval still means discard and re-run (a follow-up).
 - [ ] F-022 Pause and resume a running task from the control plane
 - [ ] F-023 Model health test in the matrix: a one-token prompt per model
 - [ ] F-024 Show a skill's SKILL.md in the studio before installing it, not only its skills.sh page

@@ -10,7 +10,7 @@ import { chatPromptFor, holderOf } from "./team";
 import { changeTeam, parseChanges, planTeam, presetList, teamView } from "./teamctl";
 import { commitDetail, fileDiff, graphInfo, sourceInfo } from "./source";
 import { hasChecks, remoteUrl, vcsStatus } from "./vcs";
-import { listWorktrees } from "./worktree";
+import { behindBy, listWorktrees } from "./worktree";
 
 const CLI = join(import.meta.dir, "cli.ts");
 const ID = /^F-\d+$/;
@@ -54,6 +54,19 @@ export async function serve(root: string, port = 4400) {
   mkdirSync(join(root, ".factory"), { recursive: true });
   const store = openStore(join(root, ".factory", "events.db"));
   const running = new Map<string, { kill(signal?: number | NodeJS.Signals): void }>();
+  /** Starts a command for one task in the background (a send-back, an update), and says so if it fails before a run exists. */
+  const startOne = (id: string, argv: string[]) => {
+    if (running.has(id)) return json({ error: "already running" }, 409);
+    const p = Bun.spawn([process.execPath, CLI, ...argv], { cwd: root, stdout: "inherit", stderr: "pipe" });
+    const stderr = new Response(p.stderr).text();
+    running.set(id, p);
+    p.exited.then(async (code) => {
+      running.delete(id);
+      const error = (await stderr).trim();
+      if (code !== 0 && error) store.emit({ run: "", task: id, stage: "run", type: "command.failed", data: { error: error.slice(-1000) } });
+    });
+    return json({ started: [id] }, 202);
+  };
   let healthCache: { at: number; body: Health[] } | undefined;
   const items = () => parse(readFileSync(join(root, "BACKLOG.md"), "utf8"));
 
@@ -118,7 +131,13 @@ export async function serve(root: string, port = 4400) {
       if (!origins.includes(url.origin)) return json({ error: "forbidden host" }, 403);
       const route = `${req.method} ${url.pathname}`;
 
-      if (route === "GET /api/backlog") return json({ items: items(), running: [...running.keys()] });
+      if (route === "GET /api/backlog") {
+        const list = items();
+        // How far main moved on for each task waiting for a decision (shown as "Main moved on").
+        const behind: Record<string, number> = {};
+        for (const i of list) if (i.section === "Awaiting approval") try { const n = behindBy(root, i.id); if (n) behind[i.id] = n; } catch { /* no branch: nothing to say */ }
+        return json({ items: list, running: [...running.keys()], behind });
+      }
       if (route === "GET /api/config") return json(loadConfig(root));
       if (route === "GET /api/team") return json(teamPayload());
       if (route === "GET /api/source") return json(sourceInfo(root, projectTeam(root)));
@@ -334,15 +353,14 @@ export async function serve(root: string, port = 4400) {
         if (!files || files.length > 20 || files.some((f) => typeof f !== "string" || !f || f.length > 200 || /[\r\n,]/.test(f))) return json({ error: "files: up to 20 file paths" }, 400);
         if (items().find((i) => i.id === id)?.section !== "Awaiting approval") return json({ error: `${id} is not waiting for a decision` }, 409);
         if (running.has(id)) return json({ error: "already running" }, 409);
-        const p = Bun.spawn([process.execPath, CLI, "reject", id, "--feedback", feedback, ...(files.length ? ["--files", files.join(",")] : []), ...(body.stub === true ? ["--stub"] : [])], { cwd: root, stdout: "inherit", stderr: "pipe" });
-        const stderr = new Response(p.stderr).text();
-        running.set(id, p);
-        p.exited.then(async (code) => {
-          running.delete(id);
-          const error = (await stderr).trim();
-          if (code !== 0 && error) store.emit({ run: "", task: id, stage: "run", type: "command.failed", data: { error: error.slice(-1000) } });
-        });
-        return json({ started: [id] }, 202);
+        return startOne(id, ["reject", id, "--feedback", feedback, ...(files.length ? ["--files", files.join(",")] : []), ...(body.stub === true ? ["--stub"] : [])]);
+      }
+      if (route === "POST /api/update") {
+        // Bring a waiting task up to date with main: the same command a person would type.
+        const id = ids.length === 1 ? ids[0]! : "";
+        if (!id) return json({ error: "one id required" }, 400);
+        if (items().find((i) => i.id === id)?.section !== "Awaiting approval") return json({ error: `${id} is not waiting for a decision` }, 409);
+        return startOne(id, ["update", id, ...(body.stub === true ? ["--stub"] : [])]);
       }
       if (route === "POST /api/run") {
         const count = body.parallel ?? 1;

@@ -235,7 +235,7 @@ Summary says what failed, with the output. Then:
 | **The Claude command line is not logged in** | An authentication error. The factory does *not* retry it on another model, because that would hide the problem | Run `claude` in a terminal and log in, then **Retry**. |
 | **A stage failed to start** | A broken role file or settings | `⌘K` → *Is the setup right?*, or ask Bix. Fix it in Studio, then **Retry**. |
 | **You pressed Stop** | The stages end and the task moves to Blocked | **Retry** when you want it, or **Discard**. |
-| **It conflicts with work that landed after it was built** | Another task changed the same code. At approval: "conflicts with work that landed after it was built; nothing was merged" | Nothing was changed. Discard it, then Run it again; it rebuilds from the new `main`. |
+| **Main moved on while it waited** | The card shows "Main moved on" and the panel says "main has 2 new commits since this was built". If the same code changed, Approve stops with "conflicts with work that landed after it was built; nothing was merged" | Press **Update this task** (or `factory update F-007`). Main is merged into the task's own branch; nothing is pushed. No clash: only the checks run again. A clash: Kofi resolves just those files and everything runs again as a new round ("Update from main · round N" on the card). If it cannot be finished, or the checks fail with the new main, the branch is put back exactly as it was. Once a task is approved and waiting for its pull request, update is not available: discard it and run it again. |
 
 **Retry** starts a fresh run from the beginning with the same item. **Discard** asks once, in place, and deletes
 the branch and folder. Neither affects `main`.
@@ -243,7 +243,7 @@ the branch and folder. Neither affects `main`.
 ### Things around the pipeline
 
 - **Two tasks at once.** Each has its own folder. They can only collide when they are *approved*, which is the
-  conflict case above.
+  "main moved on" case above, and Update fixes it.
 - **Cost.** Each stage's cost appears when it ends. Overview shows usage against Claude's five-hour and weekly
   windows; the Health strip warns at 80%. **Agents** has the model and effort per role.
 - **The dashboard says something is wrong.** The Health strip checks, for free and without a model: setup,

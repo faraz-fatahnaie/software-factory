@@ -99,7 +99,7 @@ the cost of a normal task before you save it.
 | View | What it is for |
 | --- | --- |
 | **Overview** | What needs you first. Who is working, with a live "Now" line (*Editing `src/orders.ts`*, *Running `bun test`*). A **Health** strip of free checks. Throughput, Claude usage and cost, GitHub status. |
-| **Backlog** | The board: Inbox, Ready, In progress, Needs you, Done, and a strip for blocked tasks. Open a task for its pipeline, live activity, spec, review and changes, then **Approve and land**, **Send back with comments** (the Builder changes only what you say, on the same branch and spec) or **Discard**. |
+| **Backlog** | The board: Inbox, Ready, In progress, Needs you, Done, and a strip for blocked tasks. Open a task for its pipeline, live activity, spec, review and changes, then **Approve and land**, **Send back with comments** (the Builder changes only what you say, on the same branch and spec), **Update this task** when main moved on while it waited, or **Discard**. |
 | **Talk** | Conversations with the people who work with you: brainstorm, research, plan, design, test, security review, documents, GitHub. Each can suggest your next message. **Bix**, the Guide, answers questions about the tool and never changes anything. |
 | **Team** | The robots, their jobs and models; change the team with a preview. Click a robot for their panel: live feed, files touched, recent stages. |
 | **Agents** | The model, effort and fallbacks for every role, and what each cost. |
@@ -120,7 +120,7 @@ delete it can only be started by you.
 | `/software-factory:add <what>` | Put an idea in the Inbox. |
 | `/software-factory:run` | Run the top Ready item, or the ones you name. |
 | `/software-factory:status` | Where every task stands, and the next step. |
-| `/software-factory:approve`, `:reject`, `:discard` | Accept, send back with your comments, or throw away a finished task. |
+| `/software-factory:approve`, `:reject`, `:update`, `:discard` | Accept, send back with your comments, bring up to date with main, or throw away a finished task. |
 | `/software-factory:git` | Set up git and GitHub with you; see what is waiting to be pushed. |
 | `/software-factory:test`, `:secure` | Check against the user stories; security and performance review. |
 | `/software-factory:docs` | Bring the README and documents up to date. |
@@ -128,7 +128,7 @@ delete it can only be started by you.
 | `/software-factory:team`, `:ask` | Change the team; ask which person handles something. |
 | `/software-factory:open`, `:doctor` | Open the dashboard; check the setup. |
 
-The same engine has more commands for the terminal: `factory add | promote | run | approve | discard |
+The same engine has more commands for the terminal: `factory add | promote | run | approve | reject | update | discard |
 push | merge | revert | sync | vcs | team | configure | scan | release | status | doctor`
 (`factory` is on your PATH while the plugin is on).
 

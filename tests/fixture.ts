@@ -68,6 +68,8 @@ export function seedStates(dir: string, cli: (...args: string[]) => unknown) {
   cli("add", "Deposit payment link", "--priority", "P1", "--detail", "Customers pay a deposit.");
   for (const id of ["F-003", "F-004", "F-005", "F-007"]) cli("promote", id);
   cli("run", "F-005", "--stub"); // waiting for you, with a real branch
+  writeFileSync(join(dir, "other.txt"), "main moved on\n"); // after F-005 was built: it shows "Main moved on"
+  Bun.spawnSync(["git", "add", "other.txt"], { cwd: dir, env: process.env }); Bun.spawnSync(["git", "commit", "-q", "-m", "main moves on"], { cwd: dir, env: process.env });
   const file = join(dir, "BACKLOG.md");
   let text = readFileSync(file, "utf8");
   for (const [id, to] of [["F-002", "In progress"], ["F-003", "In progress"], ["F-004", "Blocked"]] as const) text = move(text, id, to);

@@ -15,7 +15,8 @@ import { addCustom, changeTeam, moveSettings, offSettings, onSettings, removeCus
 import { runTask, shellGate, stopAll, stubRunner, type Resume, type Runner } from "./pipeline";
 import { addSkill, searchSkills, setSkill } from "./skills";
 import { armAutoMerge, ciWorkflow, failingChecksItem, formatStatus, hasChecks, listPrs, mergeTask, pushTask, revertTask, runTexts, syncGithub, vcsStatus } from "./vcs";
-import { APPROVED, commitAll, ensureWorktree, land, removeWorktree } from "./worktree";
+import { baseBranch } from "./vcs";
+import { abortUpdate, APPROVED, behindBy, commitAll, ensureWorktree, land, mergeBase, removeWorktree, unresolved, worktreeOf } from "./worktree";
 
 const root = process.cwd();
 const backlogPath = join(root, "BACKLOG.md");
@@ -82,6 +83,7 @@ const flag = (args: string[], name: string) => args.flatMap((a, i) => (a === nam
 const USAGE = `factory init [--setup <cmd>]... [--gate <cmd>]... [--team lean|balanced|full]   set this project up; without flags the commands are detected and the team is balanced
 factory detect                                  show the setup and gate commands init would use
 factory gate ["<cmd>"...]                        run the configured gate here, or try the given commands
+factory update <F-id>                           bring a waiting task up to date with main (the Builder resolves any clash; nothing is pushed)
 factory reject <F-id> --feedback "<what to change>" [--files a,b]   send a finished task back to the Builder with your comments (same branch, same spec)
 factory release info | check [--deploy] | tag <version>   what a release holds, whether the project is ready, and tag it (never pushes)
 factory scan [--since <revision>]                scan for hard-coded secrets: the whole project, or what changed since a revision
@@ -123,10 +125,13 @@ async function runItems(config: ReturnType<typeof loadConfig>, runner: Runner, c
       const result = await runTask(item, { config, store, runner, gate: shellGate(config.gate), cwd: dir, resume });
       ({ run, followUps } = result);
       if (!result.ok) error = result.error;
-      else if (!commitAll(dir, `${item.id}: ${item.title}${resume ? ` (round ${resume.round})` : ""}`)) error = "the review approved a build that changed nothing";
+      else if (resume?.update && unresolved(dir, resume.files).length) error = `conflict markers remain in ${unresolved(dir, resume.files).join(", ")}`;
+      else if (!commitAll(dir, `${item.id}: ${item.title}${resume ? ` (round ${resume.round})` : ""}`) && !resume?.update) error = "the review approved a build that changed nothing";
     } catch (e) {
       error = String(e);
     }
+    // An update that could not be finished puts the branch back as it was: nothing is lost.
+    if (error && resume?.update) try { abortUpdate(worktreeOf(root, item.id)); } catch { /* already restored */ }
     const to: Section = error ? "Blocked" : "Awaiting approval";
     editBacklog(`${item.id} → ${to}`, (t) => followUps.reduce((text, f) => add(text, f).text, move(t, item.id, to)));
     console.log(error
@@ -136,6 +141,15 @@ async function runItems(config: ReturnType<typeof loadConfig>, runner: Runner, c
   }));
   store.close();
   if (results.includes(false)) process.exitCode = 1;
+}
+
+/** What a send-back or an update needs from the task's last run: its spec, and the next round number. */
+function resumeFrom(item: Item, feedback: string, files: string[], update = false): Resume {
+  const store = openEvents(), before = store.last("run.start", item.id), lastRun = store.lastRun(item.id);
+  const specFile = lastRun ? join(root, ".factory", "runs", lastRun, "spec.md") : "";
+  const spec = specFile && existsSync(specFile) ? readFileSync(specFile, "utf8") : "";
+  store.close();
+  return { spec, feedback, files, update, round: (((before?.data as { round?: number } | undefined)?.round) ?? 1) + 1 };
 }
 
 async function main([cmd, ...args]: string[]) {
@@ -473,12 +487,42 @@ async function main([cmd, ...args]: string[]) {
     if (!feedback || feedback.length > 4000) throw new Error('usage: factory reject <F-id> --feedback "<what to change, up to 4000 characters>" [--files a,b] [--stub]');
     if (files.length > 20 || files.some((f) => f.length > 200 || /[\r\n]/.test(f))) throw new Error("--files: up to 20 paths of up to 200 characters");
     const item = find(id, "Awaiting approval");
-    const config = loadConfig(root), store = openEvents();
-    const before = store.last("run.start", item.id), lastRun = store.lastRun(item.id);
-    const specFile = lastRun ? join(root, ".factory", "runs", lastRun, "spec.md") : "";
-    const spec = specFile && existsSync(specFile) ? readFileSync(specFile, "utf8") : "";
+    return runItems(loadConfig(root), args.includes("--stub") ? stubRunner : claudeRunner(loadConfig(root).gate), [item], resumeFrom(item, feedback, files));
+  }
+
+  if (cmd === "update") {
+    // Main moved on while the task waited for a decision: merge it into the task's own branch, never into main, and check again.
+    const unknown = args.filter((a) => !/^F-\d+$/.test(a) && a !== "--stub");
+    if (unknown.length) throw new Error(`unknown argument: ${unknown.join(" ")}`);
+    const item = find(args.find((a) => /^F-\d+$/.test(a)), "Awaiting approval");
+    const config = loadConfig(root), base = baseBranch(root), dir = worktreeOf(root, item.id);
+    const runner = args.includes("--stub") ? stubRunner : claudeRunner(config.gate);
+    const behind = behindBy(root, item.id);
+    if (!behind) return console.log(`${item.id} is already up to date with ${base}`);
+    const store = openEvents(), run = store.lastRun(item.id) ?? "";
+    const note = (type: string, data: unknown, stage = "update") => store.emit({ run, task: item.id, stage, type, data });
+    note("update.start", { base, commits: behind });
+    const clash = mergeBase(dir, base);
+    if (clash.length) {
+      note("update.conflict", { files: clash });
+      store.close();
+      console.log(`${item.id}: ${base} has ${behind} new commit(s) and ${clash.join(", ")} clash${clash.length === 1 ? "es" : ""}; the Builder resolves it`);
+      return runItems(config, runner, [item], resumeFrom(item, `Update from ${base}: resolve the conflicts in ${clash.join(", ")}`, clash, true));
+    }
+    // A clean merge: the Builder changed nothing, so only the checks run again. A failure puts the branch back as it was.
+    store.emit({ run, task: item.id, stage: "check", type: "stage.start" });
+    const check = await shellGate(config.gate)(dir);
+    store.emit({ run, task: item.id, stage: "check", type: check.ok ? "stage.ok" : "stage.failed", data: check.output });
+    if (!check.ok) {
+      abortUpdate(dir);
+      note("update.failed", { output: check.output.slice(-1000) });
+      store.close();
+      throw new Error(`${item.id} was not updated: the checks fail with the new ${base}. Nothing changed. Send it back with a comment to have the Builder fix it.\n${check.output}`);
+    }
+    for (const st of ["security", "review"]) store.emit({ run, task: item.id, stage: st, type: "stage.skipped", data: "kept: the code did not change" });
+    note("update.done", { base, commits: behind });
     store.close();
-    return runItems(config, args.includes("--stub") ? stubRunner : claudeRunner(config.gate), [item], { spec, feedback, files, round: (((before?.data as { round?: number } | undefined)?.round) ?? 1) + 1 });
+    return console.log(`${item.id} is up to date with ${base} (${behind} commit(s) merged, checks pass). Nothing was pushed.`);
   }
 
   console.log(USAGE);

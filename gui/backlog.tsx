@@ -64,7 +64,7 @@ const verdictOf = (run?: TaskRun) => {
 
 function Prio({ p }: { p?: string }) { return p ? <span className="tag">{p}</span> : null; }
 
-function TaskCard(p: { openPerson?: (role: string) => void; item: Item; run?: TaskRun; running: boolean; selected: boolean; now: number; stub: boolean; first: boolean; act: Act; open: () => void; landed?: string }) {
+function TaskCard(p: { openPerson?: (role: string) => void; behind?: number; item: Item; run?: TaskRun; running: boolean; selected: boolean; now: number; stub: boolean; first: boolean; act: Act; open: () => void; landed?: string }) {
   const { item, run, act } = p;
   const id = { id: item.id }, active = activeOf(run), sec = item.section;
   const files = useDiff(item.id, run?.run ?? "", sec === "Awaiting approval");
@@ -75,7 +75,7 @@ function TaskCard(p: { openPerson?: (role: string) => void; item: Item; run?: Ta
   return (
     <li className={`bcard ${sec === "Awaiting approval" ? "you" : active ? "live" : ""}${p.selected ? " selected" : ""}`} data-card={item.id}>
       <button className="open" onClick={p.open} aria-pressed={p.selected}>
-        <span className="top"><span className="idc">{item.id}</span><Prio p={item.prio} />{run && run.round > 1 && <span className="tag">Round {run.round}</span>}{active && <span className="state"><i className="pulse" aria-hidden="true" />{DOING[active[0]]}</span>}{p.first && sec === "Ready" && <span className="state quiet">Runs first</span>}</span>
+        <span className="top"><span className="idc">{item.id}</span><Prio p={item.prio} />{run && run.round > 1 && <span className="tag">Round {run.round}</span>}{p.behind ? <span className="tag moved" title={`main has ${p.behind} new commit${p.behind === 1 ? "" : "s"} since this was built`}>Main moved on</span> : null}{active && <span className="state"><i className="pulse" aria-hidden="true" />{DOING[active[0]]}</span>}{p.first && sec === "Ready" && <span className="state quiet">Runs first</span>}</span>
         <span className="title">{item.title}</span>
       </button>
       {active && live && (
@@ -268,7 +268,7 @@ function Changes({ item, run }: { item: Item; run?: TaskRun }) {
   );
 }
 
-function Panel(p: { item: Item; run?: TaskRun; events: Ev[]; now: number; stub: boolean; act: Act; close: () => void; step: (d: number) => void }) {
+function Panel(p: { behind?: number; busy: boolean; item: Item; run?: TaskRun; events: Ev[]; now: number; stub: boolean; act: Act; close: () => void; step: (d: number) => void }) {
   const { item, run, act } = p;
   const sec = item.section, awaiting = sec === "Awaiting approval", active = activeOf(run);
   const [tab, setTab] = useState<Tab>(awaiting ? "Changes" : "Summary");
@@ -317,7 +317,7 @@ function Panel(p: { item: Item; run?: TaskRun; events: Ev[]; now: number; stub: 
           </span>
         </div>
         <header className="bk-head">
-          <div className="row gap wrap"><span className="idc">{item.id}</span><Prio p={item.prio} />{run && run.round > 1 && <span className="tag" title="A person sent it back, so this is another round">Round {run.round}</span>}<span className={`bk-status ${status.cls}`}>{status.cls === "live" && <i className="pulse" aria-hidden="true" />}{status.cls === "ok" && <Icon name="check" size={15} />}{status.text}</span></div>
+          <div className="row gap wrap"><span className="idc">{item.id}</span><Prio p={item.prio} />{run && run.round > 1 && <span className="tag" title="Another round on the same branch and spec">Round {run.round}</span>}<span className={`bk-status ${status.cls}`}>{status.cls === "live" && <i className="pulse" aria-hidden="true" />}{status.cls === "ok" && <Icon name="check" size={15} />}{status.text}</span></div>
           <div className="row between wrap">
             <h2 ref={head} tabIndex={-1}>{item.title}</h2>
             <span className="row gap">
@@ -342,6 +342,13 @@ function Panel(p: { item: Item; run?: TaskRun; events: Ev[]; now: number; stub: 
         <div className="bk-body" key={tab} role="tabpanel" tabIndex={0}>
           {tab === "Summary" && (
             <>
+              {awaiting && !!p.behind && (
+                <section className="bk-card moved" aria-label="Main moved on">
+                  <h3>main has {p.behind} new commit{p.behind === 1 ? "" : "s"} since this was built</h3>
+                  <p>Update the task to build on the new main. If the same lines changed, the Builder resolves the clash and the checks run again. Nothing is pushed.</p>
+                  <div className="row gap wrap"><button className="primary" disabled={p.busy} onClick={() => act("/api/update", { id: item.id, stub: p.stub })}>{p.busy ? "Updating…" : "Update this task"}</button><span className="note">Approve stays available; if it conflicts it stops and points here.</span></div>
+                </section>
+              )}
               {active && <section className="bk-card live" aria-label="What is happening now"><NowLine run={run} stage={active[0]} since={active[1].since ?? run!.started} now={p.now} /></section>}
               {sec === "Blocked" && (failure || run?.error) && (
                 <section className="bk-card bad" aria-label="What went wrong">
@@ -350,8 +357,8 @@ function Panel(p: { item: Item; run?: TaskRun; events: Ev[]; now: number; stub: 
                 </section>
               )}
               {(run?.feedback ?? []).slice().reverse().map((f, i) => (
-                <section key={i} className="bk-card live" aria-label={`Your comments, round ${f.round}`}>
-                  <div className="row between"><h3>Your comments · round {f.round}</h3><span className="note">sent {agoShort(f.ts)} ago</span></div>
+                <section key={i} className="bk-card live" aria-label={`${f.update ? "Update from main" : "Your comments"}, round ${f.round}`}>
+                  <div className="row between"><h3>{f.update ? "Update from main" : "Your comments"} · round {f.round}</h3><span className="note">{f.update ? "started" : "sent"} {agoShort(f.ts)} ago</span></div>
                   <p className="bk-detail">{f.text}</p>
                   {f.files.length > 0 && <p className="note">About: {f.files.map((x) => <code key={x}>{x}</code>)}</p>}
                 </section>
@@ -540,7 +547,7 @@ export function BacklogView(p: { openPerson?: (role: string) => void; backlog: D
               ) : section === "Done" ? (
                 <ul className="done-list">{items.map((i) => <DoneRow key={i.id} item={i} landed={landed.get(i.id)} selected={p.selected === i.id} open={() => p.select(i.id)} />)}</ul>
               ) : (
-                <ul>{items.map((i, k) => <TaskCard key={i.id} openPerson={p.openPerson} item={i} run={p.tasks.get(i.id)} running={p.backlog.running.includes(i.id)} selected={p.selected === i.id} now={now} stub={stub} first={k === 0} act={p.act} open={() => p.select(i.id)} />)}</ul>
+                <ul>{items.map((i, k) => <TaskCard key={i.id} openPerson={p.openPerson} item={i} run={p.tasks.get(i.id)} behind={p.backlog.behind[i.id]} running={p.backlog.running.includes(i.id)} selected={p.selected === i.id} now={now} stub={stub} first={k === 0} act={p.act} open={() => p.select(i.id)} />)}</ul>
               )}
               {section === "Done" && done.length > 5 && !q && <button className="quiet" onClick={() => setMoreDone(!moreDone)}>{moreDone ? "Show fewer" : `Show ${done.length - 5} more`}</button>}
             </section>
@@ -548,7 +555,7 @@ export function BacklogView(p: { openPerson?: (role: string) => void; backlog: D
         })}
       </div>
       {total === 0 && <p className="empty">The backlog is empty. Add an item to start.</p>}
-      {item && <Panel item={item} run={p.tasks.get(item.id)} events={p.events} now={now} stub={stub} act={p.act} close={() => p.select(null)} step={step} />}
+      {item && <Panel behind={p.backlog.behind[item.id]} busy={p.backlog.running.includes(item.id)} item={item} run={p.tasks.get(item.id)} events={p.events} now={now} stub={stub} act={p.act} close={() => p.select(null)} step={step} />}
     </div>
   );
 }

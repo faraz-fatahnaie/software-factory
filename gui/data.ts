@@ -5,7 +5,7 @@ import type { TeamData } from "./team";
 import type { VcsData } from "./vcs";
 
 export type Item = { id: string; prio?: string; title: string; section: string; detail?: string };
-export type Backlog = { items: Item[]; running: string[] };
+export type Backlog = { items: Item[]; running: string[]; /** For each task waiting for a decision, how many commits main has that it lacks. */ behind: Record<string, number> };
 export type Link = "connecting" | "live" | "reconnecting" | "offline";
 
 export async function post(path: string, body: unknown): Promise<{ ok: boolean; error: string }> {
@@ -52,7 +52,7 @@ export function useEvents(): { events: Ev[]; link: Link } {
 
 /** The backlog, polled. State changes only when the answer does, so a poll never repaints or resets anything. */
 export function useBacklog(): { backlog: Backlog; loaded: boolean; reload: () => void } {
-  const [backlog, setBacklog] = useState<Backlog>({ items: [], running: [] });
+  const [backlog, setBacklog] = useState<Backlog>({ items: [], running: [], behind: {} });
   const [loaded, setLoaded] = useState(false);
   const last = useRef("");
   const reload = () =>
@@ -60,7 +60,7 @@ export function useBacklog(): { backlog: Backlog; loaded: boolean; reload: () =>
       setLoaded(true);
       if (text === last.current) return;
       last.current = text;
-      setBacklog(JSON.parse(text));
+      setBacklog({ behind: {}, ...JSON.parse(text) });
     }).catch(() => {});
   useEffect(() => {
     reload();

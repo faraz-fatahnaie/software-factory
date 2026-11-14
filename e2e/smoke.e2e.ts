@@ -85,6 +85,9 @@ try {
     await page.getByRole("dialog", { name: "Task F-005" }).waitFor();
     await page.locator(".bk-changes .udiff .ln.add").first().waitFor();
     for (const tab of ["Summary", "Activity", "Spec", "Review"]) await page.getByRole("tab", { name: new RegExp(`^${tab}`) }).click();
+    await page.getByRole("tab", { name: "Summary" }).click();
+    await page.getByRole("heading", { name: /main has 1 new commit/ }).waitFor();
+    await page.getByRole("button", { name: "Update this task" }).waitFor();
     await a11y(page, `${name} task panel (needs you)`);
     await page.getByRole("button", { name: "Send back with comments" }).click();
     await page.getByLabel("Your comments").waitFor();

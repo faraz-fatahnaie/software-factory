@@ -1093,3 +1093,6 @@ button.icon:hover { color: var(--text); background: color-mix(in srgb, var(--tex
 .chipb { display: inline-flex; align-items: center; min-height: 30px; padding: 0 12px; border-radius: var(--r-pill); font-size: 13px; background: none; }
 .chipb[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 .said-line { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-style: italic; }
+
+.tag.moved { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 55%, transparent); }
+.bk-card.moved { border-color: color-mix(in srgb, var(--warn) 55%, transparent); }

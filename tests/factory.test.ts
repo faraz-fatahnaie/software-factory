@@ -2026,3 +2026,63 @@ test("send back over HTTP: validated, only for a task waiting for a decision, an
     expect(section("F-001")).toBe("Awaiting approval");
   } finally { server.stop(); }
 });
+
+test("update from main: nothing to do, a clean merge runs only Check, and a failing check puts the branch back", async () => {
+  const { dir, cli, sh, section } = repo();
+  cli("run", "F-001", "--stub");
+  expect(cli("update", "F-001").out).toMatch(/already up to date/);
+  expect(cli("update", "F-002").out).toMatch(/expected Awaiting approval/);
+  writeFileSync(join(dir, "other.txt"), "main moved\n");
+  sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "main moves on");
+  const main = sh("git", "rev-parse", "main").out, before = sh("git", "rev-parse", "factory/F-001").out;
+  // The checks fail with the new main: nothing changes.
+  writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ ...config, gate: ["false"], setup: ["true"] }));
+  const bad = cli("update", "F-001");
+  expect(bad.out).toMatch(/was not updated/);
+  expect(sh("git", "rev-parse", "factory/F-001").out).toBe(before);
+  writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ ...config, setup: ["true"] }));
+  const ok = cli("update", "F-001");
+  expect(ok.out).toMatch(/up to date with main \(1 commit\(s\) merged/);
+  expect(sh("git", "rev-parse", "main").out).toBe(main); // main is never touched
+  expect(sh("git", "show", "factory/F-001:other.txt").out).toBe("main moved");
+  expect(section("F-001")).toBe("Awaiting approval");
+  const events = openStore(join(dir, ".factory", "events.db")).since(0);
+  expect(events.filter((e) => e.type === "run.start").length).toBe(1); // no new round: the code did not change
+  expect(events.map((e) => e.type)).toEqual(expect.arrayContaining(["update.start", "update.failed", "update.done"]));
+  expect(cli("update", "F-001").out).toMatch(/already up to date/);
+});
+
+test("update from main: a clash goes to the Builder as a new round, and approving afterwards merges cleanly", async () => {
+  const { dir, cli, sh, section } = repo();
+  cli("run", "F-001", "--stub");
+  writeFileSync(join(dir, "STUB_BUILD.txt"), "written on main\n"); // the same file the task built
+  sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "main writes the same file");
+  expect(cli("approve", "F-001").out).toMatch(/conflicts with work that landed after it was built.*factory update F-001/s);
+  const r = cli("update", "F-001", "--stub");
+  expect(r.out).toMatch(/STUB_BUILD.txt clashes/);
+  expect(r.out).toContain("F-001 → Awaiting approval");
+  const starts = openStore(join(dir, ".factory", "events.db")).since(0).filter((e) => e.type === "run.start");
+  expect(starts.map((e) => (e.data as any)?.round ?? 1)).toEqual([1, 2]);
+  expect(starts[1]!.data).toMatchObject({ update: true, files: ["STUB_BUILD.txt"] });
+  expect(sh("git", "log", "factory/F-001", "--merges", "--oneline").out).not.toBe("");
+  expect(sh("git", "show", "factory/F-001:STUB_BUILD.txt").out).not.toMatch(/<<<<<<<|>>>>>>>/);
+  expect(section("F-001")).toBe("Awaiting approval");
+  expect(cli("approve", "F-001").out).toContain("merged locally");
+});
+
+test("update over HTTP: validated, only for a task waiting for a decision, and the backlog says how far main moved", async () => {
+  const { dir, cli, sh } = repo();
+  cli("run", "F-001", "--stub");
+  writeFileSync(join(dir, "other.txt"), "x\n"); sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "main moves on");
+  const server = await serve(dir, 0);
+  try {
+    const base = `http://127.0.0.1:${server.port}`;
+    const post = (body: unknown) => fetch(`${base}/api/update`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify(body) });
+    expect(((await (await fetch(`${base}/api/backlog`)).json()) as any).behind).toEqual({ "F-001": 1 });
+    expect((await post({})).status).toBe(400);
+    expect((await post({ id: "F-002" })).status).toBe(409); // still Ready
+    expect((await post({ id: "F-001", stub: true })).status).toBe(202);
+    for (let i = 0; i < 100 && (await (await fetch(`${base}/api/backlog`)).json() as any).running.length; i++) await Bun.sleep(100);
+    expect(((await (await fetch(`${base}/api/backlog`)).json()) as any).behind).toEqual({});
+  } finally { server.stop(); }
+});

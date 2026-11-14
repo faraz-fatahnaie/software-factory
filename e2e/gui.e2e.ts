@@ -69,6 +69,17 @@ try {
   await page.getByRole("tab", { name: "Summary" }).click();
   await page.getByRole("heading", { name: "Your comments · round 1" }).waitFor();
 
+  // Main moves on (the same file the task built): the panel says so, Update resolves it as another round, and Approve works again.
+  writeFileSync(join(dir, "STUB_BUILD.txt"), "written on main\n");
+  sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "main writes the same file");
+  await page.getByRole("heading", { name: /main has 1 new commit/ }).waitFor({ timeout: 10_000 });
+  await card("Needs you", "F-001").getByText("Main moved on").waitFor();
+  await page.getByRole("button", { name: "Update this task" }).click();
+  await page.getByText("Round 3").first().waitFor({ timeout: 30_000 });
+  await page.locator(".bk-status.ok", { hasText: "Ready for your decision" }).waitFor({ timeout: 30_000 });
+  await page.getByRole("heading", { name: "Update from main · round 2" }).waitFor();
+  await page.getByRole("heading", { name: /main has \d+ new commit/ }).waitFor({ state: "detached", timeout: 10_000 }); // up to date: no notice
+
   // Approval: lands the work on main and cleans up the worktree.
   await page.getByRole("button", { name: "Approve and land" }).click();
   await card("Done", "F-001").waitFor();
