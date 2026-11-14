@@ -1,5 +1,9 @@
 # Software Factory
 
+> **Using it?** Start with [`plugin/README.md`](plugin/README.md) (what it is, how to install and customize it) and the
+> [runbook](plugin/docs/RUNBOOK.md) (a complete course, including what happens from a feature request to code on `main`).
+> This file is for developing the factory itself.
+
 A pipeline that takes items from `BACKLOG.md` and runs each one through Triage, Spec, Build,
 Check and Review using headless Claude Code, then waits for a person to approve the result.
 A local web page shows the whole thing live and lets you steer it.

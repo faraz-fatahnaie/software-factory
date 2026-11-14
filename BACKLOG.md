@@ -124,7 +124,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   `SUGGEST:` lines at the end of a reply become up to three one-click chips; a per-person switch in the chat header, on for the Product Partner by default, saved in the config. Checked once against a real model (Haiku).
 - [x] F-060 (P1) Guide
   Bix, a read-only person in Talk, and a box under the Checks results that asks Bix about the latest result. Read-only is enforced by its permissions (checked with a real model that it refuses to write files or change the config). A bug found on the way: reloading the topic list moved you back to the conversation you were sent to.
-- [ ] F-061 (P1) Plugin README, runbook and the home-bakery scenario (one story for README, runbook, landing page and video)
+- [x] F-061 (P1) Plugin README and runbook with the home-bakery scenario
+  `plugin/README.md` (install, value, commands, what you can and cannot change) and `plugin/docs/RUNBOOK.md` (a full course; chapter 4 follows one feature request from first word to code on main, chapter 5 lists everything that can happen on the way). Commands checked against a dry run. The landing page and the video reuse the same story.
 - [ ] F-062 (P3) Typography video of the home-bakery scenario showing every capability (later)
 - [ ] F-063 (P3) Official documentation website (later)
 - [ ] F-049 (P2) Set models per role and per stage from the command line
