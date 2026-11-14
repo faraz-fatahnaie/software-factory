@@ -11,6 +11,7 @@ import { Checks, Talk, type Chats } from "./talk";
 import { presenceOf, TALK_TO, Team, type TeamData } from "./team";
 import { agoShort } from "./commitgraph";
 import { NotifyToggle, NowLine, useAmbient, useNotify } from "./live";
+import { PersonLink, PersonPanel } from "./person";
 import { Icon } from "./icons";
 import { personaFor, PRESENCE_TEXT, Robot } from "./robots";
 import { ViewSkeleton } from "./ui";
@@ -185,7 +186,7 @@ export function Feed({ events, limit, open }: { events: Ev[]; limit: number; ope
         <button className="quiet" aria-pressed={paused !== null} onClick={() => setPaused(paused ? null : events)}>{paused ? "Resume" : "Pause"}</button>
       </header>
       {/* Newest first. The browser keeps your scroll position anchored when rows arrive above it. */}
-      <ol className="feed" aria-live="off">
+      <ol className="feed" aria-live="off" tabIndex={0} aria-label="Live activity">
         {shown.length === 0 && <li className="empty">Nothing has run yet. Promote a backlog item and run it, or tick Dry run to try the pipeline without model calls.</li>}
         {shown.map((e) => {
           const line = logLine(e)!;
@@ -206,7 +207,7 @@ export function Feed({ events, limit, open }: { events: Ev[]; limit: number; ope
 const STAGE_DID: Record<string, string> = { triage: "triage", spec: "spec", build: "build", check: "checks", security: "security", review: "review", document: "summary" };
 const DOING: Record<string, string> = { triage: "Triaging", spec: "Writing the spec for", build: "Building", check: "Running the checks on", security: "Checking the security of", review: "Reviewing", document: "Writing the summary of" };
 
-function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any; backlog: Backlog; open: (id: string) => void; team: TeamData | null; vcs: VcsData | null; act: Act; refreshVcs: () => Promise<void>; chats: Chats; talkTo: (key: string) => void }) {
+function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any; backlog: Backlog; open: (id: string) => void; team: TeamData | null; vcs: VcsData | null; act: Act; refreshVcs: () => Promise<void>; chats: Chats; talkTo: (key: string) => void; openPerson: (role: string) => void }) {
   const working = useMemo(() => roster(p.tasks), [p.tasks]);
   const now = useNow(true, working.length ? 1000 : 30_000);
   const day = useMemo(() => series(p.events, now - 86_400_000, now, 24), [p.events, Math.floor(now / 60_000)]);
@@ -275,7 +276,7 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
           {working.map((w) => (
             <article key={w.task} className="tile person-card">
               <header>
-                <Robot role={w.role} size={52} status="working" />
+                <PersonLink role={w.role} open={w.role === "gate" ? undefined : p.openPerson}><Robot role={w.role} size={52} status="working" /></PersonLink>
                 <div className="grow">
                   <h3>{personaFor(w.role).name} <span className="note">{titleOf(w.role)}</span></h3>
                   <p>{DOING[w.stage] ?? "Working on"} <button className="chip-id" onClick={() => p.open(w.task)}>{w.task}</button></p>
@@ -289,7 +290,7 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
           {chatting.map((c) => (
             <article key={c.key} className="tile person-card">
               <header>
-                <Robot role={c.role} size={52} status="working" />
+                <PersonLink role={c.role} open={p.openPerson}><Robot role={c.role} size={52} status="working" /></PersonLink>
                 <div className="grow">
                   <h3>{personaFor(c.role).name} <span className="note">{titleOf(c.role)}</span></h3>
                   <p>Answering you in <button className="chip-id" onClick={() => p.talkTo(c.key)}>Talk</button></p>
@@ -309,7 +310,7 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
         {free.length === 0 ? <p className="empty">{p.team ? "Everyone is working." : "Loading the team…"}</p> : (
           <ul className="free-list">
             {free.map((r) => (
-              <li key={r.name}><Robot role={r.name} size={36} status="free" /><span><b>{personaFor(r.name).name}</b><span className="note">{r.title}</span>{(() => { const w = lastDid.get(r.name); return w && <span className="note">Last: {STAGE_DID[w.stage] ?? w.stage} {w.task}{w.ok ? "" : " (failed)"} · {agoShort(w.ts)} ago</span>; })()}</span></li>
+              <li key={r.name}><PersonLink role={r.name} open={p.openPerson}><Robot role={r.name} size={36} status="free" /></PersonLink><span><b>{personaFor(r.name).name}</b><span className="note">{r.title}</span>{(() => { const w = lastDid.get(r.name); return w && <span className="note">Last: {STAGE_DID[w.stage] ?? w.stage} {w.task}{w.ok ? "" : " (failed)"} · {agoShort(w.ts)} ago</span>; })()}</span></li>
             ))}
           </ul>
         )}
@@ -331,6 +332,8 @@ function App() {
   const [selected, setSelected] = useState<string | null>(null);
   const [chats, setChats] = useState<Chats>({});
   const [topic, setTopic] = useState("");
+  const [person, setPerson] = useState<string | null>(null);
+  const clock = useNow(person !== null, 1000);
   const ran = events.filter((e) => e.type === "stage.ok").length;
   const team = useTeam(ran);
   const { vcs, refresh: refreshVcs } = useVcs();
@@ -401,11 +404,11 @@ function App() {
         </header>
         {!loaded ? <><p className="sr" role="status">Loading…</p><ViewSkeleton kind={view === "Overview" ? "overview" : view === "Backlog" ? "board" : view === "Team" ? "team" : "list"} /></> : (
           <>
-            {view === "Overview" && <Overview events={events} tasks={tasks} rateLimit={rateLimit} backlog={backlog} open={open} team={team} vcs={vcs} act={act} refreshVcs={refreshVcs} chats={chats} talkTo={talkTo} />}
-            {view === "Backlog" && <BacklogView backlog={backlog} tasks={tasks} events={events} act={act} selected={selected} select={setSelected} />}
+            {view === "Overview" && <Overview events={events} tasks={tasks} rateLimit={rateLimit} backlog={backlog} open={open} team={team} vcs={vcs} act={act} refreshVcs={refreshVcs} chats={chats} talkTo={talkTo} openPerson={setPerson} />}
+            {view === "Backlog" && <BacklogView openPerson={setPerson} backlog={backlog} tasks={tasks} events={events} act={act} selected={selected} select={setSelected} />}
             {view === "Talk" && <Talk chats={chats} setChats={setChats} topic={topic} />}
             {view === "Checks" && <Checks />}
-            {view === "Team" && <Team events={events} tasks={tasks} setError={setError} talkTo={talkTo} />}
+            {view === "Team" && <Team events={events} tasks={tasks} setError={setError} talkTo={talkTo} openPerson={setPerson} />}
             {view === "Agents" && <Agents events={events} tasks={tasks} setError={setError} open={open} />}
             {view === "Source" && <Source items={backlog.items} vcs={vcs} act={act} refreshVcs={refreshVcs} open={open} />}
             {view === "Logs" && <Logs events={events} />}
@@ -415,6 +418,7 @@ function App() {
           </>
         )}
       </main>
+      {person && <PersonPanel role={person} tasks={tasks} events={events} team={team} now={clock} act={act} close={() => setPerson(null)} openTask={(id) => { setPerson(null); open(id); }} talkTo={(k) => { setPerson(null); talkTo(k); }} />}
     </div>
   );
 }

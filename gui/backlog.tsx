@@ -9,6 +9,7 @@ import { FileTree, parseUnified, Stat, UnifiedLines, type FileItem } from "./dif
 import { Icon } from "./icons";
 import { splitDiff, type DiffFile } from "./linediff";
 import { NowLine } from "./live";
+import { PersonLink } from "./person";
 import { personaFor, Robot } from "./robots";
 import { Markdown } from "./studio";
 import { Select } from "./ui";
@@ -63,7 +64,7 @@ const verdictOf = (run?: TaskRun) => {
 
 function Prio({ p }: { p?: string }) { return p ? <span className="tag">{p}</span> : null; }
 
-function TaskCard(p: { item: Item; run?: TaskRun; running: boolean; selected: boolean; now: number; stub: boolean; first: boolean; act: Act; open: () => void; landed?: string }) {
+function TaskCard(p: { openPerson?: (role: string) => void; item: Item; run?: TaskRun; running: boolean; selected: boolean; now: number; stub: boolean; first: boolean; act: Act; open: () => void; landed?: string }) {
   const { item, run, act } = p;
   const id = { id: item.id }, active = activeOf(run), sec = item.section;
   const files = useDiff(item.id, run?.run ?? "", sec === "Awaiting approval");
@@ -79,7 +80,7 @@ function TaskCard(p: { item: Item; run?: TaskRun; running: boolean; selected: bo
       </button>
       {active && live && (
         <div className="who">
-          <Robot role={active[1].role ?? "gate"} size={28} />
+          <PersonLink role={active[1].role ?? "gate"} open={active[1].role ? p.openPerson : undefined}><Robot role={active[1].role ?? "gate"} size={28} /></PersonLink>
           <span><b>{active[1].role ? personaFor(active[1].role).name : "The gate"}</b><span className="note">{active[0] === "check" ? "Running the project's checks" : <>{live.verb} {live.what && <code>{live.what}</code>}</>}</span></span>
         </div>
       )}
@@ -159,7 +160,7 @@ function Stepper({ run, facts, pick }: { run?: TaskRun; facts: ReturnType<typeof
   );
 }
 
-function Activity({ run, focus, shownEvents, live }: { run?: TaskRun; focus: string; shownEvents: Ev[]; live: boolean }) {
+export function Activity({ run, focus, shownEvents, live }: { run?: TaskRun; focus: string; shownEvents: Ev[]; live: boolean }) {
   const [kind, setKind] = useState<"all" | "files" | "commands" | "said">("all");
   const box = useRef<HTMLDivElement>(null);
   const [follow, setFollow] = useState(true);
@@ -364,7 +365,7 @@ function Panel(p: { item: Item; run?: TaskRun; events: Ev[]; now: number; stub: 
 
 // ---------------------------------------------------------------------------------------------------------------- The board
 
-export function BacklogView(p: { backlog: Data; tasks: Map<string, TaskRun>; events: Ev[]; act: Act; selected: string | null; select: (id: string | null) => void }) {
+export function BacklogView(p: { openPerson?: (role: string) => void; backlog: Data; tasks: Map<string, TaskRun>; events: Ev[]; act: Act; selected: string | null; select: (id: string | null) => void }) {
   const [stub, setStub] = useState(false);
   const [parallel, setParallel] = useState("1");
   const [query, setQuery] = useState("");
@@ -492,7 +493,7 @@ export function BacklogView(p: { backlog: Data; tasks: Map<string, TaskRun>; eve
               ) : section === "Done" ? (
                 <ul className="done-list">{items.map((i) => <DoneRow key={i.id} item={i} landed={landed.get(i.id)} selected={p.selected === i.id} open={() => p.select(i.id)} />)}</ul>
               ) : (
-                <ul>{items.map((i, k) => <TaskCard key={i.id} item={i} run={p.tasks.get(i.id)} running={p.backlog.running.includes(i.id)} selected={p.selected === i.id} now={now} stub={stub} first={k === 0} act={p.act} open={() => p.select(i.id)} />)}</ul>
+                <ul>{items.map((i, k) => <TaskCard key={i.id} openPerson={p.openPerson} item={i} run={p.tasks.get(i.id)} running={p.backlog.running.includes(i.id)} selected={p.selected === i.id} now={now} stub={stub} first={k === 0} act={p.act} open={() => p.select(i.id)} />)}</ul>
               )}
               {section === "Done" && done.length > 5 && !q && <button className="quiet" onClick={() => setMoreDone(!moreDone)}>{moreDone ? "Show fewer" : `Show ${done.length - 5} more`}</button>}
             </section>

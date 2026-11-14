@@ -114,7 +114,9 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 - [x] F-067 (P1) Backlog redesign
   A board of five columns (blocked tasks in a strip, Done folded) with richer cards, an Add item box with priority and description, filter and keys, and a side panel per task: pipeline stepper, Summary, Activity with replay, Spec, Review, Changes and a single Approve and land. Motion on the panel, tabs, stepper and cards moving between columns, all off under reduced motion.
 - [ ] F-068 (P3) Backlog List view (a table), and drag a card from Inbox to Ready and reorder Ready (needs a small server change)
-- [ ] F-065 (P2) Per-agent panel: click a person for their live feed, files touched, stage timeline and a Stop button
+- [x] F-065 (P2) Per-agent panel
+  Click a robot on Overview, Team or Backlog: live feed, files touched, recent stages, Stop; a free person shows what they did last and a way to talk to them.
+- [x] F-069 (P1) Smoke test of every view (`bun run smoke`): seeded states, desktop and phone, console errors and axe. It found keyboard-unreachable scroll areas in Logs and Source, and a light-theme contrast miss, all fixed.
 - [ ] F-066 (P3) Workroom: a floor plan with a station per stage where robots hand work over (wireframes first, with a text equivalent and reduced motion)
 - [ ] F-059 (P1) Suggested next prompts in chats (`SUGGEST:` lines as chips; per-person setting, on for Product Partner)
 - [ ] F-060 (P1) Guide: a read-only conversation in Talk, docked in Checks with the latest result attached

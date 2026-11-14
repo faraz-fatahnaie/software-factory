@@ -130,7 +130,7 @@ export function roster(tasks: Map<string, TaskRun>) {
 
 export type Doing = { verb: string; what: string };
 /** A path as a person knows it: without the task worktree in front, and at most the last three folders. */
-const shortPath = (p: unknown) => {
+export const shortPath = (p: unknown) => {
   const rest = String(p ?? "").replace(/^.*?\.worktrees\/[\w-]+\//, "");
   const parts = rest.split("/").filter(Boolean);
   return parts.length > 3 ? parts.slice(-3).join("/") : parts.join("/");
@@ -181,4 +181,37 @@ export function lastWork(events: Ev[]): Map<string, Work> {
   const out = new Map<string, Work>();
   for (const e of events) if (e.role && (e.type === "stage.ok" || e.type === "stage.failed")) out.set(e.role, { task: e.task, stage: e.stage, ts: e.ts, ok: e.type === "stage.ok" });
   return out;
+}
+
+export type Touched = { path: string; read: number; edited: number; wrote: number; last: string };
+/** Which files a person read, edited or wrote in the given events (their tool calls), newest first. */
+export function filesTouched(events: Ev[]): Touched[] {
+  const by = new Map<string, Touched>();
+  for (const e of events) {
+    if (e.type !== "agent.tool") continue;
+    const tool = e.data?.tool as string | undefined, i = e.data?.input ?? {};
+    const kind = tool === "Read" ? "read" : tool === "Edit" || tool === "MultiEdit" || tool === "NotebookEdit" ? "edited" : tool === "Write" ? "wrote" : null;
+    const path = shortPath(i.file_path ?? i.notebook_path);
+    if (!kind || !path) continue;
+    const t = by.get(path) ?? { path, read: 0, edited: 0, wrote: 0, last: e.ts };
+    t[kind]++; t.last = e.ts;
+    by.set(path, t);
+  }
+  return [...by.values()].sort((a, b) => b.last.localeCompare(a.last));
+}
+
+export type Stint = { task: string; stage: string; ts: string; ms?: number; cost: number; state: "running" | "ok" | "failed" };
+/** One person's recent stages across tasks, newest first: what, when, how long, what it cost, how it ended. */
+export function timelineOf(events: Ev[], role: string, limit = 12): Stint[] {
+  const open = new Map<string, Stint>(), out: Stint[] = [];
+  for (const e of events) {
+    if (e.role !== role) continue;
+    const key = `${e.run}:${e.stage}`;
+    if (e.type === "stage.start") { const s: Stint = { task: e.task, stage: e.stage, ts: e.ts, cost: 0, state: "running" }; open.set(key, s); out.push(s); }
+    else if (e.type === "stage.ok" || e.type === "stage.failed" || e.type === "stage.error") {
+      const s = open.get(key); if (!s) continue;
+      s.ms = Date.parse(e.ts) - Date.parse(s.ts); s.cost = e.data?.usage?.costUsd ?? 0; s.state = e.type === "stage.ok" ? "ok" : "failed";
+    }
+  }
+  return out.reverse().slice(0, limit);
 }

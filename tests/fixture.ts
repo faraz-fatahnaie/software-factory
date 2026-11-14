@@ -57,3 +57,33 @@ exit 0
 /** One pull request as `gh pr list --json` reports it, with a single check that ended as `conclusion`. */
 export const ghPr = (number: number, id: string, conclusion: string, state = "OPEN") =>
   ({ number, url: `https://github.com/o/r/pull/${number}`, state, headRefName: `factory/${id}`, mergeable: "MERGEABLE", statusCheckRollup: [{ status: "COMPLETED", conclusion }] });
+
+/** Fills a throwaway repo with every state the Backlog and Overview show: a running task, a quiet one, a blocked one, one waiting for you with a real diff, one done and some queued. */
+export function seedStates(dir: string, cli: (...args: string[]) => unknown) {
+  const { Database } = require("bun:sqlite") as typeof import("bun:sqlite");
+  const { move } = require("../plugin/engine/backlog") as typeof import("../plugin/engine/backlog");
+  cli("run", "F-001", "--stub"); cli("approve", "F-001"); // done
+  for (const t of ["Weekly sales summary", "Customer emails", "Order status page"]) cli("add", t, "--priority", "P1");
+  cli("add", "Print a pick list", "--priority", "P2"); // stays in Inbox
+  cli("add", "Deposit payment link", "--priority", "P1", "--detail", "Customers pay a deposit.");
+  for (const id of ["F-003", "F-004", "F-005", "F-007"]) cli("promote", id);
+  cli("run", "F-005", "--stub"); // waiting for you, with a real branch
+  const file = join(dir, "BACKLOG.md");
+  let text = readFileSync(file, "utf8");
+  for (const [id, to] of [["F-002", "In progress"], ["F-003", "In progress"], ["F-004", "Blocked"]] as const) text = move(text, id, to);
+  writeFileSync(file, text);
+  const db = new Database(join(dir, ".factory/events.db"));
+  const add = (ago: number, run: string, task: string, stage: string, type: string, role?: string, model?: string, data?: unknown) =>
+    db.query("INSERT INTO events (ts, run, task, stage, type, role, model, data) VALUES (?,?,?,?,?,?,?,?)").run(new Date(Date.now() - ago * 1000).toISOString(), run, task, stage, type, role ?? null, model ?? null, data === undefined ? null : JSON.stringify(data));
+  const w = (p: string) => `${dir}/.worktrees/F-002/${p}`;
+  const tool = (ago: number, name: string, input: unknown) => add(ago, "rb", "F-002", "build", "agent.tool", "builder", "sonnet", { tool: name, input });
+  add(300, "rb", "F-002", "run", "run.start"); add(298, "rb", "F-002", "spec", "stage.start", "architect", "opus");
+  add(240, "rb", "F-002", "spec", "stage.ok", "architect", "opus", { output: "# Spec\n\nFilter orders.", usage: { costUsd: 0.18, turns: 5 } }); add(238, "rb", "F-002", "build", "stage.start", "builder", "sonnet");
+  tool(200, "Read", { file_path: w("spec.md") }); tool(90, "Edit", { file_path: w("src/helpers.ts") });
+  add(70, "rb", "F-002", "build", "agent.message", "builder", "sonnet", { text: "The filter needs a test first." }); tool(10, "Bash", { command: "bun test" });
+  add(700, "rr", "F-003", "run", "run.start"); add(680, "rr", "F-003", "build", "stage.start", "builder", "sonnet"); add(500, "rr", "F-003", "build", "stage.ok", "builder", "sonnet", { output: "built", usage: { costUsd: 0.2, turns: 6 } });
+  add(480, "rr", "F-003", "review", "stage.start", "reviewer", "opus"); add(300, "rr", "F-003", "review", "agent.tool", "reviewer", "opus", { tool: "Read", input: { file_path: "build.md" } }); // quiet for five minutes
+  add(900, "rx", "F-004", "run", "run.start"); add(880, "rx", "F-004", "build", "stage.start", "builder", "sonnet"); add(700, "rx", "F-004", "build", "stage.ok", "builder", "sonnet", { output: "built", usage: { costUsd: 0.3, turns: 8 } });
+  add(690, "rx", "F-004", "check", "stage.start"); add(650, "rx", "F-004", "check", "stage.failed", undefined, undefined, "2 tests fail"); add(649, "rx", "F-004", "run", "run.failed", undefined, undefined, "check failed: 2 tests fail");
+  db.close();
+}

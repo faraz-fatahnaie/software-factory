@@ -175,7 +175,7 @@ The record builds up as you work:
 | Talk | Conversations with the roles that work with you (brainstorm, research, plan, design, test, security review, audit, documents), in the page. They read the project and write documents; they cannot change code. |
 | Checks | The factory's own commands as buttons: setup check, status, release information and readiness, secret scan, rebuild role files. |
 | GitHub (on Overview) | What is waiting to go to GitHub: approved tasks that are only on this machine (Push), pull requests with their checks (Merge), Sync, and an Auto-merge switch that is off by default. The rail says where the work stands. |
-| Team | Every role is a robot with a name and a job; responsibilities are cards under it. Pick a preset or a size, move or switch off responsibilities, fold roles together; the agent count and the cost of a normal task update as a preview, and nothing is saved until you say so. |
+| Team | Click any robot, here or elsewhere, to open that person's panel: what they are doing now, the files they touched, their recent stages and a Stop button. Every role is a robot with a name and a job; responsibilities are cards under it. Pick a preset or a size, move or switch off responsibilities, fold roles together; the agent count and the cost of a normal task update as a preview, and nothing is saved until you say so. |
 | Source | A Git tool window like PyCharm's and VS Code's. **Changes**: a folder tree of what is not saved (status-coloured names, M/A/D/U letters, `+/−` bars, Untracked kept apart) with the diff of the picked file beside it. **Log**: the branches, a commit graph across every branch (lanes, merges, HEAD, tags, remote branches), and what the picked commit changed, file by file with diffs, and a Revert button on a merged task. A search box (press `/`) finds commits by message, author, hash, branch, tag or task across the whole history, keeps the lanes connected through the commits it leaves out, and highlights the match. Arrow keys move between files and commits. |
 | Agents | Who is working, the model, effort and fallback chain per role, and spend and pass rate by model, role and task. |
 | Logs | Every event from every task, filterable by kind and task. |
@@ -240,6 +240,7 @@ Not enforced, so keep in mind:
 bun test            # unit and HTTP tests, part of the gate
 bun run typecheck   # part of the gate
 bun run e2e         # drives the page in your installed Chrome with dry runs
+bun run smoke       # opens every view at desktop and phone width; fails on console errors and accessibility violations
 ```
 
 ## Layout

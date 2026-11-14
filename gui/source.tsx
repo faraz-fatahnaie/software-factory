@@ -77,7 +77,7 @@ function Changes({ files, count, toLog }: { files: FileItem[]; count: number; to
         )}
         {count > files.length && <p className="note pad">and {count - files.length} more</p>}
       </aside>
-      <main className="pane main">{file ? <FileDiff path={file.path} status={file.status} /> : <p className="empty">Pick a file to see what changed in it.</p>}</main>
+      <main className="pane main" tabIndex={0} aria-label="What changed in the picked file">{file ? <FileDiff path={file.path} status={file.status} /> : <p className="empty">Pick a file to see what changed in it.</p>}</main>
     </div>
   );
 }

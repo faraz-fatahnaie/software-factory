@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { lastWork, liveOf, roster, type Ev, type TaskRun } from "../plugin/engine/state";
 import { agoShort } from "./commitgraph";
+import { PersonLink } from "./person";
 import { call } from "./data";
 import { personaFor, PRESENCE_TEXT, Robot, type Presence } from "./robots";
 import { Select, ViewSkeleton, type Option } from "./ui";
@@ -47,7 +48,7 @@ function words(c: Change, data: TeamData, before: TeamData): string {
   }
 }
 
-export function Team({ events, tasks, setError, talkTo }: { events: Ev[]; tasks: Map<string, TaskRun>; setError: (e: string) => void; talkTo: (topic: string) => void }) {
+export function Team({ events, tasks, setError, talkTo, openPerson }: { events: Ev[]; tasks: Map<string, TaskRun>; setError: (e: string) => void; talkTo: (topic: string) => void; openPerson: (role: string) => void }) {
   const [saved, setSaved] = useState<TeamData | null>(null);
   const [draft, setDraft] = useState<Change[]>([]);
   const [preview, setPreview] = useState<TeamData | null>(null);
@@ -162,7 +163,7 @@ export function Team({ events, tasks, setError, talkTo }: { events: Ev[]; tasks:
               }}
             >
               <header>
-                <Robot role={r.name} size={64} status={state} />
+                <PersonLink role={r.name} open={openPerson}><Robot role={r.name} size={64} status={state} /></PersonLink>
                 <div className="who">
                   <h3>{who(r.name)}</h3>
                   {renaming === r.name ? (

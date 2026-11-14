@@ -20,7 +20,7 @@ import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugi
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
 import { followUps, needsTriage, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
-import { costs, doing, elapsed, lastWork, liveOf, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
+import { costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
 import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
 import { counts, lineDiff, marks, splitDiff, withGaps } from "../gui/linediff";
 
@@ -1890,4 +1890,18 @@ test("splitDiff: a branch's diff cut into files with their own counts", () => {
   expect(files[0]!.text).toContain("@@ -1,2 +1,2 @@");
   expect(files[0]!.text).not.toContain("hello"); // each file keeps only its own lines
   expect(splitDiff("")).toEqual([]);
+});
+
+test("person panel: files touched and recent stages, from one person's events", () => {
+  const ev = (seq: number, type: string, o: Partial<Ev> = {}): Ev => ({ seq, ts: `2026-11-13T10:00:${String(seq).padStart(2, "0")}Z`, run: "r1", task: "F-001", stage: "build", type, role: "builder", ...o });
+  const tool = (seq: number, tool: string, input: any) => ev(seq, "agent.tool", { data: { tool, input } });
+  const events = [ev(1, "stage.start"), tool(2, "Read", { file_path: "/x/.worktrees/F-001/a.ts" }), tool(3, "Edit", { file_path: "/x/.worktrees/F-001/a.ts" }), tool(4, "Edit", { file_path: "/x/.worktrees/F-001/a.ts" }),
+    tool(5, "Write", { file_path: "/x/.worktrees/F-001/b.ts" }), tool(6, "Bash", { command: "ls" }), ev(7, "stage.ok", { data: { usage: { costUsd: 0.25 } } }),
+    ev(8, "stage.start", { run: "r2", task: "F-002" }), ev(9, "stage.start", { role: "reviewer", run: "r2", task: "F-002", stage: "review" })];
+  expect(filesTouched(events)).toEqual([{ path: "b.ts", read: 0, edited: 0, wrote: 1, last: "2026-11-13T10:00:05Z" }, { path: "a.ts", read: 1, edited: 2, wrote: 0, last: "2026-11-13T10:00:04Z" }]);
+  const line = timelineOf(events, "builder");
+  expect(line.map((s) => [s.task, s.state])).toEqual([["F-002", "running"], ["F-001", "ok"]]);
+  expect(line[1]).toMatchObject({ ms: 6000, cost: 0.25 });
+  expect(timelineOf(events, "reviewer").map((s) => s.stage)).toEqual(["review"]);
+  expect(timelineOf(events, "nobody")).toEqual([]);
 });
