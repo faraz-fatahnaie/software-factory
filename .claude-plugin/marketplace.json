@@ -10,7 +10,7 @@
       "name": "software-factory",
       "source": "./plugin",
       "description": "A team of Claude Code agents that builds software with you, for people who are not software engineers. Plans, builds, checks and reviews each change in isolation, and waits for your approval.",
-      "homepage": "https://github.com/faraz-fatahnaie/software-factory"
+      "homepage": "https://faraz-fatahnaie.github.io/software-factory/"
     }
   ]
 }

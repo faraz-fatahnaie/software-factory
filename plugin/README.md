@@ -5,6 +5,8 @@ You say what you want. The factory turns it into a plan, builds each piece in is
 has it reviewed, and waits for your yes. Nothing reaches your main branch, GitHub or a server
 without you.
 
+Website and documentation: <https://faraz-fatahnaie.github.io/software-factory/>
+
 It works in any language and stack, because the agents read your project and use its own tools.
 
 - **A real team, with faces.** A Product Partner, Planner, Architect, Builder, Tester, Reviewer,

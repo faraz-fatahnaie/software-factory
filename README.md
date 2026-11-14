@@ -1,5 +1,7 @@
 # Software Factory
 
+> **Website:** <https://faraz-fatahnaie.github.io/software-factory/>
+>
 > **Using it?** Start with [`plugin/README.md`](plugin/README.md) (what it is, how to install and customize it) and the
 > [runbook](plugin/docs/RUNBOOK.md) (a complete course, including what happens from a feature request to code on `main`).
 > This file is for developing the factory itself.
