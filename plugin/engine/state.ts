@@ -215,3 +215,10 @@ export function timelineOf(events: Ev[], role: string, limit = 12): Stint[] {
   }
   return out.reverse().slice(0, limit);
 }
+
+/** A reply that ends with `SUGGEST: …` lines: the reply without them, and up to three short messages the person could send next. */
+export function splitSuggestions(text: string): { text: string; suggestions: string[] } {
+  const found: string[] = [];
+  const rest = text.replace(/^SUGGEST:[ \t]*(.{1,120}?)[ \t]*$/gm, (_, s: string) => { if (found.length < 3 && s.trim()) found.push(s.trim()); return ""; });
+  return { text: rest.replace(/\n{3,}/g, "\n\n").trimEnd(), suggestions: found };
+}

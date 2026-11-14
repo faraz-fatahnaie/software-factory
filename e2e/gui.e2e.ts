@@ -215,6 +215,12 @@ try {
   await view("Talk");
   await page.getByRole("button", { name: /Brainstorm an idea/ }).waitFor();
   await page.getByRole("button", { name: "Start this conversation" }).waitFor();
+  // Suggested replies are a per-person switch: on for the Product Partner, and saved to the config when changed.
+  const suggest = page.getByRole("switch", { name: "Suggest replies" });
+  assert.equal(await suggest.isChecked(), true, "on by default for the Product Partner");
+  await suggest.click(); // the switch follows the saved setting, so it flips when the server has answered
+  await page.waitForFunction(() => !(document.querySelector('input[role="switch"]') as HTMLInputElement | null)?.checked);
+  assert.deepEqual(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).chat, { suggest: { "product-partner": false } });
 
   // Team: a change is previewed with its cost and not saved until you say so; saving commits it.
   await view("Team");

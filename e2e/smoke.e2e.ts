@@ -86,7 +86,7 @@ try {
     await page.locator(".bk-panel").waitFor({ state: "detached" });
 
     // Every other view: it shows its own content and passes the check.
-    const views: [string, string][] = [["Talk", ".topics .person"], ["Checks", ".check button"], ["Team", ".status-chip.working"], ["Agents", "text=Models per role"], ["Source", ".scm, .pane"], ["Logs", ".feed li"], ["Worktrees", "text=F-005"], ["Studio", 'nav[aria-label="Files"] .fi']];
+    const views: [string, string][] = [["Talk", ".chat-head .switch"], ["Checks", ".check button"], ["Team", ".status-chip.working"], ["Agents", "text=Models per role"], ["Source", ".scm, .pane"], ["Logs", ".feed li"], ["Worktrees", "text=F-005"], ["Studio", 'nav[aria-label="Files"] .fi']];
     for (const [view, locator] of views) {
       await open(page, view);
       await page.locator(locator).first().waitFor({ timeout: 15_000 });

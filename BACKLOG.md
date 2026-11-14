@@ -118,7 +118,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Click a robot on Overview, Team or Backlog: live feed, files touched, recent stages, Stop; a free person shows what they did last and a way to talk to them.
 - [x] F-069 (P1) Smoke test of every view (`bun run smoke`): seeded states, desktop and phone, console errors and axe. It found keyboard-unreachable scroll areas in Logs and Source, and a light-theme contrast miss, all fixed.
 - [ ] F-066 (P3) Workroom: a floor plan with a station per stage where robots hand work over (wireframes first, with a text equivalent and reduced motion)
-- [ ] F-059 (P1) Suggested next prompts in chats (`SUGGEST:` lines as chips; per-person setting, on for Product Partner)
+- [x] F-059 (P1) Suggested next prompts in chats
+  `SUGGEST:` lines at the end of a reply become up to three one-click chips; a per-person switch in the chat header, on for the Product Partner by default, saved in the config. Checked once against a real model (Haiku).
 - [ ] F-060 (P1) Guide: a read-only conversation in Talk, docked in Checks with the latest result attached
 - [ ] F-061 (P1) Plugin README, runbook and the home-bakery scenario (one story for README, runbook, landing page and video)
 - [ ] F-062 (P3) Typography video of the home-bakery scenario showing every capability (later)

@@ -1028,3 +1028,7 @@ button.icon:hover { color: var(--text); background: color-mix(in srgb, var(--tex
 .pp-earlier { display: grid; gap: 6px; list-style: none; margin: 0; padding: 0; }
 .pp-earlier li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
 .pp-holds { display: grid; gap: 6px; margin: 0; padding-left: 18px; }
+
+.suggest { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px 46px; animation: arrive 0.2s var(--ease); }
+.suggest button { min-height: 32px; padding: 0 14px; border-radius: var(--r-pill); border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: var(--accent-soft); color: var(--accent); text-align: left; }
+.suggest button:hover { border-color: var(--accent); }

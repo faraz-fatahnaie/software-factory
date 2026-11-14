@@ -20,7 +20,7 @@ import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugi
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
 import { followUps, needsTriage, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
-import { costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
+import { splitSuggestions, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
 import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
 import { counts, lineDiff, marks, splitDiff, withGaps } from "../gui/linediff";
 
@@ -1904,4 +1904,16 @@ test("person panel: files touched and recent stages, from one person's events", 
   expect(line[1]).toMatchObject({ ms: 6000, cost: 0.25 });
   expect(timelineOf(events, "reviewer").map((s) => s.stage)).toEqual(["review"]);
   expect(timelineOf(events, "nobody")).toEqual([]);
+});
+
+test("suggested replies: the lines are split off the reply, capped at three, and the setting is validated and served", async () => {
+  expect(splitSuggestions("Here is the plan.\n\nSUGGEST: Show me the stories\nSUGGEST: Skip research\nSUGGEST: Who is it for?\nSUGGEST: a fourth\n")).toEqual({ text: "Here is the plan.", suggestions: ["Show me the stories", "Skip research", "Who is it for?"] });
+  expect(splitSuggestions("No suggestions here")).toEqual({ text: "No suggestions here", suggestions: [] });
+  expect(parseConfig({ ...config, chat: { suggest: { "product-partner": true } } }).chat).toEqual({ suggest: { "product-partner": true } });
+  expect(() => parseConfig({ ...config, chat: { suggest: { "product-partner": "yes" } } })).toThrow(/chat/);
+  const team = resolveTeam();
+  const on = chatArgs({ topic: "brainstorm", message: "hi", suggest: true }, team), off = chatArgs({ topic: "brainstorm", message: "hi" }, team);
+  expect(on[on.indexOf("--append-system-prompt") + 1]).toContain("SUGGEST: ");
+  expect(off[off.indexOf("--append-system-prompt") + 1]).not.toContain("SUGGEST: ");
+  expect(() => chatArgs({ topic: "brainstorm", message: "hi", suggest: "yes" as never }, team)).toThrow(/suggest/);
 });

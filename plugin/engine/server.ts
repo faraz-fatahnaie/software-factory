@@ -41,6 +41,12 @@ async function freshGui() {
 }
 
 /** Local control plane: a live event stream plus endpoints that run the same CLI a person would. */
+/** Whether a person's conversations end with suggested next messages: their own setting, else on for the Product Partner only. */
+function suggestOn(root: string, role?: string): boolean {
+  if (!role) return false;
+  try { return loadConfig(root).chat?.suggest?.[role] ?? role === "product-partner"; } catch { return role === "product-partner"; }
+}
+
 export async function serve(root: string, port = 4400) {
   await buildGui();
   mkdirSync(join(root, ".factory"), { recursive: true });
@@ -136,7 +142,7 @@ export async function serve(root: string, port = 4400) {
         const team = projectTeam(root);
         return json(Object.entries(TOPICS).map(([key, t]) => {
           // The role that holds the conversation's first responsibility, so the page shows the right person even after a regrouping.
-          const role = holderOf(team, t.ids[0]!), base = { key, title: t.title, summary: t.summary, first: t.first, role, roleTitle: role ? team.roles[role]!.title : undefined };
+          const role = holderOf(team, t.ids[0]!), base = { key, title: t.title, summary: t.summary, first: t.first, role, roleTitle: role ? team.roles[role]!.title : undefined, suggest: suggestOn(root, role) };
           try { chatPromptFor(t.ids, team); return { ...base, available: true }; }
           catch (e) { return { ...base, available: false, reason: (e as Error).message }; }
         }));
@@ -280,6 +286,19 @@ export async function serve(root: string, port = 4400) {
         // A check that finds problems exits non-zero. That is its answer, not a failed request.
         const r = await sh(process.execPath, CLI, ...argv);
         return json({ ok: r.code === 0, output: `${r.out}${r.err}`.trim() });
+      }
+      if (route === "POST /api/chat/suggest") {
+        // Suggested next messages are a setting of the person, so every conversation they hold follows it.
+        const role = holderOf(projectTeam(root), TOPICS[body.topic as string]?.ids[0] ?? "");
+        if (!role || typeof body.on !== "boolean") return json({ error: "topic and on (true or false) required" }, 400);
+        try {
+          const cur = loadConfig(root);
+          const next = parseConfig({ ...cur, chat: { suggest: { ...cur.chat?.suggest, [role]: body.on } } });
+          writeFileSync(join(root, "factory.config.json"), `${JSON.stringify(next, null, 2)}\n`);
+          return json({ role, on: body.on });
+        } catch (e) {
+          return json({ error: (e as Error).message }, 400);
+        }
       }
       if (route === "POST /api/chat") {
         try {

@@ -1,16 +1,16 @@
 // Talk: conversations with the people (robots) who hold each job. Checks: the factory's own commands, one button each.
 import { useEffect, useRef, useState } from "react";
-import { toolLine } from "../plugin/engine/state";
+import { splitSuggestions, toolLine } from "../plugin/engine/state";
 import { call } from "./data";
 import { personaFor, Robot } from "./robots";
 import { Select, Skel } from "./ui";
 
 /** An action the conversation proposes. Only the button runs it: the session itself has no way to push or merge. */
 export type Proposal = { kind: "push" | "merge" | "sync"; id?: string };
-export type Msg = { who: "you" | "team"; text: string; tools?: string[]; cost?: number; bad?: boolean; proposal?: Proposal; acted?: string };
+export type Msg = { who: "you" | "team"; text: string; suggestions?: string[]; tools?: string[]; cost?: number; bad?: boolean; proposal?: Proposal; acted?: string };
 export type Chat = { messages: Msg[]; session?: string; busy: boolean };
 export type Chats = Record<string, Chat>;
-type Topic = { key: string; title: string; summary: string; first: string; available: boolean; reason?: string; role?: string; roleTitle?: string };
+type Topic = { key: string; title: string; summary: string; first: string; available: boolean; reason?: string; role?: string; roleTitle?: string; suggest?: boolean };
 type Reply = { ok: boolean; status: string; text: string; session?: string; costUsd?: number; denials: string[]; tools: { tool: string; input: unknown }[] };
 
 const MODELS = [
@@ -49,14 +49,15 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
     if (!message.trim() || chat.busy) return;
     setText("");
     patch(k, (c) => ({ ...c, busy: true, messages: [...c.messages, { who: "you", text: message }] }));
-    const r = await call<Reply>("/api/chat", { topic: k, message, session, model, effort });
+    const r = await call<Reply>("/api/chat", { topic: k, message, session, model, effort, suggest: topics?.find((t) => t.key === k)?.suggest ?? false });
     patch(k, (c) => {
       if (!r.ok) return { ...c, busy: false, messages: [...c.messages, { who: "team", text: r.error, bad: true }] };
       const d = r.data;
-      const ask = d.ok ? /^PROPOSE: (push|merge|sync)(?: (F-\d+))?[ \t]*$/m.exec(d.text) : null;
+      const split = d.ok ? splitSuggestions(d.text) : { text: d.text, suggestions: [] as string[] };
+      const ask = d.ok ? /^PROPOSE: (push|merge|sync)(?: (F-\d+))?[ \t]*$/m.exec(split.text) : null;
       const proposal: Proposal | undefined = ask && (ask[1] === "sync" ? !ask[2] : !!ask[2]) ? { kind: ask[1] as Proposal["kind"], id: ask[2] } : undefined;
       const reply: Msg = d.ok
-        ? { who: "team", text: proposal ? d.text.replace(ask![0], "").trimEnd() : d.text, proposal, tools: d.tools.map((t) => toolLine(t)), cost: d.costUsd }
+        ? { who: "team", text: proposal ? split.text.replace(ask![0], "").trimEnd() : split.text, suggestions: split.suggestions, proposal, tools: d.tools.map((t) => toolLine(t)), cost: d.costUsd }
         : { who: "team", text: FAILURES[d.status] ?? d.text, bad: true };
       if (d.denials.length) reply.tools = [...(reply.tools ?? []), ...d.denials.map((x) => `not allowed here: ${x}`)];
       return { ...c, busy: false, session: d.session ?? c.session, messages: [...c.messages, reply] };
@@ -100,6 +101,7 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
               <h2>{person.name}</h2>
               <p className="note">{topic.roleTitle} · {chat.busy ? "Thinking…" : "Listening"}</p>
             </div>
+            <label className="switch" title="End each reply with a few messages you could send next. They only send a message; they never do anything else."><input type="checkbox" role="switch" checked={!!topic.suggest} onChange={async (e) => { const on = e.target.checked; const r = await call("/api/chat/suggest", { topic: key, on }); if (r.ok) setTopics((ts) => ts && ts.map((t) => (t.role === topic.role ? { ...t, suggest: on } : t))); else setProblem(r.error); }} /><span>Suggest replies</span></label>
             <Select label="Model" prefix="Model" value={model} options={MODELS} onChange={setModel} align="right" />
             <Select label="Effort" prefix="Effort" value={effort} options={EFFORTS} onChange={setEffort} align="right" />
           </header>
@@ -130,6 +132,11 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
                 </div>
               </div>
             ))}
+            {!chat.busy && topic.suggest && (chat.messages.at(-1)?.suggestions?.length ?? 0) > 0 && (
+              <div className="suggest" role="group" aria-label="Suggested replies">
+                {chat.messages.at(-1)!.suggestions!.map((s) => <button key={s} onClick={() => send(s)}>{s}</button>)}
+              </div>
+            )}
             {chat.busy && (
               <div className="bubble team" role="status" aria-label={`${person.name} is typing`}>
                 <Robot role={role} size={34} status="working" />

@@ -23,7 +23,10 @@ const ALLOW = ["Read", "Grep", "Glob", "WebSearch", "WebFetch", "Write(docs/**)"
   "Bash(factory docs save:*)", "Bash(factory add:*)", "Bash(factory vcs)", // read-only: pushing and merging are buttons the person presses, never commands this session may run
   "Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)", "Bash(graphify query:*)"];
 
-export type ChatRequest = { topic: string; message: string; session?: string; model?: string; effort?: string };
+export type ChatRequest = { topic: string; message: string; session?: string; model?: string; effort?: string; suggest?: boolean };
+
+/** Appended to the conversation's instructions when its person has suggestions on. The page turns the lines into buttons; they only ever send a message. */
+export const SUGGEST_RULE = "End every reply with up to three lines, each starting exactly `SUGGEST: ` and then a short message (under 80 characters) the person could most plausibly send next, in their voice and without quotes. They are the best ways to continue. Put nothing after them.";
 
 /** Checks a request from the page and returns the Claude command line for it. Throws a plain-words error when it is not valid. */
 export function chatArgs(r: ChatRequest, team: Preset): string[] {
@@ -34,7 +37,8 @@ export function chatArgs(r: ChatRequest, team: Preset): string[] {
   const model = r.model ?? "sonnet", effort = r.effort ?? "medium";
   if (!MODELS.includes(model)) throw new Error(`model: one of ${MODELS.join(", ")}`);
   if (!EFFORTS.includes(effort)) throw new Error(`effort: one of ${EFFORTS.join(", ")}`);
-  const system = chatPromptFor(topic.ids, team); // throws, in plain words, when a responsibility is switched off
+  if (r.suggest !== undefined && typeof r.suggest !== "boolean") throw new Error("suggest: true or false");
+  const system = `${chatPromptFor(topic.ids, team)}${r.suggest ? `\n\n${SUGGEST_RULE}` : ""}`; // throws, in plain words, when a responsibility is switched off
   return [
     "claude", "-p", r.message, "--model", model, "--effort", effort,
     "--append-system-prompt", system,
