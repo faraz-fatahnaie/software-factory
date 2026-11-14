@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Software Factory: say what you want, a team builds it, you decide</title>
+<meta name="description" content="A team of Claude Code agents that builds software with you, for people who are not engineers. Nothing reaches your project, GitHub or a server without your yes.">
+<script>document.documentElement.classList.add("js")</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="progress" aria-hidden="true"></div>
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="#top"><span class="mark" aria-hidden="true"></span>Software Factory</a>
+    <nav aria-label="Page"><a href="#why">Why</a><a href="#how">How it works</a><a href="#features">Features</a><a href="#control">Control</a><a href="#install">Install</a><a href="docs/">Docs</a><a href="https://github.com/faraz-fatahnaie/software-factory">GitHub</a></nav>
+    <a class="btn pri sm" href="#install">Install</a>
+  </div>
+</header>
+
+<main id="top">
+<!-- Hero -->
+<section class="hero wrap">
+  <h1 class="h">Say what you want.<br>A team builds it.<br>You decide.</h1>
+  <p class="lead">Software Factory is a team of Claude Code agents that builds software with you. You do not need to be an engineer. Nothing reaches your project, GitHub or a server without your yes.</p>
+  <div class="cta"><a class="btn pri" href="#install">Install the plugin</a><a class="btn ghost" href="docs/">Read the documentation</a></div>
+  <p class="fine">Free and <a href="https://github.com/faraz-fatahnaie/software-factory">open source</a> (MIT). Works with any language. macOS and Linux.</p>
+
+  <div class="stage rv" data-now>
+    <figure class="window">
+      <div class="chrome" aria-hidden="true"><i></i><i></i><i></i><span>127.0.0.1:4400</span></div>
+      <img src="img/hero.jpg" width="1208" height="810" alt="The Software Factory dashboard: a task, Deposit payment link on each order, is ready for your decision, with Send back with comments and Approve and land buttons.">
+    </figure>
+    <div class="term" aria-hidden="true" data-term>
+      <div class="t0"><span class="p">&gt;</span> <span data-type="Customers should pay a deposit by link." data-speed="38"></span><i class="caret"></i></div>
+      <div class="t1" data-after="1500">✓ plan <b>·</b> spec <b>·</b> build</div>
+      <div class="t2" data-after="2300">✓ tests pass <b>·</b> no secrets</div>
+      <div class="t3" data-after="3100"><span class="gold">⏸ waiting for your yes</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Why -->
+<section id="why" class="sec"><div class="wrap">
+  <h2 class="h big rv">Software, without becoming a software engineer.</h2>
+  <div class="grid3">
+    <article class="card rv" style="--d:0"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M15 14.5c3 0 6 1.5 6 5.5"/></svg><h3 class="h">A real team, with faces</h3><p>A Product Partner, Planner, Architect, Builder, Tester, Reviewer, Security engineer, Scribe and Release engineer. Talk to them, watch what each one is doing, and change who does what.</p></article>
+    <article class="card rv" style="--d:1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5L16 9.5"/></svg><h3 class="h">You hold the last word</h3><p>Approval is a button. Nothing lands, is pushed to GitHub or deployed until you press it. The agents cannot do it for you.</p></article>
+    <article class="card rv" style="--d:2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg><h3 class="h">Any language, any stack</h3><p>The agents read your project and use its own tools. You do not choose a framework or learn a command to start.</p></article>
+  </div>
+</div></section>
+
+<!-- How it works: pinned, scrubbed by scroll -->
+<section id="how" class="how" data-how>
+  <div class="pin">
+    <div class="wrap howgrid">
+      <div class="howtext">
+        <span class="eyebrow">How it works</span>
+        <h2 class="h big">From one sentence to a change you approve.</h2>
+        <ol class="steps">
+          <li><b>Idea</b><span>You say it in plain words.</span></li>
+          <li><b>Plan</b><span>It becomes tasks with checks.</span></li>
+          <li><b>Spec</b><span>The Architect decides how.</span></li>
+          <li><b>Build</b><span>Kofi writes tests, then code.</span></li>
+          <li><b>Check</b><span>Tests, secret scan, security.</span></li>
+          <li><b>Review</b><span>Sade reviews against the spec.</span></li>
+          <li><b>Your yes</b><span>Only now does it reach main.</span></li>
+        </ol>
+      </div>
+      <div class="howviz" aria-hidden="true">
+        <svg viewBox="0 0 600 300" class="graph">
+          <text x="20" y="40" class="gl">main</text>
+          <path d="M20 60 H580" class="main"/>
+          <path d="M90 60 C90 160 110 220 170 220 H430" class="lane" data-lane/>
+          <path d="M430 220 C500 220 510 60 560 60" class="lane merge" data-merge/>
+          <circle cx="20" cy="60" r="6" class="c"/><circle cx="90" cy="60" r="6" class="c"/>
+          <circle cx="560" cy="60" r="9" class="c done" data-done/>
+          <text x="180" y="262" class="gl" data-branch>factory/F-007</text>
+          <g data-dots></g>
+        </svg>
+        <pre class="log" data-log><code></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features" class="sec"><div class="wrap">
+  <span class="eyebrow rv">What you get</span>
+  <h2 class="h big rv">Everything in one calm dashboard.</h2>
+  <div class="grid3 tiles">
+    <article class="card tile rv" style="--d:0"><h3 class="h">Talk to the team</h3><p>Brainstorm, research, plan and design in plain conversation. Each person can suggest your next message.</p><div class="vis"><div class="b1">What should customers see after they pay?</div><div class="b2">A receipt by email.</div></div></article>
+    <article class="card tile rv" style="--d:1"><h3 class="h">Watch it work, live</h3><p>See who is doing what right now, and what it costs. Never wonder if it is stuck.</p><div class="vis live"><i class="av">K</i><div><b>Kofi</b><code>Editing src/orders/deposit.ts</code></div></div></article>
+    <article class="card tile rv" style="--d:2"><h3 class="h">Send it back with comments</h3><p>Not quite right? Say what to change. Only that changes, on the same branch.</p><div class="vis diff" data-diff><code class="del">-  const DEPOSIT = 0.5;</code><code class="add">+  const DEPOSIT = 0.3;</code></div></article>
+    <article class="card tile rv" style="--d:0"><h3 class="h">Stay up to date</h3><p>When other work lands first, one click brings your task up to date. Clashes are settled for you.</p><div class="vis row"><span class="tag warn">Main moved on</span><span class="btn pri sm static">Update this task</span></div></article>
+    <article class="card tile rv" style="--d:1"><h3 class="h">Checked before you look</h3><p>Tests, a secret scan and a security review for anything touching money, logins or data.</p><ul class="vis checks" data-checks><li>Tests pass</li><li>No secrets in the code</li><li>Security reviewed</li></ul></article>
+    <article class="card tile rv" style="--d:2"><h3 class="h">GitHub, the familiar way</h3><p>Pull requests, checks and merging look like GitHub. Pushes only when you say.</p><div class="vis row"><span class="tag open">Open</span><span class="gh">Merge pull request</span></div></article>
+  </div>
+  <p class="fine rv">And: a command palette (⌘K), a Studio to edit rules and skills, a Health strip, models per role, and a map of how your code connects.</p>
+</div></section>
+
+<!-- Control -->
+<section id="control" class="sec dark"><div class="wrap ctl">
+  <div class="rv"><span class="eyebrow on">Take control</span><h2 class="h big">Built so nothing surprises you.</h2><p class="lead dim">The limits are not settings the agents can change. A guard blocks them, and only you can move them.</p></div>
+  <div>
+    <pre class="cfg rv" tabindex="0" data-cfg aria-label="The limits, written as settings"><code></code></pre>
+    <dl class="rules">
+      <div class="rv"><dt>Nothing deploys automatically</dt><dd>Releases and deploys happen only when you ask for them.</dd></div>
+      <div class="rv"><dt>Only the Builder edits code</dt><dd>Everyone else reads and writes documents. Rules, settings and git history are off limits to agents.</dd></div>
+      <div class="rv"><dt>Secrets never go in files</dt><dd>Settings hold the name of a variable, never its value. A scan runs before anything is pushed.</dd></div>
+      <div class="rv"><dt>Every change waits for your yes</dt><dd>Approve it, send it back, or discard it. Your main branch only changes when you decide.</dd></div>
+    </dl>
+    <p class="dim rv">You can change: the team and who does what, the model for each role, the rules every agent follows, their skills, and the checks that must pass.</p>
+  </div>
+</div></section>
+
+<!-- Install and use -->
+<section id="install" class="sec"><div class="wrap">
+  <span class="eyebrow rv">Install and use</span>
+  <h2 class="h big rv">Three commands to start.</h2>
+  <div class="inst">
+    <div class="cmds">
+      <div class="rv"><p class="k">Add it to Claude Code</p><button class="code" data-copy="/plugin marketplace add faraz-fatahnaie/software-factory"><span>/plugin marketplace add faraz-fatahnaie/software-factory</span><i>copy</i></button></div>
+      <div class="rv"><p class="k">Install it</p><button class="code" data-copy="/plugin install software-factory@software-factory"><span>/plugin install software-factory@software-factory</span><i>copy</i></button></div>
+      <div class="rv"><p class="k">Set up your project</p><button class="code" data-copy="/software-factory:init"><span>/software-factory:init</span><i>copy</i></button></div>
+      <p class="fine rv">You need Claude Code (logged in), Bun 1.2 or newer and git. GitHub CLI is optional, for pull requests. It is open source: <a href="https://github.com/faraz-fatahnaie/software-factory">the code is on GitHub</a>.</p>
+    </div>
+    <div class="card use rv">
+      <h3 class="h">Then, in the dashboard</h3>
+      <ol>
+        <li><i>1</i><p><b>Talk.</b> Tell the Product Partner what you want to build.</p></li>
+        <li><i>2</i><p><b>Run.</b> Press Run on the top task and watch the team work.</p></li>
+        <li><i>3</i><p><b>Decide.</b> Read what changed, then approve, send back or discard.</p></li>
+      </ol>
+      <button class="btn pri full" data-copy="/software-factory:open">Open the dashboard: /software-factory:open</button>
+    </div>
+  </div>
+</div></section>
+
+<!-- Docs -->
+<section id="docs" class="sec white"><div class="wrap docs">
+  <div class="rv"><span class="eyebrow">Documentation</span><h2 class="h big">A complete course, not a reference.</h2><p class="lead">One bakery, from the first idea to a released feature. It shows what happens, step by step, when you ask for something, and what you see when something goes wrong.</p><div class="cta left"><a class="btn pri" href="docs/runbook.html">Open the runbook</a><a class="btn ghost" href="docs/runbook.html#9-cheat-sheet">Cheat sheet</a></div></div>
+  <ul class="toc card rv">
+    <li><span>1. Before you start</span><em>Setup</em></li>
+    <li><span>2. Meet the team</span><em>Who does what</em></li>
+    <li><span>3. From an idea to a backlog</span><em>Plan</em></li>
+    <li class="hot"><b>4. A feature, start to finish</b><em>The main story</em></li>
+    <li><span>5. What can happen on the way</span><em>Problems</em></li>
+    <li><span>6 to 9. Control, GitHub, release, cheat sheet</span><em>More</em></li>
+  </ul>
+</div></section>
+
+<!-- Close -->
+<section class="sec close"><div class="wrap">
+  <h2 class="h huge rv">Your next feature is one sentence away.</h2>
+  <div class="rv"><button class="code" data-copy="/plugin install software-factory@software-factory"><span>/plugin install software-factory@software-factory</span><i>copy</i></button></div>
+</div></section>
+</main>
+
+<footer class="wrap foot"><span>Software Factory, a Claude Code plugin. MIT licence.</span><span><a href="docs/">Documentation</a><a href="https://github.com/faraz-fatahnaie/software-factory">GitHub</a><a href="#install">Install</a><a href="#top">Back to top</a></span></footer>
+<p class="sr" role="status" aria-live="polite" data-live></p>
+<script src="app.js"></script>
+</body>
+</html>

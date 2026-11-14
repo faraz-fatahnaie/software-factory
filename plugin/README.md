@@ -33,14 +33,14 @@ macOS or Linux.
 
 Pick one. All three give you the same plugin.
 
-**1. From the GitHub repository (a team or a second computer).** In Claude Code:
+**1. From the GitHub repository (the usual way).** In Claude Code:
 
 ```
 /plugin marketplace add faraz-fatahnaie/software-factory
 /plugin install software-factory@software-factory
 ```
 
-The repository is private, so Claude Code uses your git credentials to read it; you need access to it.
+The repository is public, so no sign-in is needed to read it.
 
 **2. From a folder on your computer.**
 

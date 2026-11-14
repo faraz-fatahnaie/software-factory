@@ -8,7 +8,8 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "e2e": "bun e2e/gui.e2e.ts",
-    "smoke": "bun e2e/smoke.e2e.ts"
+    "smoke": "bun e2e/smoke.e2e.ts",
+    "site": "bun e2e/site.e2e.ts"
   },
   "dependencies": {
     "react": "^19.3.1",

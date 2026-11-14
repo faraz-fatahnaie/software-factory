@@ -16,3 +16,13 @@ graphify-out/20*/
 # dev-only design skills: large, restored from skills-lock.json
 .claude/skills/ui-ux-pro-max/
 .claude/skills/design-taste-frontend/
+# third-party skills used while developing: restored from skills-lock.json, not redistributed here
+.claude/skills/playwright-cli/
+.claude/skills/security-review/
+.claude/skills/test-driven-development/
+.claude/skills/vercel-react-best-practices/
+.claude/skills/verification-before-completion/
+.DS_Store
+# the video experiment (kept locally; only the still-capture script is part of the repo)
+video/*
+!video/capture-stills.ts

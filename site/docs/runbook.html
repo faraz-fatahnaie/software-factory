@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Runbook · Software Factory documentation</title>
+<meta name="description" content="A complete course: one bakery, from the first idea to a release.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="../favicon.svg">
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="docs.css">
+</head>
+<body>
+<header class="top"><div class="wrap bar">
+  <a class="brand" href="../"><span class="mark" aria-hidden="true"></span>Software Factory</a>
+  <nav aria-label="Documentation"><a href="index.html">Overview</a><a href="runbook.html" aria-current="page">Runbook</a><a href="https://github.com/faraz-fatahnaie/software-factory">GitHub</a><a href="../">Home</a></nav>
+  <a class="btn pri sm" href="../#install">Install</a>
+</div></header>
+<div class="wrap docgrid">
+  <aside class="side" aria-label="On this page"><p class="eyebrow">Runbook</p><nav>
+<a class="l2" href="#1-before-you-start">1. Before you start</a>
+<a class="l2" href="#2-meet-the-team">2. Meet the team</a>
+<a class="l2" href="#3-from-an-idea-to-a-backlog">3. From an idea to a backlog</a>
+<a class="l2" href="#4-a-feature-start-to-finish">4. A feature, start to finish</a>
+<a class="l3" href="#step-0-ask">Step 0. Ask</a>
+<a class="l3" href="#step-1-promote">Step 1. Promote</a>
+<a class="l3" href="#step-2-run">Step 2. Run</a>
+<a class="l3" href="#step-3-watch-or-do-not">Step 3. Watch (or do not)</a>
+<a class="l3" href="#step-4-the-stages-one-by-one">Step 4. The stages, one by one</a>
+<a class="l3" href="#step-5-it-stops-and-waits-for-you">Step 5. It stops and waits for you</a>
+<a class="l3" href="#step-6-review-what-it-did">Step 6. Review what it did</a>
+<a class="l3" href="#step-7-decide">Step 7. Decide</a>
+<a class="l3" href="#step-8-after-it-lands">Step 8. After it lands</a>
+<a class="l2" href="#5-what-can-happen-on-the-way">5. What can happen on the way</a>
+<a class="l3" href="#the-factory-fixes-itself">The factory fixes itself</a>
+<a class="l3" href="#it-stops-and-needs-you">It stops and needs you</a>
+<a class="l3" href="#things-around-the-pipeline">Things around the pipeline</a>
+<a class="l2" href="#6-keeping-control">6. Keeping control</a>
+<a class="l2" href="#7-github-checks-and-undoing">7. GitHub, checks and undoing</a>
+<a class="l2" href="#8-release-and-deploy">8. Release and deploy</a>
+<a class="l2" href="#9-cheat-sheet">9. Cheat sheet</a>
+  </nav></aside>
+  <main class="doc" id="top">
+    <h1 class="h">Runbook: building a product with the Software Factory</h1>
+<p>A complete course. One small business, from the first idea to a release, using every part of the tool.</p>
+<p><strong>The story.</strong> Dina runs a home bakery called <em>Crumb</em>. Orders arrive by text and DMs, and she loses track of
+them. She wants a small web app: she enters orders, customers pay a deposit by link, and she sees what is due
+this week. She is not a software engineer. Everything below is what she does, what the team does, and what
+she sees.</p>
+<p>Each chapter says what you do, what happens, and where to look. Slash commands (<code>/software-factory:...</code>) work
+in Claude Code; everything also has a button in the dashboard.</p>
+<p><strong>Chapters</strong></p>
+<ol>
+<li><a href="#1-before-you-start">Before you start</a></li>
+<li><a href="#2-meet-the-team">Meet the team</a></li>
+<li><a href="#3-from-an-idea-to-a-backlog">From an idea to a backlog</a></li>
+<li><a href="#4-a-feature-start-to-finish"><strong>A feature, start to finish</strong></a> — the one to read first</li>
+<li><a href="#5-what-can-happen-on-the-way"><strong>What can happen on the way</strong></a></li>
+<li><a href="#6-keeping-control">Keeping control</a></li>
+<li><a href="#7-github-checks-and-undoing">GitHub, checks and undoing</a></li>
+<li><a href="#8-release-and-deploy">Release and deploy</a></li>
+<li><a href="#9-cheat-sheet">Cheat sheet</a></li>
+</ol>
+<hr />
+<h2 id="1-before-you-start">1. Before you start</h2>
+<p><strong>You need:</strong> Claude Code (logged in), Bun, git, and optionally the GitHub CLI. See the
+<a href="index.html#what-you-need">README</a> for the install lines.</p>
+<p><strong>Dina's first minutes</strong></p>
+<ol>
+<li>In an empty folder she runs <code>git init</code>, then starts Claude Code there and installs the plugin.</li>
+<li><code>/software-factory:init</code>. Claude looks at the folder (empty, so no stack yet), explains the three team sizes
+in plain words, and asks a question or two. Dina handles customers' deposits, so it recommends <strong>Full</strong>
+(twelve roles, because money is involved). She agrees.</li>
+<li>It writes <code>BACKLOG.md</code>, <code>AGENTS.md</code>, <code>factory.config.json</code>, the role files and <code>docs/</code>, and commits them.
+It never overwrites a file that exists.</li>
+<li><code>/software-factory:open</code>. The dashboard opens at <code>http://127.0.0.1:4400</code>.</li>
+</ol>
+<p><strong>What she sees.</strong> Overview says &quot;Nothing is waiting for you&quot;. The Health strip is green or shows one thing to
+look at (for example that no gate commands are configured yet, because there are no tests). Press <code>⌘K</code> any time to
+run the factory's own checks or jump to any view.</p>
+<blockquote>
+<p>The payment provider's key will never be written into a file. When it is needed, the plan names an
+environment variable (for example <code>PAYMENT_API_KEY</code>) and Dina sets its value on her own machine and on the
+server. The factory's secret scan blocks any task that tries to put a key in a file.</p>
+</blockquote>
+<h2 id="2-meet-the-team">2. Meet the team</h2>
+<p>Open <strong>Team</strong>. Each person is a robot with a name, a job and a model.</p>
+<table tabindex="0">
+<thead>
+<tr><th>Person</th><th>Job</th><th>Works</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Mara</strong></td><td>Product Partner: works out what you want</td><td>In Talk, with you</td></tr>
+<tr><td><strong>Idris</strong></td><td>Planner: stories, milestones, tasks; triages loose ideas</td><td>In Talk, and on loose ideas</td></tr>
+<tr><td><strong>Noor</strong></td><td>Architect: stack, design, and the spec for each task</td><td>In Talk, and on every task</td></tr>
+<tr><td><strong>Kofi</strong></td><td>Builder: writes the code, tests first</td><td>On every task. The only one who changes code</td></tr>
+<tr><td><strong>Lena</strong></td><td>Tester: checks the product against the stories</td><td>In Talk</td></tr>
+<tr><td><strong>Sade</strong></td><td>Reviewer: correctness, scope, guardrails</td><td>On every task</td></tr>
+<tr><td><strong>Zane</strong></td><td>Security and performance</td><td>In Talk, and on risky tasks</td></tr>
+<tr><td><strong>Wren</strong></td><td>Scribe: documents and the chronicle</td><td>After each approved task</td></tr>
+<tr><td><strong>Rafi</strong></td><td>Release engineer: git, GitHub, releases</td><td>In Talk and by command</td></tr>
+</tbody>
+</table>
+<p>A normal task uses three of them (Noor, Kofi, Sade). The others join when needed. Click any robot for their
+panel: what they are doing right now, the files they touched, their recent stages.</p>
+<p><strong>Try it:</strong> in Team, press <em>Preview</em> on a different preset. The agent count and the cost of a normal task change
+on screen, and nothing is saved until you say so.</p>
+<h2 id="3-from-an-idea-to-a-backlog">3. From an idea to a backlog</h2>
+<p>Dina does not need to know what to ask for. In <strong>Talk</strong>, Mara asks one question at a time.</p>
+<ol>
+<li><strong>Brainstorm</strong> (<code>/software-factory:brainstorm</code>, or Talk → Mara). Who is it for, what problem, what does
+success look like, what is out of scope. Saves <code>docs/product/brief.md</code> only after Dina approves a draft.
+Each reply can end with suggested next messages you click.</li>
+<li><strong>Research</strong> (optional). Mara finds similar products on the web, compares them, and helps Dina decide what
+to copy or avoid. Saves <code>docs/product/research.md</code>.</li>
+<li><strong>Plan</strong> (<code>/software-factory:plan</code>). Idris turns the brief into user stories with acceptance criteria and
+non-functional requirements (for example &quot;loads in under a second for 500 orders&quot;). With no technology
+chosen yet, she stops there.</li>
+<li><strong>Design</strong> (<code>/software-factory:design</code>). Noor proposes a stack with reasons Dina can follow, designs the
+system, records decisions, defines the project's checks (the <em>gate</em>), and suggests skills for each role.
+Nothing is installed without a yes. Writes <code>docs/architecture/</code>.</li>
+<li><strong>Plan again.</strong> Idris now breaks the design into milestones and into tasks &quot;sized for one pipeline run,
+in dependency order&quot;. They land in <strong>Inbox</strong>. Each task carries its milestone, the stories it serves, what it depends on, its
+acceptance checks and what is out of scope, and is small enough for one reviewer to read in one sitting.</li>
+</ol>
+<p>The tasks wait in Inbox. Nothing runs until a person promotes them to <strong>Ready</strong>.</p>
+<p><strong>What she sees:</strong> each document has a line <code>Status: approved by the user on &lt;date&gt;</code> and is committed as it is
+saved (task agents work from the last commit). <code>factory status</code> (or <code>/software-factory:status</code>) always
+shows what exists and the one command to run next.</p>
+<p><strong>Ask Bix.</strong> At any point, <code>⌘K</code> → type a question → <em>Ask Bix</em>, or Talk → Bix. Bix reads the project, explains
+what is happening and how to change a setting, and cannot change anything.</p>
+<hr />
+<h2 id="4-a-feature-start-to-finish">4. A feature, start to finish</h2>
+<p>This is the main loop, and the one you will repeat. Dina asks for a feature, and we follow it from her words
+to code on <code>main</code>, naming what is produced at every step.</p>
+<blockquote>
+<p><strong>Dina:</strong> &quot;Customers should pay a deposit through a payment link, and the order should wait for the deposit.&quot;</p>
+</blockquote>
+<h3 id="step-0-ask">Step 0. Ask</h3>
+<p>Three ways, from smallest to biggest. They all end in the same place: a line in Inbox.</p>
+<table tabindex="0">
+<thead>
+<tr><th>If the request is...</th><th>Do this</th><th>What happens</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Small and clear</strong></td><td><strong>Backlog → Add item</strong>, or <code>/software-factory:add &quot;…&quot;</code>. Add a description beginning <code>Acceptance:</code> and a priority.</td><td>The item already has its checks, so <strong>triage is skipped</strong>.</td></tr>
+<tr><td><strong>A loose idea</strong></td><td>The same, with no acceptance checks.</td><td><strong>Triage runs first</strong>: Idris classifies it (feature, bug, chore or docs), sizes it (and says how to split it if it is large), lists backlog items it overlaps, and writes the acceptance checks and any open questions. She does not design or write code.</td></tr>
+<tr><td><strong>Big or unclear</strong></td><td>Talk → Mara (or Idris, <code>/software-factory:plan</code>)</td><td>A conversation that ends in several small tasks in dependency order, each with checks.</td></tr>
+</tbody>
+</table>
+<p>Dina types it in <strong>Backlog → Add item</strong> with priority P1. It becomes <code>F-007</code> in <strong>Inbox</strong>.</p>
+<p><em>Nothing has run and nothing has cost anything.</em></p>
+<h3 id="step-1-promote">Step 1. Promote</h3>
+<p>On the card, <strong>Promote to Ready</strong> (or <code>factory promote F-007</code>). Ready is run from the top: the first
+card says &quot;Runs first&quot;. This is your last chance to rethink before any usage is spent.</p>
+<h3 id="step-2-run">Step 2. Run</h3>
+<p>On the Ready card press <strong>Run</strong> (or <strong>Run next</strong>, with a number to run several at once, each in its own
+folder; or <code>/software-factory:run F-007</code>). Tick <strong>Dry run</strong> first to watch the whole pipeline with canned
+outputs and no model calls.</p>
+<p>The factory creates a branch <code>factory/F-007</code> and a folder <code>.worktrees/F-007</code>, runs the project's setup there,
+and starts the stages. Dina's own files are never touched while it works.</p>
+<h3 id="step-3-watch-or-do-not">Step 3. Watch (or do not)</h3>
+<p>Close the laptop if you like. You can also follow it live:</p>
+<ul>
+<li><strong>Overview → On shift.</strong> Kofi's card says <em>Building F-007</em>, with a live line: <em>Editing <code>src/orders/deposit.ts</code></em>,
+<em>Running <code>bun test</code></em>, and the last few actions. If an agent has been quiet for two minutes, the line turns
+amber: &quot;No activity for 3 min&quot;.</li>
+<li><strong>Backlog → open F-007.</strong> A pipeline map with each person's robot, time and cost per stage; <strong>Activity</strong>
+with every tool call in plain words and a replay slider.</li>
+<li><strong>Click Kofi's robot</strong> for his panel: live feed, the files he has read, edited and written.</li>
+<li><strong>Notifications.</strong> Turn on <em>Notify me</em> in the rail and the browser tells you, while its tab is hidden, when
+someone finishes or gets stuck.</li>
+</ul>
+<h3 id="step-4-the-stages-one-by-one">Step 4. The stages, one by one</h3>
+<p>Each stage reads the files the earlier ones wrote in the run folder and writes its own. The last reply of a
+stage is its output.</p>
+<table tabindex="0">
+<thead>
+<tr><th>#</th><th>Stage</th><th>Who</th><th>What happens</th><th>What it leaves</th></tr>
+</thead>
+<tbody>
+<tr><td>0</td><td><strong>Triage</strong></td><td>Idris</td><td>Only for loose ideas: type, size, overlaps, acceptance checks, open questions. Skipped when the item already has an <code>Acceptance:</code> line.</td><td><code>triage.md</code></td></tr>
+<tr><td>1</td><td><strong>Spec</strong></td><td>Noor</td><td>Writes the contract for this task: the change, the files, the tests, what is out of scope.</td><td><code>spec.md</code></td></tr>
+<tr><td>2</td><td><strong>Build</strong></td><td>Kofi</td><td>Writes the failing test first, then the least code that makes the spec pass, and runs the gate until it does.</td><td><code>build.md</code>, the code on the branch</td></tr>
+<tr><td>3</td><td><strong>Check</strong></td><td>the gate</td><td>Runs <em>your</em> commands (tests, type check, lint). Not an agent. It must pass before anyone reviews.</td><td>pass or fail, with the output</td></tr>
+<tr><td>4</td><td><strong>Security</strong></td><td>scripts, then Zane</td><td>Scripts always scan the change for hard-coded secrets (free). A model reviews it only if the change touches something sensitive: login, payments, secrets, data. A deposit link touches payments, so <strong>Zane reviews this one</strong>.</td><td><code>security.md</code></td></tr>
+<tr><td>5</td><td><strong>Review</strong></td><td>Sade</td><td>Judges correctness, scope, maintainability, and that no guardrail was weakened. Her answer's first line is exactly <code>APPROVE</code> or it counts as <em>changes requested</em>.</td><td><code>review.md</code></td></tr>
+<tr><td>6</td><td><strong>Summary</strong></td><td>Wren</td><td>After an approved review, writes the chronicle entry and notes for the roles. A failure here never blocks the task.</td><td><code>docs/</code> entry</td></tr>
+</tbody>
+</table>
+<p>The run folder is <code>.factory/runs/&lt;run id&gt;/</code> (not committed). The log keeps every attempt even when a file
+keeps only the latest.</p>
+<h3 id="step-5-it-stops-and-waits-for-you">Step 5. It stops and waits for you</h3>
+<p>When Sade approves, the card moves to <strong>Needs you</strong> and the tab title shows <code>(1)</code>. Overview says
+&quot;Sade finished and is waiting for your review of F-007&quot;.</p>
+<h3 id="step-6-review-what-it-did">Step 6. Review what it did</h3>
+<p>Open the task (or press <strong>Review changes</strong>). It opens on <strong>Changes</strong>: a file tree with <code>M</code>, <code>A</code>, <code>D</code> letters
+and +/− counts, and a diff of each file. Read the <strong>Review</strong> tab for Sade's verdict and <strong>Spec</strong> for what was
+agreed. The cost and time of every stage are on the stepper.</p>
+<p>You can also read it in a terminal: <code>git diff HEAD...factory/F-007</code>.</p>
+<h3 id="step-7-decide">Step 7. Decide</h3>
+<ul>
+<li><strong>Approve and land.</strong> Without GitHub, the work is merged into <code>main</code> on your computer, the task moves to
+<strong>Done</strong>, and the folder is removed. With a GitHub <code>origin</code>, the branch is kept and nothing is pushed yet
+(see chapter 7). Wren's summary and role notes are committed.</li>
+<li><strong>Send back with comments.</strong> Not quite right? Press it, say what to change (starter chips and free text, and optionally which changed files you mean), and <strong>Send back to Kofi</strong>. The task moves back to In progress as <strong>Round 2</strong>: Kofi continues on the same branch with the same spec and changes only what you said, then the checks, the security review and Sade's review run again, and it returns to <strong>Needs you</strong>. Your comments stay on the card and in the panel. If you are really asking for something new, add it as a new item instead. From a terminal: <code>factory reject F-007 --feedback &quot;…&quot;</code>.</li>
+<li><strong>Discard this work.</strong> Asks once, in place. The branch and folder are deleted.</li>
+<li><strong>Neither yet.</strong> It waits. If a task waits more than a day, the Health strip says so.</li>
+</ul>
+<h3 id="step-8-after-it-lands">Step 8. After it lands</h3>
+<p>The task is in <strong>Done</strong>, <code>main</code> has the change, and <code>docs/</code> has the chronicle entry. Dina can now start the
+next feature, run several at once, or ask Lena to test the whole product against the stories.</p>
+<p><strong>Timeline, in one picture</strong></p>
+<pre tabindex="0"><code>Ask → Inbox → Promote → Ready → Run
+   → [Triage] → Spec → Build ⇄ Check ⇄ Security ⇄ Review → Summary
+   → Needs you → Review changes → Approve and land → Done
+</code></pre>
+<p>The arrows between Build, Check, Security and Review run both ways: any of them can send the work back to the
+Builder. That is the next chapter.</p>
+<hr />
+<h2 id="5-what-can-happen-on-the-way">5. What can happen on the way</h2>
+<p>Almost always the flow above is all you see. These are the other things, what the dashboard shows, and what
+(if anything) you do.</p>
+<h3 id="the-factory-fixes-itself">The factory fixes itself</h3>
+<table tabindex="0">
+<thead>
+<tr><th>What happens</th><th>What you see</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>The checks fail</strong> (a test, the type check, lint)</td><td>Check turns red in the stepper; Build starts again</td><td>Kofi gets the failing output as feedback and fixes exactly that. Up to <strong>three builds</strong> in total.</td></tr>
+<tr><td><strong>A secret is found in the change</strong></td><td>Security fails with where (never the value)</td><td>Kofi is told to remove it, read it from the environment, and list the setting by name in the example settings file. It loops like any failure.</td></tr>
+<tr><td><strong>Zane is not satisfied</strong></td><td>Security fails with his findings</td><td>A reply that is not exactly <code>SECURE</code> on the first line counts as blocked. The findings go to Kofi, who may adapt a suggested patch.</td></tr>
+<tr><td><strong>You send it back</strong></td><td>The card returns to In progress with &quot;Round 2&quot; and your words under it</td><td>Kofi gets your comments as feedback, the spec is kept (&quot;kept&quot; on the stepper), and Build, Check, Security and Review run again. A new round has its own three builds.</td></tr>
+<tr><td><strong>Sade asks for changes</strong></td><td>Review shows <em>changes requested</em>; Build starts again</td><td>Her review is the feedback. Anything but <code>APPROVE</code> on the first line counts as a request for changes.</td></tr>
+<tr><td><strong>A model is rate limited</strong></td><td>A warning line &quot;Rate limited on opus; trying the next model&quot;</td><td>The stage moves down that role's <strong>fallback chain</strong> (for example opus → sonnet → haiku). Only rate limits do this.</td></tr>
+<tr><td><strong>The agent tries something forbidden</strong> (editing <code>AGENTS.md</code>, pushing, opening a pull request)</td><td><code>denied: …</code> on the stage</td><td>The guard blocks it. The agent is told to list the change under <em>Follow-ups</em> instead.</td></tr>
+<tr><td><strong>The agent found more to do</strong></td><td><em>Follow-ups</em> appear as new items in Inbox</td><td>They wait for you to promote. The agent stays in scope.</td></tr>
+</tbody>
+</table>
+<h3 id="it-stops-and-needs-you">It stops and needs you</h3>
+<p>The card moves to the red strip at the top of the board: <strong>Blocked</strong>. Open it (<em>Look into it</em>) and the
+Summary says what failed, with the output. Then:</p>
+<table tabindex="0">
+<thead>
+<tr><th>Why it is blocked</th><th>What it means</th><th>What to do</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>No approved build after 3 attempts</strong></td><td>Kofi and the checks or Sade could not agree</td><td>Open <strong>Activity</strong>: read the last findings. Often the spec was too big. Discard and split the item, or edit the item's description, then <strong>Retry</strong>.</td></tr>
+<tr><td><strong>Every model in the chain is rate limited</strong></td><td>You have used your Claude allowance for now</td><td>Wait for the window to reset (the Overview meter shows when), then <strong>Retry</strong>. Or give the role a longer fallback chain in Agents.</td></tr>
+<tr><td><strong>The Claude command line is not logged in</strong></td><td>An authentication error. The factory does <em>not</em> retry it on another model, because that would hide the problem</td><td>Run <code>claude</code> in a terminal and log in, then <strong>Retry</strong>.</td></tr>
+<tr><td><strong>A stage failed to start</strong></td><td>A broken role file or settings</td><td><code>⌘K</code> → <em>Is the setup right?</em>, or ask Bix. Fix it in Studio, then <strong>Retry</strong>.</td></tr>
+<tr><td><strong>You pressed Stop</strong></td><td>The stages end and the task moves to Blocked</td><td><strong>Retry</strong> when you want it, or <strong>Discard</strong>.</td></tr>
+<tr><td><strong>Main moved on while it waited</strong></td><td>The card shows &quot;Main moved on&quot; and the panel says &quot;main has 2 new commits since this was built&quot;. If the same code changed, Approve stops with &quot;conflicts with work that landed after it was built; nothing was merged&quot;</td><td>Press <strong>Update this task</strong> (or <code>factory update F-007</code>). Main is merged into the task's own branch; nothing is pushed. No clash: only the checks run again. A clash: Kofi resolves just those files and everything runs again as a new round (&quot;Update from main · round N&quot; on the card). If it cannot be finished, or the checks fail with the new main, the branch is put back exactly as it was. Once a task is approved and waiting for its pull request, update is not available: discard it and run it again.</td></tr>
+</tbody>
+</table>
+<p><strong>Retry</strong> starts a fresh run from the beginning with the same item. <strong>Discard</strong> asks once, in place, and deletes
+the branch and folder. Neither affects <code>main</code>.</p>
+<h3 id="things-around-the-pipeline">Things around the pipeline</h3>
+<ul>
+<li><strong>Two tasks at once.</strong> Each has its own folder. They can only collide when they are <em>approved</em>, which is the
+&quot;main moved on&quot; case above, and Update fixes it.</li>
+<li><strong>Cost.</strong> Each stage's cost appears when it ends. Overview shows usage against Claude's five-hour and weekly
+windows; the Health strip warns at 80%. <strong>Agents</strong> has the model and effort per role.</li>
+<li><strong>The dashboard says something is wrong.</strong> The Health strip checks, for free and without a model: setup,
+secrets, rule or role edits that were never committed (agents start from the last commit and would not
+see them), a gate that checks nothing, a task waiting over a day, and usage near the limit. Each has <em>Explain</em>.</li>
+<li><strong>The server is stopped.</strong> The page says so and keeps the last data. Start it again with
+<code>/software-factory:open</code>. Running tasks live in their own processes, so closing the page does not stop them.</li>
+<li><strong>You edited a rule while a task ran.</strong> The running stage keeps the prompt it started with. The change applies
+to the next stage that starts.</li>
+</ul>
+<hr />
+<h2 id="6-keeping-control">6. Keeping control</h2>
+<table tabindex="0">
+<thead>
+<tr><th>You want to...</th><th>Do this</th></tr>
+</thead>
+<tbody>
+<tr><td>Change who does what, or the team size</td><td><strong>Team</strong> → pick a preset or size, move a responsibility, switch one off, fold two roles together. Read the preview, then save.</td></tr>
+<tr><td>Use a smarter or cheaper model</td><td><strong>Agents</strong> → <em>Models per role</em>: model, effort, fallback chain. Applies to the next stage.</td></tr>
+<tr><td>Change a rule every agent follows</td><td><strong>Studio</strong> → <code>AGENTS.md</code>. Edit, <strong>Review changes</strong>, <strong>Commit</strong>. The save is two checks, and a change can be discarded.</td></tr>
+<tr><td>Change how one person works</td><td><strong>Studio</strong> → their role file. Add or remove their skills in the side panel.</td></tr>
+<tr><td>Add a skill</td><td><strong>Studio</strong> → pick a role → <em>Find more skills on skills.sh</em> → <em>Install</em>. It warns that a skill is third-party instruction before installing.</td></tr>
+<tr><td>Change the project's checks</td><td><code>factory configure</code> or edit the <code>gate</code> in <code>factory.config.json</code>.</td></tr>
+<tr><td>Treat more changes as sensitive</td><td><code>security</code> in <code>factory.config.json</code>: extra paths and keywords.</td></tr>
+<tr><td>Ask what is happening, or why it failed</td><td><code>⌘K</code> → type your question → <em>Ask Bix</em>.</td></tr>
+<tr><td>See what a person did</td><td>Click their robot.</td></tr>
+<tr><td>Undo a Studio edit</td><td>Studio → the file → <strong>History</strong> → pick a version → <em>Restore this version</em> (the same two checks apply).</td></tr>
+</tbody>
+</table>
+<h2 id="7-github-checks-and-undoing">7. GitHub, checks and undoing</h2>
+<p>The factory uses git and GitHub by default. The rules are fixed on purpose:</p>
+<ul>
+<li>Work always lands through a <strong>pull request that you merge</strong> into <code>main</code>. Auto-merge exists and is <strong>off</strong>.</li>
+<li>A push needs your explicit yes: the <strong>Push</strong> button, or approving it in the Release engineer's chat.</li>
+</ul>
+<p><strong>Set up.</strong> <code>/software-factory:git</code> (or Talk → Rafi). Rafi checks <code>gh</code>, and with your yes creates a private
+repository and sets <code>origin</code>. Credentials never go in the project.</p>
+<p><strong>The loop with GitHub.</strong></p>
+<ol>
+<li>Approve F-007. The branch is kept; <strong>nothing is pushed</strong>. The Overview <strong>GitHub</strong> tile lists it under
+<em>Ready to push</em>.</li>
+<li><strong>Push</strong> (or <code>factory push F-007</code>). The factory first scans for secrets, then pushes the branch and opens a pull
+request with the spec and review in its description.</li>
+<li>Checks run on GitHub. The tile shows them. If one fails, <strong>Add to backlog</strong> on the pull request adds an item that names the failing checks, with links to
+their logs, so the Builder can fix it as a normal task.</li>
+<li><strong>Merge</strong> (the green button, or <code>factory merge F-007</code>). It refuses while checks fail. The branch is deleted.</li>
+<li><strong>Update from GitHub</strong> (<code>factory sync</code>) brings <code>main</code> up to date, and the rail chip says where you stand.</li>
+</ol>
+<p><strong>Checks on GitHub.</strong> <code>factory vcs ci</code> writes a workflow from your gate commands so pull requests have checks.
+<strong>Auto-merge</strong> (<code>factory vcs auto-merge on</code>) merges as soon as checks pass, and refuses to turn on without a
+workflow to wait for. It is yours to enable.</p>
+<p><strong>Undo.</strong> <code>factory revert F-007</code> (or <strong>Source → Log → Revert</strong>) undoes a merged task. Locally it adds a
+revert commit. With GitHub it goes up as a pull request you review and merge.</p>
+<p><strong>Source.</strong> The <strong>Source</strong> view looks like GitHub and VS Code: <em>Changes</em> (a folder tree, letters, diffs),
+<em>Log</em> (a commit graph of every branch, search by message, author, hash or task, and a diff of any commit).</p>
+<h2 id="8-release-and-deploy">8. Release and deploy</h2>
+<p>Releases are prepared by Rafi and <strong>never deploy by themselves</strong>.</p>
+<ol>
+<li><code>⌘K</code> → <em>Is it ready to release?</em> (<code>factory release check</code>) lists blockers and warnings. <em>What would a release
+contain?</em> (<code>factory release info</code>) shows the last tag, the changes since, and every file carrying the version.</li>
+<li><code>/software-factory:release</code>. Rafi works out the version bump with you, updates the version files and the
+changelog, and the factory commits and tags. Nothing is pushed.</li>
+<li>Share the tag when you choose to.</li>
+<li><code>/software-factory:deploy</code>. Only when you ask. It goes <strong>one approved step at a time</strong>, smoke-tests the result,
+and offers a rollback if it fails. Every step waits for your yes.</li>
+</ol>
+<p>For Crumb, deployment needs the payment provider's key on the server. Dina sets that herself; the factory only
+ever knows the variable's name.</p>
+<h2 id="9-cheat-sheet">9. Cheat sheet</h2>
+<p><strong>In the dashboard</strong></p>
+<table tabindex="0">
+<thead>
+<tr><th>To...</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>Run anything, check anything, ask Bix</td><td><code>⌘K</code> / <code>Ctrl+K</code></td></tr>
+<tr><td>Add an item, filter, step through tasks</td><td><code>N</code>, <code>/</code>, <code>J</code> / <code>K</code> on the Backlog</td></tr>
+<tr><td>Open or close a task</td><td>Click it, <code>Esc</code></td></tr>
+<tr><td>Switch tabs in a task</td><td><code>1</code> to <code>5</code></td></tr>
+<tr><td>Open a person</td><td>Click their robot</td></tr>
+</tbody>
+</table>
+<p><strong>Commands</strong> (slash command, or <code>factory ...</code> in a terminal)</p>
+<table tabindex="0">
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><code>/software-factory:init</code></td><td>Set up the project</td></tr>
+<tr><td><code>…:add &quot;&lt;what&gt;&quot; [--priority P1] [--detail &quot;Acceptance: …&quot;]</code></td><td>Add to Inbox</td></tr>
+<tr><td><code>factory promote F-007</code></td><td>Inbox → Ready</td></tr>
+<tr><td><code>…:run [F-007] [--parallel 3] [--stub]</code></td><td>Run (<code>--stub</code> = dry run)</td></tr>
+<tr><td><code>…:status</code></td><td>Where everything is, and the next step</td></tr>
+<tr><td><code>…:approve F-007</code>, <code>…:discard F-007</code></td><td>Accept or throw away</td></tr>
+<tr><td><code>factory push F-007</code>, <code>merge F-007</code>, <code>revert F-007</code>, <code>sync</code></td><td>GitHub</td></tr>
+<tr><td><code>factory vcs ci</code>, <code>vcs auto-merge on</code></td><td>Checks and auto-merge on GitHub</td></tr>
+<tr><td><code>factory team presets</code>, <code>team use lean</code>, <code>team agents 7</code></td><td>The team</td></tr>
+<tr><td><code>factory configure</code></td><td>The setup and gate commands</td></tr>
+<tr><td><code>factory scan</code>, <code>factory doctor</code></td><td>Secret scan; setup check</td></tr>
+<tr><td><code>…:release</code>, <code>…:deploy</code></td><td>Release; deploy (only when you ask)</td></tr>
+</tbody>
+</table>
+<p><strong>Where to look when something is wrong</strong></p>
+<ol>
+<li>The red strip on <strong>Backlog</strong> or the amber lines in <strong>Overview → Health</strong>.</li>
+<li>Open the task → <strong>Summary</strong> (what failed) → <strong>Activity</strong> (what led to it).</li>
+<li><code>⌘K</code> → <em>Is the setup right?</em> and <em>Ask Bix</em>.</li>
+<li><strong>Logs</strong> has every event, and <code>.factory/runs/&lt;run id&gt;/</code> has every stage's files.</li>
+</ol>
+
+    <p class="fine">This page is built from <a href="https://github.com/faraz-fatahnaie/software-factory/blob/main/plugin/docs/RUNBOOK.md">plugin/docs/RUNBOOK.md</a>. To change it, edit that file.</p>
+  </main>
+</div>
+</body>
+</html>

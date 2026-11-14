@@ -129,7 +129,9 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 - [x] F-061 (P1) Plugin README and runbook with the home-bakery scenario
   `plugin/README.md` (install, value, commands, what you can and cannot change) and `plugin/docs/RUNBOOK.md` (a full course; chapter 4 follows one feature request from first word to code on main, chapter 5 lists everything that can happen on the way). Commands checked against a dry run. The landing page and the video reuse the same story.
 - [ ] F-062 (P3) Typography video of the home-bakery scenario showing every capability (later)
-- [ ] F-063 (P3) Official documentation website (later)
+- [x] F-063 Landing page and documentation site in `site/`
+  Static HTML, built from the README and runbook by `bun site/build-docs.ts`; checked by `bun run site`. Publishing it (for example GitHub Pages) is not done.
+- [ ] F-071 (P3) Polish the landing page: self-host the fonts, test in Firefox and Safari, more real screenshots, a better video (F-062)
 - [ ] F-049 (P2) Set models per role and per stage from the command line
   Today only by editing factory.config.json or the Models page (roles only); stage settings are set automatically when a stage moves.
 - [ ] F-050 (P3) Custom unattended checks beyond advisory

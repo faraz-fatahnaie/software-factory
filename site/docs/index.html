@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overview · Software Factory documentation</title>
+<meta name="description" content="What it is, how to install it, what you can change.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="../favicon.svg">
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="docs.css">
+</head>
+<body>
+<header class="top"><div class="wrap bar">
+  <a class="brand" href="../"><span class="mark" aria-hidden="true"></span>Software Factory</a>
+  <nav aria-label="Documentation"><a href="index.html" aria-current="page">Overview</a><a href="runbook.html">Runbook</a><a href="https://github.com/faraz-fatahnaie/software-factory">GitHub</a><a href="../">Home</a></nav>
+  <a class="btn pri sm" href="../#install">Install</a>
+</div></header>
+<div class="wrap docgrid">
+  <aside class="side" aria-label="On this page"><p class="eyebrow">Overview</p><nav>
+<a class="l2" href="#what-you-need">What you need</a>
+<a class="l2" href="#install">Install</a>
+<a class="l2" href="#first-minutes">First minutes</a>
+<a class="l2" href="#what-you-get">What you get</a>
+<a class="l3" href="#the-pipeline">The pipeline</a>
+<a class="l3" href="#the-team">The team</a>
+<a class="l3" href="#the-dashboard">The dashboard</a>
+<a class="l3" href="#the-commands">The commands</a>
+<a class="l2" href="#what-you-can-change-and-what-you-cannot">What you can change, and what you cannot</a>
+<a class="l2" href="#where-things-live">Where things live</a>
+<a class="l2" href="#learn-more">Learn more</a>
+  </nav></aside>
+  <main class="doc" id="top">
+    <h1 class="h">Software Factory</h1>
+<p>A team of Claude Code agents that builds software with you, for people who are not software engineers.
+You say what you want. The factory turns it into a plan, builds each piece in isolation, checks it,
+has it reviewed, and waits for your yes. Nothing reaches your main branch, GitHub or a server
+without you.</p>
+<p>It works in any language and stack, because the agents read your project and use its own tools.</p>
+<ul>
+<li><strong>A real team, with faces.</strong> A Product Partner, Planner, Architect, Builder, Tester, Reviewer,
+Security engineer, Scribe and Release engineer, each a robot with a name and a job. You can talk to
+them, see what each one is doing right now, and change who does what.</li>
+<li><strong>One place to watch it all.</strong> A local dashboard shows what is running, what needs you, what it
+costs, and exactly what changed.</li>
+<li><strong>You stay in charge.</strong> Approval is a button. Every step that costs money, lands work, pushes or
+deploys waits for you.</li>
+</ul>
+<blockquote>
+<p><strong>Example used in these docs.</strong> Dina runs a home bakery, <em>Crumb</em>. She wants an order tracker where
+customers pay a deposit by link. Every example, here and in the <a href="runbook.html">runbook</a>, is her.</p>
+</blockquote>
+<h2 id="what-you-need">What you need</h2>
+<table tabindex="0">
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Claude Code</strong>, logged in</td><td>The agents are Claude Code sessions. Run <code>claude</code> once in a terminal and log in.</td></tr>
+<tr><td><strong>Bun</strong> 1.2 or newer</td><td>The factory's engine. Install from <a href="https://bun.sh">bun.sh</a>. The plugin tells you if it is missing.</td></tr>
+<tr><td><strong>git</strong></td><td>Each task works on its own branch and folder.</td></tr>
+<tr><td><strong>gh</strong> (GitHub CLI), optional</td><td>Only if you want pull requests. <code>gh auth login</code> once.</td></tr>
+</tbody>
+</table>
+<p>macOS or Linux.</p>
+<h2 id="install">Install</h2>
+<p>Pick one. All three give you the same plugin.</p>
+<p><strong>1. From the GitHub repository (the usual way).</strong> In Claude Code:</p>
+<pre tabindex="0"><code>/plugin marketplace add faraz-fatahnaie/software-factory
+/plugin install software-factory@software-factory
+</code></pre>
+<p>The repository is public, so no sign-in is needed to read it.</p>
+<p><strong>2. From a folder on your computer.</strong></p>
+<pre tabindex="0"><code>/plugin marketplace add /path/to/software-factory
+/plugin install software-factory@software-factory
+</code></pre>
+<p><strong>3. Try it without installing.</strong> Start a session with the plugin loaded for that session only:</p>
+<pre tabindex="0"><code>claude --plugin-dir /path/to/software-factory/plugin
+</code></pre>
+<p>Choose where it is enabled when you install: just for you in every project (<code>user</code>), recorded in the
+repository so collaborators are prompted to install it (<code>project</code>), or only here (<code>local</code>).</p>
+<p>To update later: <code>claude plugin marketplace update software-factory</code>, then
+<code>claude plugin update software-factory@software-factory</code>.</p>
+<h2 id="first-minutes">First minutes</h2>
+<pre tabindex="0"><code>/software-factory:init        sets up this project: detects your stack, writes the team, rules and backlog
+/software-factory:open        opens the dashboard at http://127.0.0.1:4400
+</code></pre>
+<p><code>init</code> asks before it writes anything and never overwrites a file you already have. Then talk to the
+Product Partner (<strong>Talk</strong> in the dashboard, or <code>/software-factory:brainstorm</code>) and tell her what you want
+to build.</p>
+<h2 id="what-you-get">What you get</h2>
+<h3 id="the-pipeline">The pipeline</h3>
+<p>Every piece of work is one backlog item, and goes through the same stages:</p>
+<pre tabindex="0"><code>Triage → Spec → Build → Check → Security → Review → Summary → you approve
+</code></pre>
+<p>Triage only runs for loose ideas. Security only runs when a change touches something sensitive (login,
+payments, secrets, data). If the build fails its checks or the review asks for changes, the Builder gets
+the findings and tries again, up to three times. Each task runs in its own git branch and folder
+(a <em>worktree</em>), so several can run at once without touching each other or your files.</p>
+<h3 id="the-team">The team</h3>
+<p>Nine people by default. Make it leaner (6) or fuller (12), or any size from 3 to 12; move any of the 50-odd
+responsibilities between people; switch some off; rename roles; add your own responsibilities (advisory,
+never able to edit). The dashboard's <strong>Team</strong> view shows what each change would do to the agent count and
+the cost of a normal task before you save it.</p>
+<h3 id="the-dashboard">The dashboard</h3>
+<table tabindex="0">
+<thead>
+<tr><th>View</th><th>What it is for</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Overview</strong></td><td>What needs you first. Who is working, with a live &quot;Now&quot; line (<em>Editing <code>src/orders.ts</code></em>, <em>Running <code>bun test</code></em>). A <strong>Health</strong> strip of free checks. Throughput, Claude usage and cost, GitHub status.</td></tr>
+<tr><td><strong>Backlog</strong></td><td>The board: Inbox, Ready, In progress, Needs you, Done, and a strip for blocked tasks. Open a task for its pipeline, live activity, spec, review and changes, then <strong>Approve and land</strong>, <strong>Send back with comments</strong> (the Builder changes only what you say, on the same branch and spec), <strong>Update this task</strong> when main moved on while it waited, or <strong>Discard</strong>.</td></tr>
+<tr><td><strong>Talk</strong></td><td>Conversations with the people who work with you: brainstorm, research, plan, design, test, security review, documents, GitHub. Each can suggest your next message. <strong>Bix</strong>, the Guide, answers questions about the tool and never changes anything.</td></tr>
+<tr><td><strong>Team</strong></td><td>The robots, their jobs and models; change the team with a preview. Click a robot for their panel: live feed, files touched, recent stages.</td></tr>
+<tr><td><strong>Agents</strong></td><td>The model, effort and fallbacks for every role, and what each cost.</td></tr>
+<tr><td><strong>Source</strong></td><td>Git as you know it from GitHub and VS Code: changes, a commit graph with search, diffs, revert.</td></tr>
+<tr><td><strong>Studio</strong></td><td>Edit the rules, role prompts and skills, with a two-step save that commits.</td></tr>
+<tr><td><strong>Logs, Worktrees, Graph</strong></td><td>Every event, every task folder, and a map of how your code connects.</td></tr>
+<tr><td><strong>Command palette</strong> (<code>⌘K</code> / <code>Ctrl+K</code>)</td><td>One box to run the factory's checks, jump anywhere, and ask Bix.</td></tr>
+</tbody>
+</table>
+<h3 id="the-commands">The commands</h3>
+<p>Everything in the dashboard also exists as a slash command. Commands that spend usage, land work or
+delete it can only be started by you.</p>
+<table tabindex="0">
+<thead>
+<tr><th>Command</th><th>What it does</th></tr>
+</thead>
+<tbody>
+<tr><td><code>/software-factory:init</code></td><td>Set up the project.</td></tr>
+<tr><td><code>/software-factory:brainstorm</code>, <code>:research</code>, <code>:plan</code>, <code>:design</code></td><td>Conversations that turn an idea into documents and backlog items.</td></tr>
+<tr><td><code>/software-factory:add &lt;what&gt;</code></td><td>Put an idea in the Inbox.</td></tr>
+<tr><td><code>/software-factory:run</code></td><td>Run the top Ready item, or the ones you name.</td></tr>
+<tr><td><code>/software-factory:status</code></td><td>Where every task stands, and the next step.</td></tr>
+<tr><td><code>/software-factory:approve</code>, <code>:reject</code>, <code>:update</code>, <code>:discard</code></td><td>Accept, send back with your comments, bring up to date with main, or throw away a finished task.</td></tr>
+<tr><td><code>/software-factory:git</code></td><td>Set up git and GitHub with you; see what is waiting to be pushed.</td></tr>
+<tr><td><code>/software-factory:test</code>, <code>:secure</code></td><td>Check against the user stories; security and performance review.</td></tr>
+<tr><td><code>/software-factory:docs</code></td><td>Bring the README and documents up to date.</td></tr>
+<tr><td><code>/software-factory:release</code>, <code>:deploy</code></td><td>Prepare a release; deploy, only when you ask.</td></tr>
+<tr><td><code>/software-factory:team</code>, <code>:ask</code></td><td>Change the team; ask which person handles something.</td></tr>
+<tr><td><code>/software-factory:open</code>, <code>:doctor</code></td><td>Open the dashboard; check the setup.</td></tr>
+</tbody>
+</table>
+<p>The same engine has more commands for the terminal: <code>factory add | promote | run | approve | reject | update | discard | push | merge | revert | sync | vcs | team | configure | scan | release | status | doctor</code>
+(<code>factory</code> is on your PATH while the plugin is on).</p>
+<h2 id="what-you-can-change-and-what-you-cannot">What you can change, and what you cannot</h2>
+<p><strong>You can change</strong> (all of it from the dashboard or a file in your project):</p>
+<table tabindex="0">
+<thead>
+<tr><th></th><th>Where</th></tr>
+</thead>
+<tbody>
+<tr><td>Who is on the team, what each person takes care of, names and titles</td><td>Team view; <code>factory team ...</code></td></tr>
+<tr><td>Which model, effort and fallbacks each role uses, even per stage</td><td>Agents view; <code>factory.config.json</code></td></tr>
+<tr><td>The commands that must pass before a review (tests, lint) and the setup command</td><td><code>factory configure</code>; <code>factory.config.json</code></td></tr>
+<tr><td>The rules every agent follows</td><td><code>AGENTS.md</code>, in Studio</td></tr>
+<tr><td>A role's instructions and tools</td><td><code>.claude/agents/&lt;role&gt;.md</code>, in Studio. Edits survive a rebuild unless you ask to overwrite.</td></tr>
+<tr><td>Skills, per role</td><td>Studio: attach, detach, search skills.sh and install</td></tr>
+<tr><td>What counts as sensitive for the security review</td><td><code>security</code> in <code>factory.config.json</code> (always, paths, keywords)</td></tr>
+<tr><td>Auto-merge of pull requests (off by default)</td><td>The GitHub tile, <code>factory vcs auto-merge on</code></td></tr>
+<tr><td>Whether a person's conversation suggests your next message</td><td>The switch in the chat header</td></tr>
+<tr><td>Whether the code graph is built</td><td><code>graph</code> in <code>factory.config.json</code></td></tr>
+</tbody>
+</table>
+<p><strong>You cannot change, on purpose:</strong></p>
+<ul>
+<li>Agents cannot edit <code>BACKLOG.md</code>, <code>factory.config.json</code>, <code>AGENTS.md</code>, <code>.claude</code>, <code>.git</code>, <code>.factory</code>, or
+push to GitHub or open pull requests. A guard blocks it, and only you and the factory change them.</li>
+<li>Only the Builder changes code. Everyone else reads and writes documents.</li>
+<li>Nothing deploys automatically. Nothing lands without your approval.</li>
+<li>Secrets never go in files. Settings hold the <em>name</em> of an environment variable, never its value.</li>
+<li>The factory's own code. It is replaced when the plugin updates. Change behaviour through settings, role
+files, rules and skills, which belong to your project.</li>
+</ul>
+<h2 id="where-things-live">Where things live</h2>
+<p>Everything the factory makes is in your project, so you can read it, commit it, and remove it:</p>
+<table tabindex="0">
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><code>BACKLOG.md</code></td><td>The plan: six sections, one line per item.</td></tr>
+<tr><td><code>factory.config.json</code></td><td>Models, the gate, the team, settings. Holds no secret values.</td></tr>
+<tr><td><code>AGENTS.md</code>, <code>.claude/agents/</code>, <code>.claude/skills/</code></td><td>Rules, role prompts, skills.</td></tr>
+<tr><td><code>docs/</code></td><td>Brief, research, requirements, roadmap, architecture and decisions, the chronicle of what was done.</td></tr>
+<tr><td><code>.worktrees/&lt;F-id&gt;/</code></td><td>One folder and branch (<code>factory/&lt;F-id&gt;</code>) per task in flight. Not committed.</td></tr>
+<tr><td><code>.factory/</code></td><td>Run files and the event log. Not committed.</td></tr>
+</tbody>
+</table>
+<h2 id="learn-more">Learn more</h2>
+<p>The <a href="runbook.html">runbook</a> is a complete course: one bakery, from the first idea to a deployed
+release, including <strong>what happens, step by step, when you ask for a feature</strong>, and everything that can
+go wrong on the way and what you see when it does.</p>
+
+    <p class="fine">This page is built from <a href="https://github.com/faraz-fatahnaie/software-factory/blob/main/plugin/README.md">plugin/README.md</a>. To change it, edit that file.</p>
+  </main>
+</div>
+</body>
+</html>

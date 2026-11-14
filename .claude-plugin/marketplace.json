@@ -1,13 +1,16 @@
 {
   "name": "software-factory",
+  "description": "Software Factory: a team of Claude Code agents that builds software with you.",
   "owner": {
-    "name": "software-factory contributors"
+    "name": "Faraz Fatahnaie",
+    "url": "https://github.com/faraz-fatahnaie"
   },
   "plugins": [
     {
       "name": "software-factory",
       "source": "./plugin",
-      "description": "Backlog-to-pull-request pipeline with human approval and a local control-plane GUI."
+      "description": "A team of Claude Code agents that builds software with you, for people who are not software engineers. Plans, builds, checks and reviews each change in isolation, and waits for your approval.",
+      "homepage": "https://github.com/faraz-fatahnaie/software-factory"
     }
   ]
 }
