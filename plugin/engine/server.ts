@@ -325,6 +325,25 @@ export async function serve(root: string, port = 4400) {
         return json({ stopping: ids[0] });
       }
 
+      if (route === "POST /api/reject") {
+        // Sending a finished task back to the Builder with comments: one task at a time, and only one that is waiting for a decision.
+        const id = ids.length === 1 ? ids[0]! : "", feedback = typeof body.feedback === "string" ? body.feedback.trim() : "";
+        const files = body.files === undefined ? [] : Array.isArray(body.files) ? body.files : null;
+        if (!id) return json({ error: "one id required" }, 400);
+        if (!feedback || feedback.length > 4000) return json({ error: "feedback: 1 to 4000 characters" }, 400);
+        if (!files || files.length > 20 || files.some((f) => typeof f !== "string" || !f || f.length > 200 || /[\r\n,]/.test(f))) return json({ error: "files: up to 20 file paths" }, 400);
+        if (items().find((i) => i.id === id)?.section !== "Awaiting approval") return json({ error: `${id} is not waiting for a decision` }, 409);
+        if (running.has(id)) return json({ error: "already running" }, 409);
+        const p = Bun.spawn([process.execPath, CLI, "reject", id, "--feedback", feedback, ...(files.length ? ["--files", files.join(",")] : []), ...(body.stub === true ? ["--stub"] : [])], { cwd: root, stdout: "inherit", stderr: "pipe" });
+        const stderr = new Response(p.stderr).text();
+        running.set(id, p);
+        p.exited.then(async (code) => {
+          running.delete(id);
+          const error = (await stderr).trim();
+          if (code !== 0 && error) store.emit({ run: "", task: id, stage: "run", type: "command.failed", data: { error: error.slice(-1000) } });
+        });
+        return json({ started: [id] }, 202);
+      }
       if (route === "POST /api/run") {
         const count = body.parallel ?? 1;
         if (typeof count !== "number" || !Number.isInteger(count) || count < 1 || count > 8) return json({ error: "parallel: 1 to 8" }, 400);

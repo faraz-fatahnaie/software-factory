@@ -18,7 +18,7 @@ import { chatArgs, TOPICS } from "../plugin/engine/chat";
 import { estimate } from "../plugin/engine/estimate";
 import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugin/engine/vcs";
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
-import { followUps, needsTriage, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
+import { followUps, needsTriage, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
 import { splitSuggestions, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
 import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
@@ -1961,4 +1961,68 @@ test("health: quick free checks of the project, each with a state and a plain re
   expect(healthChecks(dir, { items: [], last: () => undefined }).find((c) => c.id === "secrets")?.state).toBe("bad");
   const hot = healthChecks(dir, { items: [], last: (type) => (type === "agent.rate_limit" ? { ts: "x", data: { unifiedWindows: { five_hour: { utilization: 0.86 } } } } : undefined) });
   expect(hot.find((c) => c.id === "usage")?.title).toContain("86%");
+});
+
+test("send back: a person's comments start a new round on the same spec, and only Build onward runs", async () => {
+  expect(peopleFeedback({ feedback: " Use 30%. ", files: ["a.ts", "b.ts"] })).toBe("A person reviewed the earlier build and asked for changes. Address exactly this feedback and change nothing else:\n\n“Use 30%.”\n(about: a.ts, b.ts)");
+  const store = openStore(":memory:");
+  const stages: string[] = [], prompts: string[] = [];
+  const runner: Runner = async ({ stage, prompt }) => { stages.push(stage); if (stage === "build") prompts.push(prompt); return { status: "ok", text: stage === "review" ? "APPROVE" : stage }; };
+  const dir = tmp();
+  const result = await runTask(task, { config, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir, resume: { spec: "THE OLD SPEC", feedback: "Use 30%", files: ["deposit.ts"], round: 2 } });
+  expect(result.ok).toBe(true);
+  expect(stages).not.toContain("spec"); expect(stages).not.toContain("triage"); // the spec is kept: it is not written again
+  expect(stages).toContain("build"); expect(stages).toContain("review");
+  expect(prompts[0]).toContain("Use 30%"); expect(prompts[0]).toContain("deposit.ts");
+  expect(readFileSync(join(dir, ".factory/runs", result.run, "spec.md"), "utf8")).toBe("THE OLD SPEC");
+  expect(readFileSync(join(dir, ".factory/runs", result.run, "task.md"), "utf8")).toContain("## Round 2");
+  const events = store.list(result.run);
+  expect(events.find((e) => e.type === "run.start")?.data).toEqual({ round: 2, feedback: "Use 30%", files: ["deposit.ts"] });
+  expect(events.filter((e) => e.type === "stage.skipped" && e.stage !== "security").map((e) => e.stage)).toEqual(["triage", "spec"]);
+  // The page's fold of those events: round 2, with what the person said about round 1.
+  const run = summarize(events.map((e) => ({ ...e, ts: "2026-11-14T10:00:00Z" } as Ev))).tasks.get(task.id)!;
+  expect(run.round).toBe(2);
+  expect(run.feedback).toEqual([{ round: 1, text: "Use 30%", files: ["deposit.ts"], ts: "2026-11-14T10:00:00Z" }]);
+});
+
+test("factory reject: only a task waiting for a decision, with comments, goes back to the Builder on its own branch", async () => {
+  const { dir, cli, sh, section } = repo();
+  cli("run", "F-001", "--stub");
+  expect(section("F-001")).toBe("Awaiting approval");
+  const branchBefore = sh("git", "rev-parse", "factory/F-001").out;
+  expect(cli("reject", "F-002", "--feedback", "x").out).toMatch(/expected Awaiting approval/); // F-002 is still Ready
+  expect(cli("reject", "F-001").out).toMatch(/usage: factory reject/); // comments are required
+  expect(cli("reject", "F-001", "--feedback", "y".repeat(4001)).out).toMatch(/usage: factory reject/);
+  expect(cli("reject", "F-001", "--feedback", "ok", "--files", "a\nb").out).toMatch(/--files/);
+  const r = cli("reject", "F-001", "--feedback", "Make the title shorter", "--files", "src/a.ts", "--stub");
+  expect(r.out).toContain("F-001 → Awaiting approval");
+  expect(section("F-001")).toBe("Awaiting approval"); // back for another decision
+  expect(sh("git", "rev-parse", "factory/F-001").out).not.toBe(branchBefore); // a new commit on the same branch
+  const events = openStore(join(dir, ".factory", "events.db")).since(0);
+  const starts = events.filter((e) => e.type === "run.start");
+  expect(starts.map((e) => (e.data as any)?.round ?? 1)).toEqual([1, 2]);
+  expect(starts[1]!.data).toMatchObject({ feedback: "Make the title shorter", files: ["src/a.ts"] });
+  const third = cli("reject", "F-001", "--feedback", "And again", "--stub");
+  expect(openStore(join(dir, ".factory", "events.db")).since(0).filter((e) => e.type === "run.start").map((e) => (e.data as any)?.round ?? 1)).toEqual([1, 2, 3]);
+  expect(third.out).toContain("Awaiting approval");
+});
+
+test("send back over HTTP: validated, only for a task waiting for a decision, and it runs another round", async () => {
+  const { dir, cli, section } = repo();
+  cli("run", "F-001", "--stub");
+  const server = await serve(dir, 0);
+  try {
+    const base = `http://127.0.0.1:${server.port}`;
+    const post = (body: unknown) => fetch(`${base}/api/reject`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify(body) });
+    expect((await post({ id: "F-001" })).status).toBe(400); // comments are required
+    expect((await post({ id: "F-001", feedback: "x".repeat(4001) })).status).toBe(400);
+    expect((await post({ id: "F-001", feedback: "ok", files: ["a,b"] })).status).toBe(400);
+    expect((await post({ id: "F-002", feedback: "ok" })).status).toBe(409); // still Ready
+    expect((await post({ id: "F-001", feedback: "Shorter title", files: ["x.ts"], stub: true })).status).toBe(202);
+    for (let i = 0; i < 100 && (await (await fetch(`${base}/api/backlog`)).json() as any).running.length; i++) await Bun.sleep(100);
+    const events = openStore(join(dir, ".factory", "events.db")).since(0).filter((e) => e.type === "run.start");
+    expect(events.length).toBe(2);
+    expect(events[1]!.data).toMatchObject({ round: 2, feedback: "Shorter title", files: ["x.ts"] });
+    expect(section("F-001")).toBe("Awaiting approval");
+  } finally { server.stop(); }
 });

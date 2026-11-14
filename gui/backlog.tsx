@@ -75,7 +75,7 @@ function TaskCard(p: { openPerson?: (role: string) => void; item: Item; run?: Ta
   return (
     <li className={`bcard ${sec === "Awaiting approval" ? "you" : active ? "live" : ""}${p.selected ? " selected" : ""}`} data-card={item.id}>
       <button className="open" onClick={p.open} aria-pressed={p.selected}>
-        <span className="top"><span className="idc">{item.id}</span><Prio p={item.prio} />{active && <span className="state"><i className="pulse" aria-hidden="true" />{DOING[active[0]]}</span>}{p.first && sec === "Ready" && <span className="state quiet">Runs first</span>}</span>
+        <span className="top"><span className="idc">{item.id}</span><Prio p={item.prio} />{run && run.round > 1 && <span className="tag">Round {run.round}</span>}{active && <span className="state"><i className="pulse" aria-hidden="true" />{DOING[active[0]]}</span>}{p.first && sec === "Ready" && <span className="state quiet">Runs first</span>}</span>
         <span className="title">{item.title}</span>
       </button>
       {active && live && (
@@ -84,6 +84,7 @@ function TaskCard(p: { openPerson?: (role: string) => void; item: Item; run?: Ta
           <span><b>{active[1].role ? personaFor(active[1].role).name : "The gate"}</b><span className="note">{active[0] === "check" ? "Running the project's checks" : <>{live.verb} {live.what && <code>{live.what}</code>}</>}</span></span>
         </div>
       )}
+      {active && run && run.feedback.length > 0 && <p className="note said-line" title={run.feedback.at(-1)!.text}>You asked: “{run.feedback.at(-1)!.text}”</p>}
       {(active || (run && sec === "Blocked")) && (
         <>
           <div className="track" role="img" aria-label={TRACK.map((s, i) => `${STATION[s]} ${track[i] ?? "waiting"}`).join(", ")}>
@@ -132,6 +133,41 @@ const EMPTY: Record<string, [string, string]> = {
   Done: ["Nothing done yet", "Approved work is listed here."],
 };
 
+// ---------------------------------------------------------------------------------------------------------------- Sending a task back
+
+const STARTERS = ["Add a test for…", "Keep it simpler", "This is not what I meant", "Rename…"];
+/** The box under the diff: say what to change, optionally which files it is about, and send it back to the Builder. */
+function SendBack(p: { id: string; builder: string; files: string[]; stub: boolean; act: Act; done: () => void }) {
+  const [text, setText] = useState("");
+  const [about, setAbout] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const area = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => { area.current?.focus(); }, []);
+  const name = personaFor(p.builder).name;
+  const send = async () => {
+    if (!text.trim() || busy) return;
+    setBusy(true);
+    const ok = await p.act("/api/reject", { id: p.id, feedback: text.trim(), files: about, stub: p.stub });
+    setBusy(false);
+    if (ok) p.done();
+  };
+  return (
+    <section className="sendback" aria-label="Send it back">
+      <div className="row between wrap"><h3>What should change?</h3><span className="note">{name} changes only what you say. The spec stays.</span></div>
+      <div className="row gap-s wrap" role="group" aria-label="Starters">{STARTERS.map((s) => <button key={s} type="button" className="chipb" onClick={() => { setText((t) => (t ? `${t.trimEnd()} ${s}` : s)); area.current?.focus(); }}>{s}</button>)}</div>
+      <textarea ref={area} aria-label="Your comments" rows={3} maxLength={4000} value={text} placeholder={`For example: the deposit should be 30% of the total, not half.`} onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); p.done(); } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); send(); } }} />
+      {p.files.length > 0 && (
+        <div className="row gap-s wrap"><span className="note">About:</span>{p.files.map((f) => <button key={f} type="button" className="chipb" aria-pressed={about.includes(f)} onClick={() => setAbout((a) => (a.includes(f) ? a.filter((x) => x !== f) : [...a, f]))}>{f.split("/").at(-1)}</button>)}<span className="note grow right">{text.length} / 4000</span></div>
+      )}
+      <div className="row between wrap">
+        <button className="quiet" type="button" onClick={p.done}>Cancel</button>
+        <span className="row gap"><span className="note">Check, security and review run again. Nothing lands.</span><button className="primary" disabled={!text.trim() || busy} onClick={send}>{busy ? "Sending…" : `Send back to ${name}`}</button></span>
+      </div>
+    </section>
+  );
+}
+
 // ---------------------------------------------------------------------------------------------------------------- The side panel
 
 type Tab = "Summary" | "Activity" | "Spec" | "Review" | "Changes";
@@ -151,7 +187,7 @@ function Stepper({ run, facts, pick }: { run?: TaskRun; facts: ReturnType<typeof
             <button onClick={() => pick(s)} title="Show its activity" aria-current={state === "active" ? "step" : undefined}>
               <span className="ring" aria-hidden="true">{st?.role ? <Robot role={st.role} size={28} /> : <span className="n">{s === "check" ? <Icon name="check" size={15} /> : i + 1}</span>}</span>
               <b>{STATION[s]}<span className="sr">, {state === "pending" ? "not started" : state}</span></b>
-              <span className="t">{state === "skipped" ? (st ? "skipped" : "not needed") : state === "active" ? took(Date.now() - Date.parse(st?.since ?? new Date().toISOString())) : f?.ms !== undefined ? took(f.ms) : i === firstWaiting && run?.status === "running" ? "next" : ""}</span>
+              <span className="t">{state === "skipped" ? (run && run.round > 1 && (s === "triage" || s === "spec") ? "kept" : st ? "skipped" : "not needed") : state === "active" ? took(Date.now() - Date.parse(st?.since ?? new Date().toISOString())) : f?.ms !== undefined ? took(f.ms) : i === firstWaiting && run?.status === "running" ? "next" : ""}</span>
             </button>
           </li>
         );
@@ -239,6 +275,7 @@ function Panel(p: { item: Item; run?: TaskRun; events: Ev[]; now: number; stub: 
   const [focus, setFocus] = useState("");
   const [wide, setWide] = useState(false);
   const [asking, setAsking] = useState(false);
+  const [sending, setSending] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [upTo, setUpTo] = useState<number | null>(null);
   const [replay, setReplay] = useState(false);
@@ -248,7 +285,7 @@ function Panel(p: { item: Item; run?: TaskRun; events: Ev[]; now: number; stub: 
   const then = upTo === null ? run : summarize(shown).tasks.get(item.id);
   const facts = useMemo(() => stageFacts(then), [then?.events.length, then]);
   const files = useDiff(item.id, run?.run ?? "", awaiting);
-  useEffect(() => { setTab(awaiting ? "Changes" : "Summary"); setFocus(""); setAsking(false); setUpTo(null); setReplay(false); head.current?.focus({ preventScroll: true }); }, [item.id, awaiting]);
+  useEffect(() => { setTab(awaiting ? "Changes" : "Summary"); setFocus(""); setAsking(false); setSending(false); setUpTo(null); setReplay(false); head.current?.focus({ preventScroll: true }); }, [item.id, awaiting]);
   const close = () => { if (reduced()) return p.close(); setLeaving(true); setTimeout(p.close, 170); };
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -280,7 +317,7 @@ function Panel(p: { item: Item; run?: TaskRun; events: Ev[]; now: number; stub: 
           </span>
         </div>
         <header className="bk-head">
-          <div className="row gap wrap"><span className="idc">{item.id}</span><Prio p={item.prio} /><span className={`bk-status ${status.cls}`}>{status.cls === "live" && <i className="pulse" aria-hidden="true" />}{status.cls === "ok" && <Icon name="check" size={15} />}{status.text}</span></div>
+          <div className="row gap wrap"><span className="idc">{item.id}</span><Prio p={item.prio} />{run && run.round > 1 && <span className="tag" title="A person sent it back, so this is another round">Round {run.round}</span>}<span className={`bk-status ${status.cls}`}>{status.cls === "live" && <i className="pulse" aria-hidden="true" />}{status.cls === "ok" && <Icon name="check" size={15} />}{status.text}</span></div>
           <div className="row between wrap">
             <h2 ref={head} tabIndex={-1}>{item.title}</h2>
             <span className="row gap">
@@ -302,7 +339,7 @@ function Panel(p: { item: Item; run?: TaskRun; events: Ev[]; now: number; stub: 
           ))}
         </div>
 
-        <div className="bk-body" key={tab} role="tabpanel">
+        <div className="bk-body" key={tab} role="tabpanel" tabIndex={0}>
           {tab === "Summary" && (
             <>
               {active && <section className="bk-card live" aria-label="What is happening now"><NowLine run={run} stage={active[0]} since={active[1].since ?? run!.started} now={p.now} /></section>}
@@ -312,6 +349,13 @@ function Panel(p: { item: Item; run?: TaskRun; events: Ev[]; now: number; stub: 
                   <pre>{String(typeof failure?.data === "string" ? failure.data : failure?.data?.error ?? run?.error ?? "").split("\n").slice(0, 14).join("\n")}</pre>
                 </section>
               )}
+              {(run?.feedback ?? []).slice().reverse().map((f, i) => (
+                <section key={i} className="bk-card live" aria-label={`Your comments, round ${f.round}`}>
+                  <div className="row between"><h3>Your comments · round {f.round}</h3><span className="note">sent {agoShort(f.ts)} ago</span></div>
+                  <p className="bk-detail">{f.text}</p>
+                  {f.files.length > 0 && <p className="note">About: {f.files.map((x) => <code key={x}>{x}</code>)}</p>}
+                </section>
+              ))}
               {verdict && <section className={`bk-card ${verdict.ok ? "ok" : "bad"}`} aria-label="The review"><h3>{verdict.ok ? "The reviewer approved it" : "The reviewer asked for changes"}</h3>{verdict.head && <p>{verdict.head}</p>}<button className="quiet" onClick={() => setTab("Review")}>Read the full review</button></section>}
               {item.detail && <section aria-label="About this task"><h3>About this task</h3><p className="bk-detail">{item.detail}</p></section>}
               <dl className="bk-facts">
@@ -345,12 +389,14 @@ function Panel(p: { item: Item; run?: TaskRun; events: Ev[]; now: number; stub: 
 
         {awaiting && (
           <footer className="bk-foot">
+            {sending && !asking && <SendBack id={item.id} builder={run?.stages.build?.role ?? "builder"} files={(files ?? []).map((f) => f.path)} stub={p.stub} act={act} done={() => setSending(false)} />}
             {asking ? (
               <div className="ask" role="alert"><b>Throw away the work on {item.id}?</b><span className="note">Its branch and worktree are deleted. This cannot be undone.</span><span className="row gap"><button onClick={() => setAsking(false)}>Keep it</button><button className="danger-btn" onClick={async () => { if (await act("/api/discard", { id: item.id })) close(); }}>Delete the work</button></span></div>
             ) : (
               <>
                 <button className="danger" onClick={() => setAsking(true)}>Discard this work</button>
                 <span className="grow" />
+                {!sending && <button onClick={() => setSending(true)}>Send back with comments</button>}
                 <span className="note">Approving merges it into main here. With GitHub connected it stays on its branch until you push.</span>
                 <button className="primary" onClick={async () => { if (await act("/api/approve", { id: item.id })) close(); }}>Approve and land</button>
               </>

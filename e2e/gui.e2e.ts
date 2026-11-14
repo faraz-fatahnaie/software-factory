@@ -59,6 +59,16 @@ try {
   await page.locator(".bk-panel").waitFor({ state: "detached" });
   await card("Needs you", "F-001").getByRole("button", { name: "Review changes" }).click();
 
+  // Send back: say what to change, and it goes to another round on the same branch, then waits for a decision again.
+  await page.getByRole("button", { name: "Send back with comments" }).click();
+  await page.getByRole("button", { name: "Keep it simpler" }).click();
+  await page.getByLabel("Your comments").fill("Keep it simpler: shorter output.");
+  await page.getByRole("button", { name: /^Send back to/ }).click();
+  await page.getByText("Round 2").first().waitFor({ timeout: 30_000 });
+  await page.locator(".bk-status.ok", { hasText: "Ready for your decision" }).waitFor({ timeout: 30_000 });
+  await page.getByRole("tab", { name: "Summary" }).click();
+  await page.getByRole("heading", { name: "Your comments · round 1" }).waitFor();
+
   // Approval: lands the work on main and cleans up the worktree.
   await page.getByRole("button", { name: "Approve and land" }).click();
   await card("Done", "F-001").waitFor();

@@ -16,7 +16,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 - [ ] F-017 Consider the CLI's native --fallback-model for overload, alongside the factory's own chain
 - [ ] F-018 Budget cap per stage with --max-budget-usd
 - [ ] F-019 Run builder stages inside an OS-level sandbox; the guard hook is a text match, not containment
-- [ ] F-020 Reject with feedback: send an awaiting-approval task back to Build with a person's comments
+- [x] F-020 Reject with feedback
+  `factory reject <F-id> --feedback "…"`, `POST /api/reject`, `/software-factory:reject` and a Send back with comments box in the task panel. Same branch and spec, a new round (Build to Review again), the comments recorded on the run and shown on the card and in the panel.
 - [ ] F-021 Rebase a task branch automatically when approve hits a merge conflict
 - [ ] F-022 Pause and resume a running task from the control plane
 - [ ] F-023 Model health test in the matrix: a one-token prompt per model

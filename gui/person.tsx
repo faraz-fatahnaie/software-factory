@@ -76,7 +76,7 @@ export function PersonPanel(p: { role: string; tasks: Map<string, TaskRun>; even
           {tabs.map((t) => <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{t}{t === "Files touched" && touched.length > 0 && <span className="n">{touched.length}</span>}</button>)}
         </div>
 
-        <div className="bk-body" key={tab} role="tabpanel">
+        <div className="bk-body" key={tab} role="tabpanel" tabIndex={0}>
           {tab === "Live feed" && job && (
             <>
               <section className="bk-card live" aria-label="What is happening now"><NowLine run={run} stage={job.stage} since={job.since} now={p.now} /></section>

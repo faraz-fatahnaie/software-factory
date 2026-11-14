@@ -15,6 +15,10 @@ export type TaskRun = {
   error?: string;
   cost: number;
   events: Ev[];
+  /** 1 for a normal run; 2 after a person sent it back once. */
+  round: number;
+  /** What people said when they sent it back, oldest first (round is the round they commented on). */
+  feedback: { round: number; text: string; files: string[]; ts: string }[];
 };
 
 export const STAGES = ["triage", "spec", "build", "check", "security", "review", "document"];
@@ -26,8 +30,10 @@ export function summarize(events: Ev[]) {
   for (const e of events) {
     if (e.type === "agent.rate_limit") rateLimit = e.data;
     if (e.type === "command.failed") notice = e;
-    if (e.type === "run.start")
-      tasks.set(e.task, { run: e.run, started: e.ts, status: "running", stages: {}, outputs: {}, cost: 0, events: [] });
+    if (e.type === "run.start") {
+      const before = tasks.get(e.task), said = e.data?.feedback ? [{ round: (e.data.round ?? 2) - 1, text: String(e.data.feedback), files: (e.data.files ?? []) as string[], ts: e.ts }] : [];
+      tasks.set(e.task, { run: e.run, started: e.ts, status: "running", stages: {}, outputs: {}, cost: 0, events: [], round: e.data?.round ?? 1, feedback: e.data?.round ? [...(before?.feedback ?? []), ...said] : [] });
+    }
     const t = tasks.get(e.task);
     if (!t) continue;
     t.events.push(e);

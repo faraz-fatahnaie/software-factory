@@ -183,6 +183,7 @@ You can also read it in a terminal: `git diff HEAD...factory/F-007`.
 - **Approve and land.** Without GitHub, the work is merged into `main` on your computer, the task moves to
   **Done**, and the folder is removed. With a GitHub `origin`, the branch is kept and nothing is pushed yet
   (see chapter 7). Wren's summary and role notes are committed.
+- **Send back with comments.** Not quite right? Press it, say what to change (starter chips and free text, and optionally which changed files you mean), and **Send back to Kofi**. The task moves back to In progress as **Round 2**: Kofi continues on the same branch with the same spec and changes only what you said, then the checks, the security review and Sade's review run again, and it returns to **Needs you**. Your comments stay on the card and in the panel. If you are really asking for something new, add it as a new item instead. From a terminal: `factory reject F-007 --feedback "…"`.
 - **Discard this work.** Asks once, in place. The branch and folder are deleted.
 - **Neither yet.** It waits. If a task waits more than a day, the Health strip says so.
 
@@ -216,6 +217,7 @@ Almost always the flow above is all you see. These are the other things, what th
 | **The checks fail** (a test, the type check, lint) | Check turns red in the stepper; Build starts again | Kofi gets the failing output as feedback and fixes exactly that. Up to **three builds** in total. |
 | **A secret is found in the change** | Security fails with where (never the value) | Kofi is told to remove it, read it from the environment, and list the setting by name in the example settings file. It loops like any failure. |
 | **Zane is not satisfied** | Security fails with his findings | A reply that is not exactly `SECURE` on the first line counts as blocked. The findings go to Kofi, who may adapt a suggested patch. |
+| **You send it back** | The card returns to In progress with "Round 2" and your words under it | Kofi gets your comments as feedback, the spec is kept ("kept" on the stepper), and Build, Check, Security and Review run again. A new round has its own three builds. |
 | **Sade asks for changes** | Review shows *changes requested*; Build starts again | Her review is the feedback. Anything but `APPROVE` on the first line counts as a request for changes. |
 | **A model is rate limited** | A warning line "Rate limited on opus; trying the next model" | The stage moves down that role's **fallback chain** (for example opus → sonnet → haiku). Only rate limits do this. |
 | **The agent tries something forbidden** (editing `AGENTS.md`, pushing, opening a pull request) | `denied: …` on the stage | The guard blocks it. The agent is told to list the change under *Follow-ups* instead. |

@@ -86,6 +86,10 @@ try {
     await page.locator(".bk-changes .udiff .ln.add").first().waitFor();
     for (const tab of ["Summary", "Activity", "Spec", "Review"]) await page.getByRole("tab", { name: new RegExp(`^${tab}`) }).click();
     await a11y(page, `${name} task panel (needs you)`);
+    await page.getByRole("button", { name: "Send back with comments" }).click();
+    await page.getByLabel("Your comments").waitFor();
+    await a11y(page, `${name} send-back box`);
+    await page.keyboard.press("Escape"); // the first Esc closes the box, the next the panel
     await page.keyboard.press("Escape");
     await page.locator(".bk-panel").waitFor({ state: "detached" });
     await page.locator('[data-card="F-002"] .open').click();

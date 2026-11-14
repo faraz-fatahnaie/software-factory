@@ -12,7 +12,7 @@ import { formatChecks, formatInfo, readiness, releaseInfo, tagRelease } from "./
 import { allTracked, changesSince, formatFindings, scanSecrets } from "./security";
 import { activeRoles, chatPrompt, chatPromptFor, describeTeam, perTask, presets, resolveTeam, ROLE_NAME } from "./team";
 import { addCustom, changeTeam, moveSettings, offSettings, onSettings, removeCustom, renameSettings, teamForAgents, titleSettings, useSettings } from "./teamctl";
-import { runTask, shellGate, stopAll, stubRunner } from "./pipeline";
+import { runTask, shellGate, stopAll, stubRunner, type Resume, type Runner } from "./pipeline";
 import { addSkill, searchSkills, setSkill } from "./skills";
 import { armAutoMerge, ciWorkflow, failingChecksItem, formatStatus, hasChecks, listPrs, mergeTask, pushTask, revertTask, runTexts, syncGithub, vcsStatus } from "./vcs";
 import { APPROVED, commitAll, ensureWorktree, land, removeWorktree } from "./worktree";
@@ -82,6 +82,7 @@ const flag = (args: string[], name: string) => args.flatMap((a, i) => (a === nam
 const USAGE = `factory init [--setup <cmd>]... [--gate <cmd>]... [--team lean|balanced|full]   set this project up; without flags the commands are detected and the team is balanced
 factory detect                                  show the setup and gate commands init would use
 factory gate ["<cmd>"...]                        run the configured gate here, or try the given commands
+factory reject <F-id> --feedback "<what to change>" [--files a,b]   send a finished task back to the Builder with your comments (same branch, same spec)
 factory release info | check [--deploy] | tag <version>   what a release holds, whether the project is ready, and tag it (never pushes)
 factory scan [--since <revision>]                scan for hard-coded secrets: the whole project, or what changed since a revision
 factory docs save                               commit the documents (docs/, README.md, AGENTS.md...) so task agents can read them
@@ -104,6 +105,38 @@ factory serve [port]                            start the local control plane (d
 factory add "<title>" [--detail "<lines>"] [--priority P1]   add an item to Inbox
 factory skill add <owner/repo@skill> --role <r> install a skill and attach it to a role
 factory skill attach|detach <skill> --role <r>  attach or detach a skill that is already installed`;
+
+/** Runs backlog items through the pipeline, each in its own worktree, and moves each to Awaiting approval or Blocked. `resume` makes it a send-back of the single item. */
+async function runItems(config: ReturnType<typeof loadConfig>, runner: Runner, chosen: Item[], resume?: Resume) {
+  const store = openEvents();
+  // Ctrl-C or a stop from the GUI: end the stages, then let each task settle into Blocked below.
+  process.on("SIGINT", stopAll);
+  process.on("SIGTERM", stopAll);
+  const results = await Promise.all(chosen.map(async (item) => {
+    editBacklog(`${item.id} → In progress`, (t) => move(t, item.id, "In progress"));
+    console.log(`${item.id} ${item.title}`);
+    let run = "", error = "", followUps: string[] = [];
+    try {
+      const dir = ensureWorktree(root, item.id);
+      const setup = await shellGate(config.setup ?? [])(dir);
+      if (!setup.ok) throw new Error(`setup failed:\n${setup.output}`);
+      const result = await runTask(item, { config, store, runner, gate: shellGate(config.gate), cwd: dir, resume });
+      ({ run, followUps } = result);
+      if (!result.ok) error = result.error;
+      else if (!commitAll(dir, `${item.id}: ${item.title}${resume ? ` (round ${resume.round})` : ""}`)) error = "the review approved a build that changed nothing";
+    } catch (e) {
+      error = String(e);
+    }
+    const to: Section = error ? "Blocked" : "Awaiting approval";
+    editBacklog(`${item.id} → ${to}`, (t) => followUps.reduce((text, f) => add(text, f).text, move(t, item.id, to)));
+    console.log(error
+      ? `${item.id} → Blocked: ${error} (run ${run})`
+      : `${item.id} → Awaiting approval (run ${run}). Review: git diff HEAD...factory/${item.id}  then: factory approve ${item.id} | factory reject ${item.id} --feedback "..." | factory discard ${item.id}`);
+    return !error;
+  }));
+  store.close();
+  if (results.includes(false)) process.exitCode = 1;
+}
 
 async function main([cmd, ...args]: string[]) {
   if (cmd === "add" && args[0]) {
@@ -427,35 +460,25 @@ async function main([cmd, ...args]: string[]) {
       : readItems().filter((i) => i.section === "Ready").slice(0, count);
     if (!chosen.length) throw new Error("nothing under Ready");
 
-    const store = openEvents();
-    // Ctrl-C or a stop from the GUI: end the stages, then let each task settle into Blocked below.
-    process.on("SIGINT", stopAll);
-    process.on("SIGTERM", stopAll);
-    const results = await Promise.all(chosen.map(async (item) => {
-      editBacklog(`${item.id} → In progress`, (t) => move(t, item.id, "In progress"));
-      console.log(`${item.id} ${item.title}`);
-      let run = "", error = "", followUps: string[] = [];
-      try {
-        const dir = ensureWorktree(root, item.id);
-        const setup = await shellGate(config.setup ?? [])(dir);
-        if (!setup.ok) throw new Error(`setup failed:\n${setup.output}`);
-        const result = await runTask(item, { config, store, runner, gate: shellGate(config.gate), cwd: dir });
-        ({ run, followUps } = result);
-        if (!result.ok) error = result.error;
-        else if (!commitAll(dir, `${item.id}: ${item.title}`)) error = "the review approved a build that changed nothing";
-      } catch (e) {
-        error = String(e);
-      }
-      const to: Section = error ? "Blocked" : "Awaiting approval";
-      editBacklog(`${item.id} → ${to}`, (t) => followUps.reduce((text, f) => add(text, f).text, move(t, item.id, to)));
-      console.log(error
-        ? `${item.id} → Blocked: ${error} (run ${run})`
-        : `${item.id} → Awaiting approval (run ${run}). Review: git diff HEAD...factory/${item.id}  then: factory approve ${item.id} | factory discard ${item.id}`);
-      return !error;
-    }));
+    return runItems(config, runner, chosen);
+  }
+
+  if (cmd === "reject") {
+    // A person sends a finished task back: same branch and folder, the earlier spec, and what they said handed to the Builder.
+    const value = (flag: string) => { const i = args.indexOf(flag); return i < 0 ? undefined : args[i + 1] ?? (() => { throw new Error(`${flag} needs a value`); })(); };
+    const feedback = (value("--feedback") ?? "").trim(), files = (value("--files") ?? "").split(",").map((f) => f.trim()).filter(Boolean);
+    const id = args.find((a) => /^F-\d+$/.test(a));
+    const unknown = args.filter((a, i) => a !== id && a !== "--stub" && a !== "--feedback" && a !== "--files" && args[i - 1] !== "--feedback" && args[i - 1] !== "--files");
+    if (unknown.length) throw new Error(`unknown argument: ${unknown.join(" ")}`);
+    if (!feedback || feedback.length > 4000) throw new Error('usage: factory reject <F-id> --feedback "<what to change, up to 4000 characters>" [--files a,b] [--stub]');
+    if (files.length > 20 || files.some((f) => f.length > 200 || /[\r\n]/.test(f))) throw new Error("--files: up to 20 paths of up to 200 characters");
+    const item = find(id, "Awaiting approval");
+    const config = loadConfig(root), store = openEvents();
+    const before = store.last("run.start", item.id), lastRun = store.lastRun(item.id);
+    const specFile = lastRun ? join(root, ".factory", "runs", lastRun, "spec.md") : "";
+    const spec = specFile && existsSync(specFile) ? readFileSync(specFile, "utf8") : "";
     store.close();
-    if (results.includes(false)) process.exitCode = 1;
-    return;
+    return runItems(config, args.includes("--stub") ? stubRunner : claudeRunner(config.gate), [item], { spec, feedback, files, round: (((before?.data as { round?: number } | undefined)?.round) ?? 1) + 1 });
   }
 
   console.log(USAGE);

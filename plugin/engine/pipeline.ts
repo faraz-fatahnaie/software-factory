@@ -68,15 +68,23 @@ export const verdictIs = (text: string, word: string) => text.split("\n")[0]!.tr
 /** An item written by the planner carries its acceptance checks; anything else is an ad-hoc item that needs triage first. */
 export const needsTriage = (task: { detail?: string }) => !/\bacceptance\b/i.test(task.detail ?? "");
 
-/** [Triage →] Spec → Build → Check → Review, looping Build on gate or review failure. Triage runs only for ad-hoc items. */
+/** A person sent a finished task back: the spec of the earlier round, what they said, which files it is about, and which round this is (2 for the first send-back). */
+export type Resume = { spec: string; feedback: string; files: string[]; round: number };
+
+/** What the Builder is told in the first build of a round that a person asked for. Written as their request: it cannot change the rules or what the Builder may touch. */
+export const peopleFeedback = (r: Pick<Resume, "feedback" | "files">) =>
+  `A person reviewed the earlier build and asked for changes. Address exactly this feedback and change nothing else:\n\n“${r.feedback.trim()}”${r.files.length ? `\n(about: ${r.files.join(", ")})` : ""}`;
+
+/** [Triage →] Spec → Build → Check → Review, looping Build on gate or review failure. Triage runs only for ad-hoc items. A send-back (`resume`) keeps the earlier spec and starts at Build. */
 export async function runTask(
   task: { id: string; title: string; detail?: string },
-  o: { config: Config; store: Store; runner: Runner; gate: Gate; cwd: string },
+  o: { config: Config; store: Store; runner: Runner; gate: Gate; cwd: string; resume?: Resume },
 ) {
   const run = crypto.randomUUID().slice(0, 8);
   const dir = join(o.cwd, ".factory", "runs", run);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "task.md"), `# ${task.id} ${task.title}\n${task.detail ? `\n${task.detail}\n` : ""}`);
+  writeFileSync(join(dir, "task.md"), `# ${task.id} ${task.title}\n${task.detail ? `\n${task.detail}\n` : ""}${o.resume ? `\n## Round ${o.resume.round}\n${peopleFeedback(o.resume)}\n` : ""}`);
+  if (o.resume) writeFileSync(join(dir, "spec.md"), o.resume.spec);
   const emit = (stage: string, type: string, extra: { role?: Role; model?: string; data?: unknown } = {}) =>
     o.store.emit({ run, task: task.id, stage, type, ...extra });
 
@@ -153,12 +161,13 @@ export async function runTask(
   };
 
   try {
-    emit("run", "run.start");
-    if (!needsTriage(task)) emit("triage", "stage.skipped", { data: "the item already carries acceptance checks" });
+    emit("run", "run.start", o.resume ? { data: { round: o.resume.round, feedback: o.resume.feedback, files: o.resume.files } } : {});
+    if (o.resume) { emit("triage", "stage.skipped", { data: "a person sent it back; the earlier spec is kept" }); emit("spec", "stage.skipped", { data: `the spec is kept from round ${o.resume.round - 1}` }); }
+    else if (!needsTriage(task)) emit("triage", "stage.skipped", { data: "the item already carries acceptance checks" });
     else if (roleFor("triage")) await stage("triage", roleFor("triage")!);
     else emit("triage", "stage.skipped", { data: "triage is switched off in this team" });
-    await stage("spec", roleFor("spec")!);
-    let feedback = "";
+    if (!o.resume) await stage("spec", roleFor("spec")!);
+    let feedback = o.resume ? peopleFeedback(o.resume) : "";
     for (let attempt = 1; ; attempt++) {
       const build = await stage("build", roleFor("build")!, feedback);
       emit("check", "stage.start");

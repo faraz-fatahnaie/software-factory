@@ -1085,3 +1085,11 @@ button.icon:hover { color: var(--text); background: color-mix(in srgb, var(--tex
 .health li.bad .mark { color: var(--bad); }
 .link.vcs.bad { color: var(--bad); }
 .link.vcs.bad::before { background: var(--bad); box-shadow: none; animation: none; }
+
+/* ---------- Sending a task back ---------- */
+.sendback { flex: 1 1 100%; display: grid; gap: 10px; padding: 14px 16px; border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent); border-radius: var(--r-md); background: var(--inset); animation: grow-in 0.18s var(--ease); }
+.sendback h3 { font-size: 15px; }
+.sendback textarea { width: 100%; resize: none; }
+.chipb { display: inline-flex; align-items: center; min-height: 30px; padding: 0 12px; border-radius: var(--r-pill); font-size: 13px; background: none; }
+.chipb[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.said-line { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-style: italic; }
