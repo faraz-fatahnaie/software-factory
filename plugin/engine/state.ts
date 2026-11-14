@@ -125,3 +125,60 @@ export function roster(tasks: Map<string, TaskRun>) {
     return active ? [{ task, stage: active[0], role: active[1].role ?? "gate", model: active[1].model ?? "", since: active[1].since ?? run.started }] : [];
   });
 }
+
+// ---------------------------------------------------------------------------------------------------------------- what an agent is doing
+
+export type Doing = { verb: string; what: string };
+/** A path as a person knows it: without the task worktree in front, and at most the last three folders. */
+const shortPath = (p: unknown) => {
+  const rest = String(p ?? "").replace(/^.*?\.worktrees\/[\w-]+\//, "");
+  const parts = rest.split("/").filter(Boolean);
+  return parts.length > 3 ? parts.slice(-3).join("/") : parts.join("/");
+};
+const clip = (t: string, n: number) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
+
+/** A tool call in a few plain words: "Editing src/app.ts", "Running bun test". */
+export function doing(data: { tool?: string; input?: any }): Doing {
+  const i = data.input ?? {};
+  const file = shortPath(i.file_path ?? i.path ?? i.notebook_path);
+  switch (data.tool) {
+    case "Read": return { verb: "Reading", what: file };
+    case "Edit": case "MultiEdit": case "NotebookEdit": return { verb: "Editing", what: file };
+    case "Write": return { verb: "Writing", what: file };
+    case "Grep": case "Glob": return { verb: "Searching for", what: clip(String(i.pattern ?? ""), 60) };
+    case "Bash": return { verb: "Running", what: clip(String(i.command ?? "").split("\n")[0]!.trim(), 70) };
+    case "Skill": return { verb: "Using the skill", what: String(i.skill ?? "") };
+    case "WebSearch": return { verb: "Searching the web for", what: clip(String(i.query ?? ""), 60) };
+    case "WebFetch": return { verb: "Reading", what: clip(String(i.url ?? "").replace(/^https?:\/\//, ""), 60) };
+    case "TodoWrite": return { verb: "Planning the steps", what: "" };
+    case "Task": case "Agent": return { verb: "Asking a helper", what: "" };
+    default: return { verb: data.tool ?? "Working", what: "" };
+  }
+}
+
+export type Live = { now: Doing; last?: string; recent: { ts: string; verb: string; what: string; said: boolean }[] };
+/** The newest actions of the stage a task is in: what the agent is doing now, when it last did anything, and the few before. Reads backwards and stops at the stage's start. */
+export function liveOf(run: TaskRun | undefined, stage: string, limit = 5): Live {
+  const recent: Live["recent"] = [];
+  let last: string | undefined;
+  for (let k = (run?.events.length ?? 0) - 1; k >= 0; k--) {
+    const e = run!.events[k]!;
+    if (e.stage !== stage) { if (e.type === "stage.start" || e.type === "run.start") break; continue; }
+    last ??= e.ts;
+    if (e.type === "stage.start") break;
+    if (recent.length >= limit) continue;
+    if (e.type === "agent.tool") recent.push({ ts: e.ts, ...doing(e.data ?? {}), said: false });
+    else if (e.type === "agent.message" && e.data?.text) recent.push({ ts: e.ts, verb: "Said", what: clip(String(e.data.text).trim().split("\n")[0]!, 90), said: true });
+  }
+  // A message newest means the agent is thinking between actions; with nothing yet it is just starting.
+  const now: Doing = !recent.length ? { verb: "Starting", what: "" } : recent[0]!.said ? { verb: "Thinking", what: "" } : { verb: recent[0]!.verb, what: recent[0]!.what };
+  return { now, last, recent };
+}
+
+export type Work = { task: string; stage: string; ts: string; ok: boolean };
+/** The last stage each role finished, for the people who are free right now. */
+export function lastWork(events: Ev[]): Map<string, Work> {
+  const out = new Map<string, Work>();
+  for (const e of events) if (e.role && (e.type === "stage.ok" || e.type === "stage.failed")) out.set(e.role, { task: e.task, stage: e.stage, ts: e.ts, ok: e.type === "stage.ok" });
+  return out;
+}

@@ -20,7 +20,7 @@ try {
   page.on("console", (m) => { if (m.type() !== "error") return; if (m.text().includes("status of 400")) refusals++; else errors.push(m.text()); });
   page.on("dialog", (d) => d.accept());
   await page.goto(`http://127.0.0.1:${server.port}/`);
-  const card = (column: string, id: string) => page.locator(`section[aria-label="${column}"] .card`, { hasText: id });
+  const card = (column: string, id: string) => page.locator(`section[aria-label="${column}"] [data-card]`, { hasText: id });
   const view = (name: string) => page.getByRole("navigation", { name: "Views" }).getByRole("link", { name, exact: true }).click();
 
   // Overview is the landing view: the connection is live and the pipeline shows the two Ready items.
@@ -29,26 +29,35 @@ try {
   await view("Backlog");
 
   // Backlog: add an item, promote it.
-  await page.getByLabel("New backlog item").fill("Ship the thing");
-  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Add item" }).first().click();
+  await page.getByLabel("What should be built?").fill("Ship the thing");
+  await page.getByRole("group", { name: "New item priority" }).getByRole("button", { name: "P2" }).click();
+  await page.getByLabel(/^Description/).fill("It must be small.");
+  await page.getByRole("button", { name: "Add to Inbox" }).click();
   await card("Inbox", "F-003").getByRole("button", { name: "Promote to Ready" }).click();
   await card("Ready", "F-003").waitFor();
+  assert.match(readFileSync(join(dir, "BACKLOG.md"), "utf8"), /F-003 \(P2\) Ship the thing\n  It must be small\./, "priority and description are saved with the item");
 
   // Pipeline: a dry run goes through all five stages and waits for a person.
   await page.getByLabel("Dry run").check();
   await card("Ready", "F-001").getByRole("button", { name: "Run", exact: true }).click();
-  await card("Awaiting approval", "F-001").locator(".stages li.ok").nth(4).waitFor({ timeout: 30_000 });
+  await card("Needs you", "F-001").waitFor({ timeout: 30_000 });
 
   // Review: the diff is shown, and replay steps back to the first event and returns to live.
-  await card("Awaiting approval", "F-001").getByRole("button", { name: "Review" }).click();
-  await page.locator(".diff .add", { hasText: "stub build" }).waitFor();
-  await page.getByRole("tab", { name: "Log" }).click();
-  await page.locator(".replay input").focus();
+  await card("Needs you", "F-001").getByRole("button", { name: "Review changes" }).click();
+  await page.locator(".udiff .ln.add", { hasText: "stub build" }).waitFor();
+  await page.getByRole("tab", { name: /^Activity/ }).click();
+  await page.getByRole("button", { name: "Replay" }).click();
+  await page.getByLabel("Replay position").focus();
   await page.keyboard.press("Home");
-  await page.locator(".replay", { hasText: "event 1 of" }).waitFor();
-  assert.equal(await page.locator(".log pre").count(), 1, "replay at event 1 shows one log line");
+  await page.locator(".bk-replay", { hasText: "event 1 of" }).waitFor();
+  assert.equal(await page.locator(".bk-activity details").count(), 0, "replay at event 1 shows no stage yet");
   await page.keyboard.press("End");
-  await page.locator(".replay", { hasText: "live" }).waitFor();
+  await page.locator(".bk-replay", { hasText: "live" }).waitFor();
+  await page.getByRole("tab", { name: "Summary" }).click(); // the panel can step through tabs; Esc closes it
+  await page.keyboard.press("Escape");
+  await page.locator(".bk-panel").waitFor({ state: "detached" });
+  await card("Needs you", "F-001").getByRole("button", { name: "Review changes" }).click();
 
   // Approval: lands the work on main and cleans up the worktree.
   await page.getByRole("button", { name: "Approve and land" }).click();
@@ -64,8 +73,8 @@ try {
   sh("git", "init", "-q", "--bare", bare); sh("git", "remote", "add", "origin", bare);
   await view("Backlog");
   await card("Ready", "F-003").getByRole("button", { name: "Run", exact: true }).click();
-  await card("Awaiting approval", "F-003").locator(".stages li.ok").nth(4).waitFor({ timeout: 30_000 });
-  await card("Awaiting approval", "F-003").getByRole("button", { name: "Review" }).click();
+  await card("Needs you", "F-003").waitFor({ timeout: 30_000 });
+  await card("Needs you", "F-003").getByRole("button", { name: "Review changes" }).click();
   await page.getByRole("button", { name: "Approve and land" }).click();
   await card("Done", "F-003").waitFor();
   assert.match(sh("git", "branch", "--list", "factory/F-003").out, /factory\/F-003/, "the approved branch is kept");

@@ -4,7 +4,7 @@ import type { Ev } from "../plugin/engine/state";
 import type { TeamData } from "./team";
 import type { VcsData } from "./vcs";
 
-export type Item = { id: string; prio?: string; title: string; section: string };
+export type Item = { id: string; prio?: string; title: string; section: string; detail?: string };
 export type Backlog = { items: Item[]; running: string[] };
 export type Link = "connecting" | "live" | "reconnecting" | "offline";
 

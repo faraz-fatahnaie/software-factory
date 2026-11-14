@@ -64,3 +64,22 @@ export function marks(ops: Op[]): Map<number, "add" | "mod" | "del"> {
   }
   return out;
 }
+
+export type DiffFile = { path: string; status: "M" | "A" | "D" | "R"; added: number; removed: number; text: string };
+/** One git diff (a whole branch against main) cut into its files, each with its own text and counts. */
+export function splitDiff(text: string): DiffFile[] {
+  const out: DiffFile[] = [];
+  let cur: DiffFile | undefined;
+  for (const line of text.split("\n")) {
+    const m = /^diff --git a\/(.+?) b\/(.+)$/.exec(line);
+    if (m) { cur = { path: m[2]!, status: "M", added: 0, removed: 0, text: `${line}\n` }; out.push(cur); continue; }
+    if (!cur) continue;
+    cur.text += `${line}\n`;
+    if (line.startsWith("new file mode")) cur.status = "A";
+    else if (line.startsWith("deleted file mode")) cur.status = "D";
+    else if (line.startsWith("rename from")) cur.status = "R";
+    else if (/^\+(?!\+\+)/.test(line)) cur.added++;
+    else if (/^-(?!--)/.test(line)) cur.removed++;
+  }
+  return out;
+}

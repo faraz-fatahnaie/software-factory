@@ -30,7 +30,7 @@ const inline = (t: string): ReactNode[] =>
   t.split(/(`[^`]+`|\*\*[^*]+\*\*)/).map((part, i) => (part.startsWith("`") && part.length > 2 ? <code key={i}>{part.slice(1, -1)}</code> : part.startsWith("**") && part.length > 4 ? <b key={i}>{part.slice(2, -2)}</b> : part));
 
 /** The few Markdown pieces these files use, drawn as React elements (never as raw HTML). The settings block at the top shows as a table. */
-function Markdown({ text }: { text: string }) {
+export function Markdown({ text }: { text: string }) {
   const front = /^---\n([\s\S]*?)\n---\n?/.exec(text);
   const settings: [string, string][] = [];
   for (const l of (front?.[1] ?? "").split("\n")) {

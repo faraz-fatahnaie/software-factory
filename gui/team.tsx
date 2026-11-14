@@ -1,7 +1,8 @@
 // The Team view: every role is a robot with a name and a job, and its responsibilities are cards under it. Every change is
 // previewed against the real rules and cost before anything is saved; saving writes the config and role files and commits.
 import { useEffect, useMemo, useState } from "react";
-import { roster, type Ev, type TaskRun } from "../plugin/engine/state";
+import { lastWork, liveOf, roster, type Ev, type TaskRun } from "../plugin/engine/state";
+import { agoShort } from "./commitgraph";
 import { call } from "./data";
 import { personaFor, PRESENCE_TEXT, Robot, type Presence } from "./robots";
 import { Select, ViewSkeleton, type Option } from "./ui";
@@ -58,6 +59,7 @@ export function Team({ events, tasks, setError, talkTo }: { events: Ev[]; tasks:
   const [size, setSize] = useState("");
   const ran = events.filter((e) => e.type === "stage.ok").length;
   const busyRoles = useMemo(() => presenceOf(tasks), [tasks]);
+  const lastDid = useMemo(() => lastWork(events), [events]);
 
   const load = () => call<TeamData>("/api/team").then((r) => (r.ok ? (setSaved(r.data), setProblem("")) : setProblem(r.error)));
   // Re-read after runs finish, so the cost figures follow what the stages really cost. A draft in progress is left alone.
@@ -171,7 +173,7 @@ export function Team({ events, tasks, setError, talkTo }: { events: Ev[]; tasks:
                   ) : <p className="note">{r.title}</p>}
                 </div>
               </header>
-              <p className="status-line"><span className={`status-chip ${state}`}>{PRESENCE_TEXT[state]}</span> <span className="note">{job ? `${job.task} · ${job.stage}` : r.modes.includes("chat") && !r.modes.includes("agent") ? "Ready to talk" : "Nothing to do right now"}</span>{r.settings && <span className="chip-model">{r.settings.model} · {r.settings.effort}</span>}</p>
+              <p className="status-line"><span className={`status-chip ${state}`}>{PRESENCE_TEXT[state]}</span> <span className="note">{job ? (() => { const n = job.stage === "check" ? { verb: "Running the project's checks", what: "" } : liveOf(tasks.get(job.task), job.stage).now; return `${job.task} · ${n.verb}${n.what ? ` ${n.what}` : ""}`; })() : lastDid.get(r.name) ? `Last: ${lastDid.get(r.name)!.stage} of ${lastDid.get(r.name)!.task} · ${agoShort(lastDid.get(r.name)!.ts)} ago` : r.modes.includes("chat") && !r.modes.includes("agent") ? "Ready to talk" : "Nothing to do right now"}</span>{r.settings && <span className="chip-model">{r.settings.model} · {r.settings.effort}</span>}</p>
               <p className="about">{r.description}</p>
               <div className="role-menu">
                 {topic && <button onClick={() => talkTo(topic)}>Talk to {who(r.name)}</button>}

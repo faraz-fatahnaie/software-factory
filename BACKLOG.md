@@ -109,7 +109,13 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Search field with a clear button and Escape, a result count, ten results at a time, an inline yes before installing (no browser dialog), skeleton while loading and an empty state.
 - [x] F-064 (P1) Studio redesign
   A workspace of files (rules, team, skills), editor with line numbers and changed-line marks, Preview and History tabs, and a side panel (role, model tag, skills). Saving takes two checks (review, then commit with an editable message); changes can be discarded in place, leaving a file with changes asks first, and restoring an old version goes through the same two checks.
-- [ ] F-058 (P1) Show what each agent is doing right now (a live "Now" line from the tool events, chat people on shift)
+- [x] F-058 (P1) Show what each agent is doing right now
+  A live "Now" line on each On-shift card from the tool events ("Editing src/app.ts"), the five actions before it (folded), a warning after two quiet minutes, people answering in Talk shown on shift, "last did X" for free people and on the Team view, the tab title and icon, and opt-in desktop notifications.
+- [x] F-067 (P1) Backlog redesign
+  A board of five columns (blocked tasks in a strip, Done folded) with richer cards, an Add item box with priority and description, filter and keys, and a side panel per task: pipeline stepper, Summary, Activity with replay, Spec, Review, Changes and a single Approve and land. Motion on the panel, tabs, stepper and cards moving between columns, all off under reduced motion.
+- [ ] F-068 (P3) Backlog List view (a table), and drag a card from Inbox to Ready and reorder Ready (needs a small server change)
+- [ ] F-065 (P2) Per-agent panel: click a person for their live feed, files touched, stage timeline and a Stop button
+- [ ] F-066 (P3) Workroom: a floor plan with a station per stage where robots hand work over (wireframes first, with a text equivalent and reduced motion)
 - [ ] F-059 (P1) Suggested next prompts in chats (`SUGGEST:` lines as chips; per-person setting, on for Product Partner)
 - [ ] F-060 (P1) Guide: a read-only conversation in Talk, docked in Checks with the latest result attached
 - [ ] F-061 (P1) Plugin README, runbook and the home-bakery scenario (one story for README, runbook, landing page and video)

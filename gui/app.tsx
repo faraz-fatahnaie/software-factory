@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { elapsed, passRates, roster, series, STAGES, summarize, toolLine, type Ev, type TaskRun } from "../plugin/engine/state";
+import { elapsed, lastWork, passRates, roster, series, STAGES, summarize, toolLine, type Ev, type TaskRun } from "../plugin/engine/state";
 import { post, useBacklog, useEvents, useHash, useNow, useTeam, useTheme, useVcs, type Backlog, type Item, type Link } from "./data";
 import { GitHub, vcsChip, type VcsData } from "./vcs";
 import { Source } from "./source";
+import { BacklogView } from "./backlog";
 import { Studio } from "./studio";
 import { Agents, Logs, Worktrees } from "./views";
 import { Checks, Talk, type Chats } from "./talk";
-import { presenceOf, Team, type TeamData } from "./team";
+import { presenceOf, TALK_TO, Team, type TeamData } from "./team";
+import { agoShort } from "./commitgraph";
+import { NotifyToggle, NowLine, useAmbient, useNotify } from "./live";
 import { Icon } from "./icons";
 import { personaFor, PRESENCE_TEXT, Robot } from "./robots";
 import { ViewSkeleton } from "./ui";
@@ -36,22 +39,6 @@ const HEADS: Record<View, [string, string]> = {
 };
 const SECTIONS = ["Inbox", "Ready", "In progress", "Awaiting approval", "Blocked", "Done"];
 const LINK_TEXT: Record<Link, string> = { connecting: "Connecting", live: "Live", reconnecting: "Reconnecting", offline: "Offline" };
-
-export function StageStrip({ run }: { run: TaskRun }) {
-  return (
-    <ol className="stages">
-      {STAGES.map((name) => {
-        const s = run.stages[name];
-        return (
-          <li key={name} className={s?.state ?? "pending"} title={s ? `${name}: ${s.state}${s.model ? ` on ${s.model}` : ""}` : `${name}: not started`}>
-            {name}
-            {s?.state === "active" && s.model ? ` · ${s.model}` : ""}
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
 
 /** One line of a run, in plain words. Shared by the task log, the overview feed and the Logs view. */
 export function logLine(e: Ev): { cls: string; text: string } | null {
@@ -216,9 +203,10 @@ export function Feed({ events, limit, open }: { events: Ev[]; limit: number; ope
   );
 }
 
+const STAGE_DID: Record<string, string> = { triage: "triage", spec: "spec", build: "build", check: "checks", security: "security", review: "review", document: "summary" };
 const DOING: Record<string, string> = { triage: "Triaging", spec: "Writing the spec for", build: "Building", check: "Running the checks on", security: "Checking the security of", review: "Reviewing", document: "Writing the summary of" };
 
-function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any; backlog: Backlog; open: (id: string) => void; team: TeamData | null; vcs: VcsData | null; act: Act; refreshVcs: () => Promise<void> }) {
+function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any; backlog: Backlog; open: (id: string) => void; team: TeamData | null; vcs: VcsData | null; act: Act; refreshVcs: () => Promise<void>; chats: Chats; talkTo: (key: string) => void }) {
   const working = useMemo(() => roster(p.tasks), [p.tasks]);
   const now = useNow(true, working.length ? 1000 : 30_000);
   const day = useMemo(() => series(p.events, now - 86_400_000, now, 24), [p.events, Math.floor(now / 60_000)]);
@@ -230,7 +218,10 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
   const pct = (r: { ok: number; total: number }) => (r.total ? `${Math.round((r.ok / r.total) * 100)}` : "–");
   const needsYou = items.filter((i) => i.section === "Awaiting approval" || i.section === "Blocked");
   const busy = useMemo(() => presenceOf(p.tasks), [p.tasks]);
-  const free = (p.team?.roles ?? []).filter((r) => !busy.has(r.name));
+  // People answering you in Talk are at work too, even though no task is running.
+  const chatting = Object.entries(p.chats).filter(([, c]) => c.busy).flatMap(([key]) => { const role = Object.entries(TALK_TO).find(([, t]) => t === key)?.[0]; return role ? [{ key, role }] : []; });
+  const free = (p.team?.roles ?? []).filter((r) => !busy.has(r.name) && !chatting.some((c) => c.role === r.name));
+  const lastDid = useMemo(() => lastWork(p.events), [p.events]);
   const titleOf = (role: string) => p.team?.roles.find((r) => r.name === role)?.title ?? role;
   // The person behind a waiting task: whoever ran the stage that ended it (the reviewer who approved, the stage that failed).
   const behind = (i: Item) => {
@@ -263,7 +254,7 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
           </>
         )}
       </article>
-      <Kpi title="People working" value={String(working.length)} unit={p.team ? ` of ${p.team.roles.length}` : ""} note={`${items.filter((i) => i.section === "In progress").length} tasks in progress, ${items.filter((i) => i.section === "Ready").length} ready`}>
+      <Kpi title="People working" value={String(working.length + chatting.length)} unit={p.team ? ` of ${p.team.roles.length}` : ""} note={`${items.filter((i) => i.section === "In progress").length} tasks in progress, ${items.filter((i) => i.section === "Ready").length} ready`}>
         <Spark values={day.map((b) => b.stages)} label="Stages passed per hour, last 24 hours" />
       </Kpi>
       <Kpi title="Backlog done" value={String(done)} unit={` of ${items.length}`} note={`${landed} landed in the last 7 days`}>
@@ -279,7 +270,7 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
 
       <GitHub vcs={p.vcs} items={items} act={p.act} refresh={p.refreshVcs} open={p.open} />
 
-      {working.length > 0 && (
+      {working.length + chatting.length > 0 && (
         <section className="shift" aria-label="On shift">
           {working.map((w) => (
             <article key={w.task} className="tile person-card">
@@ -291,7 +282,20 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
                 </div>
               </header>
               <div className="bar" role="progressbar" aria-label={`${personaFor(w.role).name}'s task progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress(p.tasks.get(w.task))}><span style={{ width: `${progress(p.tasks.get(w.task))}%` }} /></div>
+              <NowLine run={p.tasks.get(w.task)} stage={w.stage} since={w.since} now={now} />
               <p className="note split-line"><span className="num">{w.stage} · {elapsed(w.since, now)}</span><code>{w.model || "gate"}</code></p>
+            </article>
+          ))}
+          {chatting.map((c) => (
+            <article key={c.key} className="tile person-card">
+              <header>
+                <Robot role={c.role} size={52} status="working" />
+                <div className="grow">
+                  <h3>{personaFor(c.role).name} <span className="note">{titleOf(c.role)}</span></h3>
+                  <p>Answering you in <button className="chip-id" onClick={() => p.talkTo(c.key)}>Talk</button></p>
+                </div>
+              </header>
+              <div className="now"><p><i className="pulse" aria-hidden="true" /><span className="what">Thinking about your message</span></p></div>
             </article>
           ))}
         </section>
@@ -305,169 +309,13 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
         {free.length === 0 ? <p className="empty">{p.team ? "Everyone is working." : "Loading the team…"}</p> : (
           <ul className="free-list">
             {free.map((r) => (
-              <li key={r.name}><Robot role={r.name} size={36} status="free" /><span><b>{personaFor(r.name).name}</b><span className="note">{r.title}</span></span><span className="note right">{PRESENCE_TEXT.free}</span></li>
+              <li key={r.name}><Robot role={r.name} size={36} status="free" /><span><b>{personaFor(r.name).name}</b><span className="note">{r.title}</span>{(() => { const w = lastDid.get(r.name); return w && <span className="note">Last: {STAGE_DID[w.stage] ?? w.stage} {w.task}{w.ok ? "" : " (failed)"} · {agoShort(w.ts)} ago</span>; })()}</span></li>
             ))}
           </ul>
         )}
       </article>
 
       <article className="tile activity"><Feed events={p.events} limit={60} open={p.open} /></article>
-    </div>
-  );
-}
-
-/* ---------- Backlog board and task panel ---------- */
-
-function Card(p: { item: Item; run?: TaskRun; running: boolean; selected: boolean; now: number; stub: boolean; act: Act; select: () => void }) {
-  const { item, run, act } = p;
-  const id = { id: item.id };
-  const showRun = run && ["In progress", "Awaiting approval", "Blocked"].includes(item.section);
-  return (
-    <li className={`card${p.selected ? " selected" : ""}`}>
-      <button className="open" onClick={p.select} aria-pressed={p.selected}>
-        <span className="id">{item.id}</span>
-        {item.prio && <span className="prio">{item.prio}</span>}
-        <span className="title">{item.title}</span>
-      </button>
-      {showRun && (
-        <>
-          <StageStrip run={run} />
-          <p className="meta">
-            {run.status === "running" ? elapsed(run.started, p.now) : run.ended ? elapsed(run.started, Date.parse(run.ended)) : ""}
-            {run.cost > 0 && ` · $${run.cost.toFixed(3)}`}
-            {` · .worktrees/${item.id}`}
-          </p>
-        </>
-      )}
-      <div className="actions">
-        {item.section === "Inbox" && <button onClick={() => act("/api/promote", id)}>Promote to Ready</button>}
-        {(item.section === "Ready" || item.section === "Blocked") && (
-          <button onClick={() => act("/api/run", { ids: [item.id], stub: p.stub })}>{item.section === "Blocked" ? "Retry" : "Run"}</button>
-        )}
-        {p.running && <button className="danger" onClick={() => act("/api/stop", id)}>Stop</button>}
-        {item.section === "Awaiting approval" && <button className="primary" onClick={p.select}>Review</button>}
-        {item.section === "Blocked" && <button className="danger" onClick={() => confirm(`Delete the work for ${item.id}?`) && act("/api/discard", id)}>Discard</button>}
-      </div>
-    </li>
-  );
-}
-
-function Diff({ id }: { id: string }) {
-  const [text, setText] = useState("Loading…");
-  useEffect(() => {
-    fetch(`/api/diff?id=${id}`).then(async (r) => setText(r.ok ? (await r.text()) || "No changes on this branch." : "No branch for this task yet."));
-  }, [id]);
-  return (
-    <pre className="diff">
-      {text.split("\n").map((line, i) => {
-        const cls = line.startsWith("diff --git") ? "file" : line.startsWith("@@") ? "hunk" : /^\+(?!\+\+)/.test(line) ? "add" : /^-(?!--)/.test(line) ? "del" : "";
-        return <span key={i} className={cls}>{line + "\n"}</span>;
-      })}
-    </pre>
-  );
-}
-
-function Detail(p: { item: Item; run?: TaskRun; act: Act; close: () => void }) {
-  const { item, run, act } = p;
-  const awaiting = item.section === "Awaiting approval";
-  const [tab, setTab] = useState(awaiting ? "Diff" : "Log");
-  const end = useRef<HTMLDivElement>(null);
-  // Replay: show the run as it was after its first `upTo` events. null follows the live log.
-  const [upTo, setUpTo] = useState<number | null>(null);
-  const all = run?.events ?? [];
-  const shown = upTo === null ? all : all.slice(0, upTo);
-  const then = upTo === null ? run : summarize(shown).tasks.get(item.id);
-  useEffect(() => { if (tab === "Log" && upTo === null) end.current?.scrollIntoView({ block: "nearest" }); }, [all.length, tab]);
-  const id = { id: item.id };
-  return (
-    <section className="tile detail" aria-label={`Task ${item.id}`}>
-      <header>
-        <h2><span className="id">{item.id}</span> {item.title}</h2>
-        <button className="quiet" onClick={p.close} aria-label="Close task detail">Close</button>
-      </header>
-      <nav className="tabs" role="tablist">
-        <div className="pills">
-          {["Log", "Spec", "Review", "Diff"].map((t) => (
-            <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{t}</button>
-          ))}
-        </div>
-        {awaiting && (
-          <span className="gate">
-            <button className="primary" onClick={() => act("/api/approve", id)}>Approve and land</button>
-            <button className="danger" onClick={() => confirm(`Delete the work for ${item.id}?`) && act("/api/discard", id)}>Discard</button>
-          </span>
-        )}
-      </nav>
-      {tab === "Log" && all.length > 1 && (
-        <div className="replay">
-          <label>
-            Replay{" "}
-            <input type="range" min={1} max={all.length} value={upTo ?? all.length}
-              onChange={(e) => setUpTo(Number(e.target.value) >= all.length ? null : Number(e.target.value))} />
-          </label>
-          <span>{upTo === null ? "live" : `event ${upTo} of ${all.length} · ${new Date(shown.at(-1)!.ts).toLocaleTimeString()}`}</span>
-          {then && <StageStrip run={then} />}
-        </div>
-      )}
-      {tab === "Log" && (
-        <div className="log" role="log">
-          {!run && <p className="empty">No run recorded for this task yet.</p>}
-          {shown.map((e) => {
-            const line = logLine(e);
-            return line && <pre key={e.seq} className={line.cls}>{line.text}</pre>;
-          })}
-          <div ref={end} />
-        </div>
-      )}
-      {(tab === "Spec" || tab === "Review") && <pre className="doc">{run?.outputs[tab.toLowerCase()] ?? `No ${tab.toLowerCase()} output yet.`}</pre>}
-      {tab === "Diff" && <Diff id={item.id} />}
-    </section>
-  );
-}
-
-function Board(p: { backlog: Backlog; tasks: Map<string, TaskRun>; act: Act; selected: string | null; select: (id: string | null) => void }) {
-  const [stub, setStub] = useState(false);
-  const [parallel, setParallel] = useState(1);
-  const [title, setTitle] = useState("");
-  const now = useNow(p.backlog.running.length > 0);
-  const item = p.backlog.items.find((i) => i.id === p.selected);
-  return (
-    <div className={item ? "split" : ""}>
-      <div>
-        <p className="toolbar">
-          <label title="Runs the pipeline with canned stage outputs and no model calls">
-            <input type="checkbox" checked={stub} onChange={(e) => setStub(e.target.checked)} /> Dry run
-          </label>
-        </p>
-        <div className="board">
-          {SECTIONS.map((section) => {
-            const items = p.backlog.items.filter((i) => i.section === section);
-            return (
-              <section key={section} className="column" aria-label={section}>
-                <h2>{section} <span className="num">{items.length}</span></h2>
-                {section === "Inbox" && (
-                  <form onSubmit={async (e) => { e.preventDefault(); if (await p.act("/api/add", { title })) setTitle(""); }}>
-                    <input aria-label="New backlog item" placeholder="Add an item…" value={title} maxLength={200} required onChange={(e) => setTitle(e.target.value)} />
-                  </form>
-                )}
-                {section === "Ready" && items.length > 0 && (
-                  <p className="runnext">
-                    <button className="primary" onClick={() => p.act("/api/run", { parallel, stub })}>Run next</button>
-                    <label>× <input type="number" min={1} max={8} value={parallel} aria-label="How many to run in parallel" onChange={(e) => setParallel(Number(e.target.value))} /></label>
-                  </p>
-                )}
-                <ul>
-                  {items.map((i) => (
-                    <Card key={i.id} item={i} run={p.tasks.get(i.id)} running={p.backlog.running.includes(i.id)} selected={p.selected === i.id}
-                      now={now} stub={stub} act={p.act} select={() => p.select(i.id)} />
-                  ))}
-                </ul>
-              </section>
-            );
-          })}
-        </div>
-      </div>
-      {item && <Detail key={item.id + item.section} item={item} run={p.tasks.get(item.id)} act={p.act} close={() => p.select(null)} />}
     </div>
   );
 }
@@ -492,7 +340,9 @@ function App() {
   useEffect(() => { if (notice) setError(`${notice.task}: ${notice.data?.error ?? "command failed"}`); }, [notice?.seq]);
   // The tab title says what is waiting, so a person in another tab sees it.
   const waiting = backlog.items.filter((i) => i.section === "Awaiting approval" || i.section === "Blocked").length;
-  useEffect(() => { document.title = `${waiting ? `(${waiting}) ` : ""}${HEADS[view][0]} · Software Factory`; }, [view, waiting]);
+  const working = useMemo(() => roster(tasks), [tasks]);
+  useAmbient(working, waiting, HEADS[view][0]);
+  const notify = useNotify(events, tasks);
   // After a view change, focus moves to the page so a keyboard or screen reader user starts at the top of it.
   const main = useRef<HTMLElement>(null);
   const first = useRef(true);
@@ -537,6 +387,7 @@ function App() {
         <footer>
           <span className={`link ${link}`} role="status" title="The live event stream from the factory server"><span>{LINK_TEXT[link]}</span></span>
           <a className={`link vcs ${chip.tone}`} href="#overview" title={chip.title}><span>{chip.text}</span></a>
+          <NotifyToggle notify={notify} />
           <button className="quiet theme" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
             <Icon name={theme === "dark" ? "sun" : "moon"} /><span>{theme === "dark" ? "Light theme" : "Dark theme"}</span>
           </button>
@@ -550,8 +401,8 @@ function App() {
         </header>
         {!loaded ? <><p className="sr" role="status">Loading…</p><ViewSkeleton kind={view === "Overview" ? "overview" : view === "Backlog" ? "board" : view === "Team" ? "team" : "list"} /></> : (
           <>
-            {view === "Overview" && <Overview events={events} tasks={tasks} rateLimit={rateLimit} backlog={backlog} open={open} team={team} vcs={vcs} act={act} refreshVcs={refreshVcs} />}
-            {view === "Backlog" && <Board backlog={backlog} tasks={tasks} act={act} selected={selected} select={setSelected} />}
+            {view === "Overview" && <Overview events={events} tasks={tasks} rateLimit={rateLimit} backlog={backlog} open={open} team={team} vcs={vcs} act={act} refreshVcs={refreshVcs} chats={chats} talkTo={talkTo} />}
+            {view === "Backlog" && <BacklogView backlog={backlog} tasks={tasks} events={events} act={act} selected={selected} select={setSelected} />}
             {view === "Talk" && <Talk chats={chats} setChats={setChats} topic={topic} />}
             {view === "Checks" && <Checks />}
             {view === "Team" && <Team events={events} tasks={tasks} setError={setError} talkTo={talkTo} />}

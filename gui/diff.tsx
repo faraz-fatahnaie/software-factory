@@ -39,6 +39,24 @@ export function parseUnified(text: string): { lines: Line[]; binary: boolean } {
   return { lines, binary: false };
 }
 
+/** Numbered, coloured lines of a unified diff. */
+export function UnifiedLines({ lines }: { lines: ReturnType<typeof parseUnified>["lines"] }) {
+  return (
+    <div className="udiff">
+      {lines.map((l, i) => l.kind === "hunk" ? (
+        <div key={i} className="ln hunk"><span className="no" /><span className="no" /><span className="sign" /><code>{l.text ? `… ${l.text}` : "…"}</code></div>
+      ) : (
+        <div key={i} className={`ln ${l.kind}`}>
+          <span className="no" aria-hidden="true">{l.old}</span>
+          <span className="no" aria-hidden="true">{l.neu}</span>
+          <span className="sign" aria-hidden="true">{l.kind === "add" ? "+" : l.kind === "del" ? "−" : ""}</span>
+          <code>{l.kind === "add" && <span className="sr">added: </span>}{l.kind === "del" && <span className="sr">removed: </span>}{l.text || " "}</code>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** The diff of one file, fetched when it is picked. `sha` makes it that commit's change; without it, the working copy's. */
 export function FileDiff({ path, sha, status }: { path: string; sha?: string; status?: FileItem["status"] }) {
   const [text, setText] = useState<string | null>(null);
@@ -59,18 +77,7 @@ export function FileDiff({ path, sha, status }: { path: string; sha?: string; st
       </header>
       {problem ? <p className="error">{problem}</p> : !parsed ? <p className="empty">Loading…</p> : parsed.binary ? <p className="empty">A binary file changed. There is no text to show.</p>
         : parsed.lines.length === 0 ? <p className="empty">No lines changed (a rename or a permission change).</p> : (
-          <div className="udiff">
-            {parsed.lines.map((l, i) => l.kind === "hunk" ? (
-              <div key={i} className="ln hunk"><span className="no" /><span className="no" /><span className="sign" /><code>{l.text ? `… ${l.text}` : "…"}</code></div>
-            ) : (
-              <div key={i} className={`ln ${l.kind}`}>
-                <span className="no" aria-hidden="true">{l.old}</span>
-                <span className="no" aria-hidden="true">{l.neu}</span>
-                <span className="sign" aria-hidden="true">{l.kind === "add" ? "+" : l.kind === "del" ? "−" : ""}</span>
-                <code>{l.kind === "add" && <span className="sr">added: </span>}{l.kind === "del" && <span className="sr">removed: </span>}{l.text || " "}</code>
-              </div>
-            ))}
-          </div>
+          <UnifiedLines lines={parsed.lines} />
         )}
     </section>
   );

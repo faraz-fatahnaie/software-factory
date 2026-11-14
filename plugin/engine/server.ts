@@ -202,9 +202,12 @@ export async function serve(root: string, port = 4400) {
       if (!ids.every((id): id is string => typeof id === "string" && ID.test(id))) return json({ error: "bad id" }, 400);
 
       if (route === "POST /api/add")
-        return typeof body.title === "string" && body.title.trim() && body.title.length <= 500
-          ? cli("add", body.title)
-          : json({ error: "title: 1 to 500 characters" }, 400);
+      {
+        if (typeof body.title !== "string" || !body.title.trim() || body.title.length > 500) return json({ error: "title: 1 to 500 characters" }, 400);
+        if (body.prio !== undefined && !(typeof body.prio === "string" && /^P\d$/.test(body.prio))) return json({ error: "priority: P1, P2 or P3" }, 400);
+        if (body.detail !== undefined && !(typeof body.detail === "string" && body.detail.length <= 2000)) return json({ error: "description: up to 2,000 characters" }, 400);
+        return cli("add", body.title, ...(body.prio ? ["--priority", body.prio as string] : []), ...(body.detail ? ["--detail", body.detail as string] : []));
+      }
       if (["POST /api/approve", "POST /api/discard", "POST /api/promote"].includes(route))
         return ids.length === 1 ? cli(url.pathname.slice(5), ids[0]!) : json({ error: "one id required" }, 400);
       if (route === "POST /api/skill") {

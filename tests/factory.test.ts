@@ -20,9 +20,9 @@ import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugi
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
 import { followUps, needsTriage, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
-import { costs, elapsed, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
+import { costs, doing, elapsed, lastWork, liveOf, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
 import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
-import { counts, lineDiff, marks, withGaps } from "../gui/linediff";
+import { counts, lineDiff, marks, splitDiff, withGaps } from "../gui/linediff";
 
 const task = { id: "F-001", title: "First" };
 
@@ -1857,4 +1857,37 @@ test("linediff: what changed between two texts, for the Studio gutter and the re
   const rows = withGaps(lineDiff(Array.from({ length: 30 }, (_, i) => `l${i}`).join("\n"), Array.from({ length: 30 }, (_, i) => (i === 15 ? "X" : `l${i}`)).join("\n")));
   expect(rows.filter((r) => r.kind === "gap")).toEqual([{ kind: "gap", count: 12 }, { kind: "gap", count: 11 }]);
   expect(counts(lineDiff("", "x\ny\n"))).toEqual({ added: 2, removed: 1 }); // an empty file is one empty line
+});
+
+test("live: what an agent is doing now, from its tool events", () => {
+  expect(doing({ tool: "Edit", input: { file_path: "/repo/.worktrees/F-001/src/deep/er/app.ts" } })).toEqual({ verb: "Editing", what: "deep/er/app.ts" });
+  expect(doing({ tool: "Bash", input: { command: "bun test\nsecond line" } })).toEqual({ verb: "Running", what: "bun test" });
+  expect(doing({ tool: "Grep", input: { pattern: "TODO" } })).toEqual({ verb: "Searching for", what: "TODO" });
+  expect(doing({ tool: "Mystery" })).toEqual({ verb: "Mystery", what: "" });
+  const ev = (seq: number, stage: string, type: string, extra: Partial<Ev> = {}): Ev => ({ seq, ts: `2026-11-13T10:00:0${seq}Z`, run: "r1", task: "F-001", stage, type, role: "builder", ...extra });
+  const tool = (seq: number, stage: string, tool: string, input: any) => ev(seq, stage, "agent.tool", { data: { tool, input } });
+  const events = [ev(1, "run", "run.start"), ev(2, "spec", "stage.start"), tool(3, "spec", "Read", { file_path: "old.md" }), ev(4, "build", "stage.start"), tool(5, "build", "Read", { file_path: "a.ts" }), tool(6, "build", "Edit", { file_path: "a.ts" })];
+  const run = summarize(events).tasks.get("F-001")!;
+  const live = liveOf(run, "build");
+  expect(live.now).toEqual({ verb: "Editing", what: "a.ts" });
+  expect(live.recent.map((r) => r.verb)).toEqual(["Editing", "Reading"]); // newest first, and never the spec stage's
+  expect(live.last).toBe("2026-11-13T10:00:06Z");
+  const talking = summarize([...events, ev(7, "build", "agent.message", { data: { text: "Let me check the tests.\nMore." } })]).tasks.get("F-001")!;
+  expect(liveOf(talking, "build").now).toEqual({ verb: "Thinking", what: "" });
+  expect(liveOf(talking, "build").recent[0]).toMatchObject({ verb: "Said", what: "Let me check the tests." });
+  expect(liveOf(summarize([ev(1, "run", "run.start"), ev(2, "build", "stage.start")]).tasks.get("F-001")!, "build").now.verb).toBe("Starting");
+  expect(liveOf(undefined, "build").recent).toEqual([]);
+  expect(lastWork([...events, ev(8, "build", "stage.ok"), ev(9, "review", "stage.failed", { role: "reviewer" })]).get("builder")).toMatchObject({ stage: "build", ok: true });
+  expect(lastWork(events).size).toBe(0);
+});
+
+test("splitDiff: a branch's diff cut into files with their own counts", () => {
+  const text = ["diff --git a/src/a.ts b/src/a.ts", "index 1..2 100644", "--- a/src/a.ts", "+++ b/src/a.ts", "@@ -1,2 +1,2 @@", " keep", "-old", "+new", "+more",
+    "diff --git a/new.txt b/new.txt", "new file mode 100644", "--- /dev/null", "+++ b/new.txt", "@@ -0,0 +1 @@", "+hello",
+    "diff --git a/gone.txt b/gone.txt", "deleted file mode 100644", "--- a/gone.txt", "+++ /dev/null", "@@ -1 +0,0 @@", "-bye", ""].join("\n");
+  const files = splitDiff(text);
+  expect(files.map((f) => [f.path, f.status, f.added, f.removed])).toEqual([["src/a.ts", "M", 2, 1], ["new.txt", "A", 1, 0], ["gone.txt", "D", 0, 1]]);
+  expect(files[0]!.text).toContain("@@ -1,2 +1,2 @@");
+  expect(files[0]!.text).not.toContain("hello"); // each file keeps only its own lines
+  expect(splitDiff("")).toEqual([]);
 });
