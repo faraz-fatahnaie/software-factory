@@ -378,6 +378,7 @@ export function BacklogView(p: { openPerson?: (role: string) => void; backlog: D
   const [asking, setAsking] = useState("");
   const now = useNow(p.backlog.running.length > 0);
   const filter = useRef<HTMLInputElement>(null);
+  useEffect(() => { const open = () => setComposing(true); window.addEventListener("sf:add", open); return () => window.removeEventListener("sf:add", open); }, []);
   const board = useRef<HTMLDivElement>(null);
   const landed = useMemo(() => { const m = new Map<string, string>(); for (const e of p.events) if (e.type === "task.landed") m.set(e.task, e.ts); return m; }, [p.events]);
 

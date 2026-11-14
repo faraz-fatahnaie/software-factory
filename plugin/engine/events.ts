@@ -33,6 +33,11 @@ export function openStore(path: string) {
     list: (run: string) => db.query("SELECT * FROM events WHERE run = ? ORDER BY seq").all(run).map(row),
     /** Events after a sequence number: what the live stream and replay read. */
     since: (seq: number) => db.query("SELECT * FROM events WHERE seq > ? ORDER BY seq LIMIT 1000").all(seq).map(row),
+    /** The newest event of a type, optionally for one task. */
+    last: (type: string, task?: string) => {
+      const r = (task ? db.query("SELECT * FROM events WHERE type = ? AND task = ? ORDER BY seq DESC LIMIT 1").get(type, task) : db.query("SELECT * FROM events WHERE type = ? ORDER BY seq DESC LIMIT 1").get(type)) as any;
+      return r ? row(r) : undefined;
+    },
     lastRun: (task: string) =>
       (db.query("SELECT run FROM events WHERE task = ? ORDER BY seq DESC LIMIT 1").get(task) as { run: string } | null)?.run,
     close: () => db.close(),

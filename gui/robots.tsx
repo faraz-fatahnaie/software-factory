@@ -102,14 +102,24 @@ const ROBOTS: Record<string, Robot> = {
     R(39, 25, 6, 6, "#ffcf3a", "50%", g("#ffcf3a")),
     R(24, 38, 16, 3, "#3d4f12", 1),
   ] },
+  // The Guide: graphite, with a light-bulb antenna and big round eyes.
+  bix: { name: "Bix", hue: 215, draw: (R, g, b) => [
+    R(31, 6, 2, 9, "#3b434d"), R(27, 0, 10, 9, "#ffe27a", "50%", g("#ffe27a")),
+    R(13, 46, 38, 22, "#5b6470", [10, 10, 0, 0]), R(27, 52, 10, 6, "#e8edf2", 2),
+    R(8, 25, 6, 10, "#5b6470", 2), R(50, 25, 6, 10, "#5b6470", 2),
+    R(15, 14, 34, 29, "#a9b3c0", 13),
+    R(20, 21, 11, 11, "#fff", "50%", b(2.5, "#2d3540")), R(33, 21, 11, 11, "#fff", "50%", b(2.5, "#2d3540")),
+    R(24, 25, 3.5, 3.5, "#2d3540", "50%"), R(37, 25, 3.5, 3.5, "#2d3540", "50%"),
+    R(26, 36, 12, 3, "#2d3540", 2),
+  ] },
 };
 
 // Each known role keeps its robot. A role the person made or renamed gets one by its name, the same one every time.
 const OF_ROLE: Record<string, string> = {
   "product-partner": "mara", planner: "idris", architect: "noor", builder: "kofi", tester: "lena", reviewer: "sade", "security-performance": "zane",
-  "release-engineer": "rafi", scribe: "wren", researcher: "juno", designer: "iris", "operations-engineer": "otto",
+  "release-engineer": "rafi", scribe: "wren", researcher: "juno", designer: "iris", "operations-engineer": "otto", guide: "bix",
 };
-const IDS = Object.keys(ROBOTS);
+const IDS = Object.keys(ROBOTS).filter((k) => k !== "bix"); // the Guide's robot belongs to the Guide alone
 export function personaFor(role: string): { id: string; name: string } {
   let id = OF_ROLE[role];
   if (!id) { let h = 0; for (const c of role) h = (h * 31 + c.charCodeAt(0)) >>> 0; id = IDS[h % IDS.length]!; }

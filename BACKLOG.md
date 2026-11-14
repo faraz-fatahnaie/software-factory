@@ -114,13 +114,16 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 - [x] F-067 (P1) Backlog redesign
   A board of five columns (blocked tasks in a strip, Done folded) with richer cards, an Add item box with priority and description, filter and keys, and a side panel per task: pipeline stepper, Summary, Activity with replay, Spec, Review, Changes and a single Approve and land. Motion on the panel, tabs, stepper and cards moving between columns, all off under reduced motion.
 - [ ] F-068 (P3) Backlog List view (a table), and drag a card from Inbox to Ready and reorder Ready (needs a small server change)
+- [x] F-070 (P1) Command palette and health signal
+  ⌘K (and a search button on phones) runs the factory's checks, jumps anywhere and asks Bix; the Checks tab is gone. A Health strip and rail chip run free checks on load: setup, secrets, uncommitted rules, a placeholder gate, tasks waiting over a day, usage near the limit. Rebuild the role files moved to Team.
 - [x] F-065 (P2) Per-agent panel
   Click a robot on Overview, Team or Backlog: live feed, files touched, recent stages, Stop; a free person shows what they did last and a way to talk to them.
 - [x] F-069 (P1) Smoke test of every view (`bun run smoke`): seeded states, desktop and phone, console errors and axe. It found keyboard-unreachable scroll areas in Logs and Source, and a light-theme contrast miss, all fixed.
 - [ ] F-066 (P3) Workroom: a floor plan with a station per stage where robots hand work over (wireframes first, with a text equivalent and reduced motion)
 - [x] F-059 (P1) Suggested next prompts in chats
   `SUGGEST:` lines at the end of a reply become up to three one-click chips; a per-person switch in the chat header, on for the Product Partner by default, saved in the config. Checked once against a real model (Haiku).
-- [ ] F-060 (P1) Guide: a read-only conversation in Talk, docked in Checks with the latest result attached
+- [x] F-060 (P1) Guide
+  Bix, a read-only person in Talk, and a box under the Checks results that asks Bix about the latest result. Read-only is enforced by its permissions (checked with a real model that it refuses to write files or change the config). A bug found on the way: reloading the topic list moved you back to the conversation you were sent to.
 - [ ] F-061 (P1) Plugin README, runbook and the home-bakery scenario (one story for README, runbook, landing page and video)
 - [ ] F-062 (P3) Typography video of the home-bakery scenario showing every capability (later)
 - [ ] F-063 (P3) Official documentation website (later)

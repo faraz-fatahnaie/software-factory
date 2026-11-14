@@ -23,6 +23,7 @@ import { serve } from "../plugin/engine/server";
 import { splitSuggestions, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
 import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
 import { counts, lineDiff, marks, splitDiff, withGaps } from "../gui/linediff";
+import { gateIsPlaceholder, healthChecks, waitedLong } from "../plugin/engine/health";
 
 const task = { id: "F-001", title: "First" };
 
@@ -1916,4 +1917,48 @@ test("suggested replies: the lines are split off the reply, capped at three, and
   expect(on[on.indexOf("--append-system-prompt") + 1]).toContain("SUGGEST: ");
   expect(off[off.indexOf("--append-system-prompt") + 1]).not.toContain("SUGGEST: ");
   expect(() => chatArgs({ topic: "brainstorm", message: "hi", suggest: "yes" as never }, team)).toThrow(/suggest/);
+});
+
+test("the Guide: read-only permissions, its own prompt, and a topic of its own that the page can list", async () => {
+  const team = resolveTeam();
+  const argv = chatArgs({ topic: "guide", message: "why did it fail?" }, team);
+  const allowed = argv.slice(argv.indexOf("--allowedTools") + 1);
+  expect(allowed.some((a) => a.startsWith("Write") || a.startsWith("Edit"))).toBe(false);
+  expect(allowed.every((a) => !a.startsWith("Bash") || /^Bash\((factory (doctor|status|vcs)|git (status|log|diff))/.test(a))).toBe(true);
+  expect(argv.indexOf("--add-dir")).toBeLessThan(argv.indexOf("--allowedTools")); // the list of tools is open-ended, so other flags come first
+  expect(argv[argv.indexOf("--append-system-prompt") + 1]).toContain("You change nothing");
+  const { dir } = repo();
+  const server = await serve(dir, 0);
+  try {
+    const base = `http://127.0.0.1:${server.port}`;
+    const topics = (await (await fetch(`${base}/api/chat/topics`)).json()) as any[];
+    expect(topics.find((t) => t.key === "guide")).toMatchObject({ available: true, readOnly: true, suggest: true, roleTitle: "Guide" });
+    expect(topics.find((t) => t.key === "brainstorm").readOnly).toBe(false);
+    const res = await fetch(`${base}/api/chat/suggest`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify({ topic: "guide", on: false }) });
+    expect(res.status).toBe(200);
+    expect(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).chat).toEqual({ suggest: { guide: false } });
+  } finally { server.stop(); }
+});
+
+test("health: quick free checks of the project, each with a state and a plain reason", () => {
+  expect([["true"], ["true", "echo ok"], [":"]].every(gateIsPlaceholder)).toBe(true);
+  expect(gateIsPlaceholder(["bun test"])).toBe(false);
+  expect(gateIsPlaceholder([])).toBe(false);
+  const now = Date.parse("2026-11-14T12:00:00Z");
+  const items = [{ id: "F-001", title: "A", section: "Awaiting approval", detail: "" }, { id: "F-002", title: "B", section: "Blocked", detail: "" }, { id: "F-003", title: "C", section: "Ready", detail: "" }];
+  const last = (type: string, task?: string) => (type === "run.done" && task === "F-001" ? { ts: "2026-11-12T08:00:00Z" } : type === "run.failed" && task === "F-002" ? { ts: "2026-11-14T11:00:00Z" } : undefined);
+  expect(waitedLong({ items, last, now })).toEqual([{ id: "F-001", hours: 52 }]); // an hour is not a wait, and a task still in Ready is not waiting on you
+  const { dir, sh } = repo();
+  const states = Object.fromEntries(healthChecks(dir, { items: [], last: () => undefined }).map((c) => [c.id, c.state]));
+  expect(states.setup).toBe("bad"); // the fixture has one role file of the six its config names
+  expect(states.secrets).toBe("ok");
+  expect(states.gate).toBe("warn"); // the fixture's gate is `true`
+  expect(states.uncommitted).toBeUndefined();
+  writeFileSync(join(dir, "AGENTS.md"), "# Changed rules\n"); // an edit nobody committed
+  expect(healthChecks(dir, { items: [], last: () => undefined }).find((c) => c.id === "uncommitted")?.state).toBe("warn");
+  sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "rules");
+  writeFileSync(join(dir, "leak.txt"), `key = "${"sk-ant-api03-"}${"a1B2c3D4e5F6g7H8i9J0".repeat(3)}"\n`); sh("git", "add", "-A");
+  expect(healthChecks(dir, { items: [], last: () => undefined }).find((c) => c.id === "secrets")?.state).toBe("bad");
+  const hot = healthChecks(dir, { items: [], last: (type) => (type === "agent.rate_limit" ? { ts: "x", data: { unifiedWindows: { five_hour: { utilization: 0.86 } } } } : undefined) });
+  expect(hot.find((c) => c.id === "usage")?.title).toContain("86%");
 });

@@ -46,6 +46,20 @@ try {
     assert.match(await page.title(), /Kofi .* F-002/);
     await a11y(page, `${name} Overview`);
 
+    // The health strip is there (a warning here: the fixture has a placeholder gate), and the palette runs a check from the keyboard or, on a phone, the header button.
+    await page.getByRole("article", { name: "Health" }).waitFor();
+    if (name === "phone") await page.getByRole("button", { name: "Search or run a command" }).click(); else await page.keyboard.press("Control+k");
+    await page.getByRole("dialog", { name: "Command palette" }).waitFor();
+    await page.getByRole("combobox", { name: "Type a command or search" }).fill("secrets");
+    await page.keyboard.press("Enter");
+    await page.locator(".pal .out").waitFor();
+    await a11y(page, `${name} command palette (a check)`);
+    await page.keyboard.press("Escape");
+    await page.getByRole("combobox", { name: "Type a command or search" }).waitFor();
+    await a11y(page, `${name} command palette (the list)`);
+    await page.keyboard.press("Escape");
+    await page.getByRole("dialog", { name: "Command palette" }).waitFor({ state: "detached" });
+
     // A person's panel opens from a robot, shows the live feed and files touched, and Esc closes it.
     await page.getByRole("button", { name: "Open Kofi's panel" }).first().click();
     await page.getByRole("dialog", { name: "Kofi" }).waitFor();
@@ -86,7 +100,7 @@ try {
     await page.locator(".bk-panel").waitFor({ state: "detached" });
 
     // Every other view: it shows its own content and passes the check.
-    const views: [string, string][] = [["Talk", ".chat-head .switch"], ["Checks", ".check button"], ["Team", ".status-chip.working"], ["Agents", "text=Models per role"], ["Source", ".scm, .pane"], ["Logs", ".feed li"], ["Worktrees", "text=F-005"], ["Studio", 'nav[aria-label="Files"] .fi']];
+    const views: [string, string][] = [["Talk", ".chat-head .switch"], ["Team", ".status-chip.working"], ["Agents", "text=Models per role"], ["Source", ".scm, .pane"], ["Logs", ".feed li"], ["Worktrees", "text=F-005"], ["Studio", 'nav[aria-label="Files"] .fi']];
     for (const [view, locator] of views) {
       await open(page, view);
       await page.locator(locator).first().waitFor({ timeout: 15_000 });

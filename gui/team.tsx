@@ -61,6 +61,15 @@ export function Team({ events, tasks, setError, talkTo, openPerson }: { events: 
   const ran = events.filter((e) => e.type === "stage.ok").length;
   const busyRoles = useMemo(() => presenceOf(tasks), [tasks]);
   const lastDid = useMemo(() => lastWork(events), [events]);
+  // Rebuilding the role files writes files, so it is a button here, next to the team it follows, and it asks first.
+  const [rebuild, setRebuild] = useState<"" | "ask" | "busy">("");
+  const [rebuilt, setRebuilt] = useState("");
+  const doRebuild = async () => {
+    setRebuild("busy");
+    const r = await call<{ ok: boolean; output: string }>("/api/command", { name: "team-apply" });
+    setRebuild("");
+    setRebuilt(r.ok ? (r.data.ok ? "Role files rebuilt and committed. Your own edits were kept." : r.data.output) : r.error);
+  };
 
   const load = () => call<TeamData>("/api/team").then((r) => (r.ok ? (setSaved(r.data), setProblem("")) : setProblem(r.error)));
   // Re-read after runs finish, so the cost figures follow what the stages really cost. A draft in progress is left alone.
@@ -106,6 +115,13 @@ export function Team({ events, tasks, setError, talkTo, openPerson }: { events: 
         ))}
       </div>
 
+      <div className="rebuild row gap wrap">
+        {rebuild === "ask" ? (
+          <><span><b>Rebuild the role files?</b> <span className="note">They are rewritten from the team and committed. Your own edits are kept.</span></span><button onClick={() => setRebuild("")}>Cancel</button><button className="primary" onClick={doRebuild}>Rebuild</button></>
+        ) : (
+          <><button className="quiet" disabled={rebuild === "busy"} onClick={() => { setRebuilt(""); setRebuild("ask"); }}>{rebuild === "busy" ? "Rebuilding…" : "Rebuild the role files"}</button>{rebuilt && <span className="note" role="status">{rebuilt}</span>}</>
+        )}
+      </div>
       <section className="tile crew" aria-label="A normal task">
         <div className="crew-title">
           <h2>A normal task</h2>

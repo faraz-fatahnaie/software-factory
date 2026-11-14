@@ -206,15 +206,26 @@ try {
   await view("Worktrees");
   await page.getByText("No task worktrees").waitFor();
 
-  // Checks: a command runs and its output is shown.
-  await view("Checks");
-  await page.locator('section[aria-label="Is the setup right?"]').getByRole("button", { name: "Run" }).click();
-  await page.locator('section[aria-label="Is the setup right?"] .out', { hasText: "git repository" }).waitFor();
+  // The command palette: Ctrl+K opens it from anywhere, a check runs in it and its output is shown, and Bix is offered to explain it (no model is called here).
+  await page.keyboard.press("Control+k");
+  await page.getByRole("dialog", { name: "Command palette" }).waitFor();
+  await page.getByRole("combobox", { name: "Type a command or search" }).fill("setup");
+  await page.keyboard.press("Enter");
+  await page.locator(".pal .out", { hasText: "git repository" }).waitFor();
+  await page.getByRole("button", { name: "Explain with Bix" }).waitFor();
+  await page.keyboard.press("Escape"); // back to the list
+  await page.getByRole("combobox", { name: "Type a command or search" }).waitFor();
+  await page.keyboard.press("Escape");
+  await page.getByRole("dialog", { name: "Command palette" }).waitFor({ state: "detached" });
+  // Health: quick free checks on Overview and a chip in the rail.
+  await view("Overview");
+  await page.getByRole("article", { name: "Health" }).waitFor();
 
   // Talk: the conversations are listed (no model is called here), and a conversation needs your first message.
   await view("Talk");
-  await page.getByRole("button", { name: /Brainstorm an idea/ }).waitFor();
+  await page.getByRole("button", { name: /Brainstorm an idea/ }).click();
   await page.getByRole("button", { name: "Start this conversation" }).waitFor();
+  await page.getByRole("button", { name: /Bix.*Ask about the factory/ }).waitFor(); // the Guide is its own person, last in the list
   // Suggested replies are a per-person switch: on for the Product Partner, and saved to the config when changed.
   const suggest = page.getByRole("switch", { name: "Suggest replies" });
   assert.equal(await suggest.isChecked(), true, "on by default for the Product Partner");

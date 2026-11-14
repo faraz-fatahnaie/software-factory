@@ -4,6 +4,7 @@ import { parse } from "./backlog";
 import { chatArgs, chatTurn, TOPICS } from "./chat";
 import { loadConfig, parseConfig, projectRoles, projectTeam } from "./config";
 import { openStore } from "./events";
+import { healthChecks, type Health } from "./health";
 import { parseFind, roleSkills, SKILLS_CLI } from "./skills";
 import { chatPromptFor, holderOf } from "./team";
 import { changeTeam, parseChanges, planTeam, presetList, teamView } from "./teamctl";
@@ -41,10 +42,11 @@ async function freshGui() {
 }
 
 /** Local control plane: a live event stream plus endpoints that run the same CLI a person would. */
-/** Whether a person's conversations end with suggested next messages: their own setting, else on for the Product Partner only. */
+/** Whether a person's conversations end with suggested next messages: their own setting, else on for the Product Partner and the Guide only. */
 function suggestOn(root: string, role?: string): boolean {
   if (!role) return false;
-  try { return loadConfig(root).chat?.suggest?.[role] ?? role === "product-partner"; } catch { return role === "product-partner"; }
+  const standard = role === "product-partner" || role === "guide";
+  try { return loadConfig(root).chat?.suggest?.[role] ?? standard; } catch { return standard; }
 }
 
 export async function serve(root: string, port = 4400) {
@@ -52,6 +54,7 @@ export async function serve(root: string, port = 4400) {
   mkdirSync(join(root, ".factory"), { recursive: true });
   const store = openStore(join(root, ".factory", "events.db"));
   const running = new Map<string, { kill(signal?: number | NodeJS.Signals): void }>();
+  let healthCache: { at: number; body: Health[] } | undefined;
   const items = () => parse(readFileSync(join(root, "BACKLOG.md"), "utf8"));
 
   const sh = async (...argv: string[]) => {
@@ -138,11 +141,17 @@ export async function serve(root: string, port = 4400) {
         }
         return json(vcsCache.body);
       }
+      if (route === "GET /api/health") {
+        // Quick and free, but it reads every tracked file for the secret scan, so the answer is kept for a few seconds. ?fresh asks again.
+        if (!healthCache || Date.now() - healthCache.at > 20_000 || url.searchParams.has("fresh")) healthCache = { at: Date.now(), body: healthChecks(root, { items: items(), last: store.last }) };
+        return json({ checkedAt: new Date(healthCache.at).toISOString(), checks: healthCache.body });
+      }
       if (route === "GET /api/chat/topics") {
         const team = projectTeam(root);
         return json(Object.entries(TOPICS).map(([key, t]) => {
           // The role that holds the conversation's first responsibility, so the page shows the right person even after a regrouping.
-          const role = holderOf(team, t.ids[0]!), base = { key, title: t.title, summary: t.summary, first: t.first, role, roleTitle: role ? team.roles[role]!.title : undefined, suggest: suggestOn(root, role) };
+          const role = t.guide ? undefined : holderOf(team, t.ids[0]!), base = { key, title: t.title, summary: t.summary, first: t.first, role, roleTitle: t.guide ? "Guide" : role ? team.roles[role]!.title : undefined, suggest: suggestOn(root, t.guide ? "guide" : role), readOnly: !!t.guide };
+          if (t.guide) return { ...base, available: true };
           try { chatPromptFor(t.ids, team); return { ...base, available: true }; }
           catch (e) { return { ...base, available: false, reason: (e as Error).message }; }
         }));
@@ -289,7 +298,7 @@ export async function serve(root: string, port = 4400) {
       }
       if (route === "POST /api/chat/suggest") {
         // Suggested next messages are a setting of the person, so every conversation they hold follows it.
-        const role = holderOf(projectTeam(root), TOPICS[body.topic as string]?.ids[0] ?? "");
+        const topic = TOPICS[body.topic as string], role = topic?.guide ? "guide" : holderOf(projectTeam(root), topic?.ids[0] ?? "");
         if (!role || typeof body.on !== "boolean") return json({ error: "topic and on (true or false) required" }, 400);
         try {
           const cur = loadConfig(root);

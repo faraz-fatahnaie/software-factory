@@ -10,7 +10,7 @@ export type Proposal = { kind: "push" | "merge" | "sync"; id?: string };
 export type Msg = { who: "you" | "team"; text: string; suggestions?: string[]; tools?: string[]; cost?: number; bad?: boolean; proposal?: Proposal; acted?: string };
 export type Chat = { messages: Msg[]; session?: string; busy: boolean };
 export type Chats = Record<string, Chat>;
-type Topic = { key: string; title: string; summary: string; first: string; available: boolean; reason?: string; role?: string; roleTitle?: string; suggest?: boolean };
+type Topic = { key: string; title: string; summary: string; first: string; available: boolean; reason?: string; role?: string; roleTitle?: string; suggest?: boolean; readOnly?: boolean };
 type Reply = { ok: boolean; status: string; text: string; session?: string; costUsd?: number; denials: string[]; tools: { tool: string; input: unknown }[] };
 
 const MODELS = [
@@ -29,6 +29,26 @@ const FAILURES: Record<string, string> = {
   auth: "The Claude command line is not logged in. Run `claude` in a terminal, log in, then try again.",
 };
 
+type SendOpts = { key: string; message: string; shown?: string; chat: Chat; suggest: boolean; model: string; effort: string; setChats: React.Dispatch<React.SetStateAction<Chats>> };
+/** One turn of a conversation: shows what you wrote, asks the server, and adds the reply with its suggestions and any action it proposes. Used by Talk and by the box in Checks. */
+export async function sendChat(o: SendOpts) {
+  const patch = (fn: (c: Chat) => Chat) => o.setChats((all) => ({ ...all, [o.key]: fn(all[o.key] ?? { messages: [], busy: false }) }));
+  patch((c) => ({ ...c, busy: true, messages: [...c.messages, { who: "you", text: o.shown ?? o.message }] }));
+  const r = await call<Reply>("/api/chat", { topic: o.key, message: o.message, session: o.chat.session, model: o.model, effort: o.effort, suggest: o.suggest });
+  patch((c) => {
+    if (!r.ok) return { ...c, busy: false, messages: [...c.messages, { who: "team", text: r.error, bad: true }] };
+    const d = r.data;
+    const split = d.ok ? splitSuggestions(d.text) : { text: d.text, suggestions: [] as string[] };
+    const ask = d.ok ? /^PROPOSE: (push|merge|sync)(?: (F-\d+))?[ \t]*$/m.exec(split.text) : null;
+    const proposal: Proposal | undefined = ask && (ask[1] === "sync" ? !ask[2] : !!ask[2]) ? { kind: ask[1] as Proposal["kind"], id: ask[2] } : undefined;
+    const reply: Msg = d.ok
+      ? { who: "team", text: proposal ? split.text.replace(ask![0], "").trimEnd() : split.text, suggestions: split.suggestions, proposal, tools: d.tools.map((t) => toolLine(t)), cost: d.costUsd }
+      : { who: "team", text: FAILURES[d.status] ?? d.text, bad: true };
+    if (d.denials.length) reply.tools = [...(reply.tools ?? []), ...d.denials.map((x) => `not allowed here: ${x}`)];
+    return { ...c, busy: false, session: d.session ?? c.session, messages: [...c.messages, reply] };
+  });
+}
+
 export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChats: React.Dispatch<React.SetStateAction<Chats>>; topic: string }) {
   const [topics, setTopics] = useState<Topic[] | null>(null);
   const [key, setKey] = useState("");
@@ -38,30 +58,19 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
   const [problem, setProblem] = useState("");
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => { call<Topic[]>("/api/chat/topics").then((r) => (r.ok ? setTopics(r.data) : setProblem(r.error))); }, []);
-  // "Talk to Mara" on the Team view opens her conversation; otherwise the first one that is available.
-  useEffect(() => { if (topics) setKey((k) => (wanted && topics.some((t) => t.key === wanted && t.available) ? wanted : k || topics.find((t) => t.available)?.key || "")); }, [topics, wanted]);
+  // "Talk to Mara" on the Team view opens her conversation; otherwise the first one that is available. The first only fills an empty choice, so reloading the list (after a switch) never moves you.
+  useEffect(() => { if (topics) setKey((k) => k || topics.find((t) => t.available)?.key || ""); }, [topics]);
+  useEffect(() => { if (topics && wanted && topics.some((t) => t.key === wanted && t.available)) setKey(wanted); }, [wanted, topics === null]);
+  // The Guide only explains, so it starts on the cheap model; the choice above stays yours.
+  useEffect(() => { if (topics?.find((t) => t.key === key)?.readOnly) setModel("haiku"); }, [key, topics === null]);
   const chat: Chat = chats[key] ?? { messages: [], busy: false };
   useEffect(() => { end.current?.scrollIntoView({ block: "nearest" }); }, [chat.messages.length, chat.busy]);
 
   const patch = (k: string, fn: (c: Chat) => Chat) => setChats((all) => ({ ...all, [k]: fn(all[k] ?? { messages: [], busy: false }) }));
-  const send = async (message: string) => {
-    const k = key, session = chat.session;
+  const send = (message: string) => {
     if (!message.trim() || chat.busy) return;
     setText("");
-    patch(k, (c) => ({ ...c, busy: true, messages: [...c.messages, { who: "you", text: message }] }));
-    const r = await call<Reply>("/api/chat", { topic: k, message, session, model, effort, suggest: topics?.find((t) => t.key === k)?.suggest ?? false });
-    patch(k, (c) => {
-      if (!r.ok) return { ...c, busy: false, messages: [...c.messages, { who: "team", text: r.error, bad: true }] };
-      const d = r.data;
-      const split = d.ok ? splitSuggestions(d.text) : { text: d.text, suggestions: [] as string[] };
-      const ask = d.ok ? /^PROPOSE: (push|merge|sync)(?: (F-\d+))?[ \t]*$/m.exec(split.text) : null;
-      const proposal: Proposal | undefined = ask && (ask[1] === "sync" ? !ask[2] : !!ask[2]) ? { kind: ask[1] as Proposal["kind"], id: ask[2] } : undefined;
-      const reply: Msg = d.ok
-        ? { who: "team", text: proposal ? split.text.replace(ask![0], "").trimEnd() : split.text, suggestions: split.suggestions, proposal, tools: d.tools.map((t) => toolLine(t)), cost: d.costUsd }
-        : { who: "team", text: FAILURES[d.status] ?? d.text, bad: true };
-      if (d.denials.length) reply.tools = [...(reply.tools ?? []), ...d.denials.map((x) => `not allowed here: ${x}`)];
-      return { ...c, busy: false, session: d.session ?? c.session, messages: [...c.messages, reply] };
-    });
+    sendChat({ key, message, chat, suggest: topics?.find((t) => t.key === key)?.suggest ?? false, model, effort, setChats });
   };
 
   // The approval: the button calls the same endpoint as the dashboard's Push and Merge buttons.
@@ -80,7 +89,7 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
     </div>
   );
   const topic = topics.find((t) => t.key === key);
-  const role = topic?.role ?? "";
+  const role = topic?.role ?? (topic?.readOnly ? topic.key : "");
   const person = personaFor(role);
   return (
     <div className="talk">
@@ -88,7 +97,7 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
         {topics.map((t) => (
           <button key={t.key} className="person" aria-current={t.key === key} disabled={!t.available} title={t.reason} onClick={() => setKey(t.key)}>
             <Robot role={t.role ?? t.key} size={44} status={chats[t.key]?.busy ? "working" : "free"} />
-            <span className="text"><b>{t.role ? personaFor(t.role).name : t.title} <span className="note">{t.roleTitle}</span></b><span className="note">{t.available ? t.title : t.reason}</span></span>
+            <span className="text"><b>{t.role ?? (t.readOnly ? t.key : undefined) ? personaFor((t.role ?? t.key)).name : t.title} <span className="note">{t.roleTitle}</span></b><span className="note">{t.available ? t.title : t.reason}</span></span>
           </button>
         ))}
         <p className="note">Deploying stays on the command line, where every step waits for your yes.</p>
@@ -108,7 +117,7 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
           <div className="messages" role="log" aria-live="polite" aria-label={`${topic.title} conversation`}>
             {chat.messages.length === 0 && (
               <div className="intro">
-                <div className="bubble team"><Robot role={role} size={34} /><div className="inner-card">Hi, I’m {person.name}, the {topic.roleTitle}. {topic.summary} I ask one question at a time and save nothing until you approve it.</div></div>
+                <div className="bubble team"><Robot role={role} size={34} /><div className="inner-card">Hi, I’m {person.name}, the {topic.roleTitle}. {topic.summary}{topic.readOnly ? "" : " I ask one question at a time and save nothing until you approve it."}</div></div>
                 <button className="primary" onClick={() => send(topic.first)}>Start this conversation</button>
               </div>
             )}
@@ -153,51 +162,9 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
             />
             <button className="primary" disabled={chat.busy || !text.trim()}>Send</button>
           </form>
-          <p className="note">{person.name} can read this project and write documents under docs/. {person.name} cannot change code.</p>
+          <p className="note">{topic.readOnly ? `${person.name} can read this project and run read-only checks. ${person.name} cannot change anything.` : `${person.name} can read this project and write documents under docs/. ${person.name} cannot change code.`}</p>
         </section>
       )}
-    </div>
-  );
-}
-
-const CHECKS: { name: string; title: string; about: string; writes?: boolean }[] = [
-  { name: "doctor", title: "Is the setup right?", about: "Checks the config, role files, rules and skills, and lists anything missing." },
-  { name: "status", title: "Where is everything?", about: "The same summary as the command line: each task and the stage it has reached." },
-  { name: "release-info", title: "What would a release contain?", about: "The last tag, the changes since, and every file that carries the version." },
-  { name: "release-check", title: "Is it ready to release?", about: "Blockers and warnings before you release. It never deploys or pushes." },
-  { name: "scan", title: "Any secrets in the files?", about: "Looks for passwords and keys in what git tracks. Values are never printed." },
-  { name: "team-apply", title: "Rebuild the role files", about: "Regenerates the role files from the team and commits them. Your own edits are kept.", writes: true },
-];
-
-type Result = { ok: boolean; output: string; busy?: boolean };
-
-export function Checks() {
-  const [results, setResults] = useState<Record<string, Result>>({});
-  const run = async (name: string) => {
-    setResults((r) => ({ ...r, [name]: { ok: true, output: "", busy: true } }));
-    const res = await call<{ ok: boolean; output: string }>("/api/command", { name });
-    // A check that finds problems exits non-zero; its output is still the answer, so it is shown, not treated as a failure of the page.
-    const done: Result = res.ok ? { ok: res.data.ok, output: res.data.output } : { ok: false, output: res.error };
-    setResults((r) => ({ ...r, [name]: done }));
-  };
-  return (
-    <div className="checks">
-      {CHECKS.map((c) => {
-        const r = results[c.name];
-        return (
-          <section key={c.name} className="tile check" aria-label={c.title}>
-            <h3>{c.title}</h3>
-            <p>{c.about}</p>
-            <div className="row">
-              <button className={r ? "" : "primary"} onClick={() => run(c.name)} disabled={r?.busy}>{r?.busy ? "Running…" : r ? "Run again" : "Run"}</button>
-              {c.writes && <span className="tag">changes files</span>}
-              {r && !r.busy && <span className={`badge ${r.ok ? "ok" : "warn"}`}>{r.ok ? "✓ Passed" : "⚠ Found problems"}</span>}
-            </div>
-            {r?.busy && <Skel h={60} r={10} />}
-            {r && !r.busy && <pre className="out" aria-label={`Output of ${c.title}`}>{r.output || "No output."}</pre>}
-          </section>
-        );
-      })}
     </div>
   );
 }

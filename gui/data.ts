@@ -136,3 +136,17 @@ export function useVcs(): { vcs: VcsData | null; refresh: () => Promise<void> } 
   }, []);
   return { vcs, refresh };
 }
+
+export type HealthCheck = { id: string; title: string; state: "ok" | "warn" | "bad"; detail: string };
+export type HealthData = { checkedAt: string; checks: HealthCheck[] };
+/** The quick, free checks of the project: asked on load and every minute, and again on request. Null until the first answer. */
+export function useHealth(): { health: HealthData | null; recheck: () => Promise<void> } {
+  const [health, setHealth] = useState<HealthData | null>(null);
+  const recheck = async () => { const r = await call<HealthData>("/api/health?fresh=1"); if (r.ok) setHealth(r.data); };
+  useEffect(() => {
+    call<HealthData>("/api/health").then((r) => r.ok && setHealth(r.data));
+    const timer = setInterval(() => call<HealthData>("/api/health").then((r) => r.ok && setHealth(r.data)), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+  return { health, recheck };
+}

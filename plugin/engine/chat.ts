@@ -5,7 +5,7 @@ import { agentEvents, classify, hookSettings } from "./claude";
 import { chatPromptFor, type Preset } from "./team";
 
 /** The conversations the GUI offers. Each names responsibilities, like the matching command, so it works in any team grouping. */
-export const TOPICS: Record<string, { title: string; summary: string; ids: string[]; first: string }> = {
+export const TOPICS: Record<string, { title: string; summary: string; ids: string[]; first: string; guide?: boolean }> = {
   brainstorm: { title: "Brainstorm an idea", summary: "Work out what to build, for whom, and what success looks like.", ids: ["D1", "D3"], first: "I would like to brainstorm an idea." },
   research: { title: "Research similar products", summary: "Find what already exists and what can be learned from it.", ids: ["D2"], first: "Please research products similar to this project." },
   plan: { title: "Plan the work", summary: "Turn the brief into requirements, milestones and backlog items.", ids: ["R1", "R2", "R3", "R4", "P1", "P2", "P3"], first: "Please help me plan the work." },
@@ -15,6 +15,7 @@ export const TOPICS: Record<string, { title: string; summary: string; ids: strin
   audit: { title: "Security audit", summary: "The audit to run before a release.", ids: ["S4"], first: "Please run the security audit." },
   git: { title: "Pull requests and GitHub", summary: "See what is waiting to go to GitHub, and approve a push or a merge.", ids: ["G2"], first: "What is waiting to go to GitHub?" },
   docs: { title: "Keep the documents current", summary: "Update the README, context files and documents.", ids: ["K1", "K3"], first: "Please bring the project documents up to date." },
+  guide: { title: "Ask about the factory", summary: "Ask what is happening, why something failed, or how to change a setting. I only answer; I never change anything.", ids: [], first: "What is going on in this project right now?", guide: true },
 };
 
 const MODELS = ["fable", "opus", "sonnet", "haiku"], EFFORTS = ["low", "medium", "high", "xhigh", "max"];
@@ -22,6 +23,18 @@ const MODELS = ["fable", "opus", "sonnet", "haiku"], EFFORTS = ["low", "medium",
 const ALLOW = ["Read", "Grep", "Glob", "WebSearch", "WebFetch", "Write(docs/**)", "Edit(docs/**)", "Write(README.md)", "Edit(README.md)", "Write(CHANGELOG.md)", "Edit(CHANGELOG.md)",
   "Bash(factory docs save:*)", "Bash(factory add:*)", "Bash(factory vcs)", // read-only: pushing and merging are buttons the person presses, never commands this session may run
   "Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)", "Bash(graphify query:*)"];
+
+// The Guide only answers questions: it can look at the project and run the read-only commands, and nothing else.
+const GUIDE_ALLOW = ["Read", "Grep", "Glob", "Bash(factory doctor:*)", "Bash(factory status:*)", "Bash(factory vcs)", "Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)"];
+const guidePrompt = (productDir: string) => `You are Bix, the Guide of this project's software factory: a read-only helper who explains what the tool is doing and how to control it. You change nothing: you have no way to edit files, and you must not ask to be allowed to.
+
+What you can look at: factory.config.json (models per role, the gate, the team, GitHub and chat settings), BACKLOG.md, AGENTS.md and the role files in .claude/agents/, the run folders under .factory/runs/, the product's own files in ${productDir} (its README, catalog.json and presets.json), and git history. You may run \`factory doctor\`, \`factory status\` and \`factory vcs\`. Look before you answer; do not guess.
+
+How to answer: in plain words, for someone who is not a software engineer. Short. When something failed, say what failed, why in one sentence, and how to fix it. When asked how to change something, name the exact screen (Studio, Team, Agents, Backlog, Checks) or the exact command (\`factory ...\`) and say what would happen. If a file holds a secret value, never repeat it.
+
+Where things are changed in the page: the model, effort and fallback of each role in Agents (Models per role); the rules, role prompts and skills in Studio; who is on the team and what each person takes care of in Team; tasks in Backlog; what a conversation costs in Talk. The commands that run the project (setup and the gate) are set with \`factory configure\` or in factory.config.json.
+
+Always true: nothing is deployed unless the person asks for it; the Builder is the only role that changes code; every stage runs in its own git worktree; approving a task merges it into main here, and with GitHub connected it stays on its branch until the person pushes; pushes and merges are buttons the person presses.`;
 
 export type ChatRequest = { topic: string; message: string; session?: string; model?: string; effort?: string; suggest?: boolean };
 
@@ -38,13 +51,14 @@ export function chatArgs(r: ChatRequest, team: Preset): string[] {
   if (!MODELS.includes(model)) throw new Error(`model: one of ${MODELS.join(", ")}`);
   if (!EFFORTS.includes(effort)) throw new Error(`effort: one of ${EFFORTS.join(", ")}`);
   if (r.suggest !== undefined && typeof r.suggest !== "boolean") throw new Error("suggest: true or false");
-  const system = `${chatPromptFor(topic.ids, team)}${r.suggest ? `\n\n${SUGGEST_RULE}` : ""}`; // throws, in plain words, when a responsibility is switched off
+  const productDir = join(import.meta.dir, "..");
+  const system = `${topic.guide ? guidePrompt(productDir) : chatPromptFor(topic.ids, team)}${r.suggest ? `\n\n${SUGGEST_RULE}` : ""}`; // throws, in plain words, when a responsibility is switched off
   return [
     "claude", "-p", r.message, "--model", model, "--effort", effort,
     "--append-system-prompt", system,
     ...(r.session ? ["--resume", r.session] : []),
     "--output-format", "stream-json", "--verbose",
-    "--permission-mode", "dontAsk", "--allowedTools", ...ALLOW,
+    "--permission-mode", "dontAsk", ...(topic.guide ? ["--add-dir", productDir] : []), "--allowedTools", ...(topic.guide ? GUIDE_ALLOW : ALLOW),
     "--setting-sources", "project", "--strict-mcp-config",
     "--settings", hookSettings("chat"),
   ];

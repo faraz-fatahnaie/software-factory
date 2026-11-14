@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { elapsed, lastWork, passRates, roster, series, STAGES, summarize, toolLine, type Ev, type TaskRun } from "../plugin/engine/state";
-import { post, useBacklog, useEvents, useHash, useNow, useTeam, useTheme, useVcs, type Backlog, type Item, type Link } from "./data";
+import { post, useBacklog, useEvents, useHash, useHealth, useNow, useTeam, useTheme, useVcs, type Backlog, type HealthData, type Item, type Link } from "./data";
 import { GitHub, vcsChip, type VcsData } from "./vcs";
 import { Source } from "./source";
 import { BacklogView } from "./backlog";
 import { Studio } from "./studio";
 import { Agents, Logs, Worktrees } from "./views";
-import { Checks, Talk, type Chats } from "./talk";
+import { sendChat, Talk, type Chats } from "./talk";
+import { Palette } from "./palette";
+import { HealthStrip, healthChip } from "./health";
 import { presenceOf, TALK_TO, Team, type TeamData } from "./team";
 import { agoShort } from "./commitgraph";
 import { NotifyToggle, NowLine, useAmbient, useNotify } from "./live";
@@ -18,10 +20,10 @@ import { ViewSkeleton } from "./ui";
 
 export type Act = (path: string, body: unknown) => Promise<boolean>;
 
-const VIEWS = ["Overview", "Backlog", "Talk", "Checks", "Team", "Agents", "Source", "Logs", "Worktrees", "Studio", "Graph"] as const;
+const VIEWS = ["Overview", "Backlog", "Talk", "Team", "Agents", "Source", "Logs", "Worktrees", "Studio", "Graph"] as const;
 type View = (typeof VIEWS)[number];
 const GROUPS: { name: string; views: View[] }[] = [
-  { name: "Work", views: ["Overview", "Backlog", "Talk", "Checks"] },
+  { name: "Work", views: ["Overview", "Backlog", "Talk"] },
   { name: "Team", views: ["Team", "Agents"] },
   { name: "Records", views: ["Source", "Logs", "Worktrees", "Studio", "Graph"] },
 ];
@@ -29,7 +31,6 @@ const HEADS: Record<View, [string, string]> = {
   Overview: ["Overview", "What is running, what needs you, and what it costs."],
   Backlog: ["Backlog", "Move work through the pipeline. Open a task to read its log, spec, review and changes."],
   Talk: ["Talk to the team", "Start a conversation with the roles that work with you: brainstorming, research, planning and design."],
-  Checks: ["Checks", "Run the factory's own checks on this project. Nothing here changes your code or deploys anything."],
   Team: ["Team", "Who does what. Regroup the responsibilities and see what a task costs before you save."],
   Agents: ["Agents", "Who is working, which model each role uses, and what it has cost."],
   Source: ["Source", "What changed, who changed it, which branches are in flight, and what is on GitHub."],
@@ -207,7 +208,7 @@ export function Feed({ events, limit, open }: { events: Ev[]; limit: number; ope
 const STAGE_DID: Record<string, string> = { triage: "triage", spec: "spec", build: "build", check: "checks", security: "security", review: "review", document: "summary" };
 const DOING: Record<string, string> = { triage: "Triaging", spec: "Writing the spec for", build: "Building", check: "Running the checks on", security: "Checking the security of", review: "Reviewing", document: "Writing the summary of" };
 
-function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any; backlog: Backlog; open: (id: string) => void; team: TeamData | null; vcs: VcsData | null; act: Act; refreshVcs: () => Promise<void>; chats: Chats; talkTo: (key: string) => void; openPerson: (role: string) => void }) {
+function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any; backlog: Backlog; open: (id: string) => void; team: TeamData | null; vcs: VcsData | null; act: Act; refreshVcs: () => Promise<void>; chats: Chats; talkTo: (key: string) => void; openPerson: (role: string) => void; health: HealthData | null; recheck: () => Promise<void>; explain: (title: string, detail: string) => void }) {
   const working = useMemo(() => roster(p.tasks), [p.tasks]);
   const now = useNow(true, working.length ? 1000 : 30_000);
   const day = useMemo(() => series(p.events, now - 86_400_000, now, 24), [p.events, Math.floor(now / 60_000)]);
@@ -255,6 +256,7 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
           </>
         )}
       </article>
+      <HealthStrip health={p.health} recheck={p.recheck} explain={p.explain} />
       <Kpi title="People working" value={String(working.length + chatting.length)} unit={p.team ? ` of ${p.team.roles.length}` : ""} note={`${items.filter((i) => i.section === "In progress").length} tasks in progress, ${items.filter((i) => i.section === "Ready").length} ready`}>
         <Spark values={day.map((b) => b.stages)} label="Stages passed per hour, last 24 hours" />
       </Kpi>
@@ -333,6 +335,15 @@ function App() {
   const [chats, setChats] = useState<Chats>({});
   const [topic, setTopic] = useState("");
   const [person, setPerson] = useState<string | null>(null);
+  const [palette, setPalette] = useState(false);
+  const { health, recheck } = useHealth();
+  const pulse = healthChip(health);
+  // ⌘K (or Ctrl+K) opens the command palette from anywhere.
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPalette((o) => !o); } };
+    document.addEventListener("keydown", key);
+    return () => document.removeEventListener("keydown", key);
+  }, []);
   const clock = useNow(person !== null, 1000);
   const ran = events.filter((e) => e.type === "stage.ok").length;
   const team = useTeam(ran);
@@ -344,7 +355,7 @@ function App() {
   // The tab title says what is waiting, so a person in another tab sees it.
   const waiting = backlog.items.filter((i) => i.section === "Awaiting approval" || i.section === "Blocked").length;
   const working = useMemo(() => roster(tasks), [tasks]);
-  useAmbient(working, waiting, HEADS[view][0]);
+  useAmbient(working, waiting, HEADS[view][0], pulse.tone === "bad");
   const notify = useNotify(events, tasks);
   // After a view change, focus moves to the page so a keyboard or screen reader user starts at the top of it.
   const main = useRef<HTMLElement>(null);
@@ -363,6 +374,11 @@ function App() {
   };
   const open = (id: string) => { setSelected(id); setView("Backlog"); };
   const talkTo = (key: string) => { setTopic(key); setView("Talk"); };
+  // Ask Bix to explain one thing the health strip found, and show the answer in Talk.
+  const explain = (title: string, detail: string) => {
+    sendChat({ key: "guide", message: `The health check says: "${title}". Details: ${detail}\n\nExplain this in plain words and say what, if anything, I should do.`, shown: `Explain: ${title}`, chat: chats.guide ?? { messages: [], busy: false }, suggest: false, model: "haiku", effort: "low", setChats });
+    talkTo("guide");
+  };
   const [title, blurb] = HEADS[view];
 
   return (
@@ -390,6 +406,8 @@ function App() {
         <footer>
           <span className={`link ${link}`} role="status" title="The live event stream from the factory server"><span>{LINK_TEXT[link]}</span></span>
           <a className={`link vcs ${chip.tone}`} href="#overview" title={chip.title}><span>{chip.text}</span></a>
+          <button className="quiet theme pal-btn" onClick={() => setPalette(true)} aria-keyshortcuts="Control+K Meta+K"><Icon name="search" /><span>Search or run…</span><kbd>⌘K</kbd></button>
+          <a className={`link vcs ${pulse.tone}`} href="#overview" title={pulse.title}><span>{pulse.text}</span></a>
           <NotifyToggle notify={notify} />
           <button className="quiet theme" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
             <Icon name={theme === "dark" ? "sun" : "moon"} /><span>{theme === "dark" ? "Light theme" : "Dark theme"}</span>
@@ -401,13 +419,13 @@ function App() {
         {error && <p className="error" role="alert">{error} <button className="quiet" onClick={() => setError("")}>Dismiss</button></p>}
         <header className="page-head">
           <div><h1>{title}</h1><p>{blurb}</p></div>
+          <button className="icon pal-head-btn" aria-label="Search or run a command" onClick={() => setPalette(true)}><Icon name="search" size={18} /></button>
         </header>
         {!loaded ? <><p className="sr" role="status">Loading…</p><ViewSkeleton kind={view === "Overview" ? "overview" : view === "Backlog" ? "board" : view === "Team" ? "team" : "list"} /></> : (
           <>
-            {view === "Overview" && <Overview events={events} tasks={tasks} rateLimit={rateLimit} backlog={backlog} open={open} team={team} vcs={vcs} act={act} refreshVcs={refreshVcs} chats={chats} talkTo={talkTo} openPerson={setPerson} />}
+            {view === "Overview" && <Overview events={events} tasks={tasks} rateLimit={rateLimit} backlog={backlog} open={open} team={team} vcs={vcs} act={act} refreshVcs={refreshVcs} chats={chats} talkTo={talkTo} openPerson={setPerson} health={health} recheck={recheck} explain={explain} />}
             {view === "Backlog" && <BacklogView openPerson={setPerson} backlog={backlog} tasks={tasks} events={events} act={act} selected={selected} select={setSelected} />}
             {view === "Talk" && <Talk chats={chats} setChats={setChats} topic={topic} />}
-            {view === "Checks" && <Checks />}
             {view === "Team" && <Team events={events} tasks={tasks} setError={setError} talkTo={talkTo} openPerson={setPerson} />}
             {view === "Agents" && <Agents events={events} tasks={tasks} setError={setError} open={open} />}
             {view === "Source" && <Source items={backlog.items} vcs={vcs} act={act} refreshVcs={refreshVcs} open={open} />}
@@ -418,6 +436,7 @@ function App() {
           </>
         )}
       </main>
+      {palette && <Palette views={VIEWS.filter((v) => v !== "Graph")} go={(v) => setView(v as (typeof VIEWS)[number])} close={() => setPalette(false)} chats={chats} setChats={setChats} talkTo={talkTo} theme={theme} toggleTheme={toggleTheme} afterRebuild={reload} />}
       {person && <PersonPanel role={person} tasks={tasks} events={events} team={team} now={clock} act={act} close={() => setPerson(null)} openTask={(id) => { setPerson(null); open(id); }} talkTo={(k) => { setPerson(null); talkTo(k); }} />}
     </div>
   );

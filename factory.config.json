@@ -7,6 +7,11 @@
     "bun run typecheck"
   ],
   "graph": true,
+  "chat": {
+    "suggest": {
+      "guide": true
+    }
+  },
   "team": {
     "preset": "balanced"
   },
@@ -43,18 +48,18 @@
         "sonnet"
       ]
     },
-    "scribe": {
-      "runner": "claude",
-      "model": "haiku",
-      "effort": "low",
-      "fallback": [
-        "sonnet"
-      ]
-    },
     "security-performance": {
       "runner": "claude",
       "model": "opus",
       "effort": "high",
+      "fallback": [
+        "sonnet"
+      ]
+    },
+    "scribe": {
+      "runner": "claude",
+      "model": "haiku",
+      "effort": "low",
       "fallback": [
         "sonnet"
       ]

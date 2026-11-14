@@ -30,11 +30,11 @@ export function NowLine({ run, stage, since, now }: { run: TaskRun | undefined; 
 }
 
 /** The tab's title and icon say what is going on, so a person in another tab sees it: a dot colour for working, waiting on you, or quiet. */
-export function useAmbient(working: { role: string; task: string; stage: string }[], waiting: number, heading: string) {
+export function useAmbient(working: { role: string; task: string; stage: string }[], waiting: number, heading: string, attention = false) {
   useEffect(() => {
     const first = working[0], more = working.length > 1 ? ` +${working.length - 1}` : "";
-    document.title = `${waiting ? `(${waiting}) ` : ""}${first ? `● ${personaFor(first.role).name} ${STAGE_ING[first.stage] ?? "working on"} ${first.task}${more} · ` : ""}${heading} · Software Factory`;
-  }, [working.map((w) => `${w.role}${w.task}${w.stage}`).join(), waiting, heading]);
+    document.title = `${attention ? "⚠ " : ""}${waiting ? `(${waiting}) ` : ""}${first ? `● ${personaFor(first.role).name} ${STAGE_ING[first.stage] ?? "working on"} ${first.task}${more} · ` : ""}${heading} · Software Factory`;
+  }, [working.map((w) => `${w.role}${w.task}${w.stage}`).join(), waiting, heading, attention]);
   useEffect(() => {
     const color = waiting ? "#f0b429" : working.length ? "#47d4f5" : "#8a94a3";
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#17181a"/><circle cx="16" cy="16" r="7" fill="${color}"/></svg>`;
