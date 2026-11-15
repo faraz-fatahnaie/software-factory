@@ -51,6 +51,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Messages and session ids live in the page only, so a reload loses the whole conversation. Keep them (without file bodies) per project and conversation.
 - [ ] F-078 (P2) Send guidance to the Builder from the Backlog
   A blocked task with a spec can be continued with a person's comments (factory reject works on it now), but the task panel only offers Retry. Add the Send back with comments box for blocked tasks too.
+- [ ] F-079 (P2) Manager: keep parallel tasks from clashing (M13)
+  Start a Ready item only if it is unlikely to touch the same files as a running one (files named in the spec or detail), else wait.
 
 ## Ready
 
