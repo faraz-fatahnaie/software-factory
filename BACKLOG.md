@@ -53,6 +53,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   A blocked task with a spec can be continued with a person's comments (factory reject works on it now), but the task panel only offers Retry. Add the Send back with comments box for blocked tasks too.
 - [ ] F-079 (P2) Manager: keep parallel tasks from clashing (M13)
   Start a Ready item only if it is unlikely to touch the same files as a running one (files named in the spec or detail), else wait.
+- [ ] F-080 (P2) Manager: check ready and done (M14)
+  Do not start an item without acceptance checks (triage supplies them for loose ideas); check a finished task against the definition of done before it is handed over.
 
 ## Ready
 
