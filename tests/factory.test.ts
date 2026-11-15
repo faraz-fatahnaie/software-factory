@@ -14,13 +14,14 @@ import { guard } from "../plugin/engine/hooks";
 import { applyTeam, configure, detect, doctor, init, nextStep, projectDocs } from "../plugin/engine/init";
 import { activeRoles, catalog, chatPrompt, chatPromptFor, checkSettings, customStages, DEFAULT_PRESET, describeTeam, perTask, presets, renderRole, resolveTeam, stageDuties, stageRole, teamForAgents, toolsFor, validateTeam, type TeamSettings } from "../plugin/engine/team";
 import { addCustom, moveSettings, offSettings, parseChange, planTeam, removeCustom, renameSettings, teamView } from "../plugin/engine/teamctl";
-import { chatArgs, TOPICS } from "../plugin/engine/chat";
+import { chatArgs, checkAttachments, saveAttachments, TOPICS } from "../plugin/engine/chat";
+import { parseBlocks, parseInline } from "../gui/mdparse";
 import { estimate } from "../plugin/engine/estimate";
 import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugin/engine/vcs";
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
 import { followUps, needsTriage, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
-import { splitSuggestions, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
+import { splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
 import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
 import { counts, lineDiff, marks, splitDiff, withGaps } from "../gui/linediff";
 import { gateIsPlaceholder, healthChecks, waitedLong } from "../plugin/engine/health";
@@ -2085,4 +2086,31 @@ test("update over HTTP: validated, only for a task waiting for a decision, and t
     for (let i = 0; i < 100 && (await (await fetch(`${base}/api/backlog`)).json() as any).running.length; i++) await Bun.sleep(100);
     expect(((await (await fetch(`${base}/api/backlog`)).json()) as any).behind).toEqual({});
   } finally { server.stop(); }
+});
+
+test("chat: markdown becomes a tree (lists, tables, code, safe links), never markup", () => {
+  const b = parseBlocks("# T\n\n- a\n  - b\n- [x] c\n\n| A | B |\n|:-|-:|\n| 1 | 2 |\n\n```ts\nlet x = 1;\n```\n\n> q");
+  expect(b.map((x) => x.t)).toEqual(["h", "list", "table", "code", "quote"]);
+  expect((b[1] as any).items[0].c.map((x: any) => x.t)).toEqual(["p", "list"]); // nested
+  expect((b[1] as any).items[1]).toMatchObject({ task: true, done: true });
+  expect(b[2]).toMatchObject({ align: ["left", "right"] });
+  expect(b[3]).toMatchObject({ lang: "ts", v: "let x = 1;" });
+  expect(parseBlocks("```\ncut off").at(0)).toMatchObject({ t: "code", v: "cut off" }); // an unclosed fence still shows its code
+  expect(parseInline("**b** `c` snake_case_name").map((x) => x.t)).toEqual(["b", "text", "code", "text"]);
+  expect(parseInline("[x](javascript:alert(1))").some((x) => x.t === "a")).toBe(false); // only http, https, mailto
+  expect(parseInline("<b>hi</b>")).toEqual([{ t: "text", v: "<b>hi</b>" }]); // html stays text
+});
+
+test("chat: steps fold into one line; attachments are checked and saved inside the project", () => {
+  expect(stepsSummary([{ tool: "Bash", detail: "a" }, { tool: "Bash", detail: "b" }, { tool: "Read", detail: "c" }])).toBe("Ran 2 commands, read 1 file");
+  const ok = { name: "my shot.png", data: Buffer.from("x").toString("base64") };
+  expect(() => checkAttachments([ok])).not.toThrow();
+  expect(() => checkAttachments([{ name: "a.exe", data: "" }])).toThrow(/not a type/);
+  expect(() => checkAttachments([{ name: ".env", data: "" }])).toThrow(/not a type/);
+  expect(() => checkAttachments(Array(9).fill(ok))).toThrow(/at most 8/);
+  expect(() => chatArgs({ topic: "plan", message: "", attachments: [ok] }, resolveTeam())).not.toThrow(); // files alone are a message
+  const dir = tmp();
+  const [path] = saveAttachments(dir, [{ ...ok, name: "../../evil/my shot.png" }]);
+  expect(path).toMatch(/^\.factory\/chat\/[0-9a-f]{8}\/my_shot\.png$/);
+  expect(readFileSync(join(dir, path!), "utf8")).toBe("x");
 });

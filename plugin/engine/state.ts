@@ -64,9 +64,22 @@ export function summarize(events: Ev[]) {
 
 /** One readable line for a tool call: the part of its input a person would look for. */
 export function toolLine(data: { tool?: string; input?: any }): string {
-  const i = data.input;
-  const detail = typeof i === "string" ? i : i?.command ?? i?.file_path ?? i?.pattern ?? i?.skill ?? i?.url ?? i?.query ?? JSON.stringify(i ?? {});
-  return `${data.tool ?? "tool"}  ${String(detail).replace(/\s+/g, " ").slice(0, 200)}`;
+  return `${data.tool ?? "tool"}  ${toolDetail(data.input).replace(/\s+/g, " ").slice(0, 200)}`;
+}
+/** The part of a tool call's input a person would look for, whole (a command, a path, a pattern). */
+export function toolDetail(i: any): string {
+  return String(typeof i === "string" ? i : i?.command ?? i?.file_path ?? i?.pattern ?? i?.skill ?? i?.url ?? i?.query ?? JSON.stringify(i ?? {}));
+}
+/** One thing a conversation did, shown in the page as a collapsed step: what it was, and what came back. */
+export type ToolStep = { tool: string; detail: string; output?: string; error?: boolean };
+const KINDS: Record<string, [string, string, string]> = { Bash: ["ran", "command", "commands"], Read: ["read", "file", "files"], Grep: ["searched", "time", "times"], Glob: ["searched", "time", "times"], Write: ["wrote", "file", "files"], Edit: ["edited", "file", "files"], WebFetch: ["opened", "web page", "web pages"], WebSearch: ["searched the web", "time", "times"], Skill: ["used", "skill", "skills"] };
+/** "Ran 2 commands, read 3 files": the one line a group of steps folds into. */
+export function stepsSummary(steps: ToolStep[]): string {
+  const n = new Map<string, number>();
+  for (const s of steps) n.set(s.tool, (n.get(s.tool) ?? 0) + 1);
+  const parts = [...n].map(([tool, c]) => { const [verb, one, many] = KINDS[tool] ?? ["used", tool, tool]; return `${verb} ${c} ${c === 1 ? one : many}`; });
+  const text = parts.join(", ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 export function elapsed(fromIso: string, toMs: number): string {
@@ -228,3 +241,8 @@ export function splitSuggestions(text: string): { text: string; suggestions: str
   const rest = text.replace(/^SUGGEST:[ \t]*(.{1,120}?)[ \t]*$/gm, (_, s: string) => { if (found.length < 3 && s.trim()) found.push(s.trim()); return ""; });
   return { text: rest.replace(/\n{3,}/g, "\n\n").trimEnd(), suggestions: found };
 }
+
+/** What a conversation can be shown: pictures, PDFs, notebooks and plain text of any kind (the model opens each with its Read tool). No .env, no archives, no programs. */
+export const ATTACH_EXT = ["png", "jpg", "jpeg", "gif", "webp", "pdf", "ipynb", "txt", "md", "markdown", "csv", "tsv", "json", "jsonl", "yaml", "yml", "toml", "xml", "html", "css", "svg", "log", "diff", "patch", "sql",
+  "js", "jsx", "ts", "tsx", "py", "rb", "go", "rs", "java", "kt", "swift", "c", "h", "cpp", "cs", "php", "sh", "lua", "dart", "vue", "svelte"];
+export const ATTACH_MAX_FILES = 8, ATTACH_MAX_BYTES = 20 * 1024 * 1024;
