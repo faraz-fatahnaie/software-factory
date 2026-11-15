@@ -180,8 +180,16 @@ async function main([cmd, ...args]: string[]) {
   if (cmd === "serve") {
     // Imported here so every other command works without the GUI and its dependencies.
     const { serve } = await import("./server");
-    const server = await serve(root, args[0] === undefined ? 4400 : Number(args[0]));
-    return console.log(`factory control plane: http://127.0.0.1:${server.port}`);
+    // One dashboard per project: each project prefers its own port (4400-4499, from its path) and moves on if another project holds it.
+    const mine = async (port: number) => { try { return (await (await fetch(`http://127.0.0.1:${port}/api/project`, { signal: AbortSignal.timeout(1000) })).json() as { root?: string }).root === root; } catch { return false; } };
+    const auto = args[0] === undefined, start = Number(Bun.hash(root) % 100n);
+    for (let i = 0; i < (auto ? 100 : 1); i++) {
+      const port = auto ? 4400 + ((start + i) % 100) : Number(args[0]);
+      if (await mine(port)) return console.log(`this project's control plane is already running: http://127.0.0.1:${port}`);
+      try { const server = await serve(root, port); return console.log(`factory control plane: http://127.0.0.1:${server.port}`); }
+      catch (e) { if ((e as { code?: string }).code !== "EADDRINUSE") throw e; }
+    }
+    throw new Error(auto ? "no free port between 4400 and 4499" : `port ${args[0]} is in use by another program or project`);
   }
 
   if (cmd === "team") {

@@ -138,6 +138,7 @@ export async function serve(root: string, port = 4400) {
         for (const i of list) if (i.section === "Awaiting approval") try { const n = behindBy(root, i.id); if (n) behind[i.id] = n; } catch { /* no branch: nothing to say */ }
         return json({ items: list, running: [...running.keys()], behind });
       }
+      if (route === "GET /api/project") return json({ root });
       if (route === "GET /api/config") return json(loadConfig(root));
       if (route === "GET /api/team") return json(teamPayload());
       if (route === "GET /api/source") return json(sourceInfo(root, projectTeam(root)));
