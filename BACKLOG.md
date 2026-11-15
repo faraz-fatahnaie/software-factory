@@ -55,6 +55,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Start a Ready item only if it is unlikely to touch the same files as a running one (files named in the spec or detail), else wait.
 - [ ] F-080 (P2) Manager: check ready and done (M14)
   Do not start an item without acceptance checks (triage supplies them for loose ideas); check a finished task against the definition of done before it is handed over.
+- [ ] F-081 (P2) Manager: milestones, retrospective and team health (M12, M16, M17)
+  Say when a milestone is done and start the milestone work; propose fixes for recurring failure causes; notice a role that keeps failing or costs the most. Needs history, so built last.
 
 ## Ready
 
