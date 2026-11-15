@@ -41,6 +41,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   A project updated from 1.0.1 has no .claude/agents/technical-manager.md, so triage fails. Create missing role files (never overwrite) when the dashboard or a run starts, and say so in the log.
 - [ ] F-073 (P1) One-time notice after an update that autopilot is on
   Decided 2026-11-15: autopilot is on for every project. The first time the dashboard opens after the update, show what changed and offer assist or off. Remember it was seen.
+- [ ] F-074 (P1) End-to-end check of autopilot with a stand-in claude
+  Run a whole task through the real pipeline and the supervisor: Ready to Awaiting approval, a failure retried, guidance after three failed builds. No model calls.
 
 ## Ready
 
