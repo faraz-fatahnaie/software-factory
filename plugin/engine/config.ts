@@ -24,7 +24,22 @@ export type SecuritySettings = { always?: boolean; paths?: string[]; keywords?: 
 export type VcsSettings = { autoMerge?: boolean };
 /** `suggest`: per role, whether its conversation ends with a few suggested next messages. Unset means on for the Product Partner and off for the others. */
 export type ChatSettings = { suggest?: Record<string, boolean> };
-export type Config = { setup?: string[]; gate: string[]; graph?: boolean; security?: SecuritySettings; vcs?: VcsSettings; chat?: ChatSettings; team?: TeamSettings; roles: Record<Role, RoleConfig> };
+/**
+ * What the Technical Manager may do by itself. `autonomy`: autopilot promotes what was agreed in conversation, starts it, and recovers a stuck task;
+ * assist only proposes (you press the buttons); off does nothing by itself. `parallel`: tasks at once. `recoveries`: automatic retries per task.
+ * `perTask` and `perDay`: spend limits in US dollars. `stall`: minutes without any sign of life before a running task is stopped.
+ */
+export type Autonomy = "autopilot" | "assist" | "off";
+export type ManagerSettings = { autonomy?: Autonomy; parallel?: number; recoveries?: number; perTask?: number; perDay?: number; stall?: number };
+export const AUTONOMY: Autonomy[] = ["autopilot", "assist", "off"];
+export const MANAGER_DEFAULTS: Required<ManagerSettings> = { autonomy: "autopilot", parallel: 1, recoveries: 2, perTask: 5, perDay: 25, stall: 20 };
+export const managerOf = (c: { manager?: ManagerSettings }): Required<ManagerSettings> => ({ ...MANAGER_DEFAULTS, ...c.manager });
+const MANAGER_RULES: Record<keyof ManagerSettings, (v: unknown) => boolean> = {
+  autonomy: (v) => AUTONOMY.includes(v as Autonomy), parallel: (v) => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= 8,
+  recoveries: (v) => Number.isInteger(v) && (v as number) >= 0 && (v as number) <= 5, perTask: (v) => typeof v === "number" && v > 0 && v <= 1000,
+  perDay: (v) => typeof v === "number" && v > 0 && v <= 10000, stall: (v) => Number.isInteger(v) && (v as number) >= 5 && (v as number) <= 240,
+};
+export type Config = { setup?: string[]; gate: string[]; graph?: boolean; security?: SecuritySettings; vcs?: VcsSettings; chat?: ChatSettings; manager?: ManagerSettings; team?: TeamSettings; roles: Record<Role, RoleConfig> };
 
 const isStr = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
 // Model names become command-line arguments, so they may not look like an option.
@@ -73,6 +88,13 @@ export function parseConfig(raw: unknown): Config {
     const s = c.chat?.suggest;
     if (typeof c.chat !== "object" || c.chat === null || Array.isArray(c.chat) || (s !== undefined && (typeof s !== "object" || s === null || Array.isArray(s) || Object.values(s).some((v) => typeof v !== "boolean")))) errs.push("chat: must be an object, and chat.suggest must map role names to true or false");
   }
+  if (c.manager !== undefined) {
+    if (typeof c.manager !== "object" || c.manager === null || Array.isArray(c.manager)) errs.push("manager: must be an object");
+    else for (const [k, v] of Object.entries(c.manager)) {
+      if (!(k in MANAGER_RULES)) errs.push(`manager.${k}: unknown setting (autonomy, parallel, recoveries, perTask, perDay, stall)`);
+      else if (!MANAGER_RULES[k as keyof ManagerSettings](v)) errs.push(`manager.${k}: ${k === "autonomy" ? `one of ${AUTONOMY.join(", ")}` : "a number in range (parallel 1 to 8, recoveries 0 to 5, perTask and perDay in dollars, stall 5 to 240 minutes)"}`);
+    }
+  }
   let roleNames: string[] = [];
   try { roleNames = activeRoles(teamOf(c)); } catch (e) { errs.push(`team: ${(e as Error).message}`); }
   for (const name of Object.keys(c.roles ?? {}))
@@ -101,7 +123,7 @@ export function parseConfig(raw: unknown): Config {
     return [role, { runner, model, effort, fallback, ...(enabled !== undefined && { enabled }), ...(own && Object.keys(own).length && { stages: own }) }];
   })) as Record<Role, RoleConfig>;
   const team = c.team as TeamSettings | undefined;
-  return { ...(c.setup && { setup: c.setup }), gate: c.gate, ...(c.graph !== undefined && { graph: c.graph }), ...(c.vcs && { vcs: { ...(c.vcs.autoMerge !== undefined && { autoMerge: c.vcs.autoMerge }) } }), ...(c.chat && { chat: { ...(c.chat.suggest && { suggest: { ...c.chat.suggest } }) } }),
+  return { ...(c.setup && { setup: c.setup }), gate: c.gate, ...(c.graph !== undefined && { graph: c.graph }), ...(c.vcs && { vcs: { ...(c.vcs.autoMerge !== undefined && { autoMerge: c.vcs.autoMerge }) } }), ...(c.manager && Object.keys(c.manager).length && { manager: { ...c.manager } }), ...(c.chat && { chat: { ...(c.chat.suggest && { suggest: { ...c.chat.suggest } }) } }),
     ...(c.security && { security: { ...(c.security.always !== undefined && { always: c.security.always }), ...(c.security.paths && { paths: c.security.paths }), ...(c.security.keywords && { keywords: c.security.keywords }) } }),
     ...(team && { team: { ...(team.preset && { preset: team.preset }), ...(team.move && Object.keys(team.move).length && { move: team.move }), ...(team.off?.length && { off: team.off }), ...(team.titles && Object.keys(team.titles).length && { titles: team.titles }), ...(team.custom?.length && { custom: team.custom }) } }),
     roles };

@@ -59,6 +59,8 @@ export function logLine(e: Ev): { cls: string; text: string } | null {
     case "stage.rate_limited": return { cls: "warn", text: `Rate limited on ${e.model}; trying the next model in the chain` };
     case "run.done": return { cls: "ok", text: "Review approved. Waiting for a person." };
     case "run.failed": return { cls: "bad", text: `Run failed: ${e.data}` };
+    case "manager.decision": return { cls: e.data?.action === "escalate" ? "warn" : "head", text: `Manager: ${e.data?.text}` };
+    case "manager.note": return { cls: "head", text: `Manager: ${e.data?.text}` };
     case "task.landed": return { cls: "ok", text: `Approved: ${e.data?.where}` };
     case "pr.opened": return { cls: "ok", text: `Pull request opened: ${e.data?.url}` };
     case "pr.merged": return { cls: "ok", text: "Pull request merged" };

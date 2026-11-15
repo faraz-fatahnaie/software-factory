@@ -39,7 +39,20 @@ export function openStore(path: string) {
       return r ? row(r) : undefined;
     },
     lastRun: (task: string) =>
-      (db.query("SELECT run FROM events WHERE task = ? ORDER BY seq DESC LIMIT 1").get(task) as { run: string } | null)?.run,
+      (db.query("SELECT run FROM events WHERE task = ? AND stage != 'manager' ORDER BY seq DESC LIMIT 1").get(task) as { run: string } | null)?.run,
+    /** US dollars spent by model stages since a time (ISO), for one task or for all of them. */
+    spent: (since = "", task = "") =>
+      (db.query("SELECT COALESCE(SUM(json_extract(data, '$.usage.costUsd')), 0) AS n FROM events WHERE type LIKE 'stage.%' AND ts >= ? AND (? = '' OR task = ?)").get(since, task, task) as { n: number }).n,
+    /** When the task last did anything (the manager's own notes do not count). */
+    touched: (task: string) => (db.query("SELECT MAX(ts) AS t FROM events WHERE task = ? AND stage != 'manager'").get(task) as { t: string | null }).t,
+    /** The type of the newest event of a task (the manager's own notes do not count). */
+    lastType: (task: string) => (db.query("SELECT type FROM events WHERE task = ? AND stage != 'manager' ORDER BY seq DESC LIMIT 1").get(task) as { type: string } | null)?.type,
+    /** The manager's decisions and notes, newest first. */
+    decisions: (task = "", limit = 30) => db.query("SELECT * FROM events WHERE type LIKE 'manager.%' AND (? = '' OR task = ?) ORDER BY seq DESC LIMIT ?").all(task, task, limit).map(row),
+    /** Automatic retries of a task since a person last settled it (landed, discarded, or finished a run). */
+    retries: (task: string) =>
+      (db.query(`SELECT COUNT(*) AS n FROM events WHERE task = ? AND type = 'manager.decision' AND json_extract(data, '$.action') IN ('retry', 'guide')
+        AND ts > COALESCE((SELECT MAX(ts) FROM events WHERE task = ? AND type IN ('run.done', 'task.landed', 'task.discarded')), '')`).get(task, task) as { n: number }).n,
     close: () => db.close(),
   };
 }

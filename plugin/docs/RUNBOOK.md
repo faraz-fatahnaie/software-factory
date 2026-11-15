@@ -318,6 +318,19 @@ Releases are prepared by Rafi and **never deploy by themselves**.
 For Crumb, deployment needs the payment provider's key on the server. Dina sets that herself; the factory only
 ever knows the variable's name.
 
+## Autopilot
+
+By default Tess runs the work while the dashboard is open. Dina brainstorms with Mara, Mara adds the items to
+the Inbox, and Tess moves them to Ready and starts them, one at a time. When a task stops, Tess looks at why.
+A rate limit or a network error: she waits and tries again (up to twice). Three builds that did not pass: she
+writes the Builder guidance and starts a new round. Not logged in, a broken setup command, a clash with main, or a
+task Dina stopped herself: Tess tells her, in plain words, and leaves it. She never approves, pushes, merges or
+deploys, and stops starting new work when $25 has been spent in a day or three tasks wait for Dina. Every
+decision is in **Logs**.
+
+To take control: `factory manager assist` (Tess only proposes, Dina presses the buttons) or
+`factory manager off`, or the **Manager** menu in Talk. `factory manager set perDay 10` changes a limit.
+
 ## Updating the plugin
 
 When a new version is released, Dina updates from a terminal (not inside the project's chat):

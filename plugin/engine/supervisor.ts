@@ -1,0 +1,157 @@
+// The Technical Manager's code half: starts approved work, watches it, and recovers what stops, within limits the person sets.
+// No model decides here. A model is asked only to explain a task that needs a person, or to write guidance for the Builder.
+// Every action is written to the event log as `manager.decision`, in plain words, so nothing it does is hidden.
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { FROM_CONVERSATION, type Item } from "./backlog";
+import { type Autonomy, managerOf, type ManagerSettings, parseConfig } from "./config";
+import type { Store } from "./events";
+
+export type Kind = "rate_limit" | "auth" | "stopped" | "stalled" | "builds" | "setup" | "clash" | "other";
+/** What kind of failure an error message describes. These are the messages the pipeline and the CLI write. */
+export function failureKind(error: string): Kind {
+  if (/every model in the .+ chain is rate limited/.test(error)) return "rate_limit";
+  if (/: auth:|not logged in/i.test(error)) return "auth";
+  if (/^Error: stopped|stopped by request/.test(error)) return "stopped";
+  if (/no approved build after/.test(error)) return "builds";
+  if (/setup failed/.test(error)) return "setup";
+  if (/conflict markers remain|clash/.test(error)) return "clash";
+  return "other";
+}
+
+export type Step = { action: "retry" | "guide" | "escalate"; delayMin: number; text: string };
+const usd = (n: number) => `$${n.toFixed(2)}`;
+/** What to do about a stopped task: retry (after a wait), send the Builder guidance, or hand it to the person. The limits are checked here, once. */
+export function decide(kind: Kind, tries: number, spent: number, s: { recoveries: number; perTask: number }): Step {
+  const hand = (text: string): Step => ({ action: "escalate", delayMin: 0, text });
+  if (kind === "auth") return hand("The Claude command line is not logged in. Run `claude` in a terminal and log in, then retry the task.");
+  if (kind === "stopped") return hand("It was stopped on purpose, so I left it alone.");
+  if (kind === "setup") return hand("The project's setup or check command failed before any work started. That needs a person to fix the command.");
+  if (kind === "clash") return hand("It clashes with changes on main. Use Update this task, so the Builder can resolve the clash.");
+  if (tries >= s.recoveries) return hand(`It was already tried again ${tries} time${tries === 1 ? "" : "s"} and stopped again, so I am not trying a third way on my own.`);
+  if (spent >= s.perTask) return hand(`It has used ${usd(spent)}, which is the limit for one task (${usd(s.perTask)}).`);
+  if (kind === "rate_limit") { const m = 10 * (tries + 1); return { action: "retry", delayMin: m, text: `Every model was rate limited. Trying again in ${m} minutes.` }; }
+  if (kind === "builds") return { action: "guide", delayMin: 0, text: "Three builds did not pass. Sending the Builder guidance and starting a new round." };
+  if (kind === "stalled") return { action: "retry", delayMin: 0, text: "It stopped giving any sign of life, so I stopped it. Trying again." };
+  return { action: "retry", delayMin: 1, text: "It stopped with an error. Trying again in a minute." };
+}
+
+const AWAITING_LIMIT = 3; // the person is the bottleneck: no new work while this many tasks wait for a decision
+const startOfDay = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); };
+
+export type Ctx = {
+  root: string; store: Store;
+  settings: () => Required<ManagerSettings>;
+  items: () => Item[];
+  /** Task ids with a running process, and a way to stop one. */
+  running: Map<string, { kill(signal?: number | NodeJS.Signals): void }>;
+  /** How many tasks the process running this one holds. */
+  group: (id: string) => number;
+  /** Runs `factory <argv>` for a task in the background. False when it is already running. */
+  launch: (id: string, argv: string[]) => boolean;
+  /** Runs `factory <argv>` and waits (promote). */
+  cli: (...argv: string[]) => Promise<{ code: number; out: string }>;
+  /** A model's words: why a task needs a person, or guidance for the Builder. Either may fail; the supervisor then goes on without. */
+  explain: (id: string, error: string) => Promise<string>;
+  guide: (id: string, error: string) => Promise<string>;
+  hasSpec: (id: string) => boolean;
+  every?: number;
+  /** The clock; tests move it. */
+  now?: () => number;
+};
+
+/** The loop. One tick looks at stalls, then at stopped tasks, then at what to start. */
+export function supervisor(ctx: Ctx) {
+  // Tasks that stopped before the supervisor started are left for the person: a restart must not set old work running again.
+  const since = new Date().toISOString();
+  const retryAt = new Map<string, number>(), settled = new Set<string>(), stalled = new Set<string>();
+  const decide_ = (task: string, action: string, text: string, extra: Record<string, unknown> = {}) =>
+    ctx.store.emit({ run: ctx.store.lastRun(task) ?? "", task, stage: "manager", type: "manager.decision", data: { action, text, auto: true, ...extra } });
+  const once = (key: string) => (settled.has(key) ? false : (settled.add(key), true));
+
+  async function tick() {
+    const s = ctx.settings();
+    if (s.autonomy !== "autopilot") { retryAt.clear(); return; }
+    const now = ctx.now?.() ?? Date.now(), items = ctx.items();
+    const dayCost = () => ctx.store.spent(startOfDay());
+
+    // Stalled: a running task that has shown no sign of life for too long is stopped, and tried again below.
+    for (const it of items) {
+      if (it.section !== "In progress") continue;
+      const p = ctx.running.get(it.id), seen = ctx.store.touched(it.id);
+      if (p && seen && ctx.group(it.id) === 1 && now - Date.parse(seen) > s.stall * 60_000) {
+        stalled.add(it.id);
+        decide_(it.id, "stall", `${it.id} has shown no sign of life for ${s.stall} minutes, so I stopped it.`);
+        p.kill("SIGTERM");
+      }
+    }
+
+    // Stopped tasks: retry, guide, or hand to the person.
+    for (const it of items) {
+      if (it.section !== "Blocked" || ctx.running.has(it.id)) continue;
+      const fail = ctx.store.last("run.failed", it.id);
+      if (!fail || fail.ts < since) continue;
+      const error = String(fail.data ?? ""), key = `${it.id}:${fail.seq}`;
+      const kind = stalled.has(it.id) && failureKind(error) === "stopped" ? "stalled" : failureKind(error);
+      const step = decide(kind, ctx.store.retries(it.id), ctx.store.spent("", it.id), s);
+      if (step.action === "escalate") {
+        if (!once(key)) continue;
+        decide_(it.id, "escalate", `${it.id} needs you. ${step.text}`, { kind });
+        if (kind !== "stopped") ctx.explain(it.id, error).then((text) => text && ctx.store.emit({ run: fail.run, task: it.id, stage: "manager", type: "manager.note", data: { text } })).catch(() => {});
+        continue;
+      }
+      if (dayCost() >= s.perDay) { if (once(`day:${startOfDay()}`)) decide_(it.id, "budget", `The day's limit (${usd(s.perDay)}) is reached, so nothing more starts today.`); continue; }
+      if (!retryAt.has(it.id)) {
+        retryAt.set(it.id, now + step.delayMin * 60_000);
+        if (step.delayMin > 0) decide_(it.id, "wait", `${it.id}: ${step.text}`, { kind });
+      }
+      if (now < retryAt.get(it.id)!) continue;
+      retryAt.delete(it.id);
+      stalled.delete(it.id);
+      if (step.action === "guide" && ctx.hasSpec(it.id)) {
+        const text = await ctx.guide(it.id, error).catch(() => "");
+        if (text.trim() && ctx.launch(it.id, ["reject", it.id, "--feedback", text.trim().slice(0, 3900)])) { decide_(it.id, "guide", `${it.id}: ${step.text}`, { kind, guidance: text.trim().slice(0, 1500) }); continue; }
+      }
+      if (ctx.launch(it.id, ["run", it.id])) decide_(it.id, "retry", `${it.id}: ${step.action === "guide" ? "Started it again from the beginning." : step.text}`, { kind });
+    }
+
+    // New work: promote what the person agreed in conversation, then start Ready items in order, within the limits.
+    const fresh = ctx.items(), awaiting = fresh.filter((i) => i.section === "Awaiting approval").length;
+    let room = s.parallel - ctx.running.size;
+    if (room <= 0 || awaiting >= AWAITING_LIMIT) return;
+    if (dayCost() >= s.perDay) { if (once(`day:${startOfDay()}`)) decide_("", "budget", `The day's limit (${usd(s.perDay)}) is reached, so nothing more starts today.`); return; }
+    // A task the person discarded goes back to Ready, but they threw it away: autopilot leaves it until they run it themselves.
+    const startable = (i: Item) => i.section === "Ready" && !ctx.running.has(i.id) && ctx.store.lastType(i.id) !== "task.discarded";
+    let ready = fresh.filter(startable);
+    for (const it of fresh.filter((i) => i.section === "Inbox" && i.detail.includes(FROM_CONVERSATION))) {
+      if (ready.length >= room) break;
+      const r = await ctx.cli("promote", it.id);
+      if (r.code === 0) { decide_(it.id, "promote", `${it.id} was worked out in conversation, so I moved it to Ready.`); ready = ctx.items().filter(startable); }
+    }
+    for (const it of ready) {
+      if (room <= 0) break;
+      if (ctx.launch(it.id, ["run", it.id])) { decide_(it.id, "start", `${it.id} was next in line, so I started it.`); room--; }
+    }
+  }
+
+  let busy = false;
+  const timer = setInterval(() => { if (busy) return; busy = true; tick().catch(() => {}).finally(() => { busy = false; }); }, ctx.every ?? 15_000);
+  return { tick, stop: () => clearInterval(timer) };
+}
+
+/** Changes the manager's settings in the project's config. Checked like any other config change. */
+export function writeManager(root: string, patch: ManagerSettings): Required<ManagerSettings> {
+  const file = join(root, "factory.config.json");
+  if (!existsSync(file)) throw new Error("this folder has no factory.config.json: run /software-factory:init first");
+  const raw = JSON.parse(readFileSync(file, "utf8"));
+  raw.manager = { ...raw.manager, ...patch };
+  const next = parseConfig(raw); // throws, in plain words, when a value is out of range
+  writeFileSync(file, `${JSON.stringify({ ...raw, manager: next.manager }, null, 2)}\n`);
+  return managerOf(next);
+}
+
+export const AUTONOMY_TEXT: Record<Autonomy, string> = {
+  autopilot: "Autopilot: the manager starts what you worked out in conversation, and recovers a stuck task, by itself, within the limits",
+  assist: "Assist: the manager diagnoses and proposes; you press the buttons",
+  off: "Off: the manager does nothing by itself (you can still talk to it)",
+};

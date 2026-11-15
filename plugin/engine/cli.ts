@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { add, move, parse, type Item, type Section } from "./backlog";
+import { add, FROM_CONVERSATION, move, parse, type Item, type Section } from "./backlog";
 import { claudeRunner } from "./claude";
-import { loadConfig, parseConfig, projectTeam } from "./config";
+import { loadConfig, managerOf, parseConfig, projectTeam } from "./config";
 import { openStore } from "./events";
 import { applyTeam, configure, detect, DOC_PATHS, doctor, init, nextStep, projectDocs } from "./init";
 import { appendChronicle, appendNotes, chronicleEntry, parseScribe, stageOutput } from "./chronicle";
@@ -103,6 +103,8 @@ factory sync                                    update from GitHub: pull merged 
 factory vcs [auto-merge on|off | ci | fix <F-id>]  what is waiting to go to GitHub; turn auto-merge on or off; write the checks workflow; add a failing pull request's checks to the backlog
 factory revert <F-id>                           undo a merged task: a revert on this branch, or (with a GitHub remote) a branch you push for review
 factory discard <F-id>                          delete a task's worktree and branch, and return it to Ready
+factory consult <topic> "<question>"            ask one role a question, read-only (for the manager in a terminal session)
+factory manager [autopilot|assist|off | set <setting> <value>]  show or change what the Technical Manager may do by itself
 factory serve [port]                            start the local control plane (default 127.0.0.1:4400)
 factory add "<title>" [--detail "<lines>"] [--priority P1]   add an item to Inbox
 factory skill add <owner/repo@skill> --role <r> install a skill and attach it to a role
@@ -158,7 +160,8 @@ async function main([cmd, ...args]: string[]) {
     const value = (flag: string) => { const i = args.indexOf(flag); return i < 0 ? undefined : args[i + 1] ?? (() => { throw new Error(`${flag} needs a value`); })(); };
     const detail = value("--detail"), prio = value("--priority");
     const title = args.filter((a, i) => !a.startsWith("--") && args[i - 1] !== "--detail" && args[i - 1] !== "--priority").join(" ");
-    const added = add(readFileSync(backlogPath, "utf8"), title, "Inbox", { detail, prio });
+    // An item a conversation adds was worked out with the person: autopilot may start it. Agents' follow-ups carry no such mark.
+    const added = add(readFileSync(backlogPath, "utf8"), title, "Inbox", { detail: process.env.FACTORY_SOURCE === "chat" ? [detail, FROM_CONVERSATION].filter(Boolean).join("\n") : detail, prio });
     editBacklog(`add ${added.id}`, () => added.text);
     return console.log(`added ${added.id} to Inbox`);
   }
@@ -186,10 +189,25 @@ async function main([cmd, ...args]: string[]) {
     for (let i = 0; i < (auto ? 100 : 1); i++) {
       const port = auto ? 4400 + ((start + i) % 100) : Number(args[0]);
       if (await mine(port)) return console.log(`this project's control plane is already running: http://127.0.0.1:${port}`);
-      try { const server = await serve(root, port); return console.log(`factory control plane: http://127.0.0.1:${server.port}`); }
+      try { const server = await serve(root, port, { supervisor: true }); return console.log(`factory control plane: http://127.0.0.1:${server.port}`); }
       catch (e) { if ((e as { code?: string }).code !== "EADDRINUSE") throw e; }
     }
     throw new Error(auto ? "no free port between 4400 and 4499" : `port ${args[0]} is in use by another program or project`);
+  }
+
+  if (cmd === "manager") {
+    // What the Technical Manager may do by itself. The dashboard's Talk page has the same switch.
+    const { AUTONOMY, MANAGER_DEFAULTS } = await import("./config");
+    const { AUTONOMY_TEXT, writeManager } = await import("./supervisor");
+    const [sub, key, value] = args;
+    let m = managerOf(loadConfig(root));
+    if (sub && (AUTONOMY as string[]).includes(sub)) m = writeManager(root, { autonomy: sub as never });
+    else if (sub === "set") {
+      if (!key || !(key in MANAGER_DEFAULTS) || key === "autonomy" || value === undefined || Number.isNaN(Number(value))) throw new Error(`usage: factory manager set <${Object.keys(MANAGER_DEFAULTS).filter((k) => k !== "autonomy").join("|")}> <number>`);
+      m = writeManager(root, { [key]: Number(value) });
+    } else if (sub) throw new Error("usage: factory manager [autopilot|assist|off | set <setting> <value>]");
+    if (sub) commitPaths(`manager: ${sub === "set" ? `${key} ${value}` : sub}`, "factory.config.json");
+    return console.log(`${AUTONOMY_TEXT[m.autonomy]}.\nAt most ${m.parallel} task${m.parallel === 1 ? "" : "s"} at once · ${m.recoveries} automatic retries per task · up to $${m.perTask} per task and $${m.perDay} per day · a task with no sign of life for ${m.stall} minutes is stopped.`);
   }
 
   if (cmd === "team") {
@@ -373,9 +391,21 @@ async function main([cmd, ...args]: string[]) {
     return console.log(args.map((id) => `${id} → Ready`).join("\n"));
   }
 
+  if (cmd === "consult") {
+    // One question to one role, read-only: what the manager uses in a terminal session to ask the team.
+    const { askable, chatTurn } = await import("./chat");
+    const [topic, ...words] = args, question = words.join(" ").trim(), team = projectTeam(root);
+    const known = askable(team).map((a) => a.key);
+    if (!topic || !question || !known.includes(topic)) throw new Error(`usage: factory consult <${known.join("|")}> "<question>"`);
+    const r = await chatTurn(root, { topic, message: `The Technical Manager is asking you for the person, who is talking to the manager and not to you. Answer in under 200 words, in plain words. Do not ask the person questions: if you need something, say what is missing.\n\n${question}`, model: "sonnet", effort: "medium" }, team, { readOnly: true });
+    if (!r.ok) throw new Error(`${topic} could not answer: ${r.text}`);
+    return console.log(r.text);
+  }
+
   if (cmd === "role") {
     const [name, ...ids] = args;
-    if (!name) throw new Error("usage: factory role <role> [id...]  or  factory role <id>...");
+    if (!name) throw new Error("usage: factory role <role> [id...]  or  factory role <id>...  or  factory role manage");
+    if (name === "manage") return console.log((await import("./chat")).managerPrompt(projectTeam(root), true)); // the Technical Manager, for a terminal session
     // Named by responsibility (D1 D3), so the commands keep working however the team is grouped; or by role.
     return console.log(/^[A-Z]\d{1,3}$/.test(name) ? chatPromptFor(args, projectTeam(root)) : chatPrompt(name, ids, projectTeam(root)));
   }
@@ -494,8 +524,10 @@ async function main([cmd, ...args]: string[]) {
     if (unknown.length) throw new Error(`unknown argument: ${unknown.join(" ")}`);
     if (!feedback || feedback.length > 4000) throw new Error('usage: factory reject <F-id> --feedback "<what to change, up to 4000 characters>" [--files a,b] [--stub]');
     if (files.length > 20 || files.some((f) => f.length > 200 || /[\r\n]/.test(f))) throw new Error("--files: up to 20 paths of up to 200 characters");
-    const item = find(id, "Awaiting approval");
-    return runItems(loadConfig(root), args.includes("--stub") ? stubRunner : claudeRunner(loadConfig(root).gate), [item], resumeFrom(item, feedback, files));
+    const item = find(id, "Awaiting approval", "Blocked");
+    const again = resumeFrom(item, feedback, files);
+    if (item.section === "Blocked" && !again.spec) throw new Error(`${item.id} stopped before it had a spec, so there is nothing to continue: run it again (factory run ${item.id})`);
+    return runItems(loadConfig(root), args.includes("--stub") ? stubRunner : claudeRunner(loadConfig(root).gate), [item], again);
   }
 
   if (cmd === "update") {

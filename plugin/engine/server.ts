@@ -2,7 +2,9 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, wri
 import { basename, join } from "node:path";
 import { parse } from "./backlog";
 import { chatArgs, chatTurn, managerTurn, TOPICS } from "./chat";
-import { loadConfig, parseConfig, projectRoles, projectTeam } from "./config";
+import { loadConfig, managerOf, parseConfig, projectRoles, projectTeam } from "./config";
+import { parseProposal } from "./state";
+import { supervisor, writeManager } from "./supervisor";
 import { openStore } from "./events";
 import { healthChecks, type Health } from "./health";
 import { parseFind, roleSkills, SKILLS_CLI } from "./skills";
@@ -49,24 +51,26 @@ function suggestOn(root: string, role?: string): boolean {
   try { return loadConfig(root).chat?.suggest?.[role] ?? standard; } catch { return standard; }
 }
 
-export async function serve(root: string, port = 4400) {
+/** `supervisor`: the Technical Manager acts by itself, as its autonomy setting allows. Only `factory serve` asks for it; tests and the browser checks do not. */
+export async function serve(root: string, port = 4400, opts: { supervisor?: boolean } = {}) {
   await buildGui();
   mkdirSync(join(root, ".factory"), { recursive: true });
   const store = openStore(join(root, ".factory", "events.db"));
   const running = new Map<string, { kill(signal?: number | NodeJS.Signals): void }>();
-  /** Starts a command for one task in the background (a send-back, an update), and says so if it fails before a run exists. */
-  const startOne = (id: string, argv: string[]) => {
-    if (running.has(id)) return json({ error: "already running" }, 409);
+  /** Starts a command for some tasks in the background, and says so if it fails before a run exists. False when one of them is already running. */
+  const launch = (ids: string[], argv: string[]) => {
+    if (ids.some((id) => running.has(id))) return false;
     const p = Bun.spawn([process.execPath, CLI, ...argv], { cwd: root, stdout: "inherit", stderr: "pipe" });
     const stderr = new Response(p.stderr).text();
-    running.set(id, p);
+    for (const id of ids) running.set(id, p);
     p.exited.then(async (code) => {
-      running.delete(id);
+      for (const id of ids) running.delete(id);
       const error = (await stderr).trim();
-      if (code !== 0 && error) store.emit({ run: "", task: id, stage: "run", type: "command.failed", data: { error: error.slice(-1000) } });
+      if (code !== 0 && error) store.emit({ run: "", task: ids.join(","), stage: "run", type: "command.failed", data: { error: error.slice(-1000) } });
     });
-    return json({ started: [id] }, 202);
+    return true;
   };
+  const startOne = (id: string, argv: string[]) => (launch([id], argv) ? json({ started: [id] }, 202) : json({ error: "already running" }, 409));
   let healthCache: { at: number; body: Health[] } | undefined;
   const items = () => parse(readFileSync(join(root, "BACKLOG.md"), "utf8"));
 
@@ -120,6 +124,20 @@ export async function serve(root: string, port = 4400) {
     return { ...teamView(projectTeam(root), loadConfig(root), store.since(0), raw.team?.preset), presets: presetList() };
   };
 
+  const model = async (id: string, message: string) => {
+    const r = await chatTurn(root, { topic: "manager", message, model: "haiku", effort: "low" }, projectTeam(root));
+    return r.ok ? r.text.replace(/^(ASK [a-z]+:|PROPOSE:) .*$/gm, "").trim() : "";
+  };
+  const sup = opts.supervisor && !process.env.FACTORY_NO_SUPERVISOR ? supervisor({
+    root, store, running, items, launch: (id, argv) => launch([id], argv),
+    settings: () => managerOf(loadConfig(root)),
+    group: (id) => new Set([...running].filter(([, p]) => p === running.get(id)).map(([k]) => k)).size,
+    cli: async (...argv) => { const r = await sh(process.execPath, CLI, ...argv); return { code: r.code, out: `${r.out}${r.err}`.trim() }; },
+    hasSpec: (id) => { const run = store.lastRun(id); return !!run && existsSync(join(root, ".factory", "runs", run, "spec.md")); },
+    explain: (id, error) => model(id, `Task ${id} stopped with this error:\n${error.slice(0, 1500)}\n\nLook at the task and its latest run with \`factory status\` and the run files. Say in plain words, in under 100 words, what happened, why, and what the person should do. Reply with that explanation only.`),
+    guide: (id, error) => model(id, `Task ${id} was built three times and the checks or the review still did not pass. The last error:\n${error.slice(0, 1500)}\n\nRead the latest run's files (build.md, review.md) with \`factory status\` to find the run. Write guidance for the Builder: what keeps going wrong and what to change, in under 120 words, no code. Reply with the guidance only.`),
+  }) : undefined;
+
   const server = Bun.serve({
     hostname: "127.0.0.1", // never reachable from another machine
     port,
@@ -165,6 +183,10 @@ export async function serve(root: string, port = 4400) {
         // Quick and free, but it reads every tracked file for the secret scan, so the answer is kept for a few seconds. ?fresh asks again.
         if (!healthCache || Date.now() - healthCache.at > 20_000 || url.searchParams.has("fresh")) healthCache = { at: Date.now(), body: healthChecks(root, { items: items(), last: store.last }) };
         return json({ checkedAt: new Date(healthCache.at).toISOString(), checks: healthCache.body });
+      }
+      if (route === "GET /api/manager") {
+        const day = new Date(); day.setHours(0, 0, 0, 0);
+        return json({ settings: managerOf(loadConfig(root)), spentToday: store.spent(day.toISOString()), decisions: store.decisions("", 30) });
       }
       if (route === "GET /api/chat/topics") {
         const team = projectTeam(root);
@@ -329,10 +351,25 @@ export async function serve(root: string, port = 4400) {
           return json({ error: (e as Error).message }, 400);
         }
       }
+      if (route === "POST /api/manager") {
+        try { return json({ settings: writeManager(root, body as never) }); } catch (e) { return json({ error: (e as Error).message }, 400); }
+      }
       if (route === "POST /api/chat") {
         try {
           chatArgs(body as never, projectTeam(root)); // validate before spending anything
-          return json(await (body.topic === "manager" ? managerTurn : chatTurn)(root, body as never, projectTeam(root)));
+          if (body.topic !== "manager") return json(await chatTurn(root, body as never, projectTeam(root)));
+          const out = await managerTurn(root, body as never, projectTeam(root));
+          // On autopilot a proposal to promote, run or retry is carried out at once (the person asked for it in this conversation); on assist the page shows a button.
+          const { proposal, text } = out.ok ? parseProposal(out.text) : { proposal: undefined, text: out.text };
+          if (!proposal || !["promote", "run", "retry"].includes(proposal.kind) || managerOf(loadConfig(root)).autonomy !== "autopilot") return json(out);
+          let ok = true, note = "";
+          if (proposal.kind === "promote") {
+            for (const id of proposal.ids) { const r = await sh(process.execPath, CLI, "promote", id); if (r.code !== 0) { ok = false; note = `${r.out}${r.err}`.trim(); break; } }
+            note ||= `Moved ${proposal.ids.join(", ")} to Ready.`;
+          } else if (launch(proposal.ids, ["run", ...proposal.ids])) note = `Started ${proposal.ids.join(", ")}. Follow it in Backlog.`;
+          else { ok = false; note = "It is already running."; }
+          for (const id of proposal.ids) store.emit({ run: store.lastRun(id) ?? "", task: id, stage: "manager", type: "manager.decision", data: { action: proposal.kind, text: `${id}: ${note}`, auto: true, by: "conversation" } });
+          return json({ ...out, text, executed: { proposal, ok, note } });
         } catch (e) {
           return json({ error: (e as Error).message }, 400);
         }
@@ -369,19 +406,13 @@ export async function serve(root: string, port = 4400) {
         const chosen = ids.length ? ids : items().filter((i) => i.section === "Ready").slice(0, count).map((i) => i.id);
         if (!chosen.length) return json({ error: "nothing under Ready" }, 409);
         if (chosen.some((id) => running.has(id))) return json({ error: "already running" }, 409);
-        const p = Bun.spawn([process.execPath, CLI, "run", ...chosen, ...(body.stub === true ? ["--stub"] : [])], { cwd: root, stdout: "inherit", stderr: "pipe" });
-        const stderr = new Response(p.stderr).text();
-        for (const id of chosen) running.set(id, p);
-        p.exited.then(async (code) => {
-          for (const id of chosen) running.delete(id);
-          const error = (await stderr).trim();
-          // Failures before a run exists (bad state, git errors) would otherwise be invisible to the GUI.
-          if (code !== 0 && error) store.emit({ run: "", task: chosen.join(","), stage: "run", type: "command.failed", data: { error: error.slice(-1000) } });
-        });
+        launch(chosen, ["run", ...chosen, ...(body.stub === true ? ["--stub"] : [])]);
         return json({ started: chosen }, 202);
       }
       return json({ error: "not found" }, 404);
     },
   });
+  const stop = server.stop.bind(server);
+  server.stop = (force?: boolean) => { sup?.stop(); clearInterval(sweep); return stop(force); };
   return server;
 }

@@ -408,9 +408,8 @@ holds the same work. Shrinking a team folds the manager into the Planner first.
 | M17 | Watch team health | conversation |
 | M18 | **The face of the team**: the person always talks to the manager, who sends each message, or the part of it that concerns them, to the roles it is about, and brings their answers back as one reply | conversation |
 
-**Build status.** Phase 2 is done: the conversation "Talk to the team" (M18, M8, M4, M5, M9), the routing described below, and the proposals `promote`, `run` and `retry` as buttons next to `push`, `merge` and `sync`. Phase 1 is done: the role, the catalog entries M1–M18 (planned, no instructions yet), the presets, the
-robot (Tess) and the move of P4. Phase 3 (the supervisor, recovery,
-autonomy and limits, and sending guidance to the Builder) and Phase 4 (the manager's strip on Overview, the autonomy switch, the progress digest) are not built.
+**Build status.** Phase 3 is done: the supervisor (`plugin/engine/supervisor.ts`) runs inside `factory serve`. On autopilot it promotes items a conversation added (they carry the mark "Added in conversation."; items an agent suggested do not), starts Ready items in order (M2), stops a task with no sign of life for 20 minutes (M3), retries a stopped task after a wait, sends the Builder guidance after three failed builds (`factory reject` now also works on a Blocked task that has a spec), and hands anything else to the person with a plain-words explanation (M5, M9); it keeps to the limits (M10, M11: one task at once, two automatic retries per task, $5 per task and $25 per day, no new work while three tasks wait for the person) and writes every decision to the log (`manager.decision`, `manager.note`). A proposal to promote, run or retry in the manager conversation is carried out at once on autopilot. M13 and M14 are still planned. Phase 2 is done: the conversation "Talk to the team" (M18, M8, M4, M5, M9), the routing described below, and the proposals `promote`, `run` and `retry` as buttons next to `push`, `merge` and `sync`. Phase 1 is done: the role, the catalog entries M1–M18 (planned, no instructions yet), the presets, the
+robot (Tess) and the move of P4. Phase 4 (the manager's strip on Overview, the autonomy switch, the progress digest) are not built.
 
 ### The face of the team (M18)
 

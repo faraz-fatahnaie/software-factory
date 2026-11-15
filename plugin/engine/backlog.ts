@@ -1,6 +1,8 @@
 // BACKLOG.md is the intake queue. Only the orchestrator writes it; agents never do.
 export const SECTIONS = ["Inbox", "Ready", "In progress", "Awaiting approval", "Blocked", "Done"] as const;
 export type Section = (typeof SECTIONS)[number];
+/** Written into the detail of an item a conversation added: the person worked it out with the team, so autopilot may start it. Items agents suggest do not carry it. */
+export const FROM_CONVERSATION = "Added in conversation.";
 export type Item = { id: string; prio?: string; title: string; section: string; detail: string };
 
 const ITEM = /^- \[[ x]\] (F-\d+) (?:\((P\d)\) )?(.+)$/;

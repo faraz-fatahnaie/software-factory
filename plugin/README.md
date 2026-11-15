@@ -166,6 +166,7 @@ delete it can only be started by you.
 | `/software-factory:add <what>` | Put an idea in the Inbox. |
 | `/software-factory:run` | Run the top Ready item, or the ones you name. |
 | `/software-factory:status` | Where every task stands, and the next step. |
+| `/software-factory:manage` | Talk to the Technical Manager in your terminal: where things stand, why a task stopped, what to do next. She asks the other roles for you (`factory consult`). |
 | `/software-factory:approve`, `:reject`, `:update`, `:discard` | Accept, send back with your comments, bring up to date with main, or throw away a finished task. |
 | `/software-factory:git` | Set up git and GitHub with you; see what is waiting to be pushed. |
 | `/software-factory:test`, `:secure` | Check against the user stories; security and performance review. |

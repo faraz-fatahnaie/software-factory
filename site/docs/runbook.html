@@ -40,6 +40,7 @@
 <a class="l2" href="#6-keeping-control">6. Keeping control</a>
 <a class="l2" href="#7-github-checks-and-undoing">7. GitHub, checks and undoing</a>
 <a class="l2" href="#8-release-and-deploy">8. Release and deploy</a>
+<a class="l2" href="#autopilot">Autopilot</a>
 <a class="l2" href="#updating-the-plugin">Updating the plugin</a>
 <a class="l2" href="#9-cheat-sheet">9. Cheat sheet</a>
   </nav></aside>
@@ -331,6 +332,16 @@ and offers a rollback if it fails. Every step waits for your yes.</li>
 </ol>
 <p>For Crumb, deployment needs the payment provider's key on the server. Dina sets that herself; the factory only
 ever knows the variable's name.</p>
+<h2 id="autopilot">Autopilot</h2>
+<p>By default Tess runs the work while the dashboard is open. Dina brainstorms with Mara, Mara adds the items to
+the Inbox, and Tess moves them to Ready and starts them, one at a time. When a task stops, Tess looks at why.
+A rate limit or a network error: she waits and tries again (up to twice). Three builds that did not pass: she
+writes the Builder guidance and starts a new round. Not logged in, a broken setup command, a clash with main, or a
+task Dina stopped herself: Tess tells her, in plain words, and leaves it. She never approves, pushes, merges or
+deploys, and stops starting new work when $25 has been spent in a day or three tasks wait for Dina. Every
+decision is in <strong>Logs</strong>.</p>
+<p>To take control: <code>factory manager assist</code> (Tess only proposes, Dina presses the buttons) or
+<code>factory manager off</code>, or the <strong>Manager</strong> menu in Talk. <code>factory manager set perDay 10</code> changes a limit.</p>
 <h2 id="updating-the-plugin">Updating the plugin</h2>
 <p>When a new version is released, Dina updates from a terminal (not inside the project's chat):</p>
 <ol>

@@ -1,9 +1,10 @@
 import { expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { add, move, parse } from "../plugin/engine/backlog";
+import { add, FROM_CONVERSATION, move, parse, type Item } from "../plugin/engine/backlog";
 import { agentEvents, claudeArgs, classify } from "../plugin/engine/claude";
-import { loadConfig, parseConfig } from "../plugin/engine/config";
+import { loadConfig, MANAGER_DEFAULTS, managerOf, parseConfig, type ManagerSettings } from "../plugin/engine/config";
+import { decide, failureKind, supervisor } from "../plugin/engine/supervisor";
 import { formatChecks, formatInfo, readiness, releaseInfo, tagRelease, versionFiles } from "../plugin/engine/release";
 import { allTracked, changesInWorktree, changesSince, parseDiff, scanSecrets, sensitiveReasons } from "../plugin/engine/security";
 import { appendChronicle, appendNotes, chronicleEntry, parseScribe, readNotes, stageOutput } from "../plugin/engine/chronicle";
@@ -2185,4 +2186,225 @@ esac
     expect(stepsSummary(out.tools)).toBe("Asked Architect, Security and Performance Engineer");
     expect(readFileSync(log, "utf8").trim().split("\n")).toHaveLength(4); // the manager, two roles, the manager again
   } finally { process.env.PATH = path; }
+});
+
+// ---- Technical Manager, phase 3: the supervisor, its limits and its log ----
+const mItem = (id: string, section: string, detail = ""): Item => ({ id, section, title: id, detail });
+
+function manage(settings: Partial<ManagerSettings> = {}, items: Item[] = [], before?: (store: ReturnType<typeof openStore>) => void) {
+  const store = openStore(":memory:");
+  before?.(store);
+  Bun.sleepSync(5); // the supervisor ignores what happened before it started
+  const launched: string[][] = [], killed: string[] = [], promoted: string[] = [];
+  const running = new Map<string, { kill(): void }>();
+  const state = { items };
+  let clock = Date.now() + 50;
+  const sup = supervisor({
+    root: "/x", store, settings: () => ({ ...MANAGER_DEFAULTS, ...settings }), items: () => state.items, running, group: () => 1, every: 3_600_000, now: () => clock,
+    launch: (id, argv) => { if (running.has(id)) return false; launched.push(argv); running.set(id, { kill: () => killed.push(id) }); return true; },
+    cli: async (...argv) => { promoted.push(argv[1]!); state.items = state.items.map((i) => (i.id === argv[1] ? { ...i, section: "Ready" } : i)); return { code: 0, out: "" }; },
+    explain: async () => "A plain explanation.", guide: async () => "Use the existing helper.", hasSpec: () => true,
+  });
+  const decisions = () => store.decisions("", 50).reverse().filter((e) => e.type === "manager.decision").map((e) => (e.data as { action: string }).action);
+  return { store, launched, killed, promoted, running, state, tick: sup.tick, decisions, advance: (ms: number) => { clock += ms; }, stop: sup.stop };
+}
+const failed = (store: ReturnType<typeof openStore>, task: string, error: string) => store.emit({ run: "r1", task, stage: "run", type: "run.failed", data: error });
+
+test("manager: a failure is classified, and the decision stays inside the limits", () => {
+  const s = { recoveries: 2, perTask: 5 };
+  expect(failureKind("Error: build failed on sonnet: auth: please log in")).toBe("auth");
+  expect(failureKind("Error: build: every model in the builder chain is rate limited")).toBe("rate_limit");
+  expect(failureKind("Error: no approved build after 3 attempts")).toBe("builds");
+  expect(failureKind("Error: stopped")).toBe("stopped");
+  expect(failureKind("Error: setup failed:\nboom")).toBe("setup");
+  expect(failureKind("Error: ECONNRESET")).toBe("other");
+  expect(decide("rate_limit", 0, 0, s)).toMatchObject({ action: "retry", delayMin: 10 });
+  expect(decide("rate_limit", 1, 0, s)).toMatchObject({ action: "retry", delayMin: 20 }); // waits longer each time
+  expect(decide("builds", 0, 0, s).action).toBe("guide");
+  expect(decide("other", 0, 0, s)).toMatchObject({ action: "retry", delayMin: 1 });
+  expect(decide("stalled", 0, 0, s)).toMatchObject({ action: "retry", delayMin: 0 });
+  for (const kind of ["auth", "stopped", "setup", "clash"] as const) expect(decide(kind, 0, 0, s).action).toBe("escalate"); // these need a person
+  expect(decide("other", 2, 0, s).text).toMatch(/already tried again 2 times/);
+  expect(decide("other", 0, 5.2, s).text).toMatch(/\$5\.20.*limit for one task/);
+});
+
+test("manager settings: validated, merged with the defaults, and written back to the config", () => {
+  const base = { gate: ["true"], roles: config.roles };
+  expect(() => parseConfig({ ...base, manager: { autonomy: "yolo" } })).toThrow(/manager\.autonomy: one of autopilot, assist, off/);
+  expect(() => parseConfig({ ...base, manager: { parallel: 20 } })).toThrow(/manager\.parallel/);
+  expect(() => parseConfig({ ...base, manager: { nope: 1 } })).toThrow(/manager\.nope: unknown setting/);
+  expect(managerOf(parseConfig(base))).toEqual(MANAGER_DEFAULTS);
+  expect(MANAGER_DEFAULTS.autonomy).toBe("autopilot"); // on by default; the person turns it off
+  const { dir, cli } = repo();
+  expect(cli("manager").out).toMatch(/Autopilot: .*\nAt most 1 task at once · 2 automatic retries per task · up to \$5 per task and \$25 per day/);
+  expect(cli("manager", "off").out).toMatch(/^Off:/);
+  expect(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).manager).toEqual({ autonomy: "off" });
+  expect(cli("manager", "set", "perDay", "40").out).toMatch(/\$40 per day/);
+  expect(cli("manager", "set", "parallel", "99")).toMatchObject({ code: 1 });
+  expect(cli("manager", "bogus").code).toBe(1);
+  expect(cli("manager", "autopilot").out).toMatch(/^Autopilot:/);
+});
+
+test("manager: an item added in conversation carries a mark that autopilot reads; one an agent suggested does not", () => {
+  const { dir, cli } = repo();
+  process.env.FACTORY_SOURCE = "chat";
+  try { cli("add", "Worked out together", "--detail", "Acceptance: it works"); } finally { delete process.env.FACTORY_SOURCE; }
+  cli("add", "Suggested by an agent");
+  const items = parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).filter((i) => i.section === "Inbox");
+  expect(items.find((i) => i.title === "Worked out together")!.detail).toContain(FROM_CONVERSATION);
+  expect(items.find((i) => i.title === "Worked out together")!.detail).toContain("Acceptance: it works");
+  expect(items.find((i) => i.title === "Suggested by an agent")!.detail).not.toContain(FROM_CONVERSATION);
+});
+
+test("supervisor: starts Ready items one at a time, promotes only what was worked out in conversation, and does nothing unless on autopilot", async () => {
+  const a = manage({}, [mItem("F-001", "Ready"), mItem("F-002", "Ready")]);
+  await a.tick();
+  expect(a.launched).toEqual([["run", "F-001"]]); // the limit is one task at once
+  await a.tick();
+  expect(a.launched).toHaveLength(1);
+  expect(a.decisions()).toEqual(["start"]);
+  a.stop();
+
+  const b = manage({}, [mItem("F-001", "Inbox", FROM_CONVERSATION), mItem("F-002", "Inbox", "from an agent")]);
+  await b.tick();
+  expect(b.promoted).toEqual(["F-001"]);
+  expect(b.launched).toEqual([["run", "F-001"]]);
+  expect(b.state.items.find((i) => i.id === "F-002")!.section).toBe("Inbox");
+  expect(b.decisions()).toEqual(["promote", "start"]);
+  b.stop();
+
+  for (const autonomy of ["assist", "off"] as const) {
+    const c = manage({ autonomy }, [mItem("F-001", "Ready")]);
+    await c.tick();
+    expect(c.launched).toEqual([]);
+    c.stop();
+  }
+  const e = manage({}, [mItem("F-001", "Ready")], (store) => store.emit({ run: "r1", task: "F-001", stage: "pr", type: "task.discarded" }));
+  await e.tick();
+  expect(e.launched).toEqual([]); // the person threw it away
+  e.stop();
+  const d = manage({}, [mItem("F-001", "Ready"), mItem("F-002", "Awaiting approval"), mItem("F-003", "Awaiting approval"), mItem("F-004", "Awaiting approval")]);
+  await d.tick();
+  expect(d.launched).toEqual([]); // three tasks wait for the person: no more work piles up
+  d.stop();
+});
+
+test("supervisor: a stopped task is retried after a wait, guided after three failed builds, and handed to the person when it should not go on", async () => {
+  const wait = manage({}, [mItem("F-001", "Blocked")]);
+  failed(wait.store, "F-001", "Error: build: every model in the builder chain is rate limited");
+  await wait.tick();
+  expect(wait.launched).toEqual([]);
+  expect(wait.decisions()).toEqual(["wait"]);
+  wait.advance(11 * 60_000);
+  await wait.tick();
+  expect(wait.launched).toEqual([["run", "F-001"]]);
+  expect(wait.decisions()).toEqual(["wait", "retry"]);
+  wait.stop();
+
+  const guide = manage({}, [mItem("F-001", "Blocked")]);
+  failed(guide.store, "F-001", "Error: no approved build after 3 attempts");
+  await guide.tick();
+  expect(guide.launched).toEqual([["reject", "F-001", "--feedback", "Use the existing helper."]]);
+  expect(guide.decisions()).toEqual(["guide"]);
+  guide.stop();
+
+  const auth = manage({}, [mItem("F-001", "Blocked")]);
+  failed(auth.store, "F-001", "Error: build failed on sonnet: auth: log in");
+  await auth.tick();
+  await auth.tick(); // told once, not on every tick
+  await Bun.sleep(10);
+  expect(auth.launched).toEqual([]);
+  expect(auth.decisions()).toEqual(["escalate"]);
+  expect(auth.store.decisions("F-001").some((e) => e.type === "manager.note" && (e.data as { text: string }).text === "A plain explanation.")).toBe(true);
+  auth.stop();
+
+  const tired = manage({ recoveries: 1 }, [mItem("F-001", "Blocked")]);
+  failed(tired.store, "F-001", "Error: ECONNRESET");
+  await tired.tick();
+  tired.advance(2 * 60_000);
+  await tired.tick();
+  expect(tired.launched).toHaveLength(1);
+  tired.running.clear();
+  tired.state.items = [mItem("F-001", "Blocked")];
+  failed(tired.store, "F-001", "Error: ECONNRESET");
+  await tired.tick();
+  expect(tired.launched).toHaveLength(1); // one retry was the limit
+  expect(tired.decisions().at(-1)).toBe("escalate");
+  tired.stop();
+});
+
+test("supervisor: spend limits stop new work, a silent task is stopped, and a failure from before it started is left alone", async () => {
+  const spend = manage({ perDay: 5 }, [mItem("F-001", "Ready")], (store) => store.emit({ run: "r0", task: "F-009", stage: "build", type: "stage.ok", data: { usage: { costUsd: 6 } } }));
+  await spend.tick();
+  await spend.tick();
+  expect(spend.launched).toEqual([]);
+  expect(spend.decisions()).toEqual(["budget"]); // said once
+  spend.stop();
+
+  const stall = manage({}, [mItem("F-001", "In progress")]);
+  stall.running.set("F-001", { kill: () => stall.killed.push("F-001") });
+  stall.store.emit({ run: "r1", task: "F-001", stage: "build", type: "stage.start" });
+  await stall.tick();
+  expect(stall.killed).toEqual([]);
+  stall.advance(21 * 60_000);
+  await stall.tick();
+  expect(stall.killed).toEqual(["F-001"]);
+  expect(stall.decisions()).toEqual(["stall"]);
+  stall.stop();
+
+  const old = manage({}, [mItem("F-001", "Blocked")], (store) => failed(store, "F-001", "Error: ECONNRESET"));
+  await old.tick();
+  expect(old.launched).toEqual([]); // work that stopped before the supervisor started is left for the person
+  expect(old.decisions()).toEqual([]);
+  old.stop();
+});
+
+test("manager over HTTP: settings are read and changed; on autopilot a proposal to promote is carried out, on assist it is left as a button", async () => {
+  const { dir, cli } = repo();
+  const bin = join(tmp(), "bin");
+  mkdirSync(bin, { recursive: true });
+  const result = (text: string) => JSON.stringify({ type: "result", subtype: "success", is_error: false, result: text, session_id: "11111111-1111-1111-1111-111111111111", total_cost_usd: 0.01, usage: {} });
+  writeFileSync(join(bin, "claude"), `#!/bin/sh\nprintf '%s\\n' '${result("Yes.\nPROPOSE: promote F-003")}'\n`);
+  chmodSync(join(bin, "claude"), 0o755);
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  cli("add", "A third item");
+  const server = await serve(dir, 0);
+  const base = `http://127.0.0.1:${server.port}`;
+  const post = (url: string, body: unknown) => fetch(`${base}${url}`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify(body) });
+  try {
+    const first = (await (await fetch(`${base}/api/manager`)).json()) as any;
+    expect(first.settings).toEqual(MANAGER_DEFAULTS);
+    expect(first.spentToday).toBe(0);
+    expect((await post("/api/manager", { autonomy: "nope" })).status).toBe(400);
+
+    const done = (await (await post("/api/chat", { topic: "manager", message: "yes, go" })).json()) as any;
+    expect(done.executed).toMatchObject({ ok: true, proposal: { kind: "promote", ids: ["F-003"] } });
+    expect(done.text).toBe("Yes.");
+    expect(parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).find((i) => i.id === "F-003")!.section).toBe("Ready");
+    expect(((await (await fetch(`${base}/api/manager`)).json()) as any).decisions[0].data).toMatchObject({ action: "promote", auto: true, by: "conversation" });
+
+    expect(((await (await post("/api/manager", { autonomy: "assist" })).json()) as any).settings.autonomy).toBe("assist");
+    cli("add", "A fourth item");
+    const kept = (await (await post("/api/chat", { topic: "manager", message: "again" })).json()) as any;
+    expect(kept.executed).toBeUndefined(); // assist: the page shows a button
+    expect(kept.text).toContain("PROPOSE: promote F-003");
+  } finally { server.stop(); process.env.PATH = path; }
+});
+
+test("manage in a terminal: the manager's instructions use commands instead of the page, and consult asks one role read-only", () => {
+  const { cli } = repo();
+  const out = cli("role", "manage").out;
+  expect(out).toContain("## In this session");
+  expect(out).toContain('factory consult <topic> "<the question>"');
+  expect(out).toContain("- `design`: Architect");
+  expect(cli("consult", "bogus", "x").code).toBe(1);
+  expect(cli("consult", "design").code).toBe(1);
+  const bin = join(tmp(), "bin");
+  mkdirSync(bin, { recursive: true });
+  writeFileSync(join(bin, "claude"), `#!/bin/sh\nprintf '%s\\n' '${JSON.stringify({ type: "result", subtype: "success", is_error: false, result: "Use SQLite.", session_id: "11111111-1111-1111-1111-111111111111", total_cost_usd: 0.01, usage: {} })}'\n`);
+  chmodSync(join(bin, "claude"), 0o755);
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  try { expect(cli("consult", "design", "Which", "database?")).toMatchObject({ code: 0, out: "Use SQLite." }); } finally { process.env.PATH = path; }
 });
