@@ -5,7 +5,7 @@ import { add, FROM_CONVERSATION, move, parse, type Item, type Section } from "./
 import { claudeRunner } from "./claude";
 import { loadConfig, managerOf, parseConfig, projectTeam } from "./config";
 import { openStore } from "./events";
-import { applyTeam, configure, detect, DOC_PATHS, doctor, init, nextStep, projectDocs } from "./init";
+import { applyTeam, configure, ensureRoleFiles, detect, DOC_PATHS, doctor, init, nextStep, projectDocs } from "./init";
 import { appendChronicle, appendNotes, chronicleEntry, parseScribe, stageOutput } from "./chronicle";
 import { graphifyInstalled, updateGraph } from "./graph";
 import { formatChecks, formatInfo, readiness, releaseInfo, tagRelease } from "./release";
@@ -111,7 +111,19 @@ factory skill add <owner/repo@skill> --role <r> install a skill and attach it to
 factory skill attach|detach <skill> --role <r>  attach or detach a skill that is already installed`;
 
 /** Runs backlog items through the pipeline, each in its own worktree, and moves each to Awaiting approval or Blocked. `resume` makes it a send-back of the single item. */
+/** A role the plugin gained since this project was made has no role file yet: make it, and commit it, because task worktrees branch from HEAD. */
+function repairRoleFiles(): string[] {
+  const made = withLock(() => {
+    const files = ensureRoleFiles(root);
+    if (files.length) commitPaths("software-factory: add role files for roles new in this version", ...files);
+    return files;
+  });
+  if (made.length) console.log(`created ${made.join(", ")} (roles that are new in this version of the plugin)`);
+  return made;
+}
+
 async function runItems(config: ReturnType<typeof loadConfig>, runner: Runner, chosen: Item[], resume?: Resume) {
+  repairRoleFiles();
   const store = openEvents();
   // Ctrl-C or a stop from the GUI: end the stages, then let each task settle into Blocked below.
   process.on("SIGINT", stopAll);
@@ -184,6 +196,7 @@ async function main([cmd, ...args]: string[]) {
     // Imported here so every other command works without the GUI and its dependencies.
     const { serve } = await import("./server");
     // One dashboard per project: each project prefers its own port (4400-4499, from its path) and moves on if another project holds it.
+    repairRoleFiles();
     const mine = async (port: number) => { try { return (await (await fetch(`http://127.0.0.1:${port}/api/project`, { signal: AbortSignal.timeout(1000) })).json() as { root?: string }).root === root; } catch { return false; } };
     const auto = args[0] === undefined, start = Number(Bun.hash(root) % 100n);
     for (let i = 0; i < (auto ? 100 : 1); i++) {

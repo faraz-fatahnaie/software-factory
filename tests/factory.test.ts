@@ -12,7 +12,7 @@ import { graphifyInstalled, updateGraph } from "../plugin/engine/graph";
 import { openStore } from "../plugin/engine/events";
 import { BACKLOG, config, fakeGh, ghPr, repo, role, tmp } from "./fixture";
 import { guard } from "../plugin/engine/hooks";
-import { applyTeam, configure, detect, doctor, init, nextStep, projectDocs } from "../plugin/engine/init";
+import { applyTeam, configure, ensureRoleFiles, detect, doctor, init, nextStep, projectDocs } from "../plugin/engine/init";
 import { personaFor } from "../gui/robots";
 import { activeRoles, catalog, holderOf, chatPrompt, chatPromptFor, checkSettings, customStages, DEFAULT_PRESET, describeTeam, perTask, presets, renderRole, resolveTeam, stageDuties, stageRole, teamForAgents, toolsFor, validateTeam, type TeamSettings } from "../plugin/engine/team";
 import { addCustom, moveSettings, offSettings, parseChange, planTeam, removeCustom, renameSettings, teamView } from "../plugin/engine/teamctl";
@@ -261,7 +261,7 @@ test("server: rejects foreign hosts and origins; streams events; runs, approves 
     expect((await get("/api/worktrees")).map((w: any) => [w.id, w.branch, w.ahead, w.uncommitted])).toEqual([["F-001", "factory/F-001", 1, 0], ["F-002", "factory/F-002", 1, 0]]);
 
     // Studio: only listed files, every save is a commit, old versions stay readable.
-    expect(await get("/api/files")).toEqual([".claude/agents/builder.md", ".claude/skills/tdd/SKILL.md", "AGENTS.md"]);
+    expect(await get("/api/files")).toEqual([".claude/agents/architect.md", ".claude/agents/builder.md", ".claude/agents/reviewer.md", ".claude/agents/scribe.md", ".claude/agents/security-performance.md", ".claude/agents/technical-manager.md", ".claude/skills/tdd/SKILL.md", "AGENTS.md"]); // the run made the role files the project lacked
     expect((await fetch(`${base}/api/file?path=../../etc/passwd`)).status).toBe(400);
     expect((await post("/api/file", { path: "factory.config.json", content: "{}" })).status).toBe(400);
     expect((await post("/api/file", { path: ".claude/agents/builder.md", content: "no frontmatter" })).status).toBe(400);
@@ -2415,4 +2415,17 @@ test("manager strip: the digest says where things stand from the backlog alone, 
   expect(digest([it("F-001", "In progress"), it("F-002", "Awaiting approval"), it("F-003", "Blocked"), it("F-004", "Ready"), it("F-005", "Ready"), it("F-006", "Inbox"), it("F-007", "Done")]))
     .toBe("1 running · 1 waiting for you · 1 blocked · 2 ready · 1 in the inbox. Next: F-004 TF-004");
   expect(digest([])).toBe("0 running · 0 waiting for you · 0 blocked · 0 ready · 0 in the inbox");
+});
+
+test("upgrade: a role file that a new version needs is created, committed and never overwrites one that exists", () => {
+  const { dir, cli } = repo();
+  const tracked = (f: string) => Bun.spawnSync(["git", "ls-files", f], { cwd: dir }).stdout.toString().trim();
+  writeFileSync(join(dir, ".claude/agents/builder.md"), "---\nname: builder\n---\nMy own builder.\n"); // hand-written, kept
+  const run = cli("run", "F-001", "--stub");
+  expect(run.out).toMatch(/created .*technical-manager\.md/);
+  expect(tracked(".claude/agents/technical-manager.md")).toBe(".claude/agents/technical-manager.md"); // committed: worktrees branch from HEAD
+  expect(readFileSync(join(dir, ".claude/agents/builder.md"), "utf8")).toContain("My own builder.");
+  expect(readFileSync(join(dir, ".claude/agents/technical-manager.md"), "utf8")).toContain("## Triage an item");
+  expect(ensureRoleFiles(dir)).toEqual([]); // nothing more to make
+  expect(ensureRoleFiles(tmp())).toEqual([]); // a folder that is not a factory project
 });

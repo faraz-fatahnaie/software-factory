@@ -137,6 +137,25 @@ export function doctor(dir: string) {
 }
 
 /**
+ * Creates the role file of any unattended role that has none: a role an update of the plugin added (for example the Technical Manager)
+ * has no file in a project made before it. Never touches a file that exists. Returns the paths it created; the caller commits them,
+ * because task worktrees branch from HEAD.
+ */
+export function ensureRoleFiles(dir: string): string[] {
+  let team;
+  try { team = teamOf(JSON.parse(read(dir, "factory.config.json"))); } catch { return []; } // not a factory project, or a config that doctor will explain
+  const made: string[] = [];
+  for (const role of activeRoles(team)) {
+    const file = `.claude/agents/${role}.md`;
+    if (read(dir, file)) continue;
+    mkdirSync(join(dir, ".claude", "agents"), { recursive: true });
+    writeFileSync(join(dir, file), renderRole(role, team));
+    made.push(file);
+  }
+  return made;
+}
+
+/**
  * Rebuilds the role files from the catalog. A file that carries the generated marker is rebuilt
  * (keeping its attached skills); a file without it was edited by hand and is left alone unless
  * `force` is set. Returns one line per file and the paths that changed.
