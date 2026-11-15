@@ -3,7 +3,7 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
-## Unreleased
+## 1.0.1
 
 - **One dashboard per project.** `/software-factory:open` no longer shows another project's dashboard. Each
   project gets its own port (4400-4499), and "already running" is only reported for the same project. After
