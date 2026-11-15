@@ -43,6 +43,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Decided 2026-11-15: autopilot is on for every project. The first time the dashboard opens after the update, show what changed and offer assist or off. Remember it was seen.
 - [ ] F-074 (P1) End-to-end check of autopilot with a stand-in claude
   Run a whole task through the real pipeline and the supervisor: Ready to Awaiting approval, a failure retried, guidance after three failed builds. No model calls.
+- [ ] F-075 (P1) Verify the plugin update instructions against Claude Code
+  The auto-update steps in the Updating guide (the Marketplaces tab in /plugin) were not checked. Check them, and claude plugin list, uninstall and tags, and fix the guide.
 
 ## Ready
 
