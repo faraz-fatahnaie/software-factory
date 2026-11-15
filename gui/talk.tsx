@@ -4,6 +4,7 @@ import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, parseProposal, splitSug
 import { call } from "./data";
 import { Icon } from "./icons";
 import { Markdown } from "./markdown";
+import { AUTONOMY_OPTIONS, useManager, type Autonomy } from "./manager";
 import { personaFor, Robot } from "./robots";
 import { Select, Skel } from "./ui";
 
@@ -33,12 +34,6 @@ export type Chats = Record<string, Chat>;
 type Topic = { key: string; title: string; summary: string; first: string; available: boolean; reason?: string; role?: string; roleTitle?: string; suggest?: boolean; readOnly?: boolean; manager?: boolean };
 type Reply = { ok: boolean; status: string; text: string; session?: string; sessions?: Record<string, string>; executed?: { proposal: Proposal; ok: boolean; note: string }; costUsd?: number; denials: string[]; tools: ToolStep[] };
 
-type ManagerInfo = { settings: { autonomy: "autopilot" | "assist" | "off"; parallel: number; recoveries: number; perTask: number; perDay: number; stall: number }; spentToday: number };
-const AUTONOMY_OPTIONS = [
-  { value: "autopilot", label: "autopilot", hint: "Starts what you worked out in conversation, and recovers a stuck task, by itself, within the limits" },
-  { value: "assist", label: "assist", hint: "Diagnoses and proposes; you press the buttons" },
-  { value: "off", label: "off", hint: "Does nothing by itself. You can still talk to it" },
-];
 const MODELS = [
   { value: "sonnet", label: "sonnet", hint: "Balanced. Good for most conversations" },
   { value: "opus", label: "opus", hint: "Deepest thinking. Slower and costs more" },
@@ -131,8 +126,7 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
   const [problem, setProblem] = useState("");
   const [notice, setNotice] = useState("");
   const [dragging, setDragging] = useState(false);
-  const [manager, setManager] = useState<ManagerInfo | null>(null);
-  useEffect(() => { call<ManagerInfo>("/api/manager").then((r) => r.ok && setManager(r.data)); }, []);
+  const { info: manager, set: setManager, problem: managerProblem } = useManager([]);
   const end = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLTextAreaElement>(null);
   const picker = useRef<HTMLInputElement>(null);
@@ -235,7 +229,7 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
               <p className="note">{topic.roleTitle} · {chat.busy ? "Thinking…" : "Listening"}</p>
             </div>
             <label className="switch" title="End each reply with a few messages you could send next. They only send a message; they never do anything else."><input type="checkbox" role="switch" checked={!!topic.suggest} onChange={async (e) => { const on = e.target.checked; const r = await call("/api/chat/suggest", { topic: key, on }); if (r.ok) setTopics((ts) => ts && ts.map((t) => (t.role === topic.role ? { ...t, suggest: on } : t))); else setProblem(r.error); }} /><span>Suggest replies</span></label>
-            {topic.manager && manager && <Select label="Autonomy" prefix="Manager" value={manager.settings.autonomy} options={AUTONOMY_OPTIONS} align="right" onChange={async (v) => { const r = await call<{ settings: ManagerInfo["settings"] }>("/api/manager", { autonomy: v }); if (r.ok) setManager({ ...manager, settings: r.data.settings }); else setProblem(r.error); }} />}
+            {topic.manager && manager && <Select label="Autonomy" prefix="Manager" value={manager.settings.autonomy} options={AUTONOMY_OPTIONS} align="right" onChange={(v) => setManager({ autonomy: v as Autonomy })} />}
             <Select label="Model" prefix="Model" value={model} options={MODELS} onChange={setModel} align="right" />
             <Select label="Effort" prefix="Effort" value={effort} options={EFFORTS} onChange={setEffort} align="right" />
           </header>
@@ -293,6 +287,7 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
             </div>
           </form>
           {notice && <p className="error" role="alert">{notice}</p>}
+          {managerProblem && <p className="error" role="alert">{managerProblem}</p>}
           {topic.manager && manager && <p className="note">{manager.settings.autonomy === "autopilot" ? `On autopilot: ${manager.settings.parallel} task${manager.settings.parallel === 1 ? "" : "s"} at once, up to $${manager.settings.perTask} per task and $${manager.settings.perDay} per day ($${manager.spentToday.toFixed(2)} today). Change it with the Manager menu above or \`factory manager\`.` : manager.settings.autonomy === "assist" ? "On assist: you press the buttons." : "Autopilot is off: nothing starts by itself."}</p>}
           <p className="note">{topic.manager ? `${person.name} can read this project and ask the others. ${person.name} cannot change anything; anything to be done comes as a button you press.` : topic.readOnly ? `${person.name} can read this project and run read-only checks. ${person.name} cannot change anything.` : `${person.name} can read this project and write documents under docs/. ${person.name} cannot change code.`}</p>
         </section>

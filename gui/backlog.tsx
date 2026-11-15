@@ -356,6 +356,16 @@ function Panel(p: { behind?: number; busy: boolean; item: Item; run?: TaskRun; e
                   <pre>{String(typeof failure?.data === "string" ? failure.data : failure?.data?.error ?? run?.error ?? "").split("\n").slice(0, 14).join("\n")}</pre>
                 </section>
               )}
+              {sec === "Blocked" && (() => {
+                const note = [...all].reverse().find((e) => e.type === "manager.note"), said = [...all].reverse().find((e) => e.type === "manager.decision");
+                return (note || said) && (
+                  <section className="bk-card" aria-label="What the manager says">
+                    <h3>The manager</h3>
+                    {said && <p>{String(said.data?.text ?? "")}</p>}
+                    {note && <p dir="auto">{String(note.data?.text ?? "")}</p>}
+                  </section>
+                );
+              })()}
               {(run?.feedback ?? []).slice().reverse().map((f, i) => (
                 <section key={i} className="bk-card live" aria-label={`${f.update ? "Update from main" : "Your comments"}, round ${f.round}`}>
                   <div className="row between"><h3>{f.update ? "Update from main" : "Your comments"} · round {f.round}</h3><span className="note">{f.update ? "started" : "sent"} {agoShort(f.ts)} ago</span></div>

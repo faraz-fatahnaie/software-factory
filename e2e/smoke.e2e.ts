@@ -50,6 +50,16 @@ try {
     await page.goto(`http://127.0.0.1:${server.port}/`);
     await page.locator(".link.live, .side .link").first().waitFor();
 
+    // The Technical Manager's strip: her state, what she decided last, and the limits she works within.
+    const strip = page.getByRole("article", { name: "Technical Manager" });
+    await strip.waitFor();
+    await strip.getByRole("button", { name: /what she decided/ }).waitFor(); // her decisions arrive with the event stream
+    assert.match(await strip.innerText(), /on autopilot/);
+    assert.match(await strip.innerText(), /of \$25 today/);
+    await strip.getByRole("button", { name: /what she decided/ }).click();
+    assert.ok((await strip.locator(".decisions li").count()) >= 2, `${name}: her decisions are listed`);
+    await a11y(page, `${name} manager strip`);
+
     // Overview: the working people show what they do now, free people what they did last, and the tab says who is working.
     await open(page, "Overview");
     await page.locator(".person-card .now .what", { hasText: /Running|Editing|Reading|Thinking/ }).first().waitFor();
@@ -116,6 +126,7 @@ try {
     await page.locator(".bk-panel").waitFor({ state: "detached" });
     await page.getByRole("button", { name: "Look into it" }).click(); // the blocked task explains itself
     await page.locator(".bk-card.bad", { hasText: "2 tests fail" }).waitFor();
+    await page.getByLabel("What the manager says").getByText(/deposit total/).waitFor(); // her explanation is on the task itself
     await page.keyboard.press("Escape");
     await page.locator(".bk-panel").waitFor({ state: "detached" });
 
@@ -126,6 +137,19 @@ try {
       await page.locator(locator).first().waitFor({ timeout: 15_000 });
       await a11y(page, `${name} ${view}`);
     }
+
+    // Team: what she may do by herself, changed and saved.
+    await open(page, "Team");
+    await page.getByRole("region", { name: /may do by herself/ }).waitFor();
+    await page.getByLabel("Assist", { exact: false }).first().click();
+    await page.waitForFunction(async () => (await (await fetch("/api/manager")).json()).settings.autonomy === "assist");
+    await page.getByLabel(/Spend limit per day/).fill("40");
+    await page.getByRole("button", { name: "Save limits" }).click();
+    await page.getByText("Saved", { exact: true }).waitFor();
+    await a11y(page, `${name} manager settings`);
+    await page.getByLabel("Autopilot", { exact: false }).first().click();
+    await page.waitForFunction(async () => (await (await fetch("/api/manager")).json()).settings.autonomy === "autopilot");
+    await page.evaluate(() => fetch("/api/manager", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ perDay: 25 }) })); // back to the default for the next width
 
     // Talk: a long message makes the box taller; files attach by button and by drop; the box stays open while a reply is coming;
     // the reply is drawn as Markdown and its command is a collapsed step that opens to its output.

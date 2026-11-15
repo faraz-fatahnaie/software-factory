@@ -8,6 +8,7 @@ import { BacklogView } from "./backlog";
 import { Studio } from "./studio";
 import { Agents, Logs, Worktrees } from "./views";
 import { sendChat, Talk, useQueueDrain, type Chats } from "./talk";
+import { ManagerStrip, useManager } from "./manager";
 import { Palette } from "./palette";
 import { HealthStrip, healthChip } from "./health";
 import { presenceOf, TALK_TO, Team, type TeamData } from "./team";
@@ -212,6 +213,8 @@ const DOING: Record<string, string> = { triage: "Triaging", spec: "Writing the s
 
 function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any; backlog: Backlog; open: (id: string) => void; team: TeamData | null; vcs: VcsData | null; act: Act; refreshVcs: () => Promise<void>; chats: Chats; talkTo: (key: string) => void; openPerson: (role: string) => void; health: HealthData | null; recheck: () => Promise<void>; explain: (title: string, detail: string) => void }) {
   const working = useMemo(() => roster(p.tasks), [p.tasks]);
+  const manager = useManager(p.events);
+  const managerRole = p.team?.roles.some((r) => r.name === "technical-manager") ? "technical-manager" : "product-partner";
   const now = useNow(true, working.length ? 1000 : 30_000);
   const day = useMemo(() => series(p.events, now - 86_400_000, now, 24), [p.events, Math.floor(now / 60_000)]);
   const rates = useMemo(() => passRates(p.events), [p.events]);
@@ -258,6 +261,7 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
           </>
         )}
       </article>
+      <ManagerStrip events={p.events} items={p.backlog.items} role={managerRole} talkTo={p.talkTo} open={p.open} manager={manager} />
       <HealthStrip health={p.health} recheck={p.recheck} explain={p.explain} />
       <Kpi title="People working" value={String(working.length + chatting.length)} unit={p.team ? ` of ${p.team.roles.length}` : ""} note={`${items.filter((i) => i.section === "In progress").length} tasks in progress, ${items.filter((i) => i.section === "Ready").length} ready`}>
         <Spark values={day.map((b) => b.stages)} label="Stages passed per hour, last 24 hours" />

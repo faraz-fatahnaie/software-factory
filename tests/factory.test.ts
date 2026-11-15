@@ -18,6 +18,7 @@ import { activeRoles, catalog, holderOf, chatPrompt, chatPromptFor, checkSetting
 import { addCustom, moveSettings, offSettings, parseChange, planTeam, removeCustom, renameSettings, teamView } from "../plugin/engine/teamctl";
 import { askable, chatArgs, checkAttachments, managerTurn, parseAsks, saveAttachments, TOPICS } from "../plugin/engine/chat";
 import { parseBlocks, parseInline } from "../gui/mdparse";
+import { digest } from "../gui/manager";
 import { estimate } from "../plugin/engine/estimate";
 import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugin/engine/vcs";
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
@@ -2407,4 +2408,11 @@ test("manage in a terminal: the manager's instructions use commands instead of t
   const path = process.env.PATH;
   process.env.PATH = `${bin}:${path}`;
   try { expect(cli("consult", "design", "Which", "database?")).toMatchObject({ code: 0, out: "Use SQLite." }); } finally { process.env.PATH = path; }
+});
+
+test("manager strip: the digest says where things stand from the backlog alone, and names what is next", () => {
+  const it = (id: string, section: string) => ({ id, title: `T${id}`, section });
+  expect(digest([it("F-001", "In progress"), it("F-002", "Awaiting approval"), it("F-003", "Blocked"), it("F-004", "Ready"), it("F-005", "Ready"), it("F-006", "Inbox"), it("F-007", "Done")]))
+    .toBe("1 running · 1 waiting for you · 1 blocked · 2 ready · 1 in the inbox. Next: F-004 TF-004");
+  expect(digest([])).toBe("0 running · 0 waiting for you · 0 blocked · 0 ready · 0 in the inbox");
 });

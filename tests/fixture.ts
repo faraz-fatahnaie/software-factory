@@ -87,5 +87,9 @@ export function seedStates(dir: string, cli: (...args: string[]) => unknown) {
   add(480, "rr", "F-003", "review", "stage.start", "reviewer", "opus"); add(300, "rr", "F-003", "review", "agent.tool", "reviewer", "opus", { tool: "Read", input: { file_path: "build.md" } }); // quiet for five minutes
   add(900, "rx", "F-004", "run", "run.start"); add(880, "rx", "F-004", "build", "stage.start", "builder", "sonnet"); add(700, "rx", "F-004", "build", "stage.ok", "builder", "sonnet", { output: "built", usage: { costUsd: 0.3, turns: 8 } });
   add(690, "rx", "F-004", "check", "stage.start"); add(650, "rx", "F-004", "check", "stage.failed", undefined, undefined, "2 tests fail"); add(649, "rx", "F-004", "run", "run.failed", undefined, undefined, "check failed: 2 tests fail");
+  // The Technical Manager's decisions: one start, and one task she handed back to the person, with her explanation.
+  add(800, "rr", "F-003", "manager", "manager.decision", undefined, undefined, { action: "start", text: "F-003 was next in line, so I started it.", auto: true });
+  add(600, "rx", "F-004", "manager", "manager.decision", undefined, undefined, { action: "escalate", text: "F-004 needs you. It was already tried again 2 times and stopped again, so I am not trying a third way on my own.", auto: true });
+  add(590, "rx", "F-004", "manager", "manager.note", undefined, undefined, { text: "Both failing tests check the deposit total. The Builder changed the rounding twice, but the tests expect whole cents. Decide which rule is right, then send it back with that in your comments." });
   db.close();
 }
