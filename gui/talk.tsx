@@ -1,22 +1,37 @@
 // Talk: conversations with the people (robots) who hold each job. Checks: the factory's own commands, one button each.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, splitSuggestions, stepsSummary, type ToolStep } from "../plugin/engine/state";
+import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, parseProposal, splitSuggestions, stepsSummary, type Proposal, type ToolStep } from "../plugin/engine/state";
 import { call } from "./data";
 import { Icon } from "./icons";
 import { Markdown } from "./markdown";
 import { personaFor, Robot } from "./robots";
 import { Select, Skel } from "./ui";
 
-/** An action the conversation proposes. Only the button runs it: the session itself has no way to push or merge. */
-export type Proposal = { kind: "push" | "merge" | "sync"; id?: string };
 export type Shown = { name: string; size: number; url?: string };
 export type Msg = { who: "you" | "team"; text: string; files?: Shown[]; suggestions?: string[]; tools?: ToolStep[]; cost?: number; bad?: boolean; proposal?: Proposal; acted?: string };
 /** A file waiting to be sent with the next message. Pictures get a preview. */
 export type Pending = { file: File; url?: string };
-export type Chat = { messages: Msg[]; session?: string; busy: boolean };
+/** One conversation. The unsent message, the files waiting to go with it and a message queued behind a reply live here, not in the Talk page, so leaving the page and coming back loses nothing. */
+export type Chat = { messages: Msg[]; session?: string; subs?: Record<string, string>; busy: boolean; draft?: string; files?: Pending[]; queued?: { message: string; files: Pending[] }; opts?: { suggest: boolean; model: string; effort: string } };
+const draftKey = (k: string) => `factory-draft:${k}`;
+/** The unsent message of a conversation, kept in the browser too, so a reload keeps it. Storage can be blocked: then it only lives in the page. */
+const savedDraft = (k: string) => { try { return localStorage.getItem(draftKey(k)) ?? ""; } catch { return ""; } };
+const saveDraft = (k: string, v: string) => { try { if (v) localStorage.setItem(draftKey(k), v); else localStorage.removeItem(draftKey(k)); } catch { /* the page still holds it */ } };
+
+/** Sends what was queued behind a reply, once that reply is done. Runs in the app, so it works even if Talk is not on screen. */
+export function useQueueDrain(chats: Chats, setChats: React.Dispatch<React.SetStateAction<Chats>>) {
+  useEffect(() => {
+    for (const [key, c] of Object.entries(chats)) {
+      if (!c.queued || c.busy || !c.opts) continue;
+      const q = c.queued;
+      setChats((all) => ({ ...all, [key]: { ...all[key]!, queued: undefined } }));
+      sendChat({ key, message: q.message, files: q.files, chat: c, ...c.opts, setChats });
+    }
+  }, [chats]);
+}
 export type Chats = Record<string, Chat>;
-type Topic = { key: string; title: string; summary: string; first: string; available: boolean; reason?: string; role?: string; roleTitle?: string; suggest?: boolean; readOnly?: boolean };
-type Reply = { ok: boolean; status: string; text: string; session?: string; costUsd?: number; denials: string[]; tools: ToolStep[] };
+type Topic = { key: string; title: string; summary: string; first: string; available: boolean; reason?: string; role?: string; roleTitle?: string; suggest?: boolean; readOnly?: boolean; manager?: boolean };
+type Reply = { ok: boolean; status: string; text: string; session?: string; sessions?: Record<string, string>; costUsd?: number; denials: string[]; tools: ToolStep[] };
 
 const MODELS = [
   { value: "sonnet", label: "sonnet", hint: "Balanced. Good for most conversations" },
@@ -34,6 +49,11 @@ const FAILURES: Record<string, string> = {
   auth: "The Claude command line is not logged in. Run `claude` in a terminal, log in, then try again.",
 };
 
+const PROPOSAL_BUTTON: Record<Proposal["kind"], string> = { push: "Push", merge: "Merge", sync: "Sync", promote: "Promote", run: "Run", retry: "Retry" };
+const PROPOSAL_ASK: Record<Proposal["kind"], (ids: string[]) => string> = {
+  push: ([id]) => `Push ${id} to GitHub and open a pull request?`, merge: ([id]) => `Merge ${id}'s pull request into main?`, sync: () => "Update from GitHub?",
+  promote: (ids) => `Move ${ids.join(", ")} to Ready, in that order?`, run: (ids) => `Run ${ids.join(", ")} now?`, retry: (ids) => `Try ${ids.join(", ")} again?`,
+};
 const toBase64 = (f: File) => new Promise<string>((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] ?? ""); r.onerror = () => no(r.error); r.readAsDataURL(f); });
 const ext = (name: string) => name.split(".").pop()?.toLowerCase() ?? "";
 const isImage = (name: string) => ["png", "jpg", "jpeg", "gif", "webp"].includes(ext(name));
@@ -62,8 +82,8 @@ function Steps({ steps }: { steps: ToolStep[] }) {
           <li key={i}>
             <details className={s.error ? "run-step bad" : "run-step"}>
               <summary><b>{s.tool}</b><span title={s.detail}>{s.detail.replace(/\s+/g, " ").slice(0, 140)}</span><Icon name="chevron" size={12} /></summary>
-              <pre className="cmd">{s.detail}</pre>
-              {s.output ? <pre className="out">{s.output}</pre> : <p className="note">{s.error ? "No output." : "Nothing came back."}</p>}
+              <pre className={s.tool.startsWith("Asked ") ? "cmd ask" : "cmd"} dir={s.tool.startsWith("Asked ") ? "auto" : "ltr"}>{s.detail}</pre>
+              {s.output ? <pre className="out" dir="auto">{s.output}</pre> : <p className="note">{s.error ? "No output." : "Nothing came back."}</p>}
             </details>
           </li>
         ))}
@@ -81,18 +101,17 @@ export async function sendChat(o: SendOpts) {
   let attachments: { name: string; data: string }[];
   try { attachments = await Promise.all(files.map(async (f) => ({ name: f.file.name, data: await toBase64(f.file) }))); }
   catch { return patch((c) => ({ ...c, busy: false, messages: [...c.messages, { who: "team", text: "A file could not be read. Attach it again.", bad: true }] })); }
-  const r = await call<Reply>("/api/chat", { topic: o.key, message: o.message, session: o.chat.session, model: o.model, effort: o.effort, suggest: o.suggest, ...(attachments.length && { attachments }) });
+  const r = await call<Reply>("/api/chat", { topic: o.key, message: o.message, session: o.chat.session, subs: o.chat.subs, model: o.model, effort: o.effort, suggest: o.suggest, ...(attachments.length && { attachments }) });
   patch((c) => {
     if (!r.ok) return { ...c, busy: false, messages: [...c.messages, { who: "team", text: r.error, bad: true }] };
     const d = r.data;
     const split = d.ok ? splitSuggestions(d.text) : { text: d.text, suggestions: [] as string[] };
-    const ask = d.ok ? /^PROPOSE: (push|merge|sync)(?: (F-\d+))?[ \t]*$/m.exec(split.text) : null;
-    const proposal: Proposal | undefined = ask && (ask[1] === "sync" ? !ask[2] : !!ask[2]) ? { kind: ask[1] as Proposal["kind"], id: ask[2] } : undefined;
+    const { text: shown, proposal } = d.ok ? parseProposal(split.text) : { text: split.text, proposal: undefined };
     const reply: Msg = d.ok
-      ? { who: "team", text: proposal ? split.text.replace(ask![0], "").trimEnd() : split.text, suggestions: split.suggestions, proposal, tools: d.tools, cost: d.costUsd }
+      ? { who: "team", text: shown, suggestions: split.suggestions, proposal, tools: d.tools, cost: d.costUsd }
       : { who: "team", text: FAILURES[d.status] ?? d.text, bad: true };
     if (d.denials.length) reply.tools = [...(reply.tools ?? []), ...d.denials.map((x) => ({ tool: "Not allowed", detail: x, error: true }))];
-    return { ...c, busy: false, session: d.session ?? c.session, messages: [...c.messages, reply] };
+    return { ...c, busy: false, session: d.session ?? c.session, subs: d.sessions ?? c.subs, messages: [...c.messages, reply] };
   });
 }
 
@@ -101,9 +120,7 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
   const [key, setKey] = useState("");
   const [model, setModel] = useState("sonnet");
   const [effort, setEffort] = useState("medium");
-  const [text, setText] = useState("");
   const [problem, setProblem] = useState("");
-  const [pending, setPending] = useState<Pending[]>([]);
   const [notice, setNotice] = useState("");
   const [dragging, setDragging] = useState(false);
   const end = useRef<HTMLDivElement>(null);
@@ -117,6 +134,11 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
   // The Guide only explains, so it starts on the cheap model; the choice above stays yours.
   useEffect(() => { if (topics?.find((t) => t.key === key)?.readOnly) setModel("haiku"); }, [key, topics === null]);
   const chat: Chat = chats[key] ?? { messages: [], busy: false };
+  const patch = (k: string, fn: (c: Chat) => Chat) => setChats((all) => ({ ...all, [k]: fn(all[k] ?? { messages: [], busy: false }) }));
+  const text = chat.draft ?? (key ? savedDraft(key) : "");
+  const pending = chat.files ?? [];
+  const setText = (v: string) => { patch(key, (c) => ({ ...c, draft: v })); saveDraft(key, v); };
+  const setPending = (f: Pending[] | ((p: Pending[]) => Pending[])) => patch(key, (c) => ({ ...c, files: typeof f === "function" ? f(c.files ?? []) : f }));
   useEffect(() => { end.current?.scrollIntoView({ block: "nearest" }); }, [chat.messages.length, chat.busy]);
 
   // The message box grows with what is typed or pasted, up to a limit (see .composer-box textarea), then scrolls.
@@ -137,31 +159,34 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
   const detach = (i: number) => setPending((p) => { if (p[i]?.url) URL.revokeObjectURL(p[i]!.url!); return p.filter((_, j) => j !== i); });
   const dropping = (e: React.DragEvent) => e.dataTransfer.types.includes("Files");
 
-  const patch = (k: string, fn: (c: Chat) => Chat) => setChats((all) => ({ ...all, [k]: fn(all[k] ?? { messages: [], busy: false }) }));
   // Typing and sending stay open while a reply is on its way: a message sent meanwhile waits (one per conversation) and goes out when the reply is done.
-  const [queued, setQueued] = useState<Record<string, { message: string; files: Pending[] }>>({});
-  const run = (k: string, message: string, files: Pending[]) => sendChat({ key: k, message, files, chat, suggest: topics?.find((t) => t.key === k)?.suggest ?? false, model, effort, setChats });
+  const opts = { suggest: topics?.find((t) => t.key === key)?.suggest ?? false, model, effort };
   const send = (message: string) => {
     if (!message.trim() && !pending.length) return;
     const files = pending;
     setText(""); setPending([]); setNotice("");
-    if (chat.busy) setQueued((q) => ({ ...q, [key]: { message: q[key] ? `${q[key]!.message}\n\n${message}`.trim() : message, files: [...(q[key]?.files ?? []), ...files].slice(0, ATTACH_MAX_FILES) } }));
-    else run(key, message, files);
+    if (chat.busy) patch(key, (c) => ({ ...c, opts, queued: { message: c.queued ? `${c.queued.message}\n\n${message}`.trim() : message, files: [...(c.queued?.files ?? []), ...files].slice(0, ATTACH_MAX_FILES) } }));
+    else sendChat({ key, message, files, chat, ...opts, setChats });
   };
-  useEffect(() => {
-    const q = queued[key];
-    if (!q || chat.busy || !topics) return;
-    setQueued(({ [key]: _, ...rest }) => rest);
-    run(key, q.message, q.files);
-  }, [chat.busy, key, queued, topics === null]);
 
-  // The approval: the button calls the same endpoint as the dashboard's Push and Merge buttons.
+  // The approval: the button calls the same endpoints as the dashboard's own buttons.
   const approve = async (i: number, p: Proposal) => {
     const k = key;
     patch(k, (c) => ({ ...c, busy: true }));
-    const r = await call<{ ok: boolean; output: string }>(p.kind === "sync" ? "/api/sync" : `/api/${p.kind}`, p.kind === "sync" ? {} : { id: p.id });
-    const text = r.ok ? r.data.output : r.error;
-    patch(k, (c) => ({ ...c, busy: false, messages: [...c.messages.map((m, j) => (j === i ? { ...m, acted: r.ok ? "Done" : "Failed" } : m)), { who: "team", text, bad: !r.ok }] }));
+    let r: Awaited<ReturnType<typeof call<{ output?: string }>>>, text = "";
+    if (p.kind === "promote") { // one at a time, in the order given; the first that fails stops the rest
+      r = { ok: true, data: {} };
+      for (const id of p.ids) { r = await call("/api/promote", { id }); if (!r.ok) break; }
+      text = r.ok ? `Moved ${p.ids.join(", ")} to Ready.` : r.error;
+    } else if (p.kind === "run" || p.kind === "retry") {
+      r = await call("/api/run", { ids: p.ids });
+      text = r.ok ? `Started ${p.ids.join(", ")}. Follow it in Backlog.` : r.error;
+    } else {
+      r = await call(p.kind === "sync" ? "/api/sync" : `/api/${p.kind}`, p.kind === "sync" ? {} : { id: p.ids[0] });
+      text = r.ok ? r.data.output ?? "Done." : r.error;
+    }
+    const ok = r.ok;
+    patch(k, (c) => ({ ...c, busy: false, messages: [...c.messages.map((m, j) => (j === i ? { ...m, acted: ok ? "Done" : "Failed" } : m)), { who: "team", text, bad: !ok }] }));
   };
 
   if (!topics) return problem ? <p className="error" role="alert">{problem}</p> : (
@@ -206,7 +231,7 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
           <div className="messages" role="log" aria-live="polite" aria-label={`${topic.title} conversation`}>
             {chat.messages.length === 0 && (
               <div className="intro">
-                <div className="bubble team"><Robot role={role} size={34} /><div className="inner-card">Hi, I’m {person.name}, the {topic.roleTitle}. {topic.summary}{topic.readOnly ? "" : " I ask one question at a time and save nothing until you approve it."}</div></div>
+                <div className="bubble team"><Robot role={role} size={34} /><div className="inner-card">Hi, I’m {person.name}, the {topic.roleTitle}. {topic.summary}{topic.readOnly || topic.manager ? "" : " I ask one question at a time and save nothing until you approve it."}</div></div>
                 <button className="primary" onClick={() => send(topic.first)}>Start this conversation</button>
               </div>
             )}
@@ -216,12 +241,12 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
                 <div className={`inner-card${m.bad ? " bad" : ""}`}>
                   {m.tools?.length ? <Steps steps={m.tools} /> : null}
                   {m.files?.length ? <ul className="files">{m.files.map((f, j) => <FileChip key={j} f={f} />)}</ul> : null}
-                  {m.who === "team" && !m.bad ? <Markdown text={m.text} /> : m.text}
+                  {m.who === "team" && !m.bad ? <Markdown text={m.text} /> : <div dir="auto">{m.text}</div>}
                   {m.cost ? <div className="msg-meta"><span>${m.cost.toFixed(4)}</span></div> : null}
                   {m.proposal && (
                     <div className="proposal">
-                      <span>{m.proposal.kind === "sync" ? "Update from GitHub?" : `${m.proposal.kind === "push" ? "Push" : "Merge"} ${m.proposal.id}${m.proposal.kind === "push" ? " to GitHub and open a pull request?" : "'s pull request into main?"}`}</span>
-                      {m.acted ? <b>{m.acted}</b> : <button className="primary" disabled={chat.busy} onClick={() => approve(i, m.proposal!)}>{m.proposal.kind === "sync" ? "Sync" : m.proposal.kind === "push" ? "Push" : "Merge"}</button>}
+                      <span>{PROPOSAL_ASK[m.proposal.kind](m.proposal.ids)}</span>
+                      {m.acted ? <b>{m.acted}</b> : <button className="primary" disabled={chat.busy} onClick={() => approve(i, m.proposal!)}>{PROPOSAL_BUTTON[m.proposal.kind]}</button>}
                     </div>
                   )}
                 </div>
@@ -241,10 +266,10 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
             <div ref={end} />
           </div>
           <form className="composer-box" onSubmit={(e) => { e.preventDefault(); send(text); }}>
-            {queued[key] && <p className="queued" role="status"><span>Waiting to send: {queued[key]!.message.slice(0, 80) || "attached files"}</span><button type="button" className="quiet" onClick={() => setQueued(({ [key]: _, ...rest }) => rest)}>Cancel</button></p>}
+            {chat.queued && <p className="queued" role="status"><span>Waiting to send: {chat.queued.message.slice(0, 80) || "attached files"}</span><button type="button" className="quiet" onClick={() => patch(key, (c) => ({ ...c, queued: undefined }))}>Cancel</button></p>}
             {pending.length > 0 && <ul className="files tray" aria-label="Attached files">{pending.map((p, j) => <FileChip key={j} f={{ name: p.file.name, size: p.file.size, url: p.url }} onRemove={() => detach(j)} />)}</ul>}
             <textarea
-              ref={box} rows={1} aria-label="Your message" placeholder={chat.messages.length ? "Your answer…" : "Or type your first message here…"} value={text} maxLength={20000}
+              ref={box} rows={1} dir="auto" aria-label="Your message" placeholder={chat.messages.length ? "Your answer…" : "Or type your first message here…"} value={text} maxLength={20000}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(text); } }}
               onPaste={(e) => { const files = [...e.clipboardData.files]; if (!files.length) return; e.preventDefault(); attach(files.map((f, i) => (f.name === "image.png" ? new File([f], `pasted-${new Date().toISOString().slice(11, 19).replace(/:/g, "")}${i ? `-${i}` : ""}.png`, { type: f.type }) : f))); }}
@@ -257,7 +282,7 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
             </div>
           </form>
           {notice && <p className="error" role="alert">{notice}</p>}
-          <p className="note">{topic.readOnly ? `${person.name} can read this project and run read-only checks. ${person.name} cannot change anything.` : `${person.name} can read this project and write documents under docs/. ${person.name} cannot change code.`}</p>
+          <p className="note">{topic.manager ? `${person.name} can read this project and ask the others. ${person.name} cannot change anything; anything to be done comes as a button you press.` : topic.readOnly ? `${person.name} can read this project and run read-only checks. ${person.name} cannot change anything.` : `${person.name} can read this project and write documents under docs/. ${person.name} cannot change code.`}</p>
         </section>
       )}
     </div>

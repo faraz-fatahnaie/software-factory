@@ -11,6 +11,8 @@ Each release lists what changed and anything you need to do in your own project.
   moves triage to it from the Planner. Balanced is now 10 roles and Full 13; Lean is unchanged. **After updating,
   in each project run `factory team apply` (or `/software-factory:doctor`, which says so)** to create the new role
   file, and check the Team view. The rest of the role comes in following releases.
+- **Talk to the team.** The first conversation in Talk: you talk to Tess, who answers or asks the roles a message concerns (read-only, up to three, in parallel) and replies once; each consultation is a folded step you can open. She says where things stand, why a task stopped, and offers promote, run and retry as buttons.
+- **Fixes.** A message you typed but did not send is kept when you leave Talk and come back (and across a reload), and a message waiting behind a reply is still sent. Right-to-left text (Persian, Arabic, Hebrew) is shown right to left, paragraph by paragraph, in replies, in your own messages and in the message box.
 
 ## 1.0.1
 

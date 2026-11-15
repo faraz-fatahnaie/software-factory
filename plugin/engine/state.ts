@@ -75,9 +75,9 @@ export type ToolStep = { tool: string; detail: string; output?: string; error?: 
 const KINDS: Record<string, [string, string, string]> = { Bash: ["ran", "command", "commands"], Read: ["read", "file", "files"], Grep: ["searched", "time", "times"], Glob: ["searched", "time", "times"], Write: ["wrote", "file", "files"], Edit: ["edited", "file", "files"], WebFetch: ["opened", "web page", "web pages"], WebSearch: ["searched the web", "time", "times"], Skill: ["used", "skill", "skills"] };
 /** "Ran 2 commands, read 3 files": the one line a group of steps folds into. */
 export function stepsSummary(steps: ToolStep[]): string {
-  const n = new Map<string, number>();
-  for (const s of steps) n.set(s.tool, (n.get(s.tool) ?? 0) + 1);
-  const parts = [...n].map(([tool, c]) => { const [verb, one, many] = KINDS[tool] ?? ["used", tool, tool]; return `${verb} ${c} ${c === 1 ? one : many}`; });
+  const n = new Map<string, number>(), asked: string[] = [];
+  for (const s of steps) { if (s.tool.startsWith("Asked ")) asked.push(s.tool.slice(6)); else n.set(s.tool, (n.get(s.tool) ?? 0) + 1); }
+  const parts = [...(asked.length ? [`asked ${asked.join(", ")}`] : []), ...[...n].map(([tool, c]) => { const [verb, one, many] = KINDS[tool] ?? ["used", tool, tool]; return `${verb} ${c} ${c === 1 ? one : many}`; })];
   const text = parts.join(", ");
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -246,3 +246,14 @@ export function splitSuggestions(text: string): { text: string; suggestions: str
 export const ATTACH_EXT = ["png", "jpg", "jpeg", "gif", "webp", "pdf", "ipynb", "txt", "md", "markdown", "csv", "tsv", "json", "jsonl", "yaml", "yml", "toml", "xml", "html", "css", "svg", "log", "diff", "patch", "sql",
   "js", "jsx", "ts", "tsx", "py", "rb", "go", "rs", "java", "kt", "swift", "c", "h", "cpp", "cs", "php", "sh", "lua", "dart", "vue", "svelte"];
 export const ATTACH_MAX_FILES = 8, ATTACH_MAX_BYTES = 20 * 1024 * 1024;
+
+/** An action a conversation proposes. Only a button the person presses runs it. */
+export type Proposal = { kind: "push" | "merge" | "sync" | "promote" | "run" | "retry"; ids: string[] };
+/** Takes the one `PROPOSE:` line out of a reply. A line that does not fit its kind (a push needs one task, a sync none) is not a proposal, and stays in the text. */
+export function parseProposal(text: string): { text: string; proposal?: Proposal } {
+  const m = /^PROPOSE: (push|merge|sync|promote|run|retry)((?: F-\d+)*)[ \t]*$/m.exec(text);
+  if (!m) return { text };
+  const kind = m[1] as Proposal["kind"], ids = m[2]!.trim() ? m[2]!.trim().split(" ") : [];
+  const fits = kind === "sync" ? ids.length === 0 : kind === "push" || kind === "merge" ? ids.length === 1 : ids.length >= 1 && ids.length <= 8;
+  return fits ? { text: text.replace(m[0], "").trimEnd(), proposal: { kind, ids } } : { text };
+}

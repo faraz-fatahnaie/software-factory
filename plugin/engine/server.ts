@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { parse } from "./backlog";
-import { chatArgs, chatTurn, TOPICS } from "./chat";
+import { chatArgs, chatTurn, managerTurn, TOPICS } from "./chat";
 import { loadConfig, parseConfig, projectRoles, projectTeam } from "./config";
 import { openStore } from "./events";
 import { healthChecks, type Health } from "./health";
@@ -45,7 +45,7 @@ async function freshGui() {
 /** Whether a person's conversations end with suggested next messages: their own setting, else on for the Product Partner and the Guide only. */
 function suggestOn(root: string, role?: string): boolean {
   if (!role) return false;
-  const standard = role === "product-partner" || role === "guide";
+  const standard = role === "product-partner" || role === "guide" || role === "technical-manager";
   try { return loadConfig(root).chat?.suggest?.[role] ?? standard; } catch { return standard; }
 }
 
@@ -170,7 +170,7 @@ export async function serve(root: string, port = 4400) {
         const team = projectTeam(root);
         return json(Object.entries(TOPICS).map(([key, t]) => {
           // The role that holds the conversation's first responsibility, so the page shows the right person even after a regrouping.
-          const role = t.guide ? undefined : holderOf(team, t.ids[0]!), base = { key, title: t.title, summary: t.summary, first: t.first, role, roleTitle: t.guide ? "Guide" : role ? team.roles[role]!.title : undefined, suggest: suggestOn(root, t.guide ? "guide" : role), readOnly: !!t.guide };
+          const role = t.guide ? undefined : holderOf(team, t.ids[0]!), base = { key, title: t.title, summary: t.summary, first: t.first, manager: t.manager, role, roleTitle: t.guide ? "Guide" : role ? team.roles[role]!.title : undefined, suggest: suggestOn(root, t.guide ? "guide" : role), readOnly: !!t.guide };
           if (t.guide) return { ...base, available: true };
           try { chatPromptFor(t.ids, team); return { ...base, available: true }; }
           catch (e) { return { ...base, available: false, reason: (e as Error).message }; }
@@ -332,7 +332,7 @@ export async function serve(root: string, port = 4400) {
       if (route === "POST /api/chat") {
         try {
           chatArgs(body as never, projectTeam(root)); // validate before spending anything
-          return json(await chatTurn(root, body as never, projectTeam(root)));
+          return json(await (body.topic === "manager" ? managerTurn : chatTurn)(root, body as never, projectTeam(root)));
         } catch (e) {
           return json({ error: (e as Error).message }, 400);
         }

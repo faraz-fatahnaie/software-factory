@@ -14,7 +14,7 @@ seedStates(dir, cli);
 // A stand-in for the claude command for the Talk checks: one command with its output, then a reply that uses every kind of Markdown. It waits a moment so the box can be used while a reply is on its way.
 const bin = join(dir, ".factory", "fakebin");
 mkdirSync(bin, { recursive: true });
-const REPLY = "## Plan\\n\\nHere is **bold**, `code` and a [link](https://example.com).\\n\\n- one\\n- two\\n\\n| A | B |\\n|---|---|\\n| 1 | 2 |\\n\\n```ts\\nconst x = 1;\\n```";
+const REPLY = "## Plan\\n\\nHere is **bold**, `code` and a [link](https://example.com).\\n\\n- one\\n- two\\n\\n| A | B |\\n|---|---|\\n| 1 | 2 |\\n\\n```ts\\nconst x = 1;\\n```\\n\\nسلام، این یک پیام فارسی است.";
 writeFileSync(join(bin, "claude"), `#!/bin/sh
 sleep 1.5
 printf '%s\\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"git status"}}]}}'
@@ -134,6 +134,10 @@ try {
     const before = (await box.boundingBox())!.height;
     await box.fill(Array(12).fill("a long line of text").join("\n"));
     assert.ok((await box.boundingBox())!.height > before * 2, `${name}: the message box grows with a long message`);
+    await box.fill("a draft I did not send");
+    await open(page, "Overview"); // leaving the page and coming back keeps what was typed
+    await open(page, "Talk");
+    assert.equal(await box.inputValue(), "a draft I did not send", `${name}: the unsent message survives leaving the tab`);
     await box.fill("");
     await page.locator('input[type="file"]').setInputFiles({ name: "shot.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64") });
     await page.locator(".tray .chip-file.pic").waitFor();
@@ -153,6 +157,8 @@ try {
     await page.locator(".run-step > summary").first().click();
     await page.locator(".run-step pre.out", { hasText: "nothing to commit" }).waitFor();
     await page.locator(".chat-md h4", { hasText: "Plan" }).waitFor();
+    assert.equal(await page.locator(".chat-md p", { hasText: "فارسی" }).evaluate((e) => getComputedStyle(e).direction), "rtl", `${name}: Persian text reads right to left`);
+    assert.equal(await page.locator(".chat-md p", { hasText: "Here is" }).evaluate((e) => getComputedStyle(e).direction), "ltr");
     await page.locator(".chat-md table td", { hasText: "2" }).waitFor();
     await page.locator(".md-code", { hasText: "const x = 1;" }).waitFor();
     await page.locator('.chat-md a[href="https://example.com"]').waitFor();

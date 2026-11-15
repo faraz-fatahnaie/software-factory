@@ -7,7 +7,7 @@ import { Source } from "./source";
 import { BacklogView } from "./backlog";
 import { Studio } from "./studio";
 import { Agents, Logs, Worktrees } from "./views";
-import { sendChat, Talk, type Chats } from "./talk";
+import { sendChat, Talk, useQueueDrain, type Chats } from "./talk";
 import { Palette } from "./palette";
 import { HealthStrip, healthChip } from "./health";
 import { presenceOf, TALK_TO, Team, type TeamData } from "./team";
@@ -333,6 +333,7 @@ function App() {
   const [theme, toggleTheme] = useTheme();
   const [selected, setSelected] = useState<string | null>(null);
   const [chats, setChats] = useState<Chats>({});
+  useQueueDrain(chats, setChats);
   const [topic, setTopic] = useState("");
   const [person, setPerson] = useState<string | null>(null);
   const [palette, setPalette] = useState(false);

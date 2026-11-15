@@ -55,7 +55,7 @@ Open **Team**. Each person is a robot with a name, a job and a model.
 | --- | --- | --- |
 | **Mara** | Product Partner: works out what you want | In Talk, with you |
 | **Idris** | Planner: stories, milestones, tasks | In Talk |
-| **Tess** | Technical Manager: triages loose ideas, and (as it is built) starts and watches tasks, explains what stopped and chooses the fix | On loose ideas; more in each release |
+| **Tess** | Technical Manager: the face of the team. Talk to her first: she answers, or asks the others and brings you their answers; she says where things stand, why a task stopped and what to do. She also triages loose ideas | In Talk ("Talk to the team"), and on loose ideas |
 | **Noor** | Architect: stack, design, and the spec for each task | In Talk, and on every task |
 | **Kofi** | Builder: writes the code, tests first | On every task. The only one who changes code |
 | **Lena** | Tester: checks the product against the stories | In Talk |

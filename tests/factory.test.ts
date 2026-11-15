@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { add, move, parse } from "../plugin/engine/backlog";
 import { agentEvents, claudeArgs, classify } from "../plugin/engine/claude";
@@ -15,14 +15,14 @@ import { applyTeam, configure, detect, doctor, init, nextStep, projectDocs } fro
 import { personaFor } from "../gui/robots";
 import { activeRoles, catalog, holderOf, chatPrompt, chatPromptFor, checkSettings, customStages, DEFAULT_PRESET, describeTeam, perTask, presets, renderRole, resolveTeam, stageDuties, stageRole, teamForAgents, toolsFor, validateTeam, type TeamSettings } from "../plugin/engine/team";
 import { addCustom, moveSettings, offSettings, parseChange, planTeam, removeCustom, renameSettings, teamView } from "../plugin/engine/teamctl";
-import { chatArgs, checkAttachments, saveAttachments, TOPICS } from "../plugin/engine/chat";
+import { askable, chatArgs, checkAttachments, managerTurn, parseAsks, saveAttachments, TOPICS } from "../plugin/engine/chat";
 import { parseBlocks, parseInline } from "../gui/mdparse";
 import { estimate } from "../plugin/engine/estimate";
 import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugin/engine/vcs";
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
 import { followUps, needsTriage, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
-import { splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
+import { parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
 import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
 import { counts, lineDiff, marks, splitDiff, withGaps } from "../gui/linediff";
 import { gateIsPlaceholder, healthChecks, waitedLong } from "../plugin/engine/health";
@@ -447,7 +447,7 @@ test("team apply: rebuilds generated files, keeps skills, leaves hand-edited fil
   expect(readFileSync(file("architect"), "utf8")).toContain("  - tdd"); // attached skills survive a rebuild
   expect(readFileSync(file("architect"), "utf8")).not.toContain("outdated");
   expect(cli("team", "apply", "--force").out).toMatch(/rebuilt  \.claude\/agents\/reviewer\.md/);
-  expect(cli("team").out).toMatch(/● Product Partner \(product-partner\) {2}\[chat\]\n {4}built: {3}D1 D2 D3[\s\S]*● Planner \(planner\) {2}\[chat\]\n {4}built: {3}R1 R2 R3 R4 P1 P2 P3\n[\s\S]*● Technical Manager \(technical-manager\) {2}\[agent\] {2}sonnet, medium\n {4}built: {3}P4\n {4}planned: M1 M4 M5/);
+  expect(cli("team").out).toMatch(/● Product Partner \(product-partner\) {2}\[chat\]\n {4}built: {3}D1 D2 D3[\s\S]*● Planner \(planner\) {2}\[chat\]\n {4}built: {3}R1 R2 R3 R4 P1 P2 P3\n[\s\S]*● Technical Manager \(technical-manager\) {2}\[chat \+ agent\] {2}sonnet, medium\n {4}built: {3}P4 M4 M5 M8 M9 M18\n {4}planned: M1 M6 M7/);
   expect(cli("team", "bogus").code).toBe(1);
 }, 60_000);
 
@@ -2130,4 +2130,59 @@ test("technical manager: holds triage and the management work in Balanced and Fu
   expect(Object.keys(nine.roles)).not.toContain("technical-manager");
   expect(holderOf(nine, "M5")).toBe("planner"); // folded into the planner first
   expect(personaFor("technical-manager").name).toBe("Tess");
+});
+
+test("manager: proposals are parsed by kind, ASK lines only name roles that can be asked, and the page lists the manager first", () => {
+  expect(parseProposal("Do it.\nPROPOSE: promote F-001 F-002")).toEqual({ text: "Do it.", proposal: { kind: "promote", ids: ["F-001", "F-002"] } });
+  expect(parseProposal("PROPOSE: retry F-003").proposal).toEqual({ kind: "retry", ids: ["F-003"] });
+  expect(parseProposal("PROPOSE: sync").proposal).toEqual({ kind: "sync", ids: [] });
+  expect(parseProposal("PROPOSE: push F-001 F-002").proposal).toBeUndefined(); // a push is one task
+  expect(parseProposal("PROPOSE: sync F-001").proposal).toBeUndefined();
+  expect(parseProposal("PROPOSE: rm -rf").proposal).toBeUndefined();
+  const team = resolveTeam();
+  const asks = parseAsks("Thinking.\nASK design: Which stack?\nASK design: again\nASK secure: Is it safe?\nASK guide: no\nASK bogus: no\nASK plan: a\nASK test: b", team);
+  expect(asks.map((a) => a.topic)).toEqual(["design", "secure", "plan"]); // valid, one per topic, three at most
+  expect(askable(team).some((a) => a.key === "manager" || a.key === "guide")).toBe(false);
+  const args = chatArgs({ topic: "manager", message: "hi" }, team);
+  const system = args[args.indexOf("--append-system-prompt") + 1]!;
+  expect(system).toContain("`ASK <topic>:");
+  expect(system).toContain("- `design`: Architect");
+  const allowed = args.slice(args.indexOf("--allowedTools") + 1, args.indexOf("--setting-sources")).join(" ");
+  expect(allowed).not.toMatch(/Write|Edit/); // the manager changes no files
+  expect(allowed).toContain("Bash(factory status:*)");
+  expect(Object.keys(TOPICS)[0]).toBe("manager");
+  expect(() => chatArgs({ topic: "manager", message: "x", subs: { design: "../x" } }, team)).toThrow(/subs/);
+  const lean = resolveTeam({ preset: "lean" });
+  expect(chatArgs({ topic: "manager", message: "hi" }, lean)[2]).toBe("hi"); // Lean's manager is the Product Partner
+  { const a = chatArgs({ topic: "plan", message: "hi" }, team, { readOnly: true }); expect(a.slice(a.indexOf("--allowedTools"), a.indexOf("--setting-sources")).join(" ")).not.toMatch(/Write|Edit/); } // a consulted role may only read
+});
+
+test("manager: a message is routed to the roles it concerns, their answers come back through the manager, and each consultation is a step", async () => {
+  const bin = join(tmp(), "bin");
+  mkdirSync(bin, { recursive: true });
+  const log = join(bin, "calls.log");
+  const result = (text: string, id: string) => JSON.stringify({ type: "result", subtype: "success", is_error: false, result: text, session_id: id, total_cost_usd: 0.01, usage: {} });
+  writeFileSync(join(bin, "claude"), `#!/bin/sh
+echo call >> ${log}
+case "$2" in
+  "The roles answered"*) printf '%s\\n' '${result("Noor says use SQLite; Zane says encrypt it.", "33333333-3333-3333-3333-333333333333")}' ;;
+  "The Technical Manager is asking"*) printf '%s\\n' '${result("An answer from a role.", "22222222-2222-2222-2222-222222222222")}' ;;
+  *) printf '%s\\n' '${result("ASK design: Which database?\nASK secure: Is it safe?", "11111111-1111-1111-1111-111111111111")}' ;;
+esac
+`);
+  chmodSync(join(bin, "claude"), 0o755);
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  try {
+    const out = await managerTurn(tmp(), { topic: "manager", message: "Which database, and is it safe?" }, resolveTeam());
+    expect(out.ok).toBe(true);
+    expect(out.text).toBe("Noor says use SQLite; Zane says encrypt it.");
+    expect(out.tools.map((t) => t.tool)).toEqual(["Asked Architect", "Asked Security and Performance Engineer"]);
+    expect(out.tools[0]).toMatchObject({ detail: "Which database?", output: "An answer from a role." });
+    expect(out.sessions).toEqual({ design: "22222222-2222-2222-2222-222222222222", secure: "22222222-2222-2222-2222-222222222222" });
+    expect(out.session).toBe("33333333-3333-3333-3333-333333333333");
+    expect(out.costUsd).toBeCloseTo(0.04);
+    expect(stepsSummary(out.tools)).toBe("Asked Architect, Security and Performance Engineer");
+    expect(readFileSync(log, "utf8").trim().split("\n")).toHaveLength(4); // the manager, two roles, the manager again
+  } finally { process.env.PATH = path; }
 });

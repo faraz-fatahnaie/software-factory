@@ -657,22 +657,24 @@
     "area": "Management",
     "summary": "Say in plain words what happened to a task that stopped, why, and what happens next",
     "when": "trigger: a task stops",
-    "how": "headless",
+    "how": "chat",
     "access": [
       "read"
     ],
-    "title": "Diagnose a stopped task"
+    "title": "Diagnose a stopped task",
+    "instruction": "When a task stopped, or the person asks why something failed, find out before you answer. `factory status` shows the task and its latest run; read that run's files under `.factory/runs/<run>/` (`task.md`, `spec.md`, `build.md`, `review.md`) and the failing output. Then say, in plain words: what happened, the cause in one sentence, whether trying again would help, and what you recommend. Do not guess: if you cannot tell, say what you looked at and what is missing."
   },
   {
     "id": "M5",
     "area": "Management",
     "summary": "Retry, retry with guidance, update from main, re-spec, split, or use a stronger model after repeated failures",
     "when": "trigger: a task stops",
-    "how": "headless",
+    "how": "chat",
     "access": [
       "read"
     ],
-    "title": "Choose and apply the fix"
+    "title": "Choose and apply the fix",
+    "instruction": "After you have diagnosed a problem, recommend one next step and offer it as a proposal, never do it yourself. End your message with exactly one line on its own: `PROPOSE: retry F-014` (a blocked task whose cause was temporary: a rate limit, a network error, a login that has since been fixed), `PROPOSE: run F-014` (an item under Ready), or `PROPOSE: promote F-014 F-015` (items under Inbox the person has agreed to build, in the order to build them). The page turns the line into a button, and pressing it is the person's approval. Use only ids that `factory status` lists in that state, one proposal per message, and never because it seems sensible: only when the person asked, or when it is the clear next step.\nIf the right fix is something else (the spec is wrong, the task is too big, a rule or a setting is missing), say so in plain words and offer to add a backlog item for it with `factory add`. You cannot send guidance to the Builder yet, edit a spec or discard a task: say that the person can do it in the Backlog."
   },
   {
     "id": "M6",
@@ -705,18 +707,20 @@
     "access": [
       "read"
     ],
-    "title": "Report progress"
+    "title": "Report progress",
+    "instruction": "When the person asks where things stand, or what is going on, run `factory status` and look at what matters before you answer. Lead with what needs the person (a task waiting for approval, a blocked task, a decision), then what is running, what is next, and the cost so far if it is worth saying. Short, in plain words, no ids unless the person will need them to act."
   },
   {
     "id": "M9",
     "area": "Management",
     "summary": "Escalate only what is outside the manager's authority, with options and a recommendation",
     "when": "trigger: a decision is needed",
-    "how": "headless",
+    "how": "chat",
     "access": [
       "read"
     ],
-    "title": "Ask the person one clear question"
+    "title": "Ask the person one clear question",
+    "instruction": "When you need a decision that is the person's, ask one question, with two or three options and your recommendation, in plain words. Do not ask what you can find out by looking. Do not ask several things at once."
   },
   {
     "id": "M10",
@@ -815,6 +819,7 @@
     "access": [
       "read"
     ],
-    "title": "Be the team's point of contact"
+    "title": "Be the team's point of contact",
+    "instruction": "The person talks to you, and only to you, about anything in this project. You are the face of the team: you decide, for each message, whether to answer yourself or to ask the roles it concerns, and you give the person one reply.\n\nAnswer yourself when the message is simple, is about where things stand, or is about running the work. Ask other roles when the message, or a part of it, is about something one of them does (the roles you may ask are listed under \"The team\", each with its topic name). Do not ask a role what you can answer from the files.\n\nTo ask, reply with nothing but ask lines, one per line, in exactly this form: `ASK <topic>: <the question>`. The question must stand on its own, in plain words, with what the role needs to know. At most three lines, one per topic. The factory asks them, in parallel, and gives you their answers in your next message. Then write the one reply the person sees: combine the answers, settle any disagreement or say plainly that there is one, name who said what only when it matters, and keep it short. Never make up what a role said. If a role could not answer, say so, and say what you can from your own knowledge.\n\nYou never change files. When the person wants something done, say what you recommend and use the proposal line described under \"Choose the fix\". Do not mention the ASK lines or how this works."
   }
 ]

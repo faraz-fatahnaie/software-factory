@@ -408,9 +408,9 @@ holds the same work. Shrinking a team folds the manager into the Planner first.
 | M17 | Watch team health | conversation |
 | M18 | **The face of the team**: the person always talks to the manager, who sends each message, or the part of it that concerns them, to the roles it is about, and brings their answers back as one reply | conversation |
 
-**Build status.** Phase 1 is done: the role, the catalog entries M1–M18 (planned, no instructions yet), the presets, the
-robot (Tess) and the move of P4. Phase 2 (diagnosis and the conversation), Phase 3 (the supervisor, recovery,
-autonomy and limits) and Phase 4 (the page) are not built.
+**Build status.** Phase 2 is done: the conversation "Talk to the team" (M18, M8, M4, M5, M9), the routing described below, and the proposals `promote`, `run` and `retry` as buttons next to `push`, `merge` and `sync`. Phase 1 is done: the role, the catalog entries M1–M18 (planned, no instructions yet), the presets, the
+robot (Tess) and the move of P4. Phase 3 (the supervisor, recovery,
+autonomy and limits, and sending guidance to the Builder) and Phase 4 (the manager's strip on Overview, the autonomy switch, the progress digest) are not built.
 
 ### The face of the team (M18)
 
@@ -419,7 +419,7 @@ security, a request to start the work. For each message the manager decides whic
 and answers once, in its own voice, naming who said what when it matters. A trivial message gets a direct answer
 and no consultations.
 
-**How (decided, to be built in Phase 2).** The engine runs the routing, not the model alone: the manager's first
+**How (built).** The engine runs the routing, not the model alone: the manager's first
 turn names the roles to ask and what to ask each (at most three per message); the engine runs each as that role's
 own conversation, with that role's own prompt, session and allow-list (documents only, never code), in parallel;
 the answers go back to the manager, who writes the reply. Each consultation appears in the reply as a folded step

@@ -23,7 +23,7 @@ type Change =
 const FOR: Record<string, string> = { lean: "A small or personal project, nothing sensitive.", balanced: "Most projects. The default.", full: "Personal data, payments, or several people depending on it." };
 const DOES: Record<string, string> = { spec: "Writes the spec", build: "Builds it", review: "Reviews it", triage: "Triages ad-hoc items", security: "Checks security", document: "Writes the summary" };
 // Which conversation to open when you choose "Talk to…" on a role.
-export const TALK_TO: Record<string, string> = { "product-partner": "brainstorm", planner: "plan", architect: "design", tester: "test", "security-performance": "secure", scribe: "docs", "release-engineer": "git" };
+export const TALK_TO: Record<string, string> = { "technical-manager": "manager", "product-partner": "brainstorm", planner: "plan", architect: "design", tester: "test", "security-performance": "secure", scribe: "docs", "release-engineer": "git" };
 const money = (n: number) => `$${n.toFixed(2)}`;
 const slug = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 

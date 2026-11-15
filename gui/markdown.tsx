@@ -26,7 +26,7 @@ function Code({ lang, v }: { lang: string; v: string }) {
   return (
     <figure className="md-code">
       <figcaption><span>{lang || "text"}</span><button type="button" className="quiet" onClick={copy} aria-label={done ? "Copied" : "Copy the code"}><Icon name={done ? "tick" : "copy"} size={14} />{done ? "Copied" : "Copy"}</button></figcaption>
-      <pre tabIndex={0}><code>{v}</code></pre>
+      <pre tabIndex={0} dir="ltr"><code>{v}</code></pre>
     </figure>
   );
 }
@@ -34,15 +34,15 @@ function Code({ lang, v }: { lang: string; v: string }) {
 function Blocks({ c }: { c: Block[] }) {
   return <>{c.map((b, i) => {
     switch (b.t) {
-      case "p": return <p key={i}><Inlines c={b.c} /></p>;
-      case "h": { const H = `h${Math.min(6, b.level + 2)}` as "h3"; return <H key={i}><Inlines c={b.c} /></H>; }
+      case "p": return <p key={i} dir="auto"><Inlines c={b.c} /></p>;
+      case "h": { const H = `h${Math.min(6, b.level + 2)}` as "h3"; return <H key={i} dir="auto"><Inlines c={b.c} /></H>; }
       case "hr": return <hr key={i} />;
       case "code": return <Code key={i} lang={b.lang} v={b.v} />;
-      case "quote": return <blockquote key={i}><Blocks c={b.c} /></blockquote>;
+      case "quote": return <blockquote key={i} dir="auto"><Blocks c={b.c} /></blockquote>;
       case "list": {
         const L = b.ordered ? "ol" : "ul";
-        return <L key={i} start={b.ordered && b.start !== 1 ? b.start : undefined}>{b.items.map((it, j) => (
-          <li key={j} className={it.task ? "task" : undefined}>
+        return <L key={i} dir="auto" start={b.ordered && b.start !== 1 ? b.start : undefined}>{b.items.map((it, j) => (
+          <li key={j} dir="auto" className={it.task ? "task" : undefined}>
             {it.task && <input type="checkbox" checked={it.done} disabled aria-label={it.done ? "done" : "not done"} />}
             <div><Blocks c={it.c} /></div>
           </li>
@@ -51,8 +51,8 @@ function Blocks({ c }: { c: Block[] }) {
       case "table": return (
         <div key={i} className="md-table" tabIndex={0} role="region" aria-label="Table">
           <table>
-            <thead><tr>{b.head.map((h, j) => <th key={j} style={{ textAlign: b.align[j] }}><Inlines c={h} /></th>)}</tr></thead>
-            <tbody>{b.rows.map((r, j) => <tr key={j}>{b.head.map((_, k) => <td key={k} style={{ textAlign: b.align[k] }}><Inlines c={r[k] ?? []} /></td>)}</tr>)}</tbody>
+            <thead><tr>{b.head.map((h, j) => <th key={j} dir="auto" style={{ textAlign: b.align[j] }}><Inlines c={h} /></th>)}</tr></thead>
+            <tbody>{b.rows.map((r, j) => <tr key={j}>{b.head.map((_, k) => <td key={k} dir="auto" style={{ textAlign: b.align[k] }}><Inlines c={r[k] ?? []} /></td>)}</tr>)}</tbody>
           </table>
         </div>
       );

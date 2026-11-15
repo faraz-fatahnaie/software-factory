@@ -1127,10 +1127,10 @@ button.icon:hover { color: var(--text); background: color-mix(in srgb, var(--tex
 .chat-md p, .chat-md ul, .chat-md ol, .chat-md blockquote, .chat-md .md-code, .chat-md .md-table, .chat-md hr { margin: 0 0 0.75em; }
 .chat-md h3, .chat-md h4, .chat-md h5, .chat-md h6 { margin: 1em 0 0.4em; line-height: 1.3; font-weight: 650; }
 .chat-md h3 { font-size: 1.2em; } .chat-md h4 { font-size: 1.08em; } .chat-md h5, .chat-md h6 { font-size: 1em; }
-.chat-md ul, .chat-md ol { list-style: revert; padding-left: 1.4em; }
+.chat-md ul, .chat-md ol { list-style: revert; padding-inline-start: 1.4em; }
 .chat-md li { margin: 0.2em 0; } .chat-md li > div > :last-child { margin-bottom: 0; } .chat-md li > div > p { margin-bottom: 0.3em; }
-.chat-md li.task { list-style: none; display: flex; gap: 8px; margin-left: -1.2em; } .chat-md li.task input { margin-top: 0.3em; }
-.chat-md blockquote { padding: 2px 0 2px 12px; border-left: 3px solid var(--line-strong); color: var(--muted); }
+.chat-md li.task { list-style: none; display: flex; gap: 8px; margin-inline-start: -1.2em; } .chat-md li.task input { margin-top: 0.3em; }
+.chat-md blockquote { padding: 2px 0; padding-inline-start: 12px; border-inline-start: 3px solid var(--line-strong); color: var(--muted); }
 .chat-md hr { border: 0; border-top: 1px solid var(--line); }
 .chat-md :not(pre) > code { padding: 1px 5px; border-radius: 6px; background: var(--raise); border: 1px solid var(--line); overflow-wrap: anywhere; }
 .chat-md a { overflow-wrap: anywhere; }
@@ -1142,7 +1142,7 @@ button.icon:hover { color: var(--text); background: color-mix(in srgb, var(--tex
 .md-table { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
 .md-table table { border-collapse: collapse; width: max-content; min-width: 100%; font-size: 13.5px; }
 .md-table th, .md-table td { padding: 6px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
-.md-table th { background: var(--raise); font-weight: 650; text-align: left; }
+.md-table th { background: var(--raise); font-weight: 650; text-align: start; }
 .md-table tr:last-child td { border-bottom: 0; }
 
 .run-steps { margin: 0 0 10px; }
@@ -1164,3 +1164,6 @@ button.icon:hover { color: var(--text); background: color-mix(in srgb, var(--tex
 @media (max-width: 700px) { .chat { height: max(520px, calc(100dvh - 110px)); } .composer-bar .note { display: none; } .composer-bar .grow { flex: 1; } }
 @media (prefers-reduced-motion: reduce) { .run-steps > summary > svg:last-child, .run-step > summary > svg:last-child { transition: none; } }
 .queued { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; padding: 4px 6px 4px 10px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); font-size: 13px; } .queued span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.composer-box textarea { text-align: start; unicode-bidi: plaintext; }
+.bubble .inner-card > div[dir="auto"] { text-align: start; }
+.run-step pre.cmd.ask::before { content: "Question: "; }
