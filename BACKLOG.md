@@ -47,6 +47,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   The auto-update steps in the Updating guide (the Marketplaces tab in /plugin) were not checked. Check them, and claude plugin list, uninstall and tags, and fix the guide.
 - [ ] F-076 (P1) Stop a running reply in Talk
   A reply cannot be cancelled today. Add a Stop button next to Send while a reply is coming; end the claude process and the consultations, keep what was typed.
+- [ ] F-077 (P1) Keep conversations across a page reload
+  Messages and session ids live in the page only, so a reload loses the whole conversation. Keep them (without file bodies) per project and conversation.
 
 ## Ready
 
