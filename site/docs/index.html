@@ -22,6 +22,7 @@
   <aside class="side" aria-label="On this page"><p class="eyebrow">Overview</p><nav>
 <a class="l2" href="#what-you-need">What you need</a>
 <a class="l2" href="#install">Install</a>
+<a class="l2" href="#updating">Updating</a>
 <a class="l2" href="#first-minutes">First minutes</a>
 <a class="l2" href="#what-you-get">What you get</a>
 <a class="l3" href="#the-pipeline">The pipeline</a>
@@ -82,11 +83,43 @@ customers pay a deposit by link. Every example, here and in the <a href="runbook
 </code></pre>
 <p>Choose where it is enabled when you install: just for you in every project (<code>user</code>), recorded in the
 repository so collaborators are prompted to install it (<code>project</code>), or only here (<code>local</code>).</p>
-<p>To update later: <code>claude plugin marketplace update software-factory</code>, then
-<code>claude plugin update software-factory@software-factory</code>.</p>
+<h2 id="updating">Updating</h2>
+<p>New versions are announced on the repository's
+<a href="https://github.com/faraz-fatahnaie/software-factory/releases">Releases page</a>, and each one lists what changed in
+<a href="https://github.com/faraz-fatahnaie/software-factory/blob/main/CHANGELOG.md"><code>CHANGELOG.md</code></a>. Updating is the same
+in every project, and it never touches your project's files.</p>
+<p><strong>1. See what you have.</strong> Run <code>claude plugin list</code> in a terminal (or <code>/plugin</code> inside Claude Code, then the
+<em>Installed</em> tab). The version is next to <code>software-factory</code>.</p>
+<p><strong>2. Update.</strong> In a terminal:</p>
+<pre tabindex="0"><code>claude plugin marketplace update software-factory
+claude plugin update software-factory@software-factory
+</code></pre>
+<p>The first line fetches the list of versions from GitHub; the second installs the newest one. Then <strong>restart
+Claude Code</strong> (end the session and start it again) so it loads the new version. If you installed from a folder
+on your computer, run <code>git pull</code> in that folder first.</p>
+<p><strong>3. Restart the dashboard.</strong> A dashboard that was already open keeps running the old version. Stop it (end its
+background task in Claude Code, or press <code>Ctrl+C</code> where <code>factory serve</code> runs), run <code>/software-factory:open</code>
+again and refresh the page.</p>
+<p><strong>4. Check.</strong> Run <code>/software-factory:doctor</code>. It says if anything in your project needs attention after the update.</p>
+<p><strong>What an update changes, and what it does not.</strong> It replaces the factory's own code: the engine, the dashboard,
+the slash commands and the built-in catalog. It does not touch <code>BACKLOG.md</code>, <code>factory.config.json</code>, <code>AGENTS.md</code>,
+your role files in <code>.claude/agents/</code>, your skills, your docs or any task. Those belong to your project. When a
+release adds something that needs a change in your files (a new responsibility, a new setting), its entry in
+<code>CHANGELOG.md</code> says what to do, and the <em>Team</em> view shows the new responsibilities so you can switch them on.</p>
+<p><strong>Updating automatically.</strong> Third-party marketplaces do not update by themselves. In <code>/plugin</code>, open the
+<em>Marketplaces</em> tab, choose <code>software-factory</code> and turn auto-update on; Claude Code then checks when it starts.
+Restart the dashboard after it does.</p>
+<p><strong>&quot;It says I am up to date, but there is a newer version.&quot;</strong> Run the marketplace update line above first: the
+plugin update only looks at the list your computer already has. Still stuck? Remove and add it again:
+<code>claude plugin uninstall software-factory@software-factory</code>, then the two install lines in <em>Install</em>. Your
+projects are not affected.</p>
+<p><strong>Going back.</strong> If a new version does not suit you, clone the repository, check out the older release (each is
+tagged <code>software-factory--v&lt;version&gt;</code>, for example <code>git checkout software-factory--v1.0.0</code>) and install from that
+folder (<em>Install</em>, option 2). Then
+<a href="https://github.com/faraz-fatahnaie/software-factory/issues">tell us what went wrong</a>.</p>
 <h2 id="first-minutes">First minutes</h2>
 <pre tabindex="0"><code>/software-factory:init        sets up this project: detects your stack, writes the team, rules and backlog
-/software-factory:open        opens the dashboard at http://127.0.0.1:4400
+/software-factory:open        opens this project's dashboard (its own port, 4400-4499)
 </code></pre>
 <p><code>init</code> asks before it writes anything and never overwrites a file you already have. Then talk to the
 Product Partner (<strong>Talk</strong> in the dashboard, or <code>/software-factory:brainstorm</code>) and tell her what you want

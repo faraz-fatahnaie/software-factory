@@ -20,11 +20,19 @@ Ollama) are queued in `BACKLOG.md`.
 - `gh`, only if you want approvals to open pull requests
 - Chrome, only for `bun run e2e`
 
+## Updating
+
+Already installed and a new version is out? In a terminal run
+`claude plugin marketplace update software-factory`, then `claude plugin update software-factory@software-factory`,
+restart Claude Code, and restart the dashboard (`/software-factory:open`). Your projects are never touched. The
+full guide (checking your version, auto-update, going back) is in [`plugin/README.md`](plugin/README.md#updating),
+and every release lists what changed in [`CHANGELOG.md`](CHANGELOG.md).
+
 ## Quick start
 
 ```sh
 bun install
-bun run factory serve          # control plane on http://127.0.0.1:4400
+bun run factory serve          # control plane on 127.0.0.1:44xx (one port per project; the command prints it)
 ```
 
 In the page: add an item, promote it to Ready, and press Run. Tick **Dry run** first to watch

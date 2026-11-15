@@ -40,6 +40,7 @@
 <a class="l2" href="#6-keeping-control">6. Keeping control</a>
 <a class="l2" href="#7-github-checks-and-undoing">7. GitHub, checks and undoing</a>
 <a class="l2" href="#8-release-and-deploy">8. Release and deploy</a>
+<a class="l2" href="#updating-the-plugin">Updating the plugin</a>
 <a class="l2" href="#9-cheat-sheet">9. Cheat sheet</a>
   </nav></aside>
   <main class="doc" id="top">
@@ -75,7 +76,7 @@ in plain words, and asks a question or two. Dina handles customers' deposits, so
 (twelve roles, because money is involved). She agrees.</li>
 <li>It writes <code>BACKLOG.md</code>, <code>AGENTS.md</code>, <code>factory.config.json</code>, the role files and <code>docs/</code>, and commits them.
 It never overwrites a file that exists.</li>
-<li><code>/software-factory:open</code>. The dashboard opens at <code>http://127.0.0.1:4400</code>.</li>
+<li><code>/software-factory:open</code>. The dashboard opens at a link on <code>127.0.0.1</code> (port 4400-4499, one per project, so several projects can run side by side).</li>
 </ol>
 <p><strong>What she sees.</strong> Overview says &quot;Nothing is waiting for you&quot;. The Health strip is green or shows one thing to
 look at (for example that no gate commands are configured yet, because there are no tests). Press <code>⌘K</code> any time to
@@ -329,6 +330,18 @@ and offers a rollback if it fails. Every step waits for your yes.</li>
 </ol>
 <p>For Crumb, deployment needs the payment provider's key on the server. Dina sets that herself; the factory only
 ever knows the variable's name.</p>
+<h2 id="updating-the-plugin">Updating the plugin</h2>
+<p>When a new version is released, Dina updates from a terminal (not inside the project's chat):</p>
+<ol>
+<li><code>claude plugin marketplace update software-factory</code>, then <code>claude plugin update software-factory@software-factory</code>.</li>
+<li>She restarts Claude Code, so the new version is loaded.</li>
+<li>She stops the dashboard that was running, runs <code>/software-factory:open</code> again and refreshes the page. An open
+dashboard keeps the old version until then.</li>
+<li><code>/software-factory:doctor</code> says whether anything in her project needs a look.</li>
+</ol>
+<p>Her bakery project is not touched: backlog, config, role files, skills and tasks stay exactly as they were. The
+release's entry in <code>CHANGELOG.md</code> says if a new setting or responsibility is worth switching on. The full guide,
+with auto-update and how to go back, is in the <a href="index.html#updating">README</a>.</p>
 <h2 id="9-cheat-sheet">9. Cheat sheet</h2>
 <p><strong>In the dashboard</strong></p>
 <table tabindex="0">

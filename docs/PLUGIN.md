@@ -115,13 +115,15 @@ there against an unrelated project, because that is what a user's cache looks li
 1. All checks above pass, including a run from a copied `plugin/` folder on a non-JavaScript project.
 2. Bump `version` in `plugin/.claude-plugin/plugin.json` (and `package.json`).
 3. Update `README.md` with the install lines for the real repository.
-4. Commit, then tag. `claude plugin tag` creates `software-factory--v<version>`.
-5. Push to the public GitHub repository. Users install with:
+4. Add the version to `CHANGELOG.md` (what changed, and anything a user must do in their own project). Publish the
+   GitHub release with that text, starting with the two update commands from the README's *Updating* section.
+5. Commit, then tag. `claude plugin tag` creates `software-factory--v<version>`.
+6. Push to the public GitHub repository. Users install with:
    ```
    /plugin marketplace add <owner>/<repo>
    /plugin install software-factory@software-factory
    ```
-6. Users on third-party marketplaces do not auto-update by default; they run
+7. Users on third-party marketplaces do not auto-update by default; they run
    `claude plugin marketplace update software-factory` and `claude plugin update software-factory@software-factory`.
 
 Listing in Anthropic's public directory is optional and goes through the submission portal

@@ -37,7 +37,7 @@ in Claude Code; everything also has a button in the dashboard.
    (twelve roles, because money is involved). She agrees.
 3. It writes `BACKLOG.md`, `AGENTS.md`, `factory.config.json`, the role files and `docs/`, and commits them.
    It never overwrites a file that exists.
-4. `/software-factory:open`. The dashboard opens at `http://127.0.0.1:4400`.
+4. `/software-factory:open`. The dashboard opens at a link on `127.0.0.1` (port 4400-4499, one per project, so several projects can run side by side).
 
 **What she sees.** Overview says "Nothing is waiting for you". The Health strip is green or shows one thing to
 look at (for example that no gate commands are configured yet, because there are no tests). Press `⌘K` any time to
@@ -316,6 +316,20 @@ Releases are prepared by Rafi and **never deploy by themselves**.
 
 For Crumb, deployment needs the payment provider's key on the server. Dina sets that herself; the factory only
 ever knows the variable's name.
+
+## Updating the plugin
+
+When a new version is released, Dina updates from a terminal (not inside the project's chat):
+
+1. `claude plugin marketplace update software-factory`, then `claude plugin update software-factory@software-factory`.
+2. She restarts Claude Code, so the new version is loaded.
+3. She stops the dashboard that was running, runs `/software-factory:open` again and refreshes the page. An open
+   dashboard keeps the old version until then.
+4. `/software-factory:doctor` says whether anything in her project needs a look.
+
+Her bakery project is not touched: backlog, config, role files, skills and tasks stay exactly as they were. The
+release's entry in `CHANGELOG.md` says if a new setting or responsibility is worth switching on. The full guide,
+with auto-update and how to go back, is in the [README](../README.md#updating).
 
 ## 9. Cheat sheet
 

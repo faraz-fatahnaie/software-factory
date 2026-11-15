@@ -60,14 +60,58 @@ claude --plugin-dir /path/to/software-factory/plugin
 Choose where it is enabled when you install: just for you in every project (`user`), recorded in the
 repository so collaborators are prompted to install it (`project`), or only here (`local`).
 
-To update later: `claude plugin marketplace update software-factory`, then
-`claude plugin update software-factory@software-factory`.
+## Updating
+
+New versions are announced on the repository's
+[Releases page](https://github.com/faraz-fatahnaie/software-factory/releases), and each one lists what changed in
+[`CHANGELOG.md`](https://github.com/faraz-fatahnaie/software-factory/blob/main/CHANGELOG.md). Updating is the same
+in every project, and it never touches your project's files.
+
+**1. See what you have.** Run `claude plugin list` in a terminal (or `/plugin` inside Claude Code, then the
+*Installed* tab). The version is next to `software-factory`.
+
+**2. Update.** In a terminal:
+
+```
+claude plugin marketplace update software-factory
+claude plugin update software-factory@software-factory
+```
+
+The first line fetches the list of versions from GitHub; the second installs the newest one. Then **restart
+Claude Code** (end the session and start it again) so it loads the new version. If you installed from a folder
+on your computer, run `git pull` in that folder first.
+
+**3. Restart the dashboard.** A dashboard that was already open keeps running the old version. Stop it (end its
+background task in Claude Code, or press `Ctrl+C` where `factory serve` runs), run `/software-factory:open`
+again and refresh the page.
+
+**4. Check.** Run `/software-factory:doctor`. It says if anything in your project needs attention after the update.
+
+**What an update changes, and what it does not.** It replaces the factory's own code: the engine, the dashboard,
+the slash commands and the built-in catalog. It does not touch `BACKLOG.md`, `factory.config.json`, `AGENTS.md`,
+your role files in `.claude/agents/`, your skills, your docs or any task. Those belong to your project. When a
+release adds something that needs a change in your files (a new responsibility, a new setting), its entry in
+`CHANGELOG.md` says what to do, and the *Team* view shows the new responsibilities so you can switch them on.
+
+**Updating automatically.** Third-party marketplaces do not update by themselves. In `/plugin`, open the
+*Marketplaces* tab, choose `software-factory` and turn auto-update on; Claude Code then checks when it starts.
+Restart the dashboard after it does.
+
+**"It says I am up to date, but there is a newer version."** Run the marketplace update line above first: the
+plugin update only looks at the list your computer already has. Still stuck? Remove and add it again:
+`claude plugin uninstall software-factory@software-factory`, then the two install lines in *Install*. Your
+projects are not affected.
+
+**Going back.** If a new version does not suit you, clone the repository, check out the older release (each is
+tagged `software-factory--v<version>`, for example `git checkout software-factory--v1.0.0`) and install from that
+folder (*Install*, option 2). Then
+[tell us what went wrong](https://github.com/faraz-fatahnaie/software-factory/issues).
 
 ## First minutes
 
 ```
 /software-factory:init        sets up this project: detects your stack, writes the team, rules and backlog
-/software-factory:open        opens the dashboard at http://127.0.0.1:4400
+/software-factory:open        opens this project's dashboard (its own port, 4400-4499)
 ```
 
 `init` asks before it writes anything and never overwrites a file you already have. Then talk to the
