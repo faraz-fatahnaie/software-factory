@@ -45,6 +45,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Run a whole task through the real pipeline and the supervisor: Ready to Awaiting approval, a failure retried, guidance after three failed builds. No model calls.
 - [ ] F-075 (P1) Verify the plugin update instructions against Claude Code
   The auto-update steps in the Updating guide (the Marketplaces tab in /plugin) were not checked. Check them, and claude plugin list, uninstall and tags, and fix the guide.
+- [ ] F-076 (P1) Stop a running reply in Talk
+  A reply cannot be cancelled today. Add a Stop button next to Send while a reply is coming; end the claude process and the consultations, keep what was typed.
 
 ## Ready
 
