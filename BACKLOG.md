@@ -37,6 +37,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   A role that works out with the user what to build, for projects in any language. Design to be agreed first.
 - [ ] F-029 (P1) Phase 12: publish
   Public GitHub repository, install docs, real owner and author in the manifests, version bump and tag.
+- [ ] F-072 (P1) Upgrade path: create the role file of a role added by an update, by itself
+  A project updated from 1.0.1 has no .claude/agents/technical-manager.md, so triage fails. Create missing role files (never overwrite) when the dashboard or a run starts, and say so in the log.
 
 ## Ready
 
