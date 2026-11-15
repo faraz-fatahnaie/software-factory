@@ -122,7 +122,7 @@ export function doctor(dir: string) {
   check(SECTIONS.every((s) => backlog.split("\n").includes(`## ${s}`)), "BACKLOG.md with all six sections", "run: factory init");
   for (const role of projectRoles(dir)) {
     const file = read(dir, `.claude/agents/${role}.md`);
-    check(!!file, `role file .claude/agents/${role}.md`, "run: factory init");
+    check(!!file, `role file .claude/agents/${role}.md`, "run: factory team apply");
     for (const skill of roleSkills(file))
       check(existsSync(join(dir, ".claude", "skills", skill, "SKILL.md")), `skill ${skill} (attached to ${role}) is installed`, `factory skill detach ${skill} --role ${role}, or install it`);
   }

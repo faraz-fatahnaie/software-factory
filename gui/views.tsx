@@ -33,7 +33,7 @@ function Cost({ events }: { events: Ev[] }) {
   );
   if (!by.model.size) return <p className="empty">No model stages recorded yet. Spend and pass rates appear after the first run.</p>;
   return (
-    <section className="tile wide">
+    <section className="tile wide" tabIndex={0} aria-label="Spend and pass rate">
       <header><h2>Spend and pass rate</h2></header>
       <p className="total">Total ${total.toFixed(4)} <small>at list prices, as reported by the Claude CLI. On a subscription this is an equivalent, not a charge.</small></p>
       {table("By model", by.model)}
@@ -103,7 +103,7 @@ function Models({ setError }: { setError: (e: string) => void }) {
     setSaved(r.ok);
   };
   return (
-    <section className="tile wide models">
+    <section className="tile wide models" tabIndex={0} aria-label="Models per role">
       <header><h2>Models per role</h2></header>
       <table>
         <caption>Model, effort and fallback chain per role. Changes apply to the next stage that starts.</caption>

@@ -34,7 +34,7 @@ in Claude Code; everything also has a button in the dashboard.
 1. In an empty folder she runs `git init`, then starts Claude Code there and installs the plugin.
 2. `/software-factory:init`. Claude looks at the folder (empty, so no stack yet), explains the three team sizes
    in plain words, and asks a question or two. Dina handles customers' deposits, so it recommends **Full**
-   (twelve roles, because money is involved). She agrees.
+   (thirteen roles, because money is involved). She agrees.
 3. It writes `BACKLOG.md`, `AGENTS.md`, `factory.config.json`, the role files and `docs/`, and commits them.
    It never overwrites a file that exists.
 4. `/software-factory:open`. The dashboard opens at a link on `127.0.0.1` (port 4400-4499, one per project, so several projects can run side by side).
@@ -54,7 +54,8 @@ Open **Team**. Each person is a robot with a name, a job and a model.
 | Person | Job | Works |
 | --- | --- | --- |
 | **Mara** | Product Partner: works out what you want | In Talk, with you |
-| **Idris** | Planner: stories, milestones, tasks; triages loose ideas | In Talk, and on loose ideas |
+| **Idris** | Planner: stories, milestones, tasks | In Talk |
+| **Tess** | Technical Manager: triages loose ideas, and (as it is built) starts and watches tasks, explains what stopped and chooses the fix | On loose ideas; more in each release |
 | **Noor** | Architect: stack, design, and the spec for each task | In Talk, and on every task |
 | **Kofi** | Builder: writes the code, tests first | On every task. The only one who changes code |
 | **Lena** | Tester: checks the product against the stories | In Talk |
@@ -154,7 +155,7 @@ stage is its output.
 
 | # | Stage | Who | What happens | What it leaves |
 | --- | --- | --- | --- | --- |
-| 0 | **Triage** | Idris | Only for loose ideas: type, size, overlaps, acceptance checks, open questions. Skipped when the item already has an `Acceptance:` line. | `triage.md` |
+| 0 | **Triage** | Tess | Only for loose ideas: type, size, overlaps, acceptance checks, open questions. Skipped when the item already has an `Acceptance:` line. | `triage.md` |
 | 1 | **Spec** | Noor | Writes the contract for this task: the change, the files, the tests, what is out of scope. | `spec.md` |
 | 2 | **Build** | Kofi | Writes the failing test first, then the least code that makes the spec pass, and runs the gate until it does. | `build.md`, the code on the branch |
 | 3 | **Check** | the gate | Runs *your* commands (tests, type check, lint). Not an agent. It must pass before anyone reviews. | pass or fail, with the output |

@@ -283,8 +283,8 @@ export function mergeRoles(s: TeamSettings, from: string, into: string): TeamSet
 // Roles that are folded into another, in the order that costs least: related jobs go together, and the
 // roles closest to the code come last. Used to reach a team size the presets do not have.
 const MERGES: [string, string][] = [
-  ["operations-engineer", "release-engineer"], ["researcher", "product-partner"], ["designer", "tester"], ["tester", "reviewer"],
-  ["security-performance", "reviewer"], ["planner", "product-partner"], ["scribe", "release-engineer"],
+  ["technical-manager", "planner"], ["operations-engineer", "release-engineer"], ["researcher", "product-partner"], ["designer", "tester"], ["tester", "reviewer"],
+  ["security-performance", "reviewer"], ["planner", "product-partner"], ["technical-manager", "product-partner"], ["scribe", "release-engineer"],
   ["release-engineer", "architect"], ["product-partner", "architect"],
 ];
 

@@ -618,5 +618,203 @@
     ],
     "title": "Pushes and pull requests",
     "instruction": "Tell the user, in plain words, what is waiting to go to GitHub and what to do about it. Run `factory vcs` for the facts and do not guess. For each task say where it stands: approved but only on this machine; pushed with a pull request (checks passing, failing or still running; conflicts); or merged on GitHub and ready to tidy up. Explain a failing check or a conflict simply and offer to add a backlog item for it with `factory add`.\nYou never push or merge, and you have no command for it. When the user clearly asks for a task to be pushed or merged, end your message with exactly one line on its own: `PROPOSE: push F-014` or `PROPOSE: merge F-014` (that task's id). The page turns the line into a button, and pressing the button is the user's approval. Propose only a task that `factory vcs` lists in that state, one at a time, and never because it seems sensible. `PROPOSE: sync` asks the page to update from GitHub. Without a GitHub remote, say so and point to `/software-factory:git`."
+  },
+  {
+    "id": "M1",
+    "area": "Management",
+    "summary": "Triage the whole Inbox: remove duplicates, size items, set priority, require acceptance checks",
+    "when": "trigger: items arrive in Inbox",
+    "how": "headless",
+    "access": [
+      "read"
+    ],
+    "title": "Triage the Inbox"
+  },
+  {
+    "id": "M2",
+    "area": "Management",
+    "summary": "Promote what the person agreed, set the order and dependencies, respect the parallel limit",
+    "when": "trigger: autopilot",
+    "how": "script",
+    "access": [
+      "read"
+    ],
+    "title": "Start the work"
+  },
+  {
+    "id": "M3",
+    "area": "Management",
+    "summary": "Catch stalled or looping stages and repeated identical errors; apply time limits",
+    "when": "task",
+    "how": "script",
+    "access": [
+      "read"
+    ],
+    "title": "Watch running stages"
+  },
+  {
+    "id": "M4",
+    "area": "Management",
+    "summary": "Say in plain words what happened to a task that stopped, why, and what happens next",
+    "when": "trigger: a task stops",
+    "how": "headless",
+    "access": [
+      "read"
+    ],
+    "title": "Diagnose a stopped task"
+  },
+  {
+    "id": "M5",
+    "area": "Management",
+    "summary": "Retry, retry with guidance, update from main, re-spec, split, or use a stronger model after repeated failures",
+    "when": "trigger: a task stops",
+    "how": "headless",
+    "access": [
+      "read"
+    ],
+    "title": "Choose and apply the fix"
+  },
+  {
+    "id": "M6",
+    "area": "Management",
+    "summary": "Break a task that is too big into smaller backlog items",
+    "when": "trigger: a task stops",
+    "how": "headless",
+    "access": [
+      "read"
+    ],
+    "title": "Split or re-scope a task"
+  },
+  {
+    "id": "M7",
+    "area": "Management",
+    "summary": "Pass a finding to the role that can act on it, get a second opinion, settle a deadlock after two rounds",
+    "when": "trigger: a task stops",
+    "how": "headless",
+    "access": [
+      "read"
+    ],
+    "title": "Coordinate the roles"
+  },
+  {
+    "id": "M8",
+    "area": "Management",
+    "summary": "Say where the project stands: done, in flight, blocked, next, decisions needed, cost so far",
+    "when": "request",
+    "how": "chat",
+    "access": [
+      "read"
+    ],
+    "title": "Report progress"
+  },
+  {
+    "id": "M9",
+    "area": "Management",
+    "summary": "Escalate only what is outside the manager's authority, with options and a recommendation",
+    "when": "trigger: a decision is needed",
+    "how": "headless",
+    "access": [
+      "read"
+    ],
+    "title": "Ask the person one clear question"
+  },
+  {
+    "id": "M10",
+    "area": "Management",
+    "summary": "Per-task and per-day spend limits from the cost estimate; stop and ask when one is reached",
+    "when": "task",
+    "how": "script",
+    "access": [
+      "read"
+    ],
+    "title": "Guard budget and time"
+  },
+  {
+    "id": "M11",
+    "area": "Management",
+    "summary": "Do only what the autonomy setting allows, cap automatic recoveries per task, log every decision",
+    "when": "task",
+    "how": "script",
+    "access": [
+      "read"
+    ],
+    "title": "Keep to the autonomy level"
+  },
+  {
+    "id": "M12",
+    "area": "Management",
+    "summary": "Say when a milestone is done and start the milestone work (documents, security audit, release preparation)",
+    "when": "milestone",
+    "how": "headless",
+    "access": [
+      "read"
+    ],
+    "title": "Track milestones"
+  },
+  {
+    "id": "M13",
+    "area": "Management",
+    "summary": "Run tasks that touch the same files one after the other, not in parallel",
+    "when": "task",
+    "how": "script",
+    "access": [
+      "read"
+    ],
+    "title": "Prevent clashes"
+  },
+  {
+    "id": "M14",
+    "area": "Management",
+    "summary": "Do not start an item without acceptance checks; check the result against the definition of done",
+    "when": "task",
+    "how": "script",
+    "access": [
+      "read"
+    ],
+    "title": "Check ready and done"
+  },
+  {
+    "id": "M15",
+    "area": "Management",
+    "summary": "For the person's decision: what changed, the risks, and what was verified",
+    "when": "trigger: a task awaits approval",
+    "how": "headless",
+    "access": [
+      "read"
+    ],
+    "title": "Prepare the approval package"
+  },
+  {
+    "id": "M16",
+    "area": "Management",
+    "summary": "Spot recurring causes of failure and propose fixes to rules, role notes and skills as backlog items",
+    "when": "milestone",
+    "how": "headless",
+    "access": [
+      "read"
+    ],
+    "title": "Hold a retrospective"
+  },
+  {
+    "id": "M17",
+    "area": "Management",
+    "summary": "Notice a role that keeps failing or costs the most, and propose a team change",
+    "when": "request",
+    "how": "chat",
+    "access": [
+      "read"
+    ],
+    "title": "Watch team health"
+  },
+  {
+    "id": "M18",
+    "area": "Management",
+    "summary": "The face of the team: the person always talks to the manager, who sends each message, or the part of it that concerns them, to the roles it is about, and brings their answers back as one reply",
+    "when": "request",
+    "how": "chat",
+    "access": [
+      "read"
+    ],
+    "title": "Be the team's point of contact"
   }
 ]

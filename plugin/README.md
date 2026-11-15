@@ -135,7 +135,7 @@ the findings and tries again, up to three times. Each task runs in its own git b
 
 ### The team
 
-Nine people by default. Make it leaner (6) or fuller (12), or any size from 3 to 12; move any of the 50-odd
+Ten people by default, led by a Technical Manager who keeps the work moving. Make it leaner (6) or fuller (13), or any size from 3 to 13; move any of the 50-odd
 responsibilities between people; switch some off; rename roles; add your own responsibilities (advisory,
 never able to edit). The dashboard's **Team** view shows what each change would do to the agent count and
 the cost of a normal task before you save it.

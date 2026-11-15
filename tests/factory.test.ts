@@ -12,7 +12,8 @@ import { openStore } from "../plugin/engine/events";
 import { BACKLOG, config, fakeGh, ghPr, repo, role, tmp } from "./fixture";
 import { guard } from "../plugin/engine/hooks";
 import { applyTeam, configure, detect, doctor, init, nextStep, projectDocs } from "../plugin/engine/init";
-import { activeRoles, catalog, chatPrompt, chatPromptFor, checkSettings, customStages, DEFAULT_PRESET, describeTeam, perTask, presets, renderRole, resolveTeam, stageDuties, stageRole, teamForAgents, toolsFor, validateTeam, type TeamSettings } from "../plugin/engine/team";
+import { personaFor } from "../gui/robots";
+import { activeRoles, catalog, holderOf, chatPrompt, chatPromptFor, checkSettings, customStages, DEFAULT_PRESET, describeTeam, perTask, presets, renderRole, resolveTeam, stageDuties, stageRole, teamForAgents, toolsFor, validateTeam, type TeamSettings } from "../plugin/engine/team";
 import { addCustom, moveSettings, offSettings, parseChange, planTeam, removeCustom, renameSettings, teamView } from "../plugin/engine/teamctl";
 import { chatArgs, checkAttachments, saveAttachments, TOPICS } from "../plugin/engine/chat";
 import { parseBlocks, parseInline } from "../gui/mdparse";
@@ -32,7 +33,7 @@ test("config: rejects bad input and names every problem", () => {
   expect(parseConfig(config)).toEqual(config);
   const bad = { gate: "bun test", roles: { ...config.roles, builder: { ...role, runner: "gemini", effort: "extreme" }, qa: role } };
   expect(() => parseConfig(bad)).toThrow(/gate:[\s\S]*roles\.qa: unknown[\s\S]*builder\.runner[\s\S]*builder\.effort/);
-  expect(() => parseConfig(null)).toThrow(/roles\.planner: missing/);
+  expect(() => parseConfig(null)).toThrow(/roles\.technical-manager: missing/);
   expect(() => parseConfig({ ...config, setup: "bun install" })).toThrow(/setup:/);
   // Model names become command-line arguments: nothing that reads as an option, and no stray keys.
   expect(() => parseConfig({ ...config, roles: { ...config.roles, builder: { ...role, model: "--dangerously-skip-permissions" } } })).toThrow(/builder\.model/);
@@ -395,9 +396,9 @@ test("init: detects the stack, writes without overwriting, and doctor confirms t
 
 test("team: the Balanced preset covers the catalog and obeys the enforced rules; bad teams are rejected", () => {
   const balanced = presets[DEFAULT_PRESET]!;
-  expect(catalog).toHaveLength(53);
+  expect(catalog).toHaveLength(71);
   expect(validateTeam(balanced)).toEqual([]);
-  expect(activeRoles(balanced)).toEqual(["planner", "architect", "builder", "reviewer", "security-performance", "scribe"]); // the roles that hold something built
+  expect(activeRoles(balanced)).toEqual(["technical-manager", "architect", "builder", "reviewer", "security-performance", "scribe"]); // the roles that hold something built
 
   const copy = () => structuredClone(balanced);
   const moved = copy(); moved.roles.reviewer!.holds = []; moved.roles.builder!.holds.push("C1"); // builder reviews its own work
@@ -433,7 +434,7 @@ test("team apply: rebuilds generated files, keeps skills, leaves hand-edited fil
   const { dir, cli } = repo();
   expect(cli("init").code).toBe(0);
   const file = (role: string) => join(dir, ".claude/agents", `${role}.md`);
-  expect(readFileSync(file("planner"), "utf8")).toContain("## Triage an item"); // init wrote the generated files
+  expect(readFileSync(file("technical-manager"), "utf8")).toContain("## Triage an item"); // init wrote the generated files
   expect(applyTeam(dir).lines.every((l) => l.startsWith("current") || l.startsWith("kept"))).toBe(true);
 
   writeFileSync(file("reviewer"), "---\nname: reviewer\n---\nMy own reviewer.\n"); // a hand-written file has no marker
@@ -446,7 +447,7 @@ test("team apply: rebuilds generated files, keeps skills, leaves hand-edited fil
   expect(readFileSync(file("architect"), "utf8")).toContain("  - tdd"); // attached skills survive a rebuild
   expect(readFileSync(file("architect"), "utf8")).not.toContain("outdated");
   expect(cli("team", "apply", "--force").out).toMatch(/rebuilt  \.claude\/agents\/reviewer\.md/);
-  expect(cli("team").out).toMatch(/● Product Partner \(product-partner\) {2}\[chat\]\n {4}built: {3}D1 D2 D3[\s\S]*● Planner \(planner\) {2}\[chat \+ agent\] {2}sonnet, medium\n {4}built: {3}R1 R2 R3 R4 P1 P2 P3 P4/);
+  expect(cli("team").out).toMatch(/● Product Partner \(product-partner\) {2}\[chat\]\n {4}built: {3}D1 D2 D3[\s\S]*● Planner \(planner\) {2}\[chat\]\n {4}built: {3}R1 R2 R3 R4 P1 P2 P3\n[\s\S]*● Technical Manager \(technical-manager\) {2}\[agent\] {2}sonnet, medium\n {4}built: {3}P4\n {4}planned: M1 M4 M5/);
   expect(cli("team", "bogus").code).toBe(1);
 }, 60_000);
 
@@ -465,7 +466,7 @@ test("pipeline: the planner triages ad-hoc items only; items with acceptance che
   };
   const adhoc = await run();
   expect(adhoc.stages).toEqual(["triage", "spec", "build", "review", "document"]);
-  expect(adhoc.roles[0]).toBe("planner");
+  expect(adhoc.roles[0]).toBe("technical-manager");
   const planned = await run("Acceptance: the value is exported");
   expect(planned.stages).toEqual(["spec", "build", "review", "document"]);
   expect(planned.events).toContain("triage:stage.skipped");
@@ -503,12 +504,12 @@ test("chat roles: prompts are assembled per command; unattended role files stay 
   expect(() => chatPrompt("builder")).toThrow(/no conversational responsibilities/); // the builder is unattended only
   expect(() => chatPrompt("janitor")).toThrow(/no role "janitor"/);
 
-  // A conversational role has no config entry and no role file; the planner has both, for its unattended triage only.
-  expect(activeRoles()).toEqual(["planner", "architect", "builder", "reviewer", "security-performance", "scribe"]);
+  // A conversational role has no config entry and no role file; the technical manager has both, for its unattended triage only.
+  expect(activeRoles()).toEqual(["technical-manager", "architect", "builder", "reviewer", "security-performance", "scribe"]);
   expect(() => renderRole("product-partner")).toThrow(/runs unattended/);
-  expect(renderRole("planner")).toContain("## Triage an item");
-  expect(renderRole("planner")).not.toContain("Write the user stories");
-  expect(toolsFor(presets[DEFAULT_PRESET]!.roles.planner!.holds)).toEqual(["Read", "Grep", "Glob", "Bash", "Skill"]); // chat access does not widen the triage agent
+  expect(renderRole("technical-manager")).toContain("## Triage an item");
+  expect(renderRole("technical-manager")).not.toContain("Write the user stories");
+  expect(toolsFor(presets[DEFAULT_PRESET]!.roles["technical-manager"]!.holds)).toEqual(["Read", "Grep", "Glob", "Bash", "Skill"]); // chat access does not widen the triage agent
 });
 
 test("backlog: add with a detail and priority; model-written text cannot forge items or headings", () => {
@@ -1118,7 +1119,7 @@ function project(team?: string) {
 
 test("presets: lean, balanced and full each cover the catalog once, obey every rule, and differ as designed", () => {
   const sizes = Object.fromEntries(Object.entries(presets).map(([n, p]) => [n, Object.keys(p.roles).length]));
-  expect(sizes).toEqual({ balanced: 9, lean: 6, full: 12 });
+  expect(sizes).toEqual({ balanced: 10, lean: 6, full: 13 });
   for (const name of Object.keys(presets)) {
     const team = resolveTeam({ preset: name });
     expect(validateTeam(team)).toEqual([]);
@@ -1128,10 +1129,10 @@ test("presets: lean, balanced and full each cover the catalog once, obey every r
   const lean = resolveTeam({ preset: "lean" }), full = resolveTeam({ preset: "full" }), balanced = resolveTeam();
   expect([stageRole(lean, "triage"), stageRole(lean, "spec"), stageRole(lean, "build"), stageRole(lean, "security"), stageRole(lean, "review"), stageRole(lean, "document")])
     .toEqual(["product-partner", "architect", "builder", "reviewer", "reviewer", "scribe"]); // the reviewer also reviews security
-  expect([stageRole(balanced, "triage"), stageRole(balanced, "security")]).toEqual(["planner", "security-performance"]);
-  expect([stageRole(full, "triage"), stageRole(full, "security"), stageRole(full, "review")]).toEqual(["planner", "security-performance", "reviewer"]);
+  expect([stageRole(balanced, "triage"), stageRole(balanced, "security")]).toEqual(["technical-manager", "security-performance"]);
+  expect([stageRole(full, "triage"), stageRole(full, "security"), stageRole(full, "review")]).toEqual(["technical-manager", "security-performance", "reviewer"]);
   expect(activeRoles(lean)).toEqual(["product-partner", "architect", "builder", "reviewer", "scribe"]);
-  expect(activeRoles(full)).toEqual(["planner", "architect", "builder", "reviewer", "security-performance", "scribe"]);
+  expect(activeRoles(full)).toEqual(["technical-manager", "architect", "builder", "reviewer", "security-performance", "scribe"]);
   expect(stageDuties(lean, "security", "reviewer")).toEqual(["Review the change for security", "Review configuration and infrastructure", "Review the change for performance"]);
   expect(stageDuties(lean, "review", "reviewer")).toEqual(["Review the build"]); // the same role, a different part of its job
   expect(renderRole("reviewer", lean)).toMatch(/## Review the build[\s\S]*## Review the change for security/); // one role file holds both
@@ -1153,7 +1154,7 @@ test("team rules: regrouping is checked, and a team that breaks a rule is refuse
   expect(problems({ off: ["O3"] })).toEqual([]);
   const merged = renameSettings({}, "scribe", "release-engineer");
   expect(problems(merged)).toEqual([]);
-  expect(Object.keys(resolveTeam(merged).roles)).toHaveLength(8); // a role everything was moved out of is gone
+  expect(Object.keys(resolveTeam(merged).roles)).toHaveLength(9); // a role everything was moved out of is gone
   expect(resolveTeam(merged).roles["release-engineer"]!.defaults).toEqual({ model: "sonnet", effort: "medium", fallback: ["haiku"] }); // gained unattended work: default models
 
   expect(() => resolveTeam({ preset: "huge" })).toThrow(/there is no team preset "huge" \(there are: balanced, lean, full\)/);
@@ -1168,8 +1169,8 @@ test("team rules: regrouping is checked, and a team that breaks a rule is refuse
   expect(() => moveSettings({}, ["d1"], "tester")).toThrow(/is not a responsibility id/);
 });
 
-test("team size: any number of agents from 3 to 12 gives a valid team of exactly that size", () => {
-  for (let n = 3; n <= 12; n++) {
+test("team size: any number of agents from 3 to 13 gives a valid team of exactly that size", () => {
+  for (let n = 3; n <= 13; n++) {
     const s = teamForAgents(n);
     const team = resolveTeam(s);
     expect([n, Object.keys(team.roles).length, validateTeam(team)]).toEqual([n, n, []]);
@@ -1177,17 +1178,17 @@ test("team size: any number of agents from 3 to 12 gives a valid team of exactly
     expect(Object.keys(config.roles).sort()).toEqual(activeRoles(team).sort());
   }
   expect(teamForAgents(6).preset).toBe("lean"); // an exact preset size is that preset
-  expect(teamForAgents(9).preset).toBe("balanced");
-  expect(teamForAgents(12).preset).toBe("full");
+  expect(teamForAgents(10).preset).toBe("balanced");
+  expect(teamForAgents(13).preset).toBe("full");
   expect(teamForAgents(7).preset).toBe("balanced"); // between presets: the next larger one, with roles folded together
   expect(teamForAgents(11).preset).toBe("full");
   expect(teamForAgents(4).preset).toBe("lean");
   const three = resolveTeam(teamForAgents(3));
   expect(Object.keys(three.roles).sort()).toEqual(["architect", "builder", "reviewer"]); // the minimum: someone builds, someone reviews, someone does the rest
   expect(stageRole(three, "triage")).toBe("architect");
-  expect(() => teamForAgents(2)).toThrow(/a team can have 3 to 12 agents/);
-  expect(() => teamForAgents(13)).toThrow(/3 to 12/);
-  expect(() => teamForAgents(7.5)).toThrow(/3 to 12/);
+  expect(() => teamForAgents(2)).toThrow(/a team can have 3 to 13 agents/);
+  expect(() => teamForAgents(14)).toThrow(/3 to 13/);
+  expect(() => teamForAgents(7.5)).toThrow(/3 to 13/);
   const custom = addCustom({}, { title: "Docs check", summary: "x", when: "request", instruction: "Check the docs read well.", role: "docs-checker" });
   const resized = resolveTeam(teamForAgents(5, custom));
   expect(resized.roles["docs-checker"]!.holds).toEqual(["U1"]); // the user's own role survives a resize and comes on top of the five
@@ -1280,7 +1281,7 @@ test("pipeline in a lean team: the stage roles come from who holds each responsi
   expect(lean.calls.find((c) => c.stage === "document")!.prompt).toContain("Roles you may write notes for: product-partner, architect, builder, reviewer, scribe.");
 
   const full = await run({ preset: "full" }, sensitive);
-  expect(full.calls.map((c) => `${c.stage}:${c.role}`)).toEqual(["triage:planner", "spec:architect", "build:builder", "security:security-performance", "review:reviewer", "document:scribe"]);
+  expect(full.calls.map((c) => `${c.stage}:${c.role}`)).toEqual(["triage:technical-manager", "spec:architect", "build:builder", "security:security-performance", "review:reviewer", "document:scribe"]);
   const three = await run(teamForAgents(3), sensitive);
   expect(three.calls.map((c) => `${c.stage}:${c.role}`)).toEqual(["triage:architect", "spec:architect", "build:builder", "security:reviewer", "review:reviewer", "document:architect"]);
 
@@ -1313,7 +1314,7 @@ test("config: the team section is validated, roles must match the team, and a co
   expect(() => parseConfig({ gate: ["true"], team: { off: ["C1"] }, roles: configFor({}).roles })).toThrow(/team: C1 cannot be switched off/);
   // A lean config needs product-partner (it triages) and has no planner.
   const balancedRoles = configFor({}).roles;
-  expect(() => parseConfig({ gate: ["true"], team: { preset: "lean" }, roles: balancedRoles })).toThrow(/roles\.planner: unknown role[\s\S]*roles\.product-partner: missing/);
+  expect(() => parseConfig({ gate: ["true"], team: { preset: "lean" }, roles: balancedRoles })).toThrow(/roles\.technical-manager: unknown role[\s\S]*roles\.product-partner: missing/);
   const cfg = parseConfig({ gate: ["true"], team: { preset: "lean", move: {}, off: [], extra: 1 }, roles: configFor({ preset: "lean" }).roles });
   expect(cfg.team).toEqual({ preset: "lean" }); // empty parts and unknown keys are dropped
   // No team section at all is the balanced team (configs written before presets existed).
@@ -1329,24 +1330,24 @@ test("factory team: choose a preset at init, switch, resize, regroup, rename and
   expect(p.config().team).toEqual({ preset: "lean" });
   expect(p.agents()).toEqual(["architect.md", "builder.md", "product-partner.md", "reviewer.md", "scribe.md"]);
   expect(p.cli("team").out).toMatch(/^Lean team, 6 roles\. A normal task uses 3 agents \(spec, build, review\)\.\nSometimes more: Product Partner triages ad-hoc items; Reviewer reviews security and performance[^\n]*; Scribe writes a summary/);
-  expect(p.cli("team", "presets").out).toMatch(/balanced: 9 roles\.[\s\S]*\* lean: 6 roles\.[\s\S]*full: 12 roles\./);
+  expect(p.cli("team", "presets").out).toMatch(/balanced: 10 roles\.[\s\S]*\* lean: 6 roles\.[\s\S]*full: 13 roles\./);
   expect(Bun.spawnSync([join(import.meta.dir, "../plugin/bin/factory"), "init", "--team", "huge"], { cwd: tmp(), env: process.env }).exitCode).toBe(1);
 
   // Switching preset: the config follows (models of roles that stay are kept), new roles get defaults, role files appear, old ones are listed.
   writeFileSync(join(p.dir, "factory.config.json"), JSON.stringify({ ...p.config(), roles: { ...p.config().roles, builder: { ...p.config().roles.builder, model: "opus" } } }));
   const full = p.cli("team", "use", "full");
   expect(full.code).toBe(0);
-  expect(full.out).toContain("Full team, 12 roles.");
-  expect(full.out).toMatch(/created {2}\.claude\/agents\/planner\.md/);
+  expect(full.out).toContain("Full team, 13 roles.");
+  expect(full.out).toMatch(/created {2}\.claude\/agents\/technical-manager\.md/);
   expect(full.out).toMatch(/unused {3}\.claude\/agents\/product-partner\.md \(not part of this team; remove it with: git rm/);
-  expect(Object.keys(p.config().roles).sort()).toEqual(["architect", "builder", "planner", "reviewer", "scribe", "security-performance"]);
+  expect(Object.keys(p.config().roles).sort()).toEqual(["architect", "builder", "reviewer", "scribe", "security-performance", "technical-manager"]);
   expect(p.config().roles.builder.model).toBe("opus"); // kept
   expect(p.git("log", "-1", "--format=%s")).toBe("software-factory: team use full");
   expect(p.git("status", "--porcelain")).toBe("");
 
   // A size.
   expect(p.cli("team", "agents", "7").out).toContain("Balanced team, 7 roles.");
-  expect(p.cli("team", "agents", "2")).toMatchObject({ code: 1, out: expect.stringMatching(/3 to 12 agents/) });
+  expect(p.cli("team", "agents", "2")).toMatchObject({ code: 1, out: expect.stringMatching(/3 to 13 agents/) });
   expect(Object.keys(p.config().roles)).toContain("security-performance".replace("security-performance", "reviewer")); // merged into the reviewer in a 7-agent team
 
   // Regrouping, with the models and attached skills of a renamed role carried over.
@@ -1522,7 +1523,7 @@ test("server: the team is read, previewed and changed over HTTP with the same ch
   const post = (path: string, body: unknown) => fetch(base + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   try {
     const team = await (await fetch(base + "/api/team")).json() as any;
-    expect(team.roles.length).toBe(9);
+    expect(team.roles.length).toBe(10);
     expect(team.presets.map((x: any) => x.name)).toEqual(["balanced", "lean", "full"]);
     expect(team.estimate.agents.always).toBe(3);
     const topics = await (await fetch(base + "/api/chat/topics")).json() as any[];
@@ -2113,4 +2114,20 @@ test("chat: steps fold into one line; attachments are checked and saved inside t
   const [path] = saveAttachments(dir, [{ ...ok, name: "../../evil/my shot.png" }]);
   expect(path).toMatch(/^\.factory\/chat\/[0-9a-f]{8}\/my_shot\.png$/);
   expect(readFileSync(join(dir, path!), "utf8")).toBe("x");
+});
+
+test("technical manager: holds triage and the management work in Balanced and Full, folds into the Planner when the team shrinks, and lives in the Product Partner in Lean", () => {
+  for (const name of ["balanced", "full"]) {
+    const t = resolveTeam({ preset: name });
+    expect(t.roles["technical-manager"]!.holds).toEqual(expect.arrayContaining(["P4", "M1", "M4", "M5", "M8", "M17", "M18"]));
+    expect(t.roles.planner!.holds).not.toContain("P4");
+    expect(["M2", "M3", "M10", "M11", "M13", "M14"].every((id) => t.scripts.includes(id))).toBe(true); // the supervisor's work is code, not a model
+  }
+  const lean = resolveTeam({ preset: "lean" });
+  expect(holderOf(lean, "M5")).toBe("product-partner");
+  expect(Object.keys(lean.roles)).not.toContain("technical-manager");
+  const nine = resolveTeam(teamForAgents(9));
+  expect(Object.keys(nine.roles)).not.toContain("technical-manager");
+  expect(holderOf(nine, "M5")).toBe("planner"); // folded into the planner first
+  expect(personaFor("technical-manager").name).toBe("Tess");
 });

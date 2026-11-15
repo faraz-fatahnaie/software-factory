@@ -146,7 +146,7 @@ export function Team({ events, tasks, setError, talkTo, openPerson }: { events: 
         )}
         <form className="size-form" onSubmit={(e) => { e.preventDefault(); const n = Number(size); if (n) { stage({ op: "agents", n }); setSize(""); } }}>
           <label>Or pick a size{" "}
-            <input type="number" min={3} max={12} placeholder={String(now.roles.length)} value={size} onChange={(e) => setSize(e.target.value)} aria-label="Number of people, 3 to 12" />
+            <input type="number" min={3} max={13} placeholder={String(now.roles.length)} value={size} onChange={(e) => setSize(e.target.value)} aria-label="Number of people, 3 to 13" />
           </label>{" "}
           <button disabled={busy || !size}>Preview</button>
         </form>

@@ -73,7 +73,7 @@ in Claude Code; everything also has a button in the dashboard.</p>
 <li>In an empty folder she runs <code>git init</code>, then starts Claude Code there and installs the plugin.</li>
 <li><code>/software-factory:init</code>. Claude looks at the folder (empty, so no stack yet), explains the three team sizes
 in plain words, and asks a question or two. Dina handles customers' deposits, so it recommends <strong>Full</strong>
-(twelve roles, because money is involved). She agrees.</li>
+(thirteen roles, because money is involved). She agrees.</li>
 <li>It writes <code>BACKLOG.md</code>, <code>AGENTS.md</code>, <code>factory.config.json</code>, the role files and <code>docs/</code>, and commits them.
 It never overwrites a file that exists.</li>
 <li><code>/software-factory:open</code>. The dashboard opens at a link on <code>127.0.0.1</code> (port 4400-4499, one per project, so several projects can run side by side).</li>
@@ -94,7 +94,8 @@ server. The factory's secret scan blocks any task that tries to put a key in a f
 </thead>
 <tbody>
 <tr><td><strong>Mara</strong></td><td>Product Partner: works out what you want</td><td>In Talk, with you</td></tr>
-<tr><td><strong>Idris</strong></td><td>Planner: stories, milestones, tasks; triages loose ideas</td><td>In Talk, and on loose ideas</td></tr>
+<tr><td><strong>Idris</strong></td><td>Planner: stories, milestones, tasks</td><td>In Talk</td></tr>
+<tr><td><strong>Tess</strong></td><td>Technical Manager: triages loose ideas, and (as it is built) starts and watches tasks, explains what stopped and chooses the fix</td><td>On loose ideas; more in each release</td></tr>
 <tr><td><strong>Noor</strong></td><td>Architect: stack, design, and the spec for each task</td><td>In Talk, and on every task</td></tr>
 <tr><td><strong>Kofi</strong></td><td>Builder: writes the code, tests first</td><td>On every task. The only one who changes code</td></tr>
 <tr><td><strong>Lena</strong></td><td>Tester: checks the product against the stories</td><td>In Talk</td></tr>
@@ -182,7 +183,7 @@ stage is its output.</p>
 <tr><th>#</th><th>Stage</th><th>Who</th><th>What happens</th><th>What it leaves</th></tr>
 </thead>
 <tbody>
-<tr><td>0</td><td><strong>Triage</strong></td><td>Idris</td><td>Only for loose ideas: type, size, overlaps, acceptance checks, open questions. Skipped when the item already has an <code>Acceptance:</code> line.</td><td><code>triage.md</code></td></tr>
+<tr><td>0</td><td><strong>Triage</strong></td><td>Tess</td><td>Only for loose ideas: type, size, overlaps, acceptance checks, open questions. Skipped when the item already has an <code>Acceptance:</code> line.</td><td><code>triage.md</code></td></tr>
 <tr><td>1</td><td><strong>Spec</strong></td><td>Noor</td><td>Writes the contract for this task: the change, the files, the tests, what is out of scope.</td><td><code>spec.md</code></td></tr>
 <tr><td>2</td><td><strong>Build</strong></td><td>Kofi</td><td>Writes the failing test first, then the least code that makes the spec pass, and runs the gate until it does.</td><td><code>build.md</code>, the code on the branch</td></tr>
 <tr><td>3</td><td><strong>Check</strong></td><td>the gate</td><td>Runs <em>your</em> commands (tests, type check, lint). Not an agent. It must pass before anyone reviews.</td><td>pass or fail, with the output</td></tr>

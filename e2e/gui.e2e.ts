@@ -257,7 +257,7 @@ try {
   // Team: a change is previewed with its cost and not saved until you say so; saving commits it.
   await view("Team");
   await page.locator(".role").first().waitFor();
-  assert.equal(await page.locator(".role").count(), 9, "the balanced team has nine roles");
+  assert.equal(await page.locator(".role").count(), 10, "the balanced team has ten roles");
   await page.getByRole("button", { name: /^Lean/ }).click();
   await page.locator(".draft", { hasText: "switch to the lean team" }).waitFor();
   await page.waitForFunction(() => document.querySelectorAll(".role").length === 6);

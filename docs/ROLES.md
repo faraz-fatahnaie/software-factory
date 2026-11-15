@@ -56,7 +56,7 @@ health checks as builder tasks (O1), and the GUI for all of it.
 
 Step 7 is done too: a project's team is a preset (Lean 6 roles, Balanced 9, Full 12) plus its own
 changes, stored under `team` in `factory.config.json` and checked against the rules above before
-anything is written. `factory team` shows it; `use`, `agents <n>` (3 to 12; a size between presets
+anything is written. `factory team` shows it; `use`, `agents <n>` (3 to 13; a size between presets
 folds roles of the next larger preset together; the user's own roles come on top), `move`, `merge`,
 `rename`, `title`, `off`/`on`, `add`/`remove` (custom responsibilities) change it, and a change that
 breaks a rule is refused with the reason and changes nothing. The pipeline finds each stage's role by
@@ -177,11 +177,12 @@ Three tested groupings of the catalog. `init` recommends one from what it learns
 project (for example, a dedicated Security and Performance Engineer when the project handles logins,
 personal data or heavy traffic) and shows the agents-per-task estimate for each. **Balanced is the default.**
 
-| Role | Lean (6) | Balanced (9) | Full (12) |
+| Role | Lean (6) | Balanced (10) | Full (13) |
 | --- | --- | --- | --- |
 | Researcher | | | D2 |
-| Product Partner | D1 D2 D3 R1–R4 P1–P4 | D1 D2 D3 | D1 D3 |
-| Planner | | R1–R4 P1–P4 | R1–R4 P1–P4 |
+| Product Partner | D1 D2 D3 R1–R4 P1–P4 M1 M4–M9 M12 M15–M18 | D1 D2 D3 | D1 D3 |
+| Planner | | R1–R4 P1–P3 | R1–R4 P1–P3 |
+| Technical Manager | | P4 M1 M4–M9 M12 M15–M18 | P4 M1 M4–M9 M12 M15–M18 |
 | Designer | | | V3, interface design |
 | Architect | A1–A5 F3 B1 Q1 X1 | A1–A4 F3 B1 X1 | A1–A4 F3 B1 X1 |
 | Builder | B2 V1 F1 F2 F4 O1 | B2 V1 F1 F2 F4 O1 | B2 V1 F1 F2 F4 |
@@ -191,7 +192,7 @@ personal data or heavy traffic) and shows the agents-per-task estimate for each.
 | Release Engineer | L1–L5 O2 O3 G1 G2 S4 S6 Q3 Q4 | L1–L5 O2 O3 | L1–L5 |
 | Operations Engineer | | | O1 O3 |
 | Scribe | K1–K4 | K1–K4 | K1–K4 |
-| *Scripts (no agent)* | S2 V4 K5 | S2 V4 K5 | S2 V4 K5 |
+| *Scripts (no agent)* | S2 V4 K5 M2 M3 M10 M11 M13 M14 | S2 V4 K5 M2 M3 M10 M11 M13 M14 | S2 V4 K5 M2 M3 M10 M11 M13 M14 |
 | **Agents on a normal task** | 3 (spec, build, review) | 3, plus Security and Performance on trigger | 3, plus Security and Performance on trigger |
 
 In every preset the per-task path is **spec → build → gate → review**. Triage (P4) is no longer
@@ -362,3 +363,66 @@ runs, or a rough per-model guide until there are runs.
 8. GUI: Team view, command actions, chat. (done; release and deploy in the GUI are planned)
 
 **Conversations commit their documents** (`factory docs save`, which commits only `docs/`) because task agents work from the last commit. The usual order is brainstorm, research (optional), plan (requirements), design, plan (milestones and tasks); `plan` pauses for `design` when the project has no code and no approved design, and resumes after it.
+
+## The Technical Manager
+
+Agreed with the project owner on 2026-11-15. A project needs someone who runs the work the way a team lead does:
+what to start, what stopped and why, what to do about it, and a report to the person. Before this role, that was
+the person's job: promoting items, pressing Retry on a blocked task and working out why it stopped. The Product
+Partner and the other conversations cannot start work (by design), so the person was the only manager.
+
+**Two halves.** The *supervisor* is code, with no model: it starts approved items in order, watches for stalled or
+looping stages, classifies each failure and applies the safe fixes within limits (M2, M3, M10, M11, M13, M14).
+The *Technical Manager agent* is a model that runs only on exceptions and at milestones: it reads the run files,
+says in plain words what happened, and chooses the action (M1, M4–M9, M12, M15–M17), and it is the conversation in
+Talk that the person always starts with (M18, below). Triage (P4) moved to it from the Planner.
+
+**Autonomy.** *Autopilot* is the default and the person can switch it off: the manager promotes what the person
+agreed, runs it and recovers a stuck task within its limits. *Assist*: it diagnoses and proposes, and the person
+presses the buttons. *Off*: today's behaviour. At every level it never edits code, approves or lands a task,
+pushes, merges or deploys, edits governance files, overrides a security blocker, changes scope without asking, or
+spends past its budget. Every decision goes into a visible log.
+
+**Teams.** Balanced and Full have the role (so 10 and 13 roles). Lean has no separate manager: the Product Partner
+holds the same work. Shrinking a team folds the manager into the Planner first.
+
+| ID | Responsibility | How |
+| --- | --- | --- |
+| P4 | Triage an item (moved from the Planner) | agent, built |
+| M1 | Triage the Inbox: duplicates, size, priority, acceptance checks | agent |
+| M2 | Start the work: promote what was agreed, order, parallel limit | script |
+| M3 | Watch running stages: stalls, loops, repeated errors, time limits | script |
+| M4 | Diagnose a stopped task in plain words | agent |
+| M5 | Choose and apply the fix: retry, guide, update from main, re-spec, split, stronger model | agent |
+| M6 | Split or re-scope a task that is too big | agent |
+| M7 | Coordinate roles: pass findings, second opinions, settle a deadlock after two rounds | agent |
+| M8 | Report progress | conversation |
+| M9 | Ask the person one clear question, only for what is outside its authority | agent |
+| M10 | Guard budget and time | script |
+| M11 | Keep to the autonomy level and loop limits; log every decision | script |
+| M12 | Track milestones and start the milestone work | agent |
+| M13 | Prevent clashes: tasks touching the same files run one after the other | script |
+| M14 | Check ready and done | script |
+| M15 | Prepare the approval package: what changed, risks, what was verified | agent |
+| M16 | Retrospective: recurring causes, proposed as backlog items | agent |
+| M17 | Watch team health | conversation |
+| M18 | **The face of the team**: the person always talks to the manager, who sends each message, or the part of it that concerns them, to the roles it is about, and brings their answers back as one reply | conversation |
+
+**Build status.** Phase 1 is done: the role, the catalog entries M1–M18 (planned, no instructions yet), the presets, the
+robot (Tess) and the move of P4. Phase 2 (diagnosis and the conversation), Phase 3 (the supervisor, recovery,
+autonomy and limits) and Phase 4 (the page) are not built.
+
+### The face of the team (M18)
+
+The person talks to one role, the Technical Manager, about anything: an idea, a failed task, a question about
+security, a request to start the work. For each message the manager decides which roles it concerns, asks them,
+and answers once, in its own voice, naming who said what when it matters. A trivial message gets a direct answer
+and no consultations.
+
+**How (decided, to be built in Phase 2).** The engine runs the routing, not the model alone: the manager's first
+turn names the roles to ask and what to ask each (at most three per message); the engine runs each as that role's
+own conversation, with that role's own prompt, session and allow-list (documents only, never code), in parallel;
+the answers go back to the manager, who writes the reply. Each consultation appears in the reply as a folded step
+("Asked Noor"), opened to the question and the answer, like the commands a reply ran. The specialist conversations
+stay in Talk for anyone who wants to talk to a role directly. The manager acts only through proposals
+(promote, run, retry), which are buttons, or run by itself on Autopilot within its limits.

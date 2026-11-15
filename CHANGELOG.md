@@ -3,6 +3,15 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
+## Unreleased
+
+- **Technical Manager (first step).** A new role, Tess, who will be the face of the team (you talk to her, and she asks
+  the others and answers for them) and will run the work: triage, starting and watching tasks, explaining what
+  stopped and choosing the fix. This step adds the role, its responsibilities (planned) and
+  moves triage to it from the Planner. Balanced is now 10 roles and Full 13; Lean is unchanged. **After updating,
+  in each project run `factory team apply` (or `/software-factory:doctor`, which says so)** to create the new role
+  file, and check the Team view. The rest of the role comes in following releases.
+
 ## 1.0.1
 
 - **One dashboard per project.** `/software-factory:open` no longer shows another project's dashboard. Each

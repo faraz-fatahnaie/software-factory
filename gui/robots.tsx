@@ -1,4 +1,4 @@
-// The team's faces: twelve robots drawn from boxes on a 64-unit grid, so they need no image files and stay sharp at any size.
+// The team's faces: thirteen robots drawn from boxes on a 64-unit grid, so they need no image files and stay sharp at any size.
 // Each has its own head shape, face, antenna and colours; they read apart at 26px. A role keeps its robot and its name.
 import { useMemo } from "react";
 
@@ -112,14 +112,25 @@ const ROBOTS: Record<string, Robot> = {
     R(24, 25, 3.5, 3.5, "#2d3540", "50%"), R(37, 25, 3.5, 3.5, "#2d3540", "50%"),
     R(26, 36, 12, 3, "#2d3540", 2),
   ] },
+  tess: { name: "Tess", hue: 300, draw: (R, g, b) => [
+    R(31, 5, 2, 9, "#7a2d8a"), R(28, 1, 8, 6, "#7ee8c1", "50%", g("#7ee8c1")),
+    R(14, 46, 36, 22, "#a33fc0", [14, 14, 0, 0]),
+    R(24, 50, 16, 15, "#fff7e6", 2), R(28, 48, 8, 4, "#7a2d8a", 2), R(27, 55, 10, 2, "#d7b5e6", 1), R(27, 59, 7, 2, "#d7b5e6", 1),
+    R(9, 24, 7, 12, "#7a2d8a", 4), R(48, 24, 7, 12, "#7a2d8a", 4),
+    R(16, 14, 32, 29, "#d58bf0", 12),
+    R(15, 12, 34, 4, "#7a2d8a", [4, 4, 0, 0]),
+    R(46, 37, 10, 3, "#7a2d8a", 2), R(54, 35, 4, 6, "#ffd166", "50%"),
+    R(22, 23, 8, 8, "#fff", "50%"), R(34, 23, 8, 8, "#fff", "50%"), R(25, 26, 4, 4, "#2b1236", "50%"), R(37, 26, 4, 4, "#2b1236", "50%"),
+    R(27, 34, 10, 5, "transparent", [0, 0, 6, 6], b(2, "#2b1236", "bottom")),
+  ] },
 };
 
 // Each known role keeps its robot. A role the person made or renamed gets one by its name, the same one every time.
 const OF_ROLE: Record<string, string> = {
   "product-partner": "mara", planner: "idris", architect: "noor", builder: "kofi", tester: "lena", reviewer: "sade", "security-performance": "zane",
-  "release-engineer": "rafi", scribe: "wren", researcher: "juno", designer: "iris", "operations-engineer": "otto", guide: "bix",
+  "release-engineer": "rafi", "technical-manager": "tess", scribe: "wren", researcher: "juno", designer: "iris", "operations-engineer": "otto", guide: "bix",
 };
-const IDS = Object.keys(ROBOTS).filter((k) => k !== "bix"); // the Guide's robot belongs to the Guide alone
+const IDS = Object.keys(ROBOTS).filter((k) => k !== "bix" && k !== "tess"); // the Guide's and the Technical Manager's robots belong to them alone
 export function personaFor(role: string): { id: string; name: string } {
   let id = OF_ROLE[role];
   if (!id) { let h = 0; for (const c of role) h = (h * 31 + c.charCodeAt(0)) >>> 0; id = IDS[h % IDS.length]!; }

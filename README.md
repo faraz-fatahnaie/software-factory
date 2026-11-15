@@ -82,13 +82,13 @@ is yours to choose:
 | Preset | Roles | For |
 | --- | --- | --- |
 | Lean | 6 | A small or personal project where nothing sensitive is handled |
-| Balanced | 9 (default) | Most projects |
-| Full | 12 | A product that handles personal data or payments, or that several people depend on |
+| Balanced | 10 (default) | Most projects |
+| Full | 13 | A product that handles personal data or payments, or that several people depend on |
 
 `factory init --team lean|balanced|full` picks one, and `/software-factory:team` helps you choose
 and change it in a conversation. From the command line: `factory team` shows the team,
 `factory team presets` compares the options, `factory team agents 7` gives the closest valid team
-of that size (3 to 12), and `move`, `merge`, `rename`, `title` and `off`/`on` regroup it. A change
+of that size (3 to 13), and `move`, `merge`, `rename`, `title` and `off`/`on` regroup it. A change
 that breaks a rule (the builder reviewing its own work, switching off the spec, build or review,
 splitting a pass that runs as one stage) is refused with the reason and changes nothing.
 
@@ -169,7 +169,7 @@ The record builds up as you work:
    after that, and each move is its own commit.
 2. **Isolation.** Each task gets a git worktree at `.worktrees/<F-id>/` on branch
    `factory/<F-id>`. Your checkout is never touched by a build, and tasks can run in parallel.
-3. **Stages.** For an ad-hoc item the Planner triages it first (an item that already carries an `Acceptance` line in its backlog detail skips this), then the Architect writes a spec, the Builder implements it,
+3. **Stages.** For an ad-hoc item the Technical Manager triages it first (an item that already carries an `Acceptance` line in its backlog detail skips this), then the Architect writes a spec, the Builder implements it,
    the gate (`gate` in `factory.config.json`) runs, and the Reviewer checks the result against
    the spec. A failed gate or a rejected review sends the task back to Build, up to three times.
    Stages hand off through files in the worktree's `.factory/runs/<run>/`, never shared memory.
