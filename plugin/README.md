@@ -193,6 +193,7 @@ push | merge | revert | sync | vcs | team | configure | scan | release | status 
 | Skills, per role | Studio: attach, detach, search skills.sh and install |
 | What counts as sensitive for the security review | `security` in `factory.config.json` (always, paths, keywords) |
 | Auto-merge of pull requests (off by default) | The GitHub tile, `factory vcs auto-merge on` |
+| Push on approval (off by default): approving a task also pushes it and opens its pull request | The GitHub tile, `factory vcs auto-push on` |
 | Whether a person's conversation suggests your next message | The switch in the chat header |
 | Whether the code graph is built | `graph` in `factory.config.json` |
 

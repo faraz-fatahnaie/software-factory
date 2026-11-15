@@ -2138,7 +2138,8 @@ test("manager: proposals are parsed by kind, ASK lines only name roles that can 
   expect(parseProposal("Do it.\nPROPOSE: promote F-001 F-002")).toEqual({ text: "Do it.", proposal: { kind: "promote", ids: ["F-001", "F-002"] } });
   expect(parseProposal("PROPOSE: retry F-003").proposal).toEqual({ kind: "retry", ids: ["F-003"] });
   expect(parseProposal("PROPOSE: sync").proposal).toEqual({ kind: "sync", ids: [] });
-  expect(parseProposal("PROPOSE: push F-001 F-002").proposal).toBeUndefined(); // a push is one task
+  expect(parseProposal("PROPOSE: push F-001 F-002").proposal).toEqual({ kind: "push", ids: ["F-001", "F-002"] }); // everything that is waiting, with one yes
+  expect(parseProposal(`PROPOSE: merge ${Array.from({ length: 9 }, (_, i) => `F-00${i + 1}`).join(" ")}`).proposal).toBeUndefined(); // but not nine
   expect(parseProposal("PROPOSE: sync F-001").proposal).toBeUndefined();
   expect(parseProposal("PROPOSE: rm -rf").proposal).toBeUndefined();
   const team = resolveTeam();
@@ -2428,4 +2429,35 @@ test("upgrade: a role file that a new version needs is created, committed and ne
   expect(readFileSync(join(dir, ".claude/agents/technical-manager.md"), "utf8")).toContain("## Triage an item");
   expect(ensureRoleFiles(dir)).toEqual([]); // nothing more to make
   expect(ensureRoleFiles(tmp())).toEqual([]); // a folder that is not a factory project
+});
+
+test("push on approval: off unless turned on, validated, and when on approving also pushes; a push that fails never undoes the approval", () => {
+  const { dir, sh, section, cli } = repo();
+  expect(() => parseConfig({ gate: ["true"], roles: config.roles, vcs: { autoPush: "yes" } })).toThrow(/vcs\.autoPush/);
+  expect(cli("vcs").out).toContain("push on approval: off");
+  const bare = tmp(), { path } = fakeGh();
+  sh("git", "init", "-q", "--bare", bare);
+  sh("git", "remote", "add", "origin", bare);
+  process.env.FACTORY_GH = path;
+  try {
+    expect(cli("vcs", "auto-push", "on").out).toMatch(/^push on approval on/);
+    expect(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).vcs.autoPush).toBe(true);
+    expect(cli("vcs").out).toContain("push on approval: on");
+    cli("run", "F-001", "F-002", "--stub");
+    const approved = cli("approve", "F-001");
+    expect(approved.out).toContain("F-001 \u2192 Done: approved; not pushed yet");
+    expect(approved.out).toContain("F-001: pushed; pull request https://github.com/o/r/pull/7"); // approving pushed it
+    expect(Bun.spawnSync(["git", "branch", "--list"], { cwd: bare }).stdout.toString()).toContain("factory/F-001");
+
+    // A secret in the change stops the push, not the approval.
+    const wt = join(dir, ".worktrees/F-002");
+    writeFileSync(join(wt, "leak.txt"), "token = ghp_" + "a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8\n");
+    sh("git", "-C", wt, "add", "leak.txt");
+    sh("git", "-C", wt, "commit", "-q", "-m", "leak");
+    const blocked = cli("approve", "F-002");
+    expect(blocked.code).toBe(0);
+    expect(section("F-002")).toBe("Done");
+    expect(blocked.out).toContain("Approved, but not pushed");
+    expect(cli("vcs", "auto-push", "off").out).toMatch(/^push on approval off/);
+  } finally { delete process.env.FACTORY_GH; }
 });

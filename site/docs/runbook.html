@@ -313,7 +313,12 @@ their logs, so the Builder can fix it as a normal task.</li>
 <li><strong>Update from GitHub</strong> (<code>factory sync</code>) brings <code>main</code> up to date, and the rail chip says where you stand.</li>
 </ol>
 <p><strong>Checks on GitHub.</strong> <code>factory vcs ci</code> writes a workflow from your gate commands so pull requests have checks.
-<strong>Auto-merge</strong> (<code>factory vcs auto-merge on</code>) merges as soon as checks pass, and refuses to turn on without a
+<strong>Fewer clicks.</strong> With several tasks waiting, <strong>Push all</strong> (one confirmation that lists them) pushes each branch and
+opens each pull request, and <strong>Merge all</strong> does the same for pull requests that can be merged. In Talk, say &quot;push
+everything&quot; and Tess offers one button for all of them. If you would rather not push at all as a separate step, turn
+on <strong>Push on approval</strong> (<code>factory vcs auto-push on</code>): approving a task then pushes it and opens its pull request at
+once. The secret scan still runs first, and a push that fails never undoes the approval. It is off until you turn it on.</p>
+<p><strong>Auto-merge</strong> (<code>factory vcs auto-merge on</code>) merges as soon as checks pass, and refuses to turn on without a
 workflow to wait for. It is yours to enable.</p>
 <p><strong>Undo.</strong> <code>factory revert F-007</code> (or <strong>Source → Log → Revert</strong>) undoes a merged task. Locally it adds a
 revert commit. With GitHub it goes up as a pull request you review and merge.</p>
@@ -381,7 +386,7 @@ with auto-update and how to go back, is in the <a href="index.html#updating">REA
 <tr><td><code>…:status</code></td><td>Where everything is, and the next step</td></tr>
 <tr><td><code>…:approve F-007</code>, <code>…:discard F-007</code></td><td>Accept or throw away</td></tr>
 <tr><td><code>factory push F-007</code>, <code>merge F-007</code>, <code>revert F-007</code>, <code>sync</code></td><td>GitHub</td></tr>
-<tr><td><code>factory vcs ci</code>, <code>vcs auto-merge on</code></td><td>Checks and auto-merge on GitHub</td></tr>
+<tr><td><code>factory vcs ci</code>, <code>vcs auto-merge on</code>, <code>vcs auto-push on</code></td><td>Checks, auto-merge and push on approval</td></tr>
 <tr><td><code>factory team presets</code>, <code>team use lean</code>, <code>team agents 7</code></td><td>The team</td></tr>
 <tr><td><code>factory configure</code></td><td>The setup and gate commands</td></tr>
 <tr><td><code>factory scan</code>, <code>factory doctor</code></td><td>Secret scan; setup check</td></tr>

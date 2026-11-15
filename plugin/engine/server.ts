@@ -173,9 +173,9 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
       if (route === "GET /api/vcs") {
         // Asks GitHub, so the answer is kept for a few seconds; any push, merge or sync clears it.
         if (!vcsCache || vcsCache.remote !== remoteUrl(root) || Date.now() - vcsCache.at > 15_000) {
-          let autoMerge = false;
-          try { autoMerge = !!loadConfig(root).vcs?.autoMerge; } catch { /* not initialised */ }
-          vcsCache = { at: Date.now(), remote: remoteUrl(root), body: { ...vcsStatus(root), autoMerge, hasChecks: hasChecks(root) } };
+          let autoMerge = false, autoPush = false;
+          try { const v = loadConfig(root).vcs; autoMerge = !!v?.autoMerge; autoPush = !!v?.autoPush; } catch { /* not initialised */ }
+          vcsCache = { at: Date.now(), remote: remoteUrl(root), body: { ...vcsStatus(root), autoMerge, autoPush, hasChecks: hasChecks(root) } };
         }
         return json(vcsCache.body);
       }
@@ -326,6 +326,11 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         return cli(url.pathname.slice(5), ids[0]!); // the same command a person would type, with the same checks
       }
       if (route === "POST /api/sync") { vcsCache = undefined; return cli("sync"); }
+      if (route === "POST /api/vcs/auto-push") {
+        if (typeof body.on !== "boolean") return json({ error: "on: true or false" }, 400);
+        vcsCache = undefined;
+        return cli("vcs", "auto-push", body.on ? "on" : "off");
+      }
       if (route === "POST /api/vcs/auto-merge") {
         if (typeof body.on !== "boolean") return json({ error: "on: true or false" }, 400);
         vcsCache = undefined;

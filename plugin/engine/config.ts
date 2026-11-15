@@ -21,7 +21,7 @@ export type SecuritySettings = { always?: boolean; paths?: string[]; keywords?: 
  * `team` is the project's team: a preset plus its own changes. `roles` holds the model settings of the roles that run unattended.
  */
 /** `autoMerge`: merge a pull request as soon as its checks pass, with no wait for a person. Off unless the person turns it on. */
-export type VcsSettings = { autoMerge?: boolean };
+export type VcsSettings = { autoMerge?: boolean; /** Push a task and open its pull request the moment a person approves it. Off unless the person turns it on. */ autoPush?: boolean };
 /** `suggest`: per role, whether its conversation ends with a few suggested next messages. Unset means on for the Product Partner and off for the others. */
 export type ChatSettings = { suggest?: Record<string, boolean> };
 /**
@@ -83,7 +83,7 @@ export function parseConfig(raw: unknown): Config {
       for (const key of ["paths", "keywords"]) if (sec[key] !== undefined && !isStrList(sec[key])) errs.push(`security.${key}: must be a list of words`);
     }
   }
-  if (c.vcs !== undefined && (typeof c.vcs !== "object" || c.vcs === null || Array.isArray(c.vcs) || (c.vcs.autoMerge !== undefined && typeof c.vcs.autoMerge !== "boolean"))) errs.push("vcs: must be an object, and vcs.autoMerge must be true or false");
+  if (c.vcs !== undefined && (typeof c.vcs !== "object" || c.vcs === null || Array.isArray(c.vcs) || (c.vcs.autoMerge !== undefined && typeof c.vcs.autoMerge !== "boolean") || (c.vcs.autoPush !== undefined && typeof c.vcs.autoPush !== "boolean"))) errs.push("vcs: must be an object, and vcs.autoMerge and vcs.autoPush must be true or false");
   if (c.chat !== undefined) {
     const s = c.chat?.suggest;
     if (typeof c.chat !== "object" || c.chat === null || Array.isArray(c.chat) || (s !== undefined && (typeof s !== "object" || s === null || Array.isArray(s) || Object.values(s).some((v) => typeof v !== "boolean")))) errs.push("chat: must be an object, and chat.suggest must map role names to true or false");
@@ -123,7 +123,7 @@ export function parseConfig(raw: unknown): Config {
     return [role, { runner, model, effort, fallback, ...(enabled !== undefined && { enabled }), ...(own && Object.keys(own).length && { stages: own }) }];
   })) as Record<Role, RoleConfig>;
   const team = c.team as TeamSettings | undefined;
-  return { ...(c.setup && { setup: c.setup }), gate: c.gate, ...(c.graph !== undefined && { graph: c.graph }), ...(c.vcs && { vcs: { ...(c.vcs.autoMerge !== undefined && { autoMerge: c.vcs.autoMerge }) } }), ...(c.manager && Object.keys(c.manager).length && { manager: { ...c.manager } }), ...(c.chat && { chat: { ...(c.chat.suggest && { suggest: { ...c.chat.suggest } }) } }),
+  return { ...(c.setup && { setup: c.setup }), gate: c.gate, ...(c.graph !== undefined && { graph: c.graph }), ...(c.vcs && { vcs: { ...(c.vcs.autoMerge !== undefined && { autoMerge: c.vcs.autoMerge }), ...(c.vcs.autoPush !== undefined && { autoPush: c.vcs.autoPush }) } }), ...(c.manager && Object.keys(c.manager).length && { manager: { ...c.manager } }), ...(c.chat && { chat: { ...(c.chat.suggest && { suggest: { ...c.chat.suggest } }) } }),
     ...(c.security && { security: { ...(c.security.always !== undefined && { always: c.security.always }), ...(c.security.paths && { paths: c.security.paths }), ...(c.security.keywords && { keywords: c.security.keywords }) } }),
     ...(team && { team: { ...(team.preset && { preset: team.preset }), ...(team.move && Object.keys(team.move).length && { move: team.move }), ...(team.off?.length && { off: team.off }), ...(team.titles && Object.keys(team.titles).length && { titles: team.titles }), ...(team.custom?.length && { custom: team.custom }) } }),
     roles };

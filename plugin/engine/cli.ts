@@ -423,10 +423,17 @@ async function main([cmd, ...args]: string[]) {
     return console.log(/^[A-Z]\d{1,3}$/.test(name) ? chatPromptFor(args, projectTeam(root)) : chatPrompt(name, ids, projectTeam(root)));
   }
 
+  const autoPush = () => { try { return !!loadConfig(root).vcs?.autoPush; } catch { return false; } };
   const autoMerge = () => { try { return !!loadConfig(root).vcs?.autoMerge; } catch { return false; } };
   if (cmd === "vcs") {
     const [sub, value] = args;
-    if (!sub) return console.log(formatStatus(vcsStatus(root), autoMerge()));
+    if (!sub) return console.log(formatStatus(vcsStatus(root), autoMerge(), autoPush()));
+    if (sub === "auto-push" && (value === "on" || value === "off") && args.length === 2) {
+      const file = join(root, "factory.config.json"), raw = JSON.parse(readFileSync(file, "utf8"));
+      writeFileSync(file, `${JSON.stringify(parseConfig({ ...raw, vcs: { ...raw.vcs, autoPush: value === "on" } }), null, 2)}\n`);
+      commitPaths(`software-factory: push on approval ${value}`, "factory.config.json");
+      return console.log(value === "on" ? "push on approval on: approving a task pushes its branch and opens its pull request at once (the secret scan still runs first)" : "push on approval off: you push each task yourself");
+    }
     if (sub === "auto-merge" && (value === "on" || value === "off") && args.length === 2) {
       if (value === "on" && !hasChecks(root)) throw new Error("auto-merge waits for the checks to pass, and this project has none (no workflow in .github/workflows), so it would merge at once. Add checks first, then turn it on");
       const file = join(root, "factory.config.json"), raw = JSON.parse(readFileSync(file, "utf8"));
@@ -455,17 +462,18 @@ async function main([cmd, ...args]: string[]) {
     throw new Error("usage: factory vcs [auto-merge on|off | ci | fix <F-id>]");
   }
 
-  if (cmd === "push") {
-    const item = find(args[0], "Done");
+  /** Pushes an approved task and opens its pull request. Throws, in plain words, when it cannot (a possible secret, not signed in). */
+  const pushItem = (item: Item) => {
     const store = openEvents(), run = store.lastRun(item.id) ?? "";
     const { spec, review } = runTexts(root, run);
     const url = pushTask(root, item.id, item.title, spec, review);
     store.emit({ run, task: item.id, stage: "pr", type: "pr.opened", data: { url } });
     store.close();
-    let tail = "Merge it when you are ready: the Merge button in the dashboard, factory merge " + item.id + ", or on GitHub.";
-    if (autoMerge()) tail = armAutoMerge(root, url) ? "Auto-merge is on: GitHub merges it when the checks pass." : "Auto-merge is on: it merges when the checks pass (the dashboard or factory sync does it).";
-    return console.log(`${item.id}: pushed; pull request ${url}\n${tail}`);
-  }
+    const tail = autoMerge() ? (armAutoMerge(root, url) ? "Auto-merge is on: GitHub merges it when the checks pass." : "Auto-merge is on: it merges when the checks pass (the dashboard or factory sync does it).")
+      : "Merge it when you are ready: the Merge button in the dashboard, factory merge " + item.id + ", or on GitHub.";
+    return `${item.id}: pushed; pull request ${url}\n${tail}`;
+  };
+  if (cmd === "push") return console.log(pushItem(find(args[0], "Done")));
 
   if (cmd === "revert") return console.log(revertTask(root, find(args[0], "Done").id));
 
@@ -498,7 +506,12 @@ async function main([cmd, ...args]: string[]) {
       if (g.ok) commitPaths("software-factory: update the knowledge graph", "graphify-out");
       graph = `\ngraph: ${g.ok ? g.message : `not updated (${g.message})`}`;
     }
-    return console.log(`${item.id} → Done: ${where}${where === APPROVED ? `\nPush it when you are ready: factory push ${item.id} (or the Push button in the dashboard)` : ""}${notes.length ? `\nrecorded: ${notes.join(", ")}` : ""}${graph}`);
+    // Opt-in: approving also pushes. A push that cannot happen (a possible secret, not signed in) never undoes the approval.
+    let pushed = where === APPROVED ? `\nPush it when you are ready: factory push ${item.id} (or the Push button in the dashboard)` : "";
+    if (where === APPROVED && autoPush()) {
+      try { pushed = `\n${pushItem({ ...item, section: "Done" })}`; } catch (e) { pushed = `\nApproved, but not pushed: ${(e as Error).message}\nPush it yourself when that is fixed: factory push ${item.id}`; }
+    }
+    return console.log(`${item.id} → Done: ${where}${pushed}${notes.length ? `\nrecorded: ${notes.join(", ")}` : ""}${graph}`);
   }
 
   if (cmd === "discard") {

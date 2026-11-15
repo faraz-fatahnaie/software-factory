@@ -52,7 +52,8 @@ const FAILURES: Record<string, string> = {
 
 const PROPOSAL_BUTTON: Record<Proposal["kind"], string> = { push: "Push", merge: "Merge", sync: "Sync", promote: "Promote", run: "Run", retry: "Retry" };
 const PROPOSAL_ASK: Record<Proposal["kind"], (ids: string[]) => string> = {
-  push: ([id]) => `Push ${id} to GitHub and open a pull request?`, merge: ([id]) => `Merge ${id}'s pull request into main?`, sync: () => "Update from GitHub?",
+  push: (ids) => (ids.length === 1 ? `Push ${ids[0]} to GitHub and open a pull request?` : `Push ${ids.join(", ")} to GitHub and open ${ids.length} pull requests?`),
+  merge: (ids) => (ids.length === 1 ? `Merge ${ids[0]}'s pull request into main?` : `Merge the pull requests of ${ids.join(", ")} into main, in that order?`), sync: () => "Update from GitHub?",
   promote: (ids) => `Move ${ids.join(", ")} to Ready, in that order?`, run: (ids) => `Run ${ids.join(", ")} now?`, retry: (ids) => `Try ${ids.join(", ")} again?`,
 };
 const toBase64 = (f: File) => new Promise<string>((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] ?? ""); r.onerror = () => no(r.error); r.readAsDataURL(f); });
@@ -185,9 +186,14 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
     } else if (p.kind === "run" || p.kind === "retry") {
       r = await call("/api/run", { ids: p.ids });
       text = r.ok ? `Started ${p.ids.join(", ")}. Follow it in Backlog.` : r.error;
-    } else {
-      r = await call(p.kind === "sync" ? "/api/sync" : `/api/${p.kind}`, p.kind === "sync" ? {} : { id: p.ids[0] });
+    } else if (p.kind === "sync") {
+      r = await call("/api/sync", {});
       text = r.ok ? r.data.output ?? "Done." : r.error;
+    } else { // push or merge, one task at a time in the order given; the first that fails stops the rest and says why
+      r = { ok: true, data: {} };
+      const done: string[] = [];
+      for (const id of p.ids) { r = await call(`/api/${p.kind}`, { id }); if (!r.ok) break; done.push(r.data.output ?? `${id}: done`); }
+      text = r.ok ? done.join("\n\n") : `${done.length ? `${done.join("\n\n")}\n\n` : ""}${r.error}`;
     }
     const ok = r.ok;
     patch(k, (c) => ({ ...c, busy: false, messages: [...c.messages.map((m, j) => (j === i ? { ...m, acted: ok ? "Done" : "Failed" } : m)), { who: "team", text, bad: !ok }] }));

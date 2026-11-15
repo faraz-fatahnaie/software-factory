@@ -7,7 +7,7 @@ import { Skel } from "./ui";
 export type VcsCheck = { name: string; state: "passing" | "failing" | "pending"; url?: string };
 export type VcsPr = { number: number; url: string; state: "OPEN" | "MERGED" | "CLOSED"; checks: "passing" | "failing" | "pending" | "none"; mergeable: boolean; checkList: VcsCheck[] };
 export type VcsData = {
-  remote: string | null; github: boolean; ghReady: boolean; base: string; note?: string; autoMerge: boolean; hasChecks: boolean;
+  remote: string | null; github: boolean; ghReady: boolean; base: string; note?: string; autoMerge: boolean; autoPush?: boolean; hasChecks: boolean;
   branches: { id: string; pushed: boolean; revert?: boolean; pr?: VcsPr }[];
 };
 
@@ -75,6 +75,17 @@ export function GitHub(p: { vcs: VcsData | null; items: Item[]; act: (path: stri
   const [busy, setBusy] = useState("");
   const { vcs } = p;
   const run = async (key: string, path: string, body: unknown) => { setBusy(key); await p.act(path, body); await p.refresh(); setBusy(""); };
+  // Several tasks with one yes: asked once in place, then done one after the other, stopping at the first that fails (its reason is shown).
+  const [asking, setAsking] = useState<"" | "push" | "merge">("");
+  const [progress, setProgress] = useState("");
+  const batch = async (kind: "push" | "merge", ids: string[]) => {
+    setAsking(""); setBusy(`all-${kind}`);
+    for (const [i, id] of ids.entries()) {
+      setProgress(`${kind === "push" ? "Pushing" : "Merging"} ${i + 1} of ${ids.length}…`);
+      if (!(await p.act(`/api/${kind}`, { id }))) break;
+    }
+    setProgress(""); await p.refresh(); setBusy("");
+  };
   const title = (id: string) => p.items.find((i) => i.id === id)?.title ?? "";
 
   if (!vcs) return <article className="tile github"><Skel w={160} h={14} /><div style={{ height: 12 }} /><Skel w="70%" h={14} /></article>;
@@ -86,6 +97,7 @@ export function GitHub(p: { vcs: VcsData | null; items: Item[]; act: (path: stri
   );
   const rows = vcs.branches;
   const ready = rows.filter((b) => !b.pr || b.pr.state === "CLOSED"), open = rows.filter((b) => b.pr?.state === "OPEN"), merged = rows.filter((b) => b.pr?.state === "MERGED");
+  const mergeable = open.filter((b) => b.pr!.mergeable && b.pr!.checks !== "failing"); // the ones the Merge button would accept
   const name = (b: { id: string; revert?: boolean }) => `${b.revert ? "Revert " : ""}${b.id}: ${title(b.id)}`;
   const branch = (id: string) => <span className="branch-pill"><Icon name="branch" />factory/{id}</span>;
   return (
@@ -93,6 +105,10 @@ export function GitHub(p: { vcs: VcsData | null; items: Item[]; act: (path: stri
       <header>
         <h2><Icon name="pr" size={18} /> Pull requests</h2>
         <div className="row gap-s">
+          <label className="switch" title="When you approve a task, push it and open its pull request at once. The secret scan still runs first, and a push that fails never undoes the approval.">
+            <input type="checkbox" role="switch" checked={!!vcs.autoPush} disabled={busy !== "" || !vcs.ghReady} onChange={(e) => run("autopush", "/api/vcs/auto-push", { on: e.target.checked })} />
+            Push on approval
+          </label>
           <label className="switch" title={vcs.hasChecks || vcs.autoMerge ? "Merge a pull request as soon as its checks pass, with nobody to approve it" : "Needs checks to wait for: add a GitHub Actions workflow first"}>
             <input type="checkbox" role="switch" checked={vcs.autoMerge} disabled={busy !== "" || (!vcs.hasChecks && !vcs.autoMerge)}
               onChange={(e) => run("auto", "/api/vcs/auto-merge", { on: e.target.checked })} />
@@ -110,7 +126,14 @@ export function GitHub(p: { vcs: VcsData | null; items: Item[]; act: (path: stri
         <div className="prs">
           {ready.length > 0 && (
             <section className="gh-list" aria-label="Ready to push">
-              <header><StateIcon kind="local" /> {ready.length} ready to push</header>
+              <header>
+                <StateIcon kind="local" /> {ready.length} ready to push
+                {ready.length > 1 && (asking === "push" ? (
+                  <span className="gh-batch"><span>Push these {ready.length} and open {ready.length} pull requests?</span><button className="gh" onClick={() => batch("push", ready.map((b) => b.id))}>Push all {ready.length}</button><button className="small" onClick={() => setAsking("")}>Cancel</button></span>
+                ) : (
+                  <span className="gh-batch"><button className="gh" disabled={busy !== "" || !vcs.ghReady} onClick={() => setAsking("push")}>{busy === "all-push" ? progress : `Push all ${ready.length}`}</button></span>
+                ))}
+              </header>
               {ready.map((b) => (
                 <div className="gh-row" key={b.id}>
                   <StateIcon kind="local" />
@@ -119,7 +142,7 @@ export function GitHub(p: { vcs: VcsData | null; items: Item[]; act: (path: stri
                     <div className="gh-meta">{branch(b.id)} <span>{b.pushed ? "Pushed, no pull request" : "Only on this machine"}</span></div>
                   </div>
                   <div className="gh-actions">
-                    <button className="gh" disabled={busy !== "" || !vcs.ghReady} onClick={() => run(b.id, "/api/push", { id: b.id })} title={`Pushes factory/${b.id} to GitHub and opens a pull request`}>{busy === b.id ? "Pushing…" : "Push and open pull request"}</button>
+                    <button className="gh" disabled={busy !== "" || !vcs.ghReady} onClick={() => run(b.id, "/api/push", { id: b.id })} title={`Pushes factory/${b.id} to GitHub and opens a pull request`}>{busy === b.id ? "Pushing…" : (b.pushed ? "Open pull request" : "Push and open pull request")}</button>
                   </div>
                 </div>
               ))}
@@ -127,7 +150,14 @@ export function GitHub(p: { vcs: VcsData | null; items: Item[]; act: (path: stri
           )}
           {open.length > 0 && (
             <section className="gh-list" aria-label="Open pull requests">
-              <header><StateIcon kind="open" /> {open.length} open</header>
+              <header>
+                <StateIcon kind="open" /> {open.length} open
+                {!vcs.autoMerge && mergeable.length > 1 && (asking === "merge" ? (
+                  <span className="gh-batch"><span>Merge these {mergeable.length} pull requests into {vcs.base}, in this order?</span><button className="gh" onClick={() => batch("merge", mergeable.map((b) => b.id))}>Merge all {mergeable.length}</button><button className="small" onClick={() => setAsking("")}>Cancel</button></span>
+                ) : (
+                  <span className="gh-batch"><button className="gh" disabled={busy !== ""} onClick={() => setAsking("merge")}>{busy === "all-merge" ? progress : `Merge all ${mergeable.length}`}</button></span>
+                ))}
+              </header>
               {open.map((b) => (
                 <div className="gh-row" key={b.id}>
                   <StateIcon kind="open" />

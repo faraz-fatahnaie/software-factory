@@ -8,7 +8,7 @@ import { chromium } from "playwright-core";
 import { fakeGh, ghPr, repo, tmp } from "../tests/fixture";
 import { serve } from "../plugin/engine/server";
 
-const { dir, sh, section } = repo();
+const { dir, sh, section, cli } = repo();
 const server = await serve(dir, 0);
 const browser = await chromium.launch({ channel: "chrome", headless: true });
 try {
@@ -115,6 +115,18 @@ try {
   await row.waitFor({ state: "detached" });
   await page.locator(".link.vcs", { hasText: "In sync with GitHub" }).waitFor();
   assert.match(gh.calls(), /pr merge 7 --merge --delete-branch/);
+
+  // Several approved tasks: one yes (asked in place) pushes them all, in order.
+  const ids = ["Batch one", "Batch two"].map((t) => /added (F-\d+)/.exec(cli("add", t).out)![1]!);
+  for (const id of ids) { cli("promote", id); cli("run", id, "--stub"); cli("approve", id); }
+  await view("Backlog");
+  await view("Overview");
+  await page.locator(".link.vcs", { hasText: "2 waiting for GitHub" }).waitFor({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Push all 2" }).click();
+  await page.getByText("Push these 2 and open 2 pull requests?").waitFor();
+  await page.getByRole("button", { name: "Push all 2" }).click();
+  for (const id of ids) await page.locator(".gh-row", { hasText: id }).getByText("Pushed, no pull request").waitFor({ timeout: 30_000 });
+  assert.match(sh("git", "-C", bare, "branch", "--list").out, new RegExp(`factory/${ids[1]}`), "the second push went through too");
 
   // Source, as a Git tool window: an unsaved file shows in Changes with its diff; the Log picks a commit and reverts a merged task from its details.
   writeFileSync(join(dir, "notes.txt"), "one\ntwo\n");

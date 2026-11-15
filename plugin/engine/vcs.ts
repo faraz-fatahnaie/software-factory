@@ -69,9 +69,9 @@ export function vcsStatus(root: string, prs = true): Status {
 }
 
 /** One-line description per waiting branch, for `factory vcs` and for the conversation that explains it. */
-export function formatStatus(s: Status, autoMerge: boolean): string {
+export function formatStatus(s: Status, autoMerge: boolean, autoPush = false): string {
   const lines = [s.remote ? `remote: ${s.remote}${s.github ? "" : " (not GitHub)"}` : "remote: none. This project's work exists only on this machine.",
-    `GitHub CLI: ${s.ghReady ? "signed in" : "not signed in (run: gh auth login)"}`, `auto-merge: ${autoMerge ? "on (merges when checks pass)" : "off (you merge)"}`];
+    `GitHub CLI: ${s.ghReady ? "signed in" : "not signed in (run: gh auth login)"}`, `auto-merge: ${autoMerge ? "on (merges when checks pass)" : "off (you merge)"}`, `push on approval: ${autoPush ? "on (approving a task pushes it and opens its pull request)" : "off (you push)"}`];
   if (s.note) lines.push(s.note);
   if (!s.branches.length) lines.push("nothing is waiting to be pushed or merged");
   for (const b of s.branches) {

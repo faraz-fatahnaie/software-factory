@@ -294,6 +294,12 @@ repository and sets `origin`. Credentials never go in the project.
 5. **Update from GitHub** (`factory sync`) brings `main` up to date, and the rail chip says where you stand.
 
 **Checks on GitHub.** `factory vcs ci` writes a workflow from your gate commands so pull requests have checks.
+**Fewer clicks.** With several tasks waiting, **Push all** (one confirmation that lists them) pushes each branch and
+opens each pull request, and **Merge all** does the same for pull requests that can be merged. In Talk, say "push
+everything" and Tess offers one button for all of them. If you would rather not push at all as a separate step, turn
+on **Push on approval** (`factory vcs auto-push on`): approving a task then pushes it and opens its pull request at
+once. The secret scan still runs first, and a push that fails never undoes the approval. It is off until you turn it on.
+
 **Auto-merge** (`factory vcs auto-merge on`) merges as soon as checks pass, and refuses to turn on without a
 workflow to wait for. It is yours to enable.
 
@@ -368,7 +374,7 @@ with auto-update and how to go back, is in the [README](../README.md#updating).
 | `…:status` | Where everything is, and the next step |
 | `…:approve F-007`, `…:discard F-007` | Accept or throw away |
 | `factory push F-007`, `merge F-007`, `revert F-007`, `sync` | GitHub |
-| `factory vcs ci`, `vcs auto-merge on` | Checks and auto-merge on GitHub |
+| `factory vcs ci`, `vcs auto-merge on`, `vcs auto-push on` | Checks, auto-merge and push on approval |
 | `factory team presets`, `team use lean`, `team agents 7` | The team |
 | `factory configure` | The setup and gate commands |
 | `factory scan`, `factory doctor` | Secret scan; setup check |

@@ -249,11 +249,11 @@ export const ATTACH_MAX_FILES = 8, ATTACH_MAX_BYTES = 20 * 1024 * 1024;
 
 /** An action a conversation proposes. Only a button the person presses runs it. */
 export type Proposal = { kind: "push" | "merge" | "sync" | "promote" | "run" | "retry"; ids: string[] };
-/** Takes the one `PROPOSE:` line out of a reply. A line that does not fit its kind (a push needs one task, a sync none) is not a proposal, and stays in the text. */
+/** Takes the one `PROPOSE:` line out of a reply. A line that does not fit its kind (a sync names no task, everything else one to eight) is not a proposal, and stays in the text. */
 export function parseProposal(text: string): { text: string; proposal?: Proposal } {
   const m = /^PROPOSE: (push|merge|sync|promote|run|retry)((?: F-\d+)*)[ \t]*$/m.exec(text);
   if (!m) return { text };
   const kind = m[1] as Proposal["kind"], ids = m[2]!.trim() ? m[2]!.trim().split(" ") : [];
-  const fits = kind === "sync" ? ids.length === 0 : kind === "push" || kind === "merge" ? ids.length === 1 : ids.length >= 1 && ids.length <= 8;
+  const fits = kind === "sync" ? ids.length === 0 : ids.length >= 1 && ids.length <= 8;
   return fits ? { text: text.replace(m[0], "").trimEnd(), proposal: { kind, ids } } : { text };
 }
