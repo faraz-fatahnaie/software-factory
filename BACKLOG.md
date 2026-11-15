@@ -39,6 +39,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Public GitHub repository, install docs, real owner and author in the manifests, version bump and tag.
 - [ ] F-072 (P1) Upgrade path: create the role file of a role added by an update, by itself
   A project updated from 1.0.1 has no .claude/agents/technical-manager.md, so triage fails. Create missing role files (never overwrite) when the dashboard or a run starts, and say so in the log.
+- [ ] F-073 (P1) One-time notice after an update that autopilot is on
+  Decided 2026-11-15: autopilot is on for every project. The first time the dashboard opens after the update, show what changed and offer assist or off. Remember it was seen.
 
 ## Ready
 
