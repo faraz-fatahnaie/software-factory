@@ -50,9 +50,10 @@ const FAILURES: Record<string, string> = {
   auth: "The Claude command line is not logged in. Run `claude` in a terminal, log in, then try again.",
 };
 
-const PROPOSAL_BUTTON: Record<Proposal["kind"], string> = { push: "Push", merge: "Merge", sync: "Sync", promote: "Promote", run: "Run", retry: "Retry" };
+const PROPOSAL_BUTTON: Record<Proposal["kind"], string> = { push: "Push", batch: "Push together", merge: "Merge", sync: "Sync", promote: "Promote", run: "Run", retry: "Retry" };
 const PROPOSAL_ASK: Record<Proposal["kind"], (ids: string[]) => string> = {
   push: (ids) => (ids.length === 1 ? `Push ${ids[0]} to GitHub and open a pull request?` : `Push ${ids.join(", ")} to GitHub and open ${ids.length} pull requests?`),
+  batch: (ids) => `Push ${ids.join(", ")} together, as one pull request?`,
   merge: (ids) => (ids.length === 1 ? `Merge ${ids[0]}'s pull request into main?` : `Merge the pull requests of ${ids.join(", ")} into main, in that order?`), sync: () => "Update from GitHub?",
   promote: (ids) => `Move ${ids.join(", ")} to Ready, in that order?`, run: (ids) => `Run ${ids.join(", ")} now?`, retry: (ids) => `Try ${ids.join(", ")} again?`,
 };
@@ -188,6 +189,9 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
       text = r.ok ? `Started ${p.ids.join(", ")}. Follow it in Backlog.` : r.error;
     } else if (p.kind === "sync") {
       r = await call("/api/sync", {});
+      text = r.ok ? r.data.output ?? "Done." : r.error;
+    } else if (p.kind === "batch") {
+      r = await call("/api/push-together", { ids: p.ids });
       text = r.ok ? r.data.output ?? "Done." : r.error;
     } else { // push or merge, one task at a time in the order given; the first that fails stops the rest and says why
       r = { ok: true, data: {} };

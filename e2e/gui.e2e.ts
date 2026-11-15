@@ -123,10 +123,39 @@ try {
   await view("Overview");
   await page.locator(".link.vcs", { hasText: "2 waiting for GitHub" }).waitFor({ timeout: 30_000 });
   await page.getByRole("button", { name: "Push all 2" }).click();
-  await page.getByText("Push these 2 and open 2 pull requests?").waitFor();
+  await page.getByText("Push these 2 tasks how?").waitFor();
   await page.getByRole("button", { name: "Push all 2" }).click();
   for (const id of ids) await page.locator(".gh-row", { hasText: id }).getByText("Pushed, no pull request").waitFor({ timeout: 30_000 });
   assert.match(sh("git", "-C", bare, "branch", "--list").out, new RegExp(`factory/${ids[1]}`), "the second push went through too");
+
+  const opened = ids.map((id, i) => ghPr(20 + i, id, "SUCCESS")); // GitHub lists the pull requests that Push all opened: those tasks are no longer waiting to be pushed
+  gh.prs(opened);
+  await page.getByRole("button", { name: "Sync" }).click();
+  await page.locator(".gh-list[aria-label=\"Ready to push\"]").waitFor({ state: "detached", timeout: 30_000 });
+
+  // Or as one pull request: two tasks that touch different files go up together and show as one row with its tasks.
+  const more = ["Batch three", "Batch four"].map((t) => /added (F-\d+)/.exec(cli("add", t).out)![1]!);
+  for (const id of more) { cli("promote", id); cli("run", id, "--stub"); }
+  const second = join(dir, ".worktrees", more[1]!); // every stub build changes the same file: give one its own file instead
+  sh("git", "-C", second, "checkout", "main", "--", "STUB_BUILD.txt");
+  writeFileSync(join(second, "four.txt"), "four\n");
+  sh("git", "-C", second, "add", "four.txt");
+  sh("git", "-C", second, "commit", "-q", "-m", "its own file");
+  for (const id of more) cli("approve", id);
+  await view("Backlog");
+  await view("Overview");
+  await page.getByRole("button", { name: "Push all 2" }).click();
+  await page.getByRole("button", { name: /Push together/ }).click();
+  for (let i = 0; i < 60 && !/factory\/batch-/.test(sh("git", "-C", bare, "branch", "--list").out); i++) await Bun.sleep(500); // the push is a command on the server: wait for it to land
+  const pushed = sh("git", "-C", bare, "branch", "--list").out, batchBranch = /factory\/(batch-\d+)/.exec(pushed)![1]!;
+  gh.prs([...opened, ghPr(9, batchBranch, "SUCCESS", "OPEN", more)]); // GitHub now lists the combined pull request; Sync reads it
+  await page.getByRole("button", { name: "Sync" }).click();
+  const combined = page.locator(".gh-row", { hasText: "in one pull request" });
+  await combined.getByText("All checks have passed").waitFor({ timeout: 30_000 });
+  for (const id of more) await combined.getByText(id, { exact: false }).first().waitFor();
+  await combined.getByRole("button", { name: "Merge" }).click();
+  for (let i = 0; i < 40 && !/pr merge 9 /.test(gh.calls()); i++) await Bun.sleep(250); // the merge is a command on the server
+  assert.match(gh.calls(), /pr merge 9 --merge --delete-branch/, "merging the combined pull request merges that one pull request");
 
   // Source, as a Git tool window: an unsaved file shows in Changes with its diff; the Log picks a commit and reverts a merged task from its details.
   writeFileSync(join(dir, "notes.txt"), "one\ntwo\n");

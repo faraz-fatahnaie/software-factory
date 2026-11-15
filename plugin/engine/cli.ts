@@ -14,7 +14,7 @@ import { activeRoles, chatPrompt, chatPromptFor, describeTeam, perTask, presets,
 import { addCustom, changeTeam, moveSettings, offSettings, onSettings, removeCustom, renameSettings, teamForAgents, titleSettings, useSettings } from "./teamctl";
 import { runTask, shellGate, stopAll, stubRunner, type Resume, type Runner } from "./pipeline";
 import { addSkill, searchSkills, setSkill } from "./skills";
-import { armAutoMerge, ciWorkflow, failingChecksItem, formatStatus, hasChecks, listPrs, mergeTask, pushTask, revertTask, runTexts, syncGithub, vcsStatus } from "./vcs";
+import { armAutoMerge, ciWorkflow, failingChecksItem, formatStatus, hasChecks, listPrs, mergeTask, pushTask, revertTask, runTexts, syncGithub, vcsStatus, BATCH, pushBatch } from "./vcs";
 import { baseBranch } from "./vcs";
 import { abortUpdate, APPROVED, behindBy, commitAll, ensureWorktree, land, mergeBase, removeWorktree, unresolved, worktreeOf } from "./worktree";
 
@@ -473,10 +473,24 @@ async function main([cmd, ...args]: string[]) {
       : "Merge it when you are ready: the Merge button in the dashboard, factory merge " + item.id + ", or on GitHub.";
     return `${item.id}: pushed; pull request ${url}\n${tail}`;
   };
+  if (cmd === "push" && args.includes("--together")) {
+    // Several approved tasks as one pull request. A task that clashes with an earlier one is held back, and said so.
+    const ids = args.filter((a) => /^F-\d+$/.test(a)), odd = args.filter((a) => !/^F-\d+$/.test(a) && a !== "--together");
+    if (odd.length || ids.length < 2) throw new Error("usage: factory push <F-id> <F-id>... --together   (two to eight approved tasks)");
+    const store = openEvents();
+    const tasks = ids.map((id) => { const item = find(id, "Done"); return { id, title: item.title, ...runTexts(root, store.lastRun(id) ?? "") }; });
+    const r = pushBatch(root, tasks);
+    for (const id of r.included) store.emit({ run: store.lastRun(id) ?? "", task: id, stage: "pr", type: "pr.opened", data: { url: r.url, batch: r.branch } });
+    store.close();
+    const tail = autoMerge() ? (armAutoMerge(root, r.url) ? "Auto-merge is on: GitHub merges it when the checks pass." : "Auto-merge is on: it merges when the checks pass (the dashboard or factory sync does it).")
+      : `Merge it when you are ready: the Merge button in the dashboard, factory merge ${r.branch.slice("factory/".length)}, or on GitHub.`;
+    return console.log(`${r.included.join(", ")}: pushed as one pull request ${r.url}${r.held.map((h) => `\n${h.id}: held back, ${h.why}. Push it on its own: factory push ${h.id}`).join("")}\n${tail}`);
+  }
   if (cmd === "push") return console.log(pushItem(find(args[0], "Done")));
 
   if (cmd === "revert") return console.log(revertTask(root, find(args[0], "Done").id));
 
+  if (cmd === "merge" && BATCH.test(args[0] ?? "")) return console.log(mergeTask(root, args[0]!).join("\n")); // a combined pull request
   if (cmd === "merge") {
     const item = find(args[0], "Done");
     const lines = mergeTask(root, item.id);

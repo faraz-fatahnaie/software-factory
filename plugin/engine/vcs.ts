@@ -16,9 +16,12 @@ const tryGit = (cwd: string, ...args: string[]) => { try { return git(cwd, ...ar
 
 export type Checks = "passing" | "failing" | "pending" | "none";
 export type Check = { name: string; state: "passing" | "failing" | "pending"; url?: string };
-export type Pr = { number: number; url: string; state: "OPEN" | "MERGED" | "CLOSED"; checks: Checks; mergeable: boolean; checkList: Check[] };
+export type Pr = { number: number; url: string; state: "OPEN" | "MERGED" | "CLOSED"; checks: Checks; mergeable: boolean; checkList: Check[]; /** For a combined pull request: the tasks it holds. */ tasks?: string[] };
+/** One pull request that holds several approved tasks (branch `factory/batch-<time>`). */
+export type Batch = { id: string; tasks: string[]; pr: Pr };
+export const BATCH = /^batch-\d{8,}(?:-\d+)?$/;
 export type Branch = { id: string; pushed: boolean; revert?: boolean; pr?: Pr };
-export type Status = { remote: string | null; github: boolean; ghReady: boolean; base: string; branches: Branch[]; note?: string };
+export type Status = { remote: string | null; github: boolean; ghReady: boolean; base: string; branches: Branch[]; batches: Batch[]; note?: string };
 
 export const remoteUrl = (root: string) => tryGit(root, "remote", "get-url", "origin");
 export const baseBranch = (root: string) => git(root, "rev-parse", "--abbrev-ref", "HEAD");
@@ -40,13 +43,13 @@ export function summarizeChecks(rollup: any[] | null | undefined): Checks {
 
 /** The pull requests the factory opened, by task id. null when `gh` cannot answer (not installed, not signed in, offline). */
 export function listPrs(root: string): Map<string, Pr> | null {
-  const r = gh(root, "pr", "list", "--state", "all", "--limit", "100", "--json", "number,url,state,headRefName,mergeable,statusCheckRollup");
+  const r = gh(root, "pr", "list", "--state", "all", "--limit", "100", "--json", "number,url,state,headRefName,mergeable,statusCheckRollup,body");
   if (r.code !== 0) return null;
   const out = new Map<string, Pr>();
   for (const p of JSON.parse(r.out || "[]")) {
-    const id = /^factory\/(F-\d+)$/.exec(p.headRefName)?.[1];
+    const id = new RegExp(`^factory/(F-\\d+|batch-[\\w-]+)$`).exec(p.headRefName)?.[1];
     if (!id || (out.get(id)?.state === "OPEN" && p.state !== "OPEN")) continue; // an open pull request wins over an old closed one
-    out.set(id, { number: p.number, url: p.url, state: p.state, checks: summarizeChecks(p.statusCheckRollup), mergeable: p.mergeable !== "CONFLICTING", checkList: (p.statusCheckRollup ?? []).map(checkOf) });
+    out.set(id, { number: p.number, url: p.url, state: p.state, checks: summarizeChecks(p.statusCheckRollup), mergeable: p.mergeable !== "CONFLICTING", checkList: (p.statusCheckRollup ?? []).map(checkOf), ...(BATCH.test(id) && { tasks: (/^Tasks: (.+)$/m.exec(p.body ?? "")?.[1] ?? "").split(/\s+/).filter((t: string) => /^F-\d+$/.test(t)) }) });
   }
   return out;
 }
@@ -57,12 +60,19 @@ const isRevert = (root: string, branch: string) => (tryGit(root, "log", "-1", "-
 export function vcsStatus(root: string, prs = true): Status {
   const remote = remoteUrl(root);
   const ghReady = gh(root, "auth", "status").code === 0;
-  const status: Status = { remote, github: !!remote && /github\.com/.test(remote), ghReady, base: baseBranch(root), branches: [] };
+  const status: Status = { remote, github: !!remote && /github\.com/.test(remote), ghReady, base: baseBranch(root), branches: [], batches: [] };
   const found = remote && ghReady && prs ? listPrs(root) : null;
   if (remote && ghReady && prs && !found) status.note = "GitHub did not answer, so pull request details are missing.";
+  // A task inside a combined pull request (open, or merged and not yet tidied) is shown with that pull request, not on its own.
+  const batched = new Set<string>();
+  for (const [id, pr] of found ?? []) {
+    if (!BATCH.test(id)) continue;
+    const here = (pr.tasks ?? []).filter((t) => hasRef(root, `refs/heads/${branchOf(t)}`));
+    if (pr.state === "OPEN" || (pr.state === "MERGED" && here.length)) { status.batches.push({ id, tasks: here.length ? here : pr.tasks ?? [], pr }); for (const t of here) batched.add(t); }
+  }
   for (const ref of git(root, "for-each-ref", "--format=%(refname:short)", "refs/heads/factory/").split("\n").filter(Boolean)) {
     const id = ref.slice("factory/".length);
-    if (!/^F-\d+$/.test(id) || existsSync(worktreeOf(root, id))) continue; // still being worked on
+    if (!/^F-\d+$/.test(id) || existsSync(worktreeOf(root, id)) || batched.has(id)) continue; // still being worked on, or inside a combined pull request
     status.branches.push({ id, pushed: hasRef(root, `refs/remotes/origin/${ref}`), revert: isRevert(root, ref) || undefined, pr: found?.get(id) });
   }
   return status;
@@ -73,7 +83,8 @@ export function formatStatus(s: Status, autoMerge: boolean, autoPush = false): s
   const lines = [s.remote ? `remote: ${s.remote}${s.github ? "" : " (not GitHub)"}` : "remote: none. This project's work exists only on this machine.",
     `GitHub CLI: ${s.ghReady ? "signed in" : "not signed in (run: gh auth login)"}`, `auto-merge: ${autoMerge ? "on (merges when checks pass)" : "off (you merge)"}`, `push on approval: ${autoPush ? "on (approving a task pushes it and opens its pull request)" : "off (you push)"}`];
   if (s.note) lines.push(s.note);
-  if (!s.branches.length) lines.push("nothing is waiting to be pushed or merged");
+  if (!s.branches.length && !s.batches.length) lines.push("nothing is waiting to be pushed or merged");
+  for (const b of s.batches) lines.push(`${b.id}: one pull request #${b.pr.number} ${b.pr.state.toLowerCase()}${b.pr.state === "OPEN" ? `, checks ${b.pr.checks}${b.pr.mergeable ? "" : ", conflicts"}` : ""}, holding ${b.tasks.join(", ")}`);
   for (const b of s.branches) {
     const where = b.revert && !b.pr ? "a revert, only on this machine" : b.pr ? `pull request #${b.pr.number} ${b.pr.state.toLowerCase()}${b.pr.state === "OPEN" ? `, checks ${b.pr.checks}${b.pr.mergeable ? "" : ", has conflicts"}` : ""} ${b.pr.url}` : b.pushed ? "pushed, no pull request found" : "approved, only on this machine";
     lines.push(`${b.id}: ${where}`);
@@ -114,6 +125,55 @@ export function pushTask(root: string, id: string, title: string, spec = "", rev
   return r.out.split("\n").at(-1)!; // the pull request URL
 }
 
+/** The text of a combined pull request: the tasks it holds, each with its spec and review, trimmed. A last `Tasks:` line lets the factory find them again. */
+export function batchBody(tasks: { id: string; title: string; spec: string; review: string }[]): string {
+  const part = (text: string, n: number) => (text.trim() ? `\n${text.trim().slice(0, n)}${text.trim().length > n ? "\n…" : ""}\n` : "");
+  return `Built by the software factory from backlog items ${tasks.map((t) => t.id).join(", ")}, as one pull request at the maintainer's request.\n\n${tasks.map((t) => `## ${t.id}: ${t.title}\n${part(t.spec, 700)}${part(t.review, 500)}`).join("\n")}\nTasks: ${tasks.map((t) => t.id).join(" ")}`;
+}
+
+/**
+ * Pushes several approved tasks as ONE pull request. The tasks are merged, one after the other, into a new branch (`factory/batch-<time>`, in a
+ * throwaway worktree so your checkout does not move). A task that changes the same lines as an earlier one is held back and listed: push it on its own.
+ * Refuses on a possible secret in the whole batch. Nothing is pushed unless at least two tasks merge cleanly.
+ */
+export function pushBatch(root: string, tasks: { id: string; title: string; spec: string; review: string }[]): { url: string; branch: string; included: string[]; held: { id: string; why: string }[] } {
+  need(root);
+  if (tasks.length < 2 || tasks.length > 8) throw new Error("a combined pull request holds 2 to 8 tasks");
+  const base = baseBranch(root);
+  for (const t of tasks) {
+    if (!hasRef(root, `refs/heads/${branchOf(t.id)}`)) throw new Error(`there is no branch for ${t.id}. Approve it first`);
+    if (existsSync(worktreeOf(root, t.id))) throw new Error(`${t.id} is still being worked on. Approve it first`);
+  }
+  const open = listPrs(root);
+  for (const [id, pr] of open ?? []) for (const t of pr.tasks ?? []) if (pr.state === "OPEN" && tasks.some((x) => x.id === t)) throw new Error(`${t} is already in ${id}'s open pull request #${pr.number}`);
+  let name = `batch-${new Date().toISOString().slice(0, 16).replace(/\D/g, "")}`, n = 1;
+  while (hasRef(root, `refs/heads/factory/${name}`) || hasRef(root, `refs/remotes/origin/factory/${name}`)) name = `batch-${new Date().toISOString().slice(0, 16).replace(/\D/g, "")}-${++n}`;
+  const branch = `factory/${name}`, dir = join(root, ".worktrees", name);
+  git(root, "worktree", "add", "-q", "-b", branch, dir, base);
+  const included: typeof tasks = [], held: { id: string; why: string }[] = [];
+  let pushed = false;
+  try {
+    for (const t of tasks) {
+      try { git(dir, "merge", "--no-ff", "-q", "-m", `Merge ${t.id}: ${t.title}`, branchOf(t.id)); included.push(t); }
+      catch { Bun.spawnSync(["git", "merge", "--abort"], { cwd: dir }); held.push({ id: t.id, why: "it changes the same lines as an earlier task in this batch" }); }
+    }
+    if (included.length < 2) throw new Error(`Fewer than two of these tasks merge cleanly together (${held.map((h) => `${h.id}: ${h.why}`).join("; ")}). Push them one at a time.`);
+    const found = scanSecrets(parseDiff(git(dir, "diff", `${base}...HEAD`, "-U0", "--no-color")));
+    if (found.length) throw new Error(`the batch was not pushed: possible secrets in what would be uploaded.\n${formatFindings(found)}\nRemove them (or mark a known false alarm with "factory:allow-secret" on that line), then try again.`);
+    git(dir, "push", "-q", "-u", "origin", branch);
+    pushed = true;
+    const r = gh(root, "pr", "create", "--head", branch, "--base", base, "--title", `${included.map((t) => t.id).join(", ")}: ${included.length} tasks`, "--body", batchBody(included));
+    if (r.code !== 0) throw new Error(`${branch} was pushed, but opening the pull request failed: ${r.err}`);
+    return { url: r.out.split("\n").at(-1)!, branch, included: included.map((t) => t.id), held };
+  } catch (e) {
+    tryGit(root, "worktree", "remove", "--force", dir);
+    if (!pushed) tryGit(root, "branch", "-D", branch); // nothing went up: leave no half-made branch behind
+    throw e;
+  } finally {
+    tryGit(root, "worktree", "remove", "--force", dir);
+  }
+}
+
 /** After a merge on GitHub: bring the merged code into this project's main branch and drop the branches that are done. */
 function tidy(root: string, prs: Map<string, Pr>): string[] {
   const lines: string[] = [], base = baseBranch(root);
@@ -128,6 +188,17 @@ function tidy(root: string, prs: Map<string, Pr>): string[] {
     if (pr.state !== "MERGED" || !hasRef(root, `refs/heads/${branchOf(id)}`) || existsSync(worktreeOf(root, id))) continue;
     git(root, "branch", "-D", branchOf(id));
     lines.push(`${id}: merged on GitHub; local branch removed`);
+  }
+  // A combined pull request merged: its own branch, and every task branch whose work is now in the base branch, are done.
+  for (const [id, pr] of prs) {
+    if (!BATCH.test(id) || pr.state !== "MERGED") continue;
+    if (hasRef(root, `refs/heads/factory/${id}`)) git(root, "branch", "-D", `factory/${id}`);
+    for (const t of pr.tasks ?? []) {
+      if (!hasRef(root, `refs/heads/${branchOf(t)}`) || existsSync(worktreeOf(root, t))) continue;
+      if (tryGit(root, "merge-base", "--is-ancestor", branchOf(t), "HEAD") === null) { lines.push(`${t}: merged on GitHub with ${id}, but ${base} here does not have it yet (Sync again once ${base} is up to date)`); continue; }
+      git(root, "branch", "-D", branchOf(t));
+      lines.push(`${t}: merged on GitHub (with ${id}); local branch removed`);
+    }
   }
   return lines;
 }

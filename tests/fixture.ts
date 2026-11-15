@@ -55,8 +55,8 @@ exit 0
 }
 
 /** One pull request as `gh pr list --json` reports it, with a single check that ended as `conclusion`. */
-export const ghPr = (number: number, id: string, conclusion: string, state = "OPEN") =>
-  ({ number, url: `https://github.com/o/r/pull/${number}`, state, headRefName: `factory/${id}`, mergeable: "MERGEABLE", statusCheckRollup: [{ status: "COMPLETED", conclusion }] });
+export const ghPr = (number: number, id: string, conclusion: string, state = "OPEN", tasks: string[] = []) =>
+  ({ number, url: `https://github.com/o/r/pull/${number}`, state, headRefName: `factory/${id}`, mergeable: "MERGEABLE", statusCheckRollup: [{ status: "COMPLETED", conclusion }], body: tasks.length ? `Tasks: ${tasks.join(" ")}` : "" });
 
 /** Fills a throwaway repo with every state the Backlog and Overview show: a running task, a quiet one, a blocked one, one waiting for you with a real diff, one done and some queued. */
 export function seedStates(dir: string, cli: (...args: string[]) => unknown) {

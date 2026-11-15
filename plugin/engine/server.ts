@@ -11,7 +11,7 @@ import { parseFind, roleSkills, SKILLS_CLI } from "./skills";
 import { chatPromptFor, holderOf } from "./team";
 import { changeTeam, parseChanges, planTeam, presetList, teamView } from "./teamctl";
 import { commitDetail, fileDiff, graphInfo, sourceInfo } from "./source";
-import { hasChecks, remoteUrl, vcsStatus } from "./vcs";
+import { BATCH, hasChecks, remoteUrl, vcsStatus } from "./vcs";
 import { behindBy, listWorktrees } from "./worktree";
 
 const CLI = join(import.meta.dir, "cli.ts");
@@ -256,7 +256,7 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
       if (!req.headers.get("content-type")?.startsWith("application/json")) return json({ error: "send application/json" }, 415);
       const body = ((await req.json().catch(() => null)) ?? {}) as Record<string, unknown>;
       const ids = Array.isArray(body.ids) ? body.ids : body.id === undefined ? [] : [body.id];
-      if (!ids.every((id): id is string => typeof id === "string" && ID.test(id))) return json({ error: "bad id" }, 400);
+      if (!ids.every((id): id is string => typeof id === "string" && (ID.test(id) || (route === "POST /api/merge" && BATCH.test(id))))) return json({ error: "bad id" }, 400);
 
       if (route === "POST /api/add")
       {
@@ -324,6 +324,11 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         if (ids.length !== 1) return json({ error: "one id required" }, 400);
         vcsCache = undefined;
         return cli(url.pathname.slice(5), ids[0]!); // the same command a person would type, with the same checks
+      }
+      if (route === "POST /api/push-together") {
+        if (ids.length < 2 || ids.length > 8) return json({ error: "two to eight tasks" }, 400);
+        vcsCache = undefined;
+        return cli("push", ...ids, "--together");
       }
       if (route === "POST /api/sync") { vcsCache = undefined; return cli("sync"); }
       if (route === "POST /api/vcs/auto-push") {

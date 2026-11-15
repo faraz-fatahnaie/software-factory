@@ -9,6 +9,8 @@ export type VcsPr = { number: number; url: string; state: "OPEN" | "MERGED" | "C
 export type VcsData = {
   remote: string | null; github: boolean; ghReady: boolean; base: string; note?: string; autoMerge: boolean; autoPush?: boolean; hasChecks: boolean;
   branches: { id: string; pushed: boolean; revert?: boolean; pr?: VcsPr }[];
+  /** Combined pull requests: one pull request holding several tasks. */
+  batches?: { id: string; tasks: string[]; pr: VcsPr }[];
 };
 
 /** The short status for the side rail: where this project's work lives. */
@@ -16,7 +18,7 @@ export function vcsChip(v: VcsData | null): { tone: "ok" | "warn" | "off"; text:
   if (!v) return { tone: "off", text: "GitHub…", title: "Checking GitHub" };
   if (!v.remote) return { tone: "warn", text: "Not on GitHub", title: "This project has no GitHub remote, so its work exists only on this machine." };
   if (!v.ghReady) return { tone: "warn", text: "GitHub not signed in", title: "Run `gh auth login` in a terminal." };
-  const waiting = v.branches.filter((b) => !b.pr || b.pr.state !== "CLOSED").length;
+  const waiting = v.branches.filter((b) => !b.pr || b.pr.state !== "CLOSED").length + (v.batches ?? []).length;
   return waiting
     ? { tone: "warn", text: `${waiting} waiting for GitHub`, title: "Approved work that is not merged on GitHub yet." }
     : { tone: "ok", text: "In sync with GitHub", title: "Nothing is waiting to be pushed or merged." };
@@ -36,7 +38,7 @@ export function StateIcon({ kind }: { kind: "open" | "merged" | "closed" | "loca
 }
 
 /** The part of a GitHub pull request page under the title: the checks, conflicts, and the merge button. */
-function MergeBox(p: { id: string; pr: VcsPr; vcs: VcsData; busy: string; run: (key: string, path: string, body: unknown) => Promise<void> }) {
+function MergeBox(p: { id: string; pr: VcsPr; vcs: VcsData; busy: string; run: (key: string, path: string, body: unknown) => Promise<void>; combined?: boolean }) {
   const { pr, vcs } = p, sum = SUMMARY[pr.checks];
   const count = (state: VcsCheck["state"]) => pr.checkList.filter((c) => c.state === state).length;
   return (
@@ -64,7 +66,7 @@ function MergeBox(p: { id: string; pr: VcsPr; vcs: VcsData; busy: string; run: (
           <button className="gh" disabled={p.busy !== "" || pr.checks === "failing" || !pr.mergeable}
             onClick={() => confirm(`Merge pull request #${pr.number} into ${vcs.base}?`) && p.run(p.id, "/api/merge", { id: p.id })}>{p.busy === p.id ? "Merging…" : "Merge pull request"}</button>
         )}
-        {pr.checks === "failing" && <button disabled={p.busy !== ""} onClick={() => p.run(`fix-${p.id}`, "/api/fix-checks", { id: p.id })} title="Adds a backlog item naming the failing checks, with links to their logs">Add to backlog</button>}
+        {pr.checks === "failing" && !p.combined && <button disabled={p.busy !== ""} onClick={() => p.run(`fix-${p.id}`, "/api/fix-checks", { id: p.id })} title="Adds a backlog item naming the failing checks, with links to their logs">Add to backlog</button>}
         <a href={pr.url} target="_blank" rel="noreferrer">View on GitHub</a>
       </div>
     </div>
@@ -78,8 +80,9 @@ export function GitHub(p: { vcs: VcsData | null; items: Item[]; act: (path: stri
   // Several tasks with one yes: asked once in place, then done one after the other, stopping at the first that fails (its reason is shown).
   const [asking, setAsking] = useState<"" | "push" | "merge">("");
   const [progress, setProgress] = useState("");
-  const batch = async (kind: "push" | "merge", ids: string[]) => {
+  const batch = async (kind: "push" | "merge" | "together", ids: string[]) => {
     setAsking(""); setBusy(`all-${kind}`);
+    if (kind === "together") { setProgress("Opening one pull request…"); await p.act("/api/push-together", { ids }); setProgress(""); await p.refresh(); setBusy(""); return; }
     for (const [i, id] of ids.entries()) {
       setProgress(`${kind === "push" ? "Pushing" : "Merging"} ${i + 1} of ${ids.length}…`);
       if (!(await p.act(`/api/${kind}`, { id }))) break;
@@ -95,9 +98,9 @@ export function GitHub(p: { vcs: VcsData | null; items: Item[]; act: (path: stri
       <p className="empty">This project is not on GitHub, so its work exists only on this machine. Run <code>/software-factory:git</code> in Claude Code and Rafi will set up a private repository with you.</p>
     </article>
   );
-  const rows = vcs.branches;
+  const rows = vcs.branches, batches = vcs.batches ?? [], openBatches = batches.filter((b) => b.pr.state === "OPEN"), mergedBatches = batches.filter((b) => b.pr.state === "MERGED");
   const ready = rows.filter((b) => !b.pr || b.pr.state === "CLOSED"), open = rows.filter((b) => b.pr?.state === "OPEN"), merged = rows.filter((b) => b.pr?.state === "MERGED");
-  const mergeable = open.filter((b) => b.pr!.mergeable && b.pr!.checks !== "failing"); // the ones the Merge button would accept
+  const mergeable = [...openBatches.filter((b) => b.pr.mergeable && b.pr.checks !== "failing"), ...open.filter((b) => b.pr!.mergeable && b.pr!.checks !== "failing")]; // the ones the Merge button would accept
   const name = (b: { id: string; revert?: boolean }) => `${b.revert ? "Revert " : ""}${b.id}: ${title(b.id)}`;
   const branch = (id: string) => <span className="branch-pill"><Icon name="branch" />factory/{id}</span>;
   return (
@@ -122,16 +125,16 @@ export function GitHub(p: { vcs: VcsData | null; items: Item[]; act: (path: stri
       {!vcs.hasChecks && (
         <p className="note ci-note">No checks yet, so a pull request has nothing to wait for. <button className="small" disabled={busy !== ""} onClick={() => run("ci", "/api/ci", {})}>{busy === "ci" ? "Adding…" : "Add checks (CI)"}</button> writes a GitHub Actions workflow from your gate commands; you review it before it does anything.</p>
       )}
-      {rows.length === 0 ? <p className="empty">Nothing is waiting to be pushed or merged.</p> : (
+      {rows.length === 0 && batches.length === 0 ? <p className="empty">Nothing is waiting to be pushed or merged.</p> : (
         <div className="prs">
           {ready.length > 0 && (
             <section className="gh-list" aria-label="Ready to push">
               <header>
                 <StateIcon kind="local" /> {ready.length} ready to push
                 {ready.length > 1 && (asking === "push" ? (
-                  <span className="gh-batch"><span>Push these {ready.length} and open {ready.length} pull requests?</span><button className="gh" onClick={() => batch("push", ready.map((b) => b.id))}>Push all {ready.length}</button><button className="small" onClick={() => setAsking("")}>Cancel</button></span>
+                  <span className="gh-batch"><span>Push these {ready.length} tasks how?</span><button className="gh" onClick={() => batch("push", ready.map((b) => b.id))} title={`${ready.length} pull requests, one per task`}>Push all {ready.length}</button>{ready.length <= 8 && <button className="gh" onClick={() => batch("together", ready.map((b) => b.id))} title="One pull request that holds all of them. A task that changes the same lines as an earlier one is held back.">Push together (1 pull request)</button>}<button className="small" onClick={() => setAsking("")}>Cancel</button></span>
                 ) : (
-                  <span className="gh-batch"><button className="gh" disabled={busy !== "" || !vcs.ghReady} onClick={() => setAsking("push")}>{busy === "all-push" ? progress : `Push all ${ready.length}`}</button></span>
+                  <span className="gh-batch"><button className="gh" disabled={busy !== "" || !vcs.ghReady} onClick={() => setAsking("push")}>{busy === "all-push" || busy === "all-together" ? progress : `Push all ${ready.length}`}</button></span>
                 ))}
               </header>
               {ready.map((b) => (
@@ -148,16 +151,27 @@ export function GitHub(p: { vcs: VcsData | null; items: Item[]; act: (path: stri
               ))}
             </section>
           )}
-          {open.length > 0 && (
+          {open.length + openBatches.length > 0 && (
             <section className="gh-list" aria-label="Open pull requests">
               <header>
-                <StateIcon kind="open" /> {open.length} open
+                <StateIcon kind="open" /> {open.length + openBatches.length} open
                 {!vcs.autoMerge && mergeable.length > 1 && (asking === "merge" ? (
                   <span className="gh-batch"><span>Merge these {mergeable.length} pull requests into {vcs.base}, in this order?</span><button className="gh" onClick={() => batch("merge", mergeable.map((b) => b.id))}>Merge all {mergeable.length}</button><button className="small" onClick={() => setAsking("")}>Cancel</button></span>
                 ) : (
                   <span className="gh-batch"><button className="gh" disabled={busy !== ""} onClick={() => setAsking("merge")}>{busy === "all-merge" ? progress : `Merge all ${mergeable.length}`}</button></span>
                 ))}
               </header>
+              {openBatches.map((b) => (
+                <div className="gh-row" key={b.id}>
+                  <StateIcon kind="open" />
+                  <div className="gh-main">
+                    <div className="gh-title"><a href={b.pr.url} target="_blank" rel="noreferrer">{b.tasks.join(", ")}: {b.tasks.length} tasks in one pull request</a><span className="gh-label open">Combined</span></div>
+                    <ul className="gh-tasks">{b.tasks.map((t) => <li key={t}><button className="quiet linkish" onClick={() => p.open(t)}>{t}: {title(t)}</button></li>)}</ul>
+                    <div className="gh-meta"><span>#{b.pr.number}</span> {branch(b.id)} <span>into {vcs.base}</span></div>
+                    <MergeBox id={b.id} pr={b.pr} vcs={vcs} busy={busy} run={run} combined />
+                  </div>
+                </div>
+              ))}
               {open.map((b) => (
                 <div className="gh-row" key={b.id}>
                   <StateIcon kind="open" />
@@ -170,9 +184,19 @@ export function GitHub(p: { vcs: VcsData | null; items: Item[]; act: (path: stri
               ))}
             </section>
           )}
-          {merged.length > 0 && (
+          {merged.length + mergedBatches.length > 0 && (
             <section className="gh-list" aria-label="Merged pull requests">
-              <header><StateIcon kind="merged" /> {merged.length} merged</header>
+              <header><StateIcon kind="merged" /> {merged.length + mergedBatches.length} merged</header>
+              {mergedBatches.map((b) => (
+                <div className="gh-row" key={b.id}>
+                  <StateIcon kind="merged" />
+                  <div className="gh-main">
+                    <div className="gh-title"><a href={b.pr.url} target="_blank" rel="noreferrer">{b.tasks.join(", ")}: {b.tasks.length} tasks in one pull request</a><span className="gh-label merged"><Icon name="merge" /> Merged</span></div>
+                    <div className="gh-meta"><span>#{b.pr.number}</span> {branch(b.id)}</div>
+                  </div>
+                  <div className="gh-actions"><button disabled={busy !== ""} onClick={() => run("sync", "/api/sync", {})}>Tidy up</button></div>
+                </div>
+              ))}
               {merged.map((b) => (
                 <div className="gh-row" key={b.id}>
                   <StateIcon kind="merged" />

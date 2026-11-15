@@ -313,7 +313,14 @@ their logs, so the Builder can fix it as a normal task.</li>
 <li><strong>Update from GitHub</strong> (<code>factory sync</code>) brings <code>main</code> up to date, and the rail chip says where you stand.</li>
 </ol>
 <p><strong>Checks on GitHub.</strong> <code>factory vcs ci</code> writes a workflow from your gate commands so pull requests have checks.
-<strong>Fewer clicks.</strong> With several tasks waiting, <strong>Push all</strong> (one confirmation that lists them) pushes each branch and
+<strong>One pull request for several tasks.</strong> On a project with no checks and one person approving, a pull request per
+task is only clicking. <strong>Push all</strong> asks whether to open one pull request per task, or <strong>Push together</strong>: the tasks
+are merged, one after the other, into a new branch (<code>factory/batch-&lt;time&gt;</code>) and go up as a single pull request that
+lists each task with its spec and review. A task that changes the same lines as an earlier one is held back and
+named (push it on its own); nothing goes up if fewer than two merge cleanly, or if the secret scan finds anything in
+the whole batch. The pull request shows as one row with its tasks and one Merge button, and merging it tidies every
+task branch inside it. The same from the terminal: <code>factory push F-001 F-002 --together</code>, then <code>factory merge batch-&lt;time&gt;</code>.</p>
+<p><strong>Fewer clicks.</strong> With several tasks waiting, <strong>Push all</strong> (one confirmation that lists them) pushes each branch and
 opens each pull request, and <strong>Merge all</strong> does the same for pull requests that can be merged. In Talk, say &quot;push
 everything&quot; and Tess offers one button for all of them. If you would rather not push at all as a separate step, turn
 on <strong>Push on approval</strong> (<code>factory vcs auto-push on</code>): approving a task then pushes it and opens its pull request at

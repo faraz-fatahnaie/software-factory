@@ -2141,6 +2141,10 @@ test("manager: proposals are parsed by kind, ASK lines only name roles that can 
   expect(parseProposal("PROPOSE: push F-001 F-002").proposal).toEqual({ kind: "push", ids: ["F-001", "F-002"] }); // everything that is waiting, with one yes
   expect(parseProposal(`PROPOSE: merge ${Array.from({ length: 9 }, (_, i) => `F-00${i + 1}`).join(" ")}`).proposal).toBeUndefined(); // but not nine
   expect(parseProposal("PROPOSE: sync F-001").proposal).toBeUndefined();
+  expect(parseProposal("PROPOSE: batch F-001 F-002").proposal).toEqual({ kind: "batch", ids: ["F-001", "F-002"] }); // one pull request for several tasks
+  expect(parseProposal("PROPOSE: batch F-001").proposal).toBeUndefined(); // needs two
+  expect(parseProposal("PROPOSE: merge batch-202611151030").proposal).toEqual({ kind: "merge", ids: ["batch-202611151030"] });
+  expect(parseProposal("PROPOSE: run batch-202611151030").proposal).toBeUndefined(); // only a merge names a combined pull request
   expect(parseProposal("PROPOSE: rm -rf").proposal).toBeUndefined();
   const team = resolveTeam();
   const asks = parseAsks("Thinking.\nASK design: Which stack?\nASK design: again\nASK secure: Is it safe?\nASK guide: no\nASK bogus: no\nASK plan: a\nASK test: b", team);
@@ -2459,5 +2463,52 @@ test("push on approval: off unless turned on, validated, and when on approving a
     expect(section("F-002")).toBe("Done");
     expect(blocked.out).toContain("Approved, but not pushed");
     expect(cli("vcs", "auto-push", "off").out).toMatch(/^push on approval off/);
+  } finally { delete process.env.FACTORY_GH; }
+});
+
+test("combined pull request: several approved tasks go up as one, a clashing task is held back, status shows them together, and merging tidies every branch", () => {
+  const { dir, sh, cli, section } = repo();
+  const bare = tmp(), { calls, prs, path } = fakeGh();
+  sh("git", "init", "-q", "--bare", bare);
+  sh("git", "remote", "add", "origin", bare);
+  process.env.FACTORY_GH = path;
+  try {
+    cli("add", "Third item"); cli("promote", "F-003");
+    expect(cli("run", "F-001", "F-002", "F-003", "--stub").code).toBe(0);
+    // Every stub build writes STUB_BUILD.txt, so F-001 and F-003 clash; F-002 is made to touch its own file.
+    const wt = join(dir, ".worktrees/F-002");
+    sh("git", "-C", wt, "mv", "STUB_BUILD.txt", "two.txt");
+    sh("git", "-C", wt, "commit", "-q", "-m", "its own file");
+    for (const id of ["F-001", "F-002", "F-003"]) expect(cli("approve", id).code).toBe(0);
+
+    expect(cli("push", "F-001", "--together").code).toBe(1); // two to eight
+    const out = cli("push", "F-001", "F-002", "F-003", "--together");
+    expect(out.code).toBe(0);
+    expect(out.out).toContain("F-001, F-002: pushed as one pull request https://github.com/o/r/pull/7");
+    expect(out.out).toContain("F-003: held back, it changes the same lines as an earlier task in this batch");
+    const batch = /(batch-\d+)/.exec(Bun.spawnSync(["git", "branch", "--list"], { cwd: bare }).stdout.toString())![1]!;
+    expect(calls()).toContain(`pr create --head factory/${batch} --base main --title F-001, F-002: 2 tasks --body Built by the software factory from backlog items F-001, F-002`);
+    expect(calls()).toContain("Tasks: F-001 F-002");
+    expect(sh("git", "ls-tree", "-r", "--name-only", `factory/${batch}`).out).toMatch(/STUB_BUILD\.txt[\s\S]*two\.txt|two\.txt[\s\S]*STUB_BUILD\.txt/); // both tasks' work is in it
+    expect(sh("git", "worktree", "list").out).not.toContain(batch); // the throwaway worktree is gone
+    expect(sh("git", "log", "--format=%s", `factory/${batch}`).out).toContain("Merge F-001: First"); // revertable by task later
+
+    // Status: the batch is one row holding its tasks; only the held-back one is still ready to push on its own.
+    prs([ghPr(7, batch, "SUCCESS", "OPEN", ["F-001", "F-002"])]);
+    const status = cli("vcs").out;
+    expect(status).toContain(`${batch}: one pull request #7 open, checks passing, holding F-001, F-002`);
+    expect(status).toContain("F-003: approved, only on this machine");
+    expect(status).not.toMatch(/F-001: approved/);
+    expect(cli("push", "F-001", "F-003", "--together").out).toContain("already in"); // a task cannot be in two open pull requests
+
+    // GitHub merges it; Sync pulls main in and removes the batch branch and both task branches. F-003 stays: it is not in main.
+    sh("git", "merge", "--no-ff", "-q", "-m", "Merge pull request #7", `factory/${batch}`);
+    sh("git", "push", "-q", "origin", "main");
+    prs([ghPr(7, batch, "SUCCESS", "MERGED", ["F-001", "F-002"])]);
+    const synced = cli("sync").out;
+    expect(synced).toContain("F-001: merged on GitHub (with " + batch + "); local branch removed");
+    expect(sh("git", "branch", "--list", "factory/F-001", "factory/F-002", `factory/${batch}`).out).toBe("");
+    expect(sh("git", "branch", "--list", "factory/F-003").out).toContain("factory/F-003");
+    expect(section("F-001")).toBe("Done");
   } finally { delete process.env.FACTORY_GH; }
 });

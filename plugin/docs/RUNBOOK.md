@@ -294,6 +294,14 @@ repository and sets `origin`. Credentials never go in the project.
 5. **Update from GitHub** (`factory sync`) brings `main` up to date, and the rail chip says where you stand.
 
 **Checks on GitHub.** `factory vcs ci` writes a workflow from your gate commands so pull requests have checks.
+**One pull request for several tasks.** On a project with no checks and one person approving, a pull request per
+task is only clicking. **Push all** asks whether to open one pull request per task, or **Push together**: the tasks
+are merged, one after the other, into a new branch (`factory/batch-<time>`) and go up as a single pull request that
+lists each task with its spec and review. A task that changes the same lines as an earlier one is held back and
+named (push it on its own); nothing goes up if fewer than two merge cleanly, or if the secret scan finds anything in
+the whole batch. The pull request shows as one row with its tasks and one Merge button, and merging it tidies every
+task branch inside it. The same from the terminal: `factory push F-001 F-002 --together`, then `factory merge batch-<time>`.
+
 **Fewer clicks.** With several tasks waiting, **Push all** (one confirmation that lists them) pushes each branch and
 opens each pull request, and **Merge all** does the same for pull requests that can be merged. In Talk, say "push
 everything" and Tess offers one button for all of them. If you would rather not push at all as a separate step, turn
