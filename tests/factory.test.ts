@@ -2686,3 +2686,34 @@ test("conversations are kept across a reload: text only, capped, and a damaged e
   expect(signature(chats)).not.toBe(signature({ ...chats, manager: { ...chats.manager, messages: chats.manager.messages.slice(0, 1) } }));
   expect(signature(chats)).toBe(signature({ ...chats, manager: { ...chats.manager, draft: "typing more" } })); // typing does not save
 });
+
+test("guidance for a blocked task: continues from its spec when it has one, and says so plainly when it never got that far", async () => {
+  const { dir, cli, section } = repo();
+  const cfg = JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8"));
+  writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ ...cfg, gate: ["false"] })); // the checks never pass: three builds, then Blocked, with a spec
+  Bun.spawnSync(["git", "commit", "-qam", "gate"], { cwd: dir, env: process.env });
+  expect(cli("run", "F-001", "--stub").code).toBe(1);
+  expect(section("F-001")).toBe("Blocked");
+  writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ ...cfg, gate: ["false"], setup: ["false"] })); // a setup that fails: Blocked before any spec
+  Bun.spawnSync(["git", "commit", "-qam", "setup"], { cwd: dir, env: process.env });
+  expect(cli("run", "F-002", "--stub").code).toBe(1);
+  writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ ...cfg, gate: ["false"] })); // setup works again, for the guided round
+  Bun.spawnSync(["git", "commit", "-qam", "setup works"], { cwd: dir, env: process.env });
+  const server = await serve(dir, 0);
+  const base = `http://127.0.0.1:${server.port}`;
+  const post = (body: unknown) => fetch(`${base}/api/reject`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify(body) });
+  const db = () => new (require("bun:sqlite").Database)(join(dir, ".factory/events.db"), { readonly: true });
+  const starts = (id: string) => (db().query("SELECT COUNT(*) AS n FROM events WHERE task = ? AND type = 'run.start'").get(id) as { n: number }).n;
+  try {
+    const refused = await post({ id: "F-002", feedback: "try again" });
+    expect(refused.status).toBe(409);
+    expect(((await refused.json()) as any).error).toMatch(/stopped before it had a spec/);
+    expect((await post({ id: "F-001", feedback: "" })).status).toBe(400);
+    expect((await post({ id: "F-001", feedback: "Use whole cents", stub: true })).status).toBe(202);
+    for (let i = 0; i < 100 && starts("F-001") < 2; i++) await Bun.sleep(100);
+    expect(starts("F-001")).toBe(2); // a second round, on the same task
+    const round = db().query("SELECT data FROM events WHERE task = 'F-001' AND type = 'run.start' ORDER BY seq DESC LIMIT 1").get() as { data: string };
+    expect(JSON.parse(round.data)).toMatchObject({ round: 2, feedback: "Use whole cents" });
+    for (let i = 0; i < 100 && section("F-001") !== "Blocked"; i++) await Bun.sleep(100); // it fails again: the gate still fails
+  } finally { server.stop(); }
+}, 60_000);

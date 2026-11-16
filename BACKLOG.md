@@ -37,8 +37,6 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   A role that works out with the user what to build, for projects in any language. Design to be agreed first.
 - [ ] F-029 (P1) Phase 12: publish
   Public GitHub repository, install docs, real owner and author in the manifests, version bump and tag.
-- [ ] F-078 (P2) Send guidance to the Builder from the Backlog
-  A blocked task with a spec can be continued with a person's comments (factory reject works on it now), but the task panel only offers Retry. Add the Send back with comments box for blocked tasks too.
 - [ ] F-079 (P2) Manager: keep parallel tasks from clashing (M13)
   Start a Ready item only if it is unlikely to touch the same files as a running one (files named in the spec or detail), else wait.
 - [ ] F-080 (P2) Manager: check ready and done (M14)
@@ -158,3 +156,5 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   A reply cannot be cancelled today. Add a Stop button next to Send while a reply is coming; end the claude process and the consultations, keep what was typed.
 - [x] F-077 (P1) Keep conversations across a page reload
   Messages and session ids live in the page only, so a reload loses the whole conversation. Keep them (without file bodies) per project and conversation.
+- [x] F-078 (P2) Send guidance to the Builder from the Backlog
+  A blocked task with a spec can be continued with a person's comments (factory reject works on it now), but the task panel only offers Retry. Add the Send back with comments box for blocked tasks too.

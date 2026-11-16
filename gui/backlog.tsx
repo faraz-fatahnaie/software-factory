@@ -137,7 +137,8 @@ const EMPTY: Record<string, [string, string]> = {
 
 const STARTERS = ["Add a test for…", "Keep it simpler", "This is not what I meant", "Rename…"];
 /** The box under the diff: say what to change, optionally which files it is about, and send it back to the Builder. */
-function SendBack(p: { id: string; builder: string; files: string[]; stub: boolean; act: Act; done: () => void }) {
+const GUIDE_STARTERS = ["Read the failing test first", "Try a simpler approach", "Do not change…", "Use the existing helper for…"];
+function SendBack(p: { id: string; builder: string; files: string[]; stub: boolean; act: Act; done: () => void; /** The task stopped: this is guidance for a new round, not comments on finished work. */ blocked?: boolean }) {
   const [text, setText] = useState("");
   const [about, setAbout] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -152,17 +153,17 @@ function SendBack(p: { id: string; builder: string; files: string[]; stub: boole
     if (ok) p.done();
   };
   return (
-    <section className="sendback" aria-label="Send it back">
-      <div className="row between wrap"><h3>What should change?</h3><span className="note">{name} changes only what you say. The spec stays.</span></div>
-      <div className="row gap-s wrap" role="group" aria-label="Starters">{STARTERS.map((s) => <button key={s} type="button" className="chipb" onClick={() => { setText((t) => (t ? `${t.trimEnd()} ${s}` : s)); area.current?.focus(); }}>{s}</button>)}</div>
-      <textarea ref={area} aria-label="Your comments" rows={3} maxLength={4000} value={text} placeholder={`For example: the deposit should be 30% of the total, not half.`} onChange={(e) => setText(e.target.value)}
+    <section className="sendback" aria-label={p.blocked ? "Send guidance" : "Send it back"}>
+      <div className="row between wrap"><h3>{p.blocked ? `What should ${name} do differently?` : "What should change?"}</h3><span className="note">{p.blocked ? `${name} continues on the same branch with the same spec, and reads this first.` : `${name} changes only what you say. The spec stays.`}</span></div>
+      <div className="row gap-s wrap" role="group" aria-label="Starters">{(p.blocked ? GUIDE_STARTERS : STARTERS).map((s) => <button key={s} type="button" className="chipb" onClick={() => { setText((t) => (t ? `${t.trimEnd()} ${s}` : s)); area.current?.focus(); }}>{s}</button>)}</div>
+      <textarea ref={area} aria-label="Your comments" rows={3} maxLength={4000} value={text} placeholder={p.blocked ? "For example: the rounding must be whole cents; read the failing test before changing anything." : `For example: the deposit should be 30% of the total, not half.`} onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); p.done(); } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); send(); } }} />
       {p.files.length > 0 && (
         <div className="row gap-s wrap"><span className="note">About:</span>{p.files.map((f) => <button key={f} type="button" className="chipb" aria-pressed={about.includes(f)} onClick={() => setAbout((a) => (a.includes(f) ? a.filter((x) => x !== f) : [...a, f]))}>{f.split("/").at(-1)}</button>)}<span className="note grow right">{text.length} / 4000</span></div>
       )}
       <div className="row between wrap">
         <button className="quiet" type="button" onClick={p.done}>Cancel</button>
-        <span className="row gap"><span className="note">Check, security and review run again. Nothing lands.</span><button className="primary" disabled={!text.trim() || busy} onClick={send}>{busy ? "Sending…" : `Send back to ${name}`}</button></span>
+        <span className="row gap"><span className="note">Check, security and review run again. Nothing lands.</span><button className="primary" disabled={!text.trim() || busy} onClick={send}>{busy ? "Sending…" : p.blocked ? `Send guidance to ${name}` : `Send back to ${name}`}</button></span>
       </div>
     </section>
   );
@@ -322,7 +323,8 @@ function Panel(p: { behind?: number; busy: boolean; item: Item; run?: TaskRun; e
             <h2 ref={head} tabIndex={-1}>{item.title}</h2>
             <span className="row gap">
               {sec === "Ready" && <button onClick={() => act("/api/run", { ids: [item.id], stub: p.stub })}>Run</button>}
-              {sec === "Blocked" && <button onClick={() => act("/api/run", { ids: [item.id], stub: p.stub })}>Retry</button>}
+              {sec === "Blocked" && <button onClick={() => act("/api/run", { ids: [item.id], stub: p.stub })} title="Starts again from the beginning">Retry</button>}
+              {sec === "Blocked" && ["ok", "skipped"].includes(run?.stages.spec?.state ?? "") && !sending && <button onClick={() => setSending(true)} title="Continue from the spec, with your guidance for the Builder">Send guidance</button>}
               {p.item.section === "In progress" && run?.status === "running" && <button className="danger" onClick={() => act("/api/stop", { id: item.id })}>Stop</button>}
               {sec === "Inbox" && <button onClick={() => act("/api/promote", { id: item.id })}>Promote to Ready</button>}
               {sec === "Blocked" && !asking && <button className="danger" onClick={() => setAsking(true)}>Discard</button>}
@@ -356,6 +358,7 @@ function Panel(p: { behind?: number; busy: boolean; item: Item; run?: TaskRun; e
                   <pre>{String(typeof failure?.data === "string" ? failure.data : failure?.data?.error ?? run?.error ?? "").split("\n").slice(0, 14).join("\n")}</pre>
                 </section>
               )}
+              {sec === "Blocked" && sending && <SendBack id={item.id} blocked builder={run?.stages.build?.role ?? "builder"} files={[]} stub={p.stub} act={act} done={() => setSending(false)} />}
               {sec === "Blocked" && (() => {
                 const note = [...all].reverse().find((e) => e.type === "manager.note"), said = [...all].reverse().find((e) => e.type === "manager.decision");
                 return (note || said) && (

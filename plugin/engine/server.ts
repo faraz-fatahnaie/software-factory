@@ -410,7 +410,10 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         if (!id) return json({ error: "one id required" }, 400);
         if (!feedback || feedback.length > 4000) return json({ error: "feedback: 1 to 4000 characters" }, 400);
         if (!files || files.length > 20 || files.some((f) => typeof f !== "string" || !f || f.length > 200 || /[\r\n,]/.test(f))) return json({ error: "files: up to 20 file paths" }, 400);
-        if (items().find((i) => i.id === id)?.section !== "Awaiting approval") return json({ error: `${id} is not waiting for a decision` }, 409);
+        const where = items().find((i) => i.id === id)?.section;
+        // A blocked task can be continued with guidance too, if it got as far as a spec (the round keeps it).
+        if (where === "Blocked" && !store.output(id, "spec")) return json({ error: `${id} stopped before it had a spec, so there is nothing to continue: run it again` }, 409);
+        if (where !== "Awaiting approval" && where !== "Blocked") return json({ error: `${id} is not waiting for a decision or stopped` }, 409);
         if (running.has(id)) return json({ error: "already running" }, 409);
         return startOne(id, ["reject", id, "--feedback", feedback, ...(files.length ? ["--files", files.join(",")] : []), ...(body.stub === true ? ["--stub"] : [])]);
       }

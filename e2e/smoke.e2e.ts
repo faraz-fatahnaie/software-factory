@@ -133,6 +133,12 @@ try {
     await page.getByRole("button", { name: "Look into it" }).click(); // the blocked task explains itself
     await page.locator(".bk-card.bad", { hasText: "2 tests fail" }).waitFor();
     await page.getByLabel("What the manager says").getByText(/deposit total/).waitFor(); // her explanation is on the task itself
+    await page.getByRole("button", { name: "Send guidance" }).click(); // a blocked task with a spec can be continued with guidance
+    const guide = page.getByRole("region", { name: "Send guidance" });
+    await guide.getByLabel("Your comments").waitFor();
+    await a11y(page, `${name} send guidance`);
+    await guide.getByRole("button", { name: "Cancel" }).click();
+    await guide.waitFor({ state: "detached" });
     await page.keyboard.press("Escape");
     await page.locator(".bk-panel").waitFor({ state: "detached" });
 
