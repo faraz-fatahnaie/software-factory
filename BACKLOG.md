@@ -37,14 +37,6 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   A role that works out with the user what to build, for projects in any language. Design to be agreed first.
 - [ ] F-029 (P1) Phase 12: publish
   Public GitHub repository, install docs, real owner and author in the manifests, version bump and tag.
-- [ ] F-072 (P1) Upgrade path: create the role file of a role added by an update, by itself
-  A project updated from 1.0.1 has no .claude/agents/technical-manager.md, so triage fails. Create missing role files (never overwrite) when the dashboard or a run starts, and say so in the log.
-- [ ] F-073 (P1) One-time notice after an update that autopilot is on
-  Decided 2026-11-15: autopilot is on for every project. The first time the dashboard opens after the update, show what changed and offer assist or off. Remember it was seen.
-- [ ] F-074 (P1) End-to-end check of autopilot with a stand-in claude
-  Run a whole task through the real pipeline and the supervisor: Ready to Awaiting approval, a failure retried, guidance after three failed builds. No model calls.
-- [ ] F-075 (P1) Verify the plugin update instructions against Claude Code
-  The auto-update steps in the Updating guide (the Marketplaces tab in /plugin) were not checked. Check them, and claude plugin list, uninstall and tags, and fix the guide.
 - [ ] F-076 (P1) Stop a running reply in Talk
   A reply cannot be cancelled today. Add a Stop button next to Send while a reply is coming; end the claude process and the consultations, keep what was typed.
 - [ ] F-077 (P1) Keep conversations across a page reload
@@ -158,3 +150,11 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Today only by editing factory.config.json or the Models page (roles only); stage settings are set automatically when a stage moves.
 - [ ] F-050 (P3) Custom unattended checks beyond advisory
   Let a custom check block or be triggered by sensitive areas, with the same rules as the security gate.
+- [x] F-072 (P1) Upgrade path: create the role file of a role added by an update, by itself
+  A project updated from 1.0.1 has no .claude/agents/technical-manager.md, so triage fails. Create missing role files (never overwrite) when the dashboard or a run starts, and say so in the log.
+- [x] F-073 (P1) One-time notice after an update that autopilot is on
+  Decided 2026-11-15: autopilot is on for every project. The first time the dashboard opens after the update, show what changed and offer assist or off. Remember it was seen.
+- [x] F-074 (P1) End-to-end check of autopilot with a stand-in claude
+  Run a whole task through the real pipeline and the supervisor: Ready to Awaiting approval, a failure retried, guidance after three failed builds. No model calls.
+- [x] F-075 (P1) Verify the plugin update instructions against Claude Code
+  The auto-update steps in the Updating guide (the Marketplaces tab in /plugin) were not checked. Check them, and claude plugin list, uninstall and tags, and fix the guide.
