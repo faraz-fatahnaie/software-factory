@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { add, FROM_CONVERSATION, move, parse, type Item } from "../plugin/engine/backlog";
 import { agentEvents, claudeArgs, classify } from "../plugin/engine/claude";
 import { loadConfig, MANAGER_DEFAULTS, managerOf, parseConfig, type ManagerSettings } from "../plugin/engine/config";
-import { decide, failureKind, supervisor } from "../plugin/engine/supervisor";
+import { decide, failureKind, overlap, pathsIn, supervisor } from "../plugin/engine/supervisor";
 import { formatChecks, formatInfo, readiness, releaseInfo, tagRelease, versionFiles } from "../plugin/engine/release";
 import { allTracked, changesInWorktree, changesSince, parseDiff, scanSecrets, sensitiveReasons } from "../plugin/engine/security";
 import { appendChronicle, appendNotes, chronicleEntry, parseScribe, readNotes, stageOutput } from "../plugin/engine/chronicle";
@@ -2294,6 +2294,25 @@ test("supervisor: starts Ready items one at a time, promotes only what was worke
   await d.tick();
   expect(d.launched).toEqual([]); // three tasks wait for the person: no more work piles up
   d.stop();
+});
+
+test("supervisor: a task that names the files a running task changes waits for it; an unrelated one starts beside it (M13)", async () => {
+  expect(pathsIn("Fix plugin/engine/server.ts and ./gui/ plus README.md, not e.g. this")).toEqual(["plugin/engine/server.ts", "gui/", "README.md"]);
+  expect(overlap(["plugin/engine/server.ts"], ["server.ts"])).toBe("plugin/engine/server.ts");
+  expect(overlap(["gui/"], ["gui/talk.tsx"])).toBe("gui/talk.tsx");
+  expect(overlap(["plugin/a.ts"], ["gui/b.ts"])).toBeUndefined();
+  const m = manage({ parallel: 3 }, [mItem("F-001", "In progress", "Change plugin/engine/server.ts"), mItem("F-002", "Ready", "Also touches server.ts"), mItem("F-003", "Ready", "Style gui/talk.tsx")]);
+  m.running.set("F-001", { kill() {} });
+  await m.tick();
+  expect(m.launched).toEqual([["run", "F-003"]]); // F-002 waits for F-001
+  await m.tick();
+  expect(m.decisions().filter((d) => d === "hold")).toHaveLength(1); // said once, not every tick
+  m.running.delete("F-001");
+  m.state.items = m.state.items.map((i) => (i.id === "F-001" ? { ...i, section: "Done" } : i));
+  m.running.delete("F-003");
+  await m.tick();
+  expect(m.launched).toContainEqual(["run", "F-002"]);
+  m.stop();
 });
 
 test("supervisor: a stopped task is retried after a wait, guided after three failed builds, and handed to the person when it should not go on", async () => {

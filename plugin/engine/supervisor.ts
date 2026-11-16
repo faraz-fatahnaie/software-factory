@@ -36,6 +36,20 @@ export function decide(kind: Kind, tries: number, spent: number, s: { recoveries
   return { action: "retry", delayMin: 1, text: "It stopped with an error. Trying again in a minute." };
 }
 
+/** The files and folders a text names (paths with a slash, or a bare name with a common extension). */
+export function pathsIn(text: string): string[] {
+  const found = text.match(/(?:[\w.-]+\/)+[\w.-]*|\b[\w-]+\.(?:tsx?|jsx?|json|md|css|html|py|rs|go|sql|ya?ml|toml|sh)\b/g) ?? [];
+  return [...new Set(found.map((p) => p.replace(/^\.\//, "")))];
+}
+const base = (p: string) => p.split("/").filter(Boolean).pop() ?? p;
+/** The first pair of paths, one from each side, that probably mean the same file: equal, one inside the other's folder, or the same file name. */
+export function overlap(a: string[], b: string[]): string | undefined {
+  for (const x of a) for (const y of b) {
+    const dir = (d: string, f: string) => d.endsWith("/") && f.startsWith(d);
+    if (x === y || dir(x, y) || dir(y, x) || (!x.endsWith("/") && !y.endsWith("/") && base(x) === base(y))) return x.length >= y.length ? x : y;
+  }
+}
+
 const AWAITING_LIMIT = 3; // the person is the bottleneck: no new work while this many tasks wait for a decision
 const startOfDay = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); };
 
@@ -130,8 +144,15 @@ export function supervisor(ctx: Ctx) {
       const r = await ctx.cli("promote", it.id);
       if (r.code === 0) { decide_(it.id, "promote", `${it.id} was worked out in conversation, so I moved it to Ready.`); ready = ctx.items().filter(startable); }
     }
+    // M13: a task that names the files a running task is changing waits for it (the spec says what the running one will touch).
+    const touching = (i: Item) => pathsIn(`${i.title}\n${i.detail}\n${ctx.store.output(i.id, "spec") ?? ""}`);
+    const busyFiles = () => [...ctx.running.keys()].map((id) => ({ id, files: touching(fresh.find((i) => i.id === id) ?? mine(id)) }));
+    const mine = (id: string): Item => ({ id, title: "", section: "", detail: "" });
     for (const it of ready) {
       if (room <= 0) break;
+      const mineFiles = touching(it);
+      const hit = busyFiles().map((b) => ({ id: b.id, file: overlap(mineFiles, b.files) })).find((h) => h.file);
+      if (hit) { if (once(`clash:${it.id}:${hit.id}`)) decide_(it.id, "hold", `${it.id} waits for ${hit.id}: both are likely to change ${hit.file}.`, { with: hit.id }); continue; }
       if (ctx.launch(it.id, ["run", it.id])) { decide_(it.id, "start", `${it.id} was next in line, so I started it.`); room--; }
     }
   }
