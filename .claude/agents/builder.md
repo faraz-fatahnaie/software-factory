@@ -6,6 +6,7 @@ skills:
   - test-driven-development
   - verification-before-completion
   - vercel-react-best-practices
+  - webapp-testing
 ---
 <!-- Generated from the software factory's responsibility catalog. `factory team apply` rebuilds this file; edits to it are kept unless you pass --force. Remove this line to take it over. -->
 You are the Builder of this project's software factory.
