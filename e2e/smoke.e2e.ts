@@ -209,19 +209,19 @@ try {
     // Typing a slash suggests the commands; what follows narrows them loosely; the keyboard chooses, completes and closes.
     await box.fill("/");
     const list = page.getByRole("listbox", { name: "Commands" });
-    assert.deepEqual(await list.getByRole("option").locator("code").allTextContents(), ["/compact [what to keep]", "/clear"]);
+    assert.deepEqual(await list.getByRole("option").locator(".cmd").allTextContents(), ["/compact", "/clear"]);
     assert.equal(await box.getAttribute("aria-activedescendant"), "slash-compact");
     await a11y(page, `${name} Talk commands`);
     await box.press("ArrowDown");
-    assert.equal(await list.getByRole("option", { selected: true }).locator("code").textContent(), "/clear");
+    assert.equal(await list.getByRole("option", { selected: true }).locator(".cmd").textContent(), "/clear");
     await box.press("Escape");
     await list.waitFor({ state: "detached" });
     await box.fill("/help");
-    await list.getByText("No command matches").waitFor();
+    await list.getByText("No matching commands").waitFor();
     await box.press("Enter");
     await page.getByRole("alert").filter({ hasText: "/help is not a command here" }).waitFor();
     await box.fill("/pact"); // loose: the letters in order are enough
-    assert.deepEqual(await list.getByRole("option").locator("code").allTextContents(), ["/compact [what to keep]"]);
+    assert.deepEqual(await list.getByRole("option").locator(".cmd").allTextContents(), ["/compact"]);
     await box.press("Tab");
     assert.equal(await box.inputValue(), "/compact ", `${name}: Tab completes the command, ready for what to keep`);
     await list.waitFor({ state: "detached" });

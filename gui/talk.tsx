@@ -337,16 +337,6 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
               }}
               onPaste={(e) => { const files = [...e.clipboardData.files]; if (!files.length) return; e.preventDefault(); attach(files.map((f, i) => (f.name === "image.png" ? new File([f], `pasted-${new Date().toISOString().slice(11, 19).replace(/:/g, "")}${i ? `-${i}` : ""}.png`, { type: f.type }) : f))); }}
             />
-            {slash && (
-              <div className="slash" id="slash-commands" role="listbox" aria-label="Commands">
-                {slash.map((c) => (
-                  <div key={c.name} id={`slash-${c.name}`} role="option" aria-selected={c === picked} className={c === picked ? "on" : ""} onMouseDown={(e) => { e.preventDefault(); take(c, true); }} onMouseEnter={() => setPick(slash.indexOf(c))}>
-                    <code>/{c.name}{c.args && <i> {c.args}</i>}</code><span>{c.hint}</span>
-                  </div>
-                ))}
-                {slash.length === 0 && <p className="note">No command matches. The commands are /compact and /clear.</p>}
-              </div>
-            )}
             <div className="composer-bar">
               <input ref={picker} type="file" multiple hidden accept={ACCEPT} aria-label="Choose files to attach" tabIndex={-1} onChange={(e) => { attach([...(e.target.files ?? [])]); e.target.value = ""; }} />
               <button type="button" className="quiet icon" onClick={() => picker.current?.click()} aria-label="Attach files" title="Attach files (or drop them here, or paste a picture)"><Icon name="paperclip" size={18} /></button>
@@ -356,6 +346,16 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
                 : <button className="primary send" disabled={!text.trim() && !pending.length} aria-label={chat.busy ? "Send after the reply" : "Send"} title={chat.busy ? "Send after the reply" : "Send"}><Icon name="up" size={18} /></button>}
             </div>
           </form>
+          {slash && (
+            <div className="slash" id="slash-commands" role="listbox" aria-label="Commands">
+              {slash.map((c) => (
+                <div key={c.name} id={`slash-${c.name}`} role="option" aria-selected={c === picked} className={c === picked ? "on" : ""} onMouseDown={(e) => { e.preventDefault(); take(c, true); }} onMouseEnter={() => setPick(slash.indexOf(c))}>
+                  <span className="cmd">/{c.name}</span><span>{c.hint}</span>
+                </div>
+              ))}
+              {slash.length === 0 && <p>No matching commands</p>}
+            </div>
+          )}
           {notice && <p className="error" role="alert">{notice}</p>}
           {managerProblem && <p className="error" role="alert">{managerProblem}</p>}
           {topic.manager && manager && <p className="note">{manager.settings.autonomy === "autopilot" ? `On autopilot: ${manager.settings.parallel} task${manager.settings.parallel === 1 ? "" : "s"} at once, up to $${manager.settings.perTask} per task and $${manager.settings.perDay} per day ($${manager.spentToday.toFixed(2)} today). Change it with the Manager menu above or \`factory manager\`.` : manager.settings.autonomy === "assist" ? "On assist: you press the buttons." : "Autopilot is off: nothing starts by itself."}</p>}

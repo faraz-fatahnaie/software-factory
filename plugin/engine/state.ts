@@ -253,8 +253,8 @@ export const tokens = (n: number) => (n >= 1_000_000 ? `${+(n / 1_000_000).toFix
 
 /** The commands a conversation's message box takes, as in Claude Code. `args` says what may follow the name. */
 export const CHAT_COMMANDS = [
-  { name: "compact", args: "[what to keep]", hint: "Keep a summary instead of every message" },
-  { name: "clear", args: "", hint: "Delete this conversation and start a new one" },
+  { name: "compact", args: "[what to keep]", hint: "Clear conversation history but keep a summary in context. Optional: /compact [what to keep]" },
+  { name: "clear", args: "", hint: "Clear conversation history and free up context" },
 ] as const;
 /**
  * The commands to suggest for what is typed after the slash. Loose on purpose: the letters only have to appear in that order ("cmp" and "pact" both find compact),
