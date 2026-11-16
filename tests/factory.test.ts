@@ -20,7 +20,8 @@ import { addCustom, moveSettings, offSettings, parseChange, planTeam, removeCust
 import { askable, chatArgs, chatTurn, checkAttachments, managerPrompt, managerTurn, parseAsks, resumeChat, saveAttachments, stopChat, TOPICS } from "../plugin/engine/chat";
 import { parseBlocks, parseInline } from "../gui/mdparse";
 import { digest } from "../gui/manager";
-import { loadChats, pack, saveChats, signature, unpack } from "../gui/chatstore";
+import { merge, mirror } from "../gui/chatstore";
+import { appendChat, clearChat, importChat, markActed, pack, readChat, replyMsg, unpack } from "../plugin/engine/chatlog";
 import { estimate } from "../plugin/engine/estimate";
 import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugin/engine/vcs";
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
@@ -2752,7 +2753,8 @@ esac
     expect((await chatTurn(root, { topic: "plan", message: "hi" }, team)).text).toBe("Hello.");
 
     const manager = managerTurn(root, { topic: "manager", message: "ask" }, team); // asks the architect, who is slow
-    await Bun.sleep(1200);
+    for (let i = 0; i < 100 && readFileSync(log, "utf8").trim().split("\n").length < 4; i++) await Bun.sleep(100); // until the architect was asked (a fixed wait was too short on a busy machine)
+    await Bun.sleep(200);
     expect(stopChat("manager")).toBeGreaterThanOrEqual(1);
     expect(await manager).toMatchObject({ ok: false, status: "stopped" });
     expect(readFileSync(log, "utf8").trim().split("\n").length).toBe(4); // slow, hi, the manager, the architect: the manager never wrote its second turn
@@ -2771,40 +2773,99 @@ test("stop over HTTP: only a known conversation can be stopped", async () => {
   } finally { server.stop(); }
 });
 
-test("conversations are kept across a reload: text only, capped, and a damaged entry is ignored", () => {
-  const mem = new Map<string, string>();
-  const store = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v), removeItem: (k: string) => void mem.delete(k), key: (i: number) => [...mem.keys()][i] ?? null, get length() { return mem.size; } };
-  const chats = {
-    manager: { busy: true, session: "11111111-2222-3333-4444-555555555555", subs: { design: "22222222-2222-3333-4444-555555555555" }, draft: "unsent", messages: [
-      { who: "you" as const, text: "look", files: [{ name: "shot.png", size: 10, url: "blob:http://x/1" }] },
-      { who: "team" as const, text: "## Plan", tools: [{ tool: "Bash", detail: "ls", output: "x".repeat(5000) }], cost: 0.02, proposal: { kind: "run" as const, ids: ["F-001"] }, acted: "Done" },
-    ] },
-    plan: { busy: false, messages: [] },
-  };
-  saveChats(chats, store);
-  expect([...mem.keys()]).toEqual(["factory-chat:manager"]); // an empty conversation leaves nothing behind
-  const back = loadChats(store).manager!;
-  expect(back.busy).toBe(false); // a reply that was on its way is not waited for after a reload
-  expect(back.session).toBe(chats.manager.session);
-  expect(back.subs).toEqual(chats.manager.subs);
-  expect(back.messages[0]!.files).toEqual([{ name: "shot.png", size: 10 }]); // the preview address would be dead
-  expect(back.messages[1]!.tools![0]!.output!.length).toBeLessThan(2100);
-  expect(back.messages[1]).toMatchObject({ text: "## Plan", cost: 0.02, acted: "Done", proposal: { kind: "run", ids: ["F-001"] } });
-  expect((back as any).draft).toBeUndefined();
+test("conversations are kept on disk in the project: text only, capped, cleared for good, and a damaged entry is ignored", () => {
+  const root = tmp();
+  expect(readChat(root, "manager")).toEqual({ messages: [] });
+  appendChat(root, "manager", [{ who: "you", text: "look", files: [{ name: "shot.png", size: 10, url: "blob:http://x/1" }] }]);
+  const kept = appendChat(root, "manager", [{ who: "team", text: "## Plan", tools: [{ tool: "Bash", detail: "ls", output: "x".repeat(5000) }], cost: 0.02, proposal: { kind: "run", ids: ["F-001"] } }],
+    { session: "11111111-2222-3333-4444-555555555555", subs: { design: "22222222-2222-3333-4444-555555555555" } });
+  expect(existsSync(join(root, ".factory/chats/manager.json"))).toBe(true); // under .factory, which is never committed
+  expect(kept.messages[0]!.files).toEqual([{ name: "shot.png", size: 10 }]); // a preview address means nothing outside its page
+  expect(kept.messages[1]!.tools![0]!.output!.length).toBeLessThan(2100);
+  expect(appendChat(root, "manager", []).session).toBe("11111111-2222-3333-4444-555555555555"); // a turn that returns no session keeps the one it had
+  expect(() => markActed(root, "manager", 0, true, "x")).toThrow(/not a message that proposed/);
+  const acted = markActed(root, "manager", 1, false, "It is already running.");
+  expect(acted.messages[1]!.acted).toBe("Failed");
+  expect(acted.messages[2]).toEqual({ who: "team", text: "It is already running.", bad: true });
+  expect(readChat(root, "plan")).toEqual({ messages: [] }); // each conversation has its own file
+  for (const bad of ["../x", "a/b", "", "Plan"]) expect(() => readChat(root, bad)).toThrow(/not a conversation/); // a topic is a file name
+  clearChat(root, "manager");
+  expect(existsSync(join(root, ".factory/chats/manager.json"))).toBe(false);
+  expect(readChat(root, "manager")).toEqual({ messages: [] });
 
-  const long = { busy: false, messages: Array.from({ length: 500 }, (_, i) => ({ who: "you" as const, text: `${i} ${"y".repeat(2000)}` })) };
-  const kept = unpack(pack(long))!.messages;
-  expect(kept.length).toBeLessThan(200);
-  expect(kept.at(-1)!.text.startsWith("499 ")).toBe(true); // the newest are the ones kept
-  expect(pack(long)!.length).toBeLessThanOrEqual(300_000);
-
+  const long = { messages: Array.from({ length: 500 }, (_, i) => ({ who: "you" as const, text: `${i} ${"y".repeat(2000)}` })) };
+  const cut = unpack(pack(long))!.messages;
+  expect(cut.length).toBeLessThan(200);
+  expect(cut.at(-1)!.text.startsWith("499 ")).toBe(true); // the newest are the ones kept
+  expect(pack(long).length).toBeLessThanOrEqual(300_000);
   for (const bad of ["", "not json", "{}", JSON.stringify({ v: 99, messages: [] }), JSON.stringify({ v: 1, messages: "x" })]) expect(unpack(bad)).toBeNull();
-  expect(unpack(JSON.stringify({ v: 1, session: "../../etc", messages: [{ who: "admin", text: "x" }, { who: "you", text: "ok" }] }))).toEqual({ messages: [{ who: "you", text: "ok" }], session: undefined, subs: undefined, busy: false });
-  saveChats({ manager: { busy: false, messages: [] } }, store); // cleared
-  expect(mem.size).toBe(0);
-  expect(signature(chats)).not.toBe(signature({ ...chats, manager: { ...chats.manager, messages: chats.manager.messages.slice(0, 1) } }));
-  expect(signature(chats)).toBe(signature({ ...chats, manager: { ...chats.manager, draft: "typing more" } })); // typing does not save
+  expect(unpack(JSON.stringify({ v: 1, session: "../../etc", messages: [{ who: "admin", text: "x" }, { who: "you", text: "ok" }] }))).toEqual({ messages: [{ who: "you", text: "ok" }], session: undefined, subs: undefined });
+  writeFileSync(join(root, ".factory/chats/plan.json"), "damaged");
+  expect(readChat(root, "plan")).toEqual({ messages: [] });
+
+  // What a browser kept before: taken over once, into an empty conversation only.
+  const old = JSON.stringify({ v: 1, session: "33333333-2222-3333-4444-555555555555", messages: [{ who: "you", text: "from the browser" }] });
+  expect(importChat(root, "design", old).messages).toHaveLength(1);
+  expect(importChat(root, "design", JSON.stringify({ v: 1, messages: [{ who: "you", text: "again" }, { who: "team", text: "x" }] })).messages).toHaveLength(1); // what is on disk wins
+  expect(importChat(root, "test", "not json")).toEqual({ messages: [] });
+
+  // A reply as the page shows it.
+  expect(replyMsg({ ok: true, status: "ok", text: "Do it.\nPROPOSE: run F-001\nSUGGEST: Yes", costUsd: 0.1, denials: ["Bash rm x"], tools: [] })).toMatchObject({ who: "team", text: "Do it.", suggestions: ["Yes"], proposal: { kind: "run", ids: ["F-001"] }, cost: 0.1, tools: [{ tool: "Not allowed", detail: "Bash rm x", error: true }] });
+  expect(replyMsg({ ok: true, status: "ok", text: "On it.", executed: { proposal: { kind: "run", ids: ["F-001"] }, ok: true, note: "Started F-001." } })).toMatchObject({ text: "On it.\n\nStarted F-001.", acted: "Done" });
+  expect(replyMsg({ ok: false, status: "stopped", text: "Stopped." })).toEqual({ who: "team", text: "Stopped." }); // a stop the person asked for is not an error
+  expect(replyMsg({ ok: false, status: "auth", text: "x" })).toMatchObject({ bad: true, text: expect.stringMatching(/not logged in/) });
+
+  // The page lays the server's copy over its own: the draft and picture previews are the page's, a conversation it is waiting on is left alone.
+  const mine = { busy: true, draft: "typing", messages: [{ who: "you" as const, text: "look", files: [{ name: "shot.png", size: 10, url: "blob:1" }] }] };
+  const shown = mirror(mine, { messages: [{ who: "you", text: "look", files: [{ name: "shot.png", size: 10 }] }, { who: "team", text: "ok" }], session: "s".repeat(8) });
+  expect(shown).toMatchObject({ busy: false, remote: false, draft: "typing", session: "ssssssss" });
+  expect(shown.messages[0]!.files![0]!.url).toBe("blob:1");
+  const merged = merge({ plan: mine, design: { busy: false, messages: [{ who: "you", text: "old" }] }, test: { busy: false, messages: [], draft: "half a thought" } }, { plan: { messages: [] }, manager: { messages: [{ who: "you", text: "hi" }], busy: true } });
+  expect(merged.plan).toBe(mine); // this page asked: its reply brings the new state
+  expect(merged.manager).toMatchObject({ busy: true, remote: true }); // a reply on its way that this page did not ask for: it watches
+  expect(merged.design!.messages).toEqual([]); // cleared elsewhere
+  expect(merged.test!.draft).toBe("half a thought");
 });
+
+test("conversations over HTTP: each turn is written before it is answered, a reload reads it back, and clearing deletes it", async () => {
+  const bin = join(tmp(), "bin");
+  mkdirSync(bin, { recursive: true });
+  const result = (text: string) => JSON.stringify({ type: "result", subtype: "success", is_error: false, result: text, session_id: "11111111-1111-1111-1111-111111111111", total_cost_usd: 0.01, usage: {} });
+  writeFileSync(join(bin, "claude"), `#!/bin/sh\ncase "$2" in\n  "slow"*) exec sleep 30;;\n  *) printf '%s\\n' '${result("Hello.\nSUGGEST: Tell me more")}';;\nesac\n`);
+  chmodSync(join(bin, "claude"), 0o755);
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  const { dir } = repo();
+  const server = await serve(dir, 0);
+  const base = `http://127.0.0.1:${server.port}`;
+  const post = async (p: string, body: unknown) => { const r = await fetch(`${base}${p}`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify(body) }); return { status: r.status, data: await r.json() as any }; };
+  const all = async () => await (await fetch(`${base}/api/chats`)).json() as Record<string, { messages: { who: string; text: string }[]; session?: string; busy: boolean }>;
+  try {
+    expect(await all()).toEqual({});
+    const first = await post("/api/chat", { topic: "plan", message: "hi there", shown: "Hi", attachments: [{ name: "note.txt", data: Buffer.from("hello").toString("base64") }] });
+    expect(first.data.chat.messages).toEqual([{ who: "you", text: "Hi", files: [{ name: "note.txt", size: 5 }] }, expect.objectContaining({ who: "team", text: "Hello.", suggestions: ["Tell me more"], cost: 0.01 })]);
+    expect((await all()).plan).toMatchObject({ busy: false, session: "11111111-1111-1111-1111-111111111111" }); // what a reload, another browser or another port reads
+    expect(JSON.parse(readFileSync(join(dir, ".factory/chats/plan.json"), "utf8")).messages).toHaveLength(2);
+    expect((await post("/api/chat", { topic: "plan", message: "x", model: "nope" })).status).toBe(400);
+    expect((await all()).plan!.messages).toHaveLength(2); // a refused message is not kept
+
+    const slow = post("/api/chat", { topic: "design", message: "slow" });
+    await Bun.sleep(400);
+    expect((await all()).design).toMatchObject({ busy: true, messages: [{ who: "you", text: "slow" }] }); // written before the reply: a page that reloads now sees it and waits
+    expect((await post("/api/chat", { topic: "design", message: "again" })).status).toBe(409);
+    expect((await post("/api/chats/clear", { topic: "design" })).status).toBe(409); // stop it first
+    await post("/api/chat/stop", { topic: "design" });
+    expect((await slow).data.chat.messages.at(-1)).toEqual({ who: "team", text: "Stopped." });
+    expect((await all()).design!.busy).toBe(false);
+
+    expect((await post("/api/chats/clear", { topic: "plan" })).data).toEqual({ messages: [] });
+    expect(existsSync(join(dir, ".factory/chats/plan.json"))).toBe(false);
+    expect((await all()).plan).toBeUndefined();
+    expect((await post("/api/chats/clear", { topic: "../x" })).status).toBe(400);
+    expect((await post("/api/chats/acted", { topic: "design", index: 0, ok: true, text: "x" })).status).toBe(400); // not a proposal
+    expect((await post("/api/chats/import", { topic: "test", raw: JSON.stringify({ v: 1, messages: [{ who: "you", text: "kept in the browser" }] }) })).data.messages).toHaveLength(1);
+  } finally { server.stop(); process.env.PATH = path; }
+}, 30_000);
 
 test("guidance for a blocked task: continues from its spec when it has one, and says so plainly when it never got that far", async () => {
   const { dir, cli, section } = repo();

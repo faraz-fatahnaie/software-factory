@@ -2,7 +2,7 @@
 // Drives your installed Chrome (no browser download) against a throwaway repo, using dry runs
 // so it makes no model calls. Not part of the gate: it needs Chrome and takes a few seconds.
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
 import { fakeGh, ghPr, repo, tmp } from "../tests/fixture";
@@ -294,6 +294,23 @@ try {
   await suggest.click(); // the switch follows the saved setting, so it flips when the server has answered
   await page.waitForFunction(() => !(document.querySelector('input[role="switch"]') as HTMLInputElement | null)?.checked);
   assert.deepEqual(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).chat, { suggest: { "product-partner": false } });
+
+  // Conversations live on disk in the project, not in the browser: one written there shows after a reload, one an earlier version kept in the browser is handed over once, and clearing deletes the file.
+  mkdirSync(join(dir, ".factory", "chats"), { recursive: true });
+  writeFileSync(join(dir, ".factory", "chats", "plan.json"), JSON.stringify({ v: 1, messages: [{ who: "you", text: "Plan the deposit link" }, { who: "team", text: "Kept on disk." }] }));
+  await page.evaluate(() => localStorage.setItem("factory-chat:design", JSON.stringify({ v: 1, messages: [{ who: "you", text: "From the old browser copy" }] })));
+  await page.reload();
+  await view("Talk");
+  await page.getByRole("button", { name: /Plan the work/ }).click();
+  await page.getByText("Kept on disk.").waitFor();
+  await page.getByRole("button", { name: /Design the solution/ }).click();
+  await page.getByText("From the old browser copy").waitFor();
+  assert.equal(await page.evaluate(() => localStorage.getItem("factory-chat:design")), null, "handed over, so removed from the browser");
+  assert.equal(existsSync(join(dir, ".factory", "chats", "design.json")), true);
+  await page.getByRole("button", { name: "New conversation" }).click();
+  await page.getByRole("button", { name: "Yes, start over" }).click();
+  await page.getByText("From the old browser copy").waitFor({ state: "detached" });
+  assert.equal(existsSync(join(dir, ".factory", "chats", "design.json")), false, "clearing deletes it from disk");
 
   // Team: a change is previewed with its cost and not saved until you say so; saving commits it.
   await view("Team");

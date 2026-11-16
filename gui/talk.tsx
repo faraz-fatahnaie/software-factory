@@ -1,6 +1,8 @@
 // Talk: conversations with the people (robots) who hold each job. Checks: the factory's own commands, one button each.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, parseProposal, splitSuggestions, stepsSummary, type Proposal, type ToolStep } from "../plugin/engine/state";
+import type { Msg, Shown, Stored } from "../plugin/engine/chatlog";
+import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, stepsSummary, type Proposal, type ToolStep } from "../plugin/engine/state";
+import { mirror } from "./chatstore";
 import { call } from "./data";
 import { Icon } from "./icons";
 import { Markdown } from "./markdown";
@@ -8,12 +10,11 @@ import { AUTONOMY_OPTIONS, useManager, type Autonomy } from "./manager";
 import { personaFor, Robot } from "./robots";
 import { Select, Skel } from "./ui";
 
-export type Shown = { name: string; size: number; url?: string };
-export type Msg = { who: "you" | "team"; text: string; files?: Shown[]; suggestions?: string[]; tools?: ToolStep[]; cost?: number; bad?: boolean; proposal?: Proposal; acted?: string };
+export type { Msg, Shown };
 /** A file waiting to be sent with the next message. Pictures get a preview. */
 export type Pending = { file: File; url?: string };
 /** One conversation. The unsent message, the files waiting to go with it and a message queued behind a reply live here, not in the Talk page, so leaving the page and coming back loses nothing. */
-export type Chat = { messages: Msg[]; session?: string; subs?: Record<string, string>; busy: boolean; draft?: string; files?: Pending[]; queued?: { message: string; files: Pending[] }; opts?: { suggest: boolean; model: string; effort: string } };
+export type Chat = { messages: Msg[]; session?: string; subs?: Record<string, string>; busy: boolean; /** Busy because the server says a reply is on its way (this page did not ask for it, for example after a reload): the page watches for it. */ remote?: boolean; draft?: string; files?: Pending[]; queued?: { message: string; files: Pending[] }; opts?: { suggest: boolean; model: string; effort: string } };
 const draftKey = (k: string) => `factory-draft:${k}`;
 /** The unsent message of a conversation, kept in the browser too, so a reload keeps it. Storage can be blocked: then it only lives in the page. */
 const savedDraft = (k: string) => { try { return localStorage.getItem(draftKey(k)) ?? ""; } catch { return ""; } };
@@ -32,7 +33,7 @@ export function useQueueDrain(chats: Chats, setChats: React.Dispatch<React.SetSt
 }
 export type Chats = Record<string, Chat>;
 type Topic = { key: string; title: string; summary: string; first: string; available: boolean; reason?: string; role?: string; roleTitle?: string; suggest?: boolean; readOnly?: boolean; manager?: boolean };
-type Reply = { ok: boolean; status: string; text: string; session?: string; sessions?: Record<string, string>; executed?: { proposal: Proposal; ok: boolean; note: string }; costUsd?: number; denials: string[]; tools: ToolStep[] };
+type Reply = { chat: Stored }; // the conversation as the server keeps it, with the new reply at its end
 
 const MODELS = [
   { value: "sonnet", label: "sonnet", hint: "Balanced. Good for most conversations" },
@@ -45,11 +46,6 @@ const EFFORTS = [
   { value: "medium", label: "medium", hint: "Balanced" },
   { value: "high", label: "high", hint: "Thorough, but slower" },
 ];
-const FAILURES: Record<string, string> = {
-  rate_limited: "The model is rate limited right now. Try again in a while, or pick another model above.",
-  auth: "The Claude command line is not logged in. Run `claude` in a terminal, log in, then try again.",
-};
-
 const PROPOSAL_BUTTON: Record<Proposal["kind"], string> = { push: "Push", batch: "Push together", merge: "Merge", sync: "Sync", promote: "Promote", run: "Run", retry: "Retry" };
 const PROPOSAL_ASK: Record<Proposal["kind"], (ids: string[]) => string> = {
   push: (ids) => (ids.length === 1 ? `Push ${ids[0]} to GitHub and open a pull request?` : `Push ${ids.join(", ")} to GitHub and open ${ids.length} pull requests?`),
@@ -104,20 +100,9 @@ export async function sendChat(o: SendOpts) {
   let attachments: { name: string; data: string }[];
   try { attachments = await Promise.all(files.map(async (f) => ({ name: f.file.name, data: await toBase64(f.file) }))); }
   catch { return patch((c) => ({ ...c, busy: false, messages: [...c.messages, { who: "team", text: "A file could not be read. Attach it again.", bad: true }] })); }
-  const r = await call<Reply>("/api/chat", { topic: o.key, message: o.message, session: o.chat.session, subs: o.chat.subs, model: o.model, effort: o.effort, suggest: o.suggest, ...(attachments.length && { attachments }) });
-  patch((c) => {
-    if (!r.ok) return { ...c, busy: false, messages: [...c.messages, { who: "team", text: r.error, bad: true }] };
-    const d = r.data;
-    const split = d.ok ? splitSuggestions(d.text) : { text: d.text, suggestions: [] as string[] };
-    const { text: shown, proposal } = d.ok ? parseProposal(split.text) : { text: split.text, proposal: undefined };
-    const reply: Msg = d.ok
-      ? { who: "team", text: shown, suggestions: split.suggestions, proposal, tools: d.tools, cost: d.costUsd }
-      : { who: "team", text: FAILURES[d.status] ?? d.text, bad: d.status !== "stopped" }; // a stop the person asked for is not an error
-    // On autopilot the manager has already carried out what it proposed: the message says so, and there is no button.
-    if (d.ok && d.executed) { reply.proposal = d.executed.proposal; reply.acted = d.executed.ok ? "Done" : "Failed"; reply.text = `${reply.text}\n\n${d.executed.note}`.trim(); reply.bad = !d.executed.ok; }
-    if (d.denials.length) reply.tools = [...(reply.tools ?? []), ...d.denials.map((x) => ({ tool: "Not allowed", detail: x, error: true }))];
-    return { ...c, busy: false, session: d.session ?? c.session, subs: d.sessions ?? c.subs, messages: [...c.messages, reply] };
-  });
+  const r = await call<Reply>("/api/chat", { topic: o.key, message: o.message, ...(o.shown && { shown: o.shown }), session: o.chat.session, subs: o.chat.subs, model: o.model, effort: o.effort, suggest: o.suggest, ...(attachments.length && { attachments }) });
+  // The server keeps the conversation and builds the reply; the page shows what it holds.
+  patch((c) => (r.ok ? mirror(c, r.data.chat) : { ...c, busy: false, messages: [...c.messages, { who: "team", text: r.error, bad: true }] }));
 }
 
 export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChats: React.Dispatch<React.SetStateAction<Chats>>; topic: string }) {
@@ -204,8 +189,8 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
       for (const id of p.ids) { r = await call(`/api/${p.kind}`, { id }); if (!r.ok) break; done.push(r.data.output ?? `${id}: done`); }
       text = r.ok ? done.join("\n\n") : `${done.length ? `${done.join("\n\n")}\n\n` : ""}${r.error}`;
     }
-    const ok = r.ok;
-    patch(k, (c) => ({ ...c, busy: false, messages: [...c.messages.map((m, j) => (j === i ? { ...m, acted: ok ? "Done" : "Failed" } : m)), { who: "team", text, bad: !ok }] }));
+    const ok = r.ok, kept = await call<Stored>("/api/chats/acted", { topic: k, index: i, ok, text });
+    patch(k, (c) => (kept.ok ? mirror(c, kept.data) : { ...c, busy: false, messages: [...c.messages.map((m, j) => (j === i ? { ...m, acted: ok ? "Done" : "Failed" } : m)), { who: "team", text, bad: !ok }] }));
   };
 
   if (!topics) return problem ? <p className="error" role="alert">{problem}</p> : (
@@ -244,7 +229,7 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
               <p className="note">{topic.roleTitle} · {chat.busy ? "Thinking…" : "Listening"}</p>
             </div>
             {chat.messages.length > 0 && (clearing
-              ? <span className="row gap-s" role="group" aria-label="Start a new conversation?"><span className="note">Clear this conversation?</span><button className="small" onClick={async () => { setClearing(false); if (chat.busy) await stop(); patch(key, () => ({ messages: [], busy: false })); }}>Yes, start over</button><button className="small quiet" onClick={() => setClearing(false)}>Keep it</button></span>
+              ? <span className="row gap-s" role="group" aria-label="Start a new conversation?"><span className="note">Clear this conversation?</span><button className="small" onClick={async () => { setClearing(false); if (chat.busy) await stop(); for (let i = 0; i < 20 && !(await call("/api/chats/clear", { topic: key })).ok; i++) await new Promise((ok) => setTimeout(ok, 250)); /* a stopped reply takes a moment to end */ patch(key, () => ({ messages: [], busy: false })); }}>Yes, start over</button><button className="small quiet" onClick={() => setClearing(false)}>Keep it</button></span>
               : <button className="small quiet" onClick={() => setClearing(true)} title="Clears the messages here and starts fresh. Documents the conversation wrote are kept.">New conversation</button>)}
             <label className="switch" title="End each reply with a few messages you could send next. They only send a message; they never do anything else."><input type="checkbox" role="switch" checked={!!topic.suggest} onChange={async (e) => { const on = e.target.checked; const r = await call("/api/chat/suggest", { topic: key, on }); if (r.ok) setTopics((ts) => ts && ts.map((t) => (t.role === topic.role ? { ...t, suggest: on } : t))); else setProblem(r.error); }} /><span>Suggest replies</span></label>
             {topic.manager && manager && <Select label="Autonomy" prefix="Manager" value={manager.settings.autonomy} options={AUTONOMY_OPTIONS} align="right" onChange={(v) => setManager({ autonomy: v as Autonomy })} />}

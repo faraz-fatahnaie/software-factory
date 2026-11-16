@@ -80,7 +80,8 @@ folded list under the reply.
 - **Show, do not describe.** Dina attaches a photo of her paper order form and the PDF price list: the button
   next to the message box, drag and drop, or paste. Up to eight files (pictures, PDF, text and code).
 - **Keep typing.** A message sent while a reply is coming waits its turn. **Stop** ends a reply, and
-  **New conversation** starts a clean one. The conversation and an unsent draft survive a reload.
+  **New conversation** starts a clean one. Each conversation is kept in the project (`.factory/chats/`, never
+  committed), so it is still there after she closes the dashboard or opens it in another browser.
 - **Any language.** Replies are formatted, and right-to-left text reads correctly.
 
 To work something out in depth she picks the person, and that person asks one question at a time:

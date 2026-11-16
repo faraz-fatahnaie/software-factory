@@ -4,6 +4,7 @@ import { parse } from "./backlog";
 import { chatArgs, chatTurn, managerTurn, resumeChat, stopChat, TOPICS } from "./chat";
 import { loadConfig, managerOf, parseConfig, projectRoles, projectTeam } from "./config";
 import { parseProposal } from "./state";
+import { appendChat, clearChat, importChat, markActed, readChat, replyMsg } from "./chatlog";
 import { allEvents, report } from "./retro";
 import { supervisor, writeManager } from "./supervisor";
 import { openStore } from "./events";
@@ -58,6 +59,7 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
   mkdirSync(join(root, ".factory"), { recursive: true });
   const store = openStore(join(root, ".factory", "events.db"));
   const running = new Map<string, { kill(signal?: number | NodeJS.Signals): void }>();
+  const chatting = new Set<string>(); // conversations with a reply on its way
   /** Starts a command for some tasks in the background, and says so if it fails before a run exists. False when one of them is already running. */
   const launch = (ids: string[], argv: string[]) => {
     if (ids.some((id) => running.has(id))) return false;
@@ -192,6 +194,11 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         const day = new Date(); day.setHours(0, 0, 0, 0);
         // `notice`: the one-time explanation that autopilot is on has not been seen yet (the page asks again until a person has answered it).
         return json({ settings: managerOf(loadConfig(root)), spentToday: store.spent(day.toISOString()), decisions: store.decisions("", 30), notice: !existsSync(join(root, ".factory", "manager-notice")) });
+      }
+      if (route === "GET /api/chats") {
+        // Every conversation that has something in it, as kept on disk, and whether a reply is on its way right now.
+        const all = Object.keys(TOPICS).map((t) => [t, { ...readChat(root, t), busy: chatting.has(t) }] as const);
+        return json(Object.fromEntries(all.filter(([, c]) => c.messages.length || c.busy)));
       }
       if (route === "GET /api/chat/topics") {
         const team = projectTeam(root);
@@ -377,15 +384,34 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         if (typeof body.topic !== "string" || !(body.topic in TOPICS)) return json({ error: "topic: one of " + Object.keys(TOPICS).join(", ") }, 400);
         return json({ stopped: stopChat(body.topic) });
       }
+      if (route.startsWith("POST /api/chats/")) {
+        const topic = String(body.topic ?? "");
+        if (!(topic in TOPICS)) return json({ error: "topic: one of " + Object.keys(TOPICS).join(", ") }, 400);
+        try {
+          if (route === "POST /api/chats/clear") { if (chatting.has(topic)) return json({ error: "a reply is on its way: stop it first" }, 409); clearChat(root, topic); return json({ messages: [] }); }
+          if (route === "POST /api/chats/acted") return json(markActed(root, topic, body.index as number, body.ok === true, String(body.text ?? "")));
+          if (route === "POST /api/chats/import") return json(importChat(root, topic, body.raw));
+        } catch (e) { return json({ error: (e as Error).message }, 400); }
+      }
       if (route === "POST /api/chat") {
+        const topic = body.topic as string;
+        let said = false;
+        // The reply is written to the conversation's file before it is sent back, so it is kept even if the page has gone meanwhile.
+        const done = (out: Parameters<typeof replyMsg>[0] & { session?: string; sessions?: Record<string, string> }) =>
+          json({ ...out, chat: appendChat(root, topic, [replyMsg(out)], { session: out.session, subs: out.sessions }) });
         try {
           if (typeof body.topic === "string" && body.topic !== "manager") resumeChat(body.topic);
           chatArgs(body as never, projectTeam(root)); // validate before spending anything
-          if (body.topic !== "manager") return json(await chatTurn(root, body as never, projectTeam(root)));
+          if (chatting.has(topic)) return json({ error: "a reply is already on its way in this conversation" }, 409);
+          const attached = (body.attachments as { name: string; data: string }[] | undefined) ?? [];
+          appendChat(root, topic, [{ who: "you", text: typeof body.shown === "string" && body.shown.trim() ? body.shown.slice(0, 20_000) : String(body.message), ...(attached.length && { files: attached.map((a) => ({ name: a.name, size: Buffer.from(a.data, "base64").length })) }) }]);
+          said = true;
+          chatting.add(topic);
+          if (body.topic !== "manager") return done(await chatTurn(root, body as never, projectTeam(root)));
           const out = await managerTurn(root, body as never, projectTeam(root));
           // On autopilot a proposal to promote, run or retry is carried out at once (the person asked for it in this conversation); on assist the page shows a button.
           const { proposal, text } = out.ok ? parseProposal(out.text) : { proposal: undefined, text: out.text };
-          if (!proposal || !["promote", "run", "retry"].includes(proposal.kind) || managerOf(loadConfig(root)).autonomy !== "autopilot") return json(out);
+          if (!proposal || !["promote", "run", "retry"].includes(proposal.kind) || managerOf(loadConfig(root)).autonomy !== "autopilot") return done(out);
           let ok = true, note = "";
           if (proposal.kind === "promote") {
             for (const id of proposal.ids) { const r = await sh(process.execPath, CLI, "promote", id); if (r.code !== 0) { ok = false; note = `${r.out}${r.err}`.trim(); break; } }
@@ -393,10 +419,11 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
           } else if (launch(proposal.ids, ["run", ...proposal.ids])) note = `Started ${proposal.ids.join(", ")}. Follow it in Backlog.`;
           else { ok = false; note = "It is already running."; }
           for (const id of proposal.ids) store.emit({ run: store.lastRun(id) ?? "", task: id, stage: "manager", type: "manager.decision", data: { action: proposal.kind, text: `${id}: ${note}`, auto: true, by: "conversation" } });
-          return json({ ...out, text, executed: { proposal, ok, note } });
+          return done({ ...out, text, executed: { proposal, ok, note } });
         } catch (e) {
+          if (said) appendChat(root, topic, [{ who: "team", text: (e as Error).message, bad: true }]);
           return json({ error: (e as Error).message }, 400);
-        }
+        } finally { if (said) chatting.delete(topic); }
       }
 
       if (route === "POST /api/stop") {
