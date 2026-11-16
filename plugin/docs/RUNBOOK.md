@@ -72,7 +72,18 @@ on screen, and nothing is saved until you say so.
 
 ## 3. From an idea to a backlog
 
-Dina does not need to know what to ask for. In **Talk**, Mara asks one question at a time.
+Dina does not need to know what to ask for, or whom. **Talk** opens on **Talk to the team**: one conversation
+with Tess, the Technical Manager. Dina writes what is on her mind, and Tess answers, or asks the people it
+concerns (up to three, who only read) and brings back one reply. What Tess looked at and whom she asked is a
+folded list under the reply.
+
+- **Show, do not describe.** Dina attaches a photo of her paper order form and the PDF price list: the button
+  next to the message box, drag and drop, or paste. Up to eight files (pictures, PDF, text and code).
+- **Keep typing.** A message sent while a reply is coming waits its turn. **Stop** ends a reply, and
+  **New conversation** starts a clean one. The conversation and an unsent draft survive a reload.
+- **Any language.** Replies are formatted, and right-to-left text reads correctly.
+
+To work something out in depth she picks the person, and that person asks one question at a time:
 
 1. **Brainstorm** (`/software-factory:brainstorm`, or Talk → Mara). Who is it for, what problem, what does
    success look like, what is out of scope. Saves `docs/product/brief.md` only after Dina approves a draft.
@@ -89,7 +100,10 @@ Dina does not need to know what to ask for. In **Talk**, Mara asks one question 
    in dependency order". They land in **Inbox**. Each task carries its milestone, the stories it serves, what it depends on, its
    acceptance checks and what is out of scope, and is small enough for one reviewer to read in one sitting.
 
-The tasks wait in Inbox. Nothing runs until a person promotes them to **Ready**.
+The tasks wait in Inbox. By default Tess is on **autopilot**: what Dina worked out in a conversation is moved to
+**Ready** and started by Tess, one task at a time, and each one still stops for Dina's decision before anything
+lands (see [Autopilot](#autopilot); a one-time notice in the dashboard says so, with the off switch). With
+autopilot off, nothing runs until a person promotes an item.
 
 **What she sees:** each document has a line `Status: approved by the user on <date>` and is committed as it is
 saved (task agents work from the last commit). `factory status` (or `/software-factory:status`) always
@@ -114,8 +128,9 @@ Three ways, from smallest to biggest. They all end in the same place: a line in 
 | If the request is... | Do this | What happens |
 | --- | --- | --- |
 | **Small and clear** | **Backlog → Add item**, or `/software-factory:add "…"`. Add a description beginning `Acceptance:` and a priority. | The item already has its checks, so **triage is skipped**. |
-| **A loose idea** | The same, with no acceptance checks. | **Triage runs first**: Idris classifies it (feature, bug, chore or docs), sizes it (and says how to split it if it is large), lists backlog items it overlaps, and writes the acceptance checks and any open questions. She does not design or write code. If triage finds the idea too large for one task, or cannot say how to check it, the task stops there as **not ready**, before anything is specified or built: split it, or say in the item what done looks like, and run it again. |
+| **A loose idea** | The same, with no acceptance checks. | **Triage runs first**: Tess classifies it (feature, bug, chore or docs), sizes it (and says how to split it if it is large), lists backlog items it overlaps, and writes the acceptance checks and any open questions. She does not design or write code. If triage finds the idea too large for one task, or cannot say how to check it, the task stops there as **not ready**, before anything is specified or built: split it, or say in the item what done looks like, and run it again. |
 | **Big or unclear** | Talk → Mara (or Idris, `/software-factory:plan`) | A conversation that ends in several small tasks in dependency order, each with checks. |
+| **Not sure which** | Talk → **Talk to the team**, and say it to Tess | She adds it for you, or brings in the person it needs. |
 
 Dina types it in **Backlog → Add item** with priority P1. It becomes `F-007` in **Inbox**.
 
@@ -124,11 +139,12 @@ Dina types it in **Backlog → Add item** with priority P1. It becomes `F-007` i
 ### Step 1. Promote
 
 On the card, **Promote to Ready** (or `factory promote F-007`). Ready is run from the top: the first
-card says "Runs first". This is your last chance to rethink before any usage is spent.
+card says "Runs first". This is your last chance to rethink before any usage is spent: on autopilot, Tess starts
+the top Ready card herself when nothing else is running.
 
 ### Step 2. Run
 
-On the Ready card press **Run** (or **Run next**, with a number to run several at once, each in its own
+Tess starts it, or Dina does not wait: on the Ready card press **Run** (or **Run next**, with a number to run several at once, each in its own
 folder; or `/software-factory:run F-007`). Tick **Dry run** first to watch the whole pipeline with canned
 outputs and no model calls.
 
@@ -139,6 +155,8 @@ and starts the stages. Dina's own files are never touched while it works.
 
 Close the laptop if you like. You can also follow it live:
 
+- **Overview → the manager's strip.** What Tess is doing, her last decision in one sentence ("F-007 was next in
+  line, so I started it"), today's spend against the day's limit, and the list of everything she decided.
 - **Overview → On shift.** Kofi's card says *Building F-007*, with a live line: *Editing `src/orders/deposit.ts`*,
   *Running `bun test`*, and the last few actions. If an agent has been quiet for two minutes, the line turns
   amber: "No activity for 3 min".
@@ -169,7 +187,9 @@ keeps only the latest.
 ### Step 5. It stops and waits for you
 
 When Sade approves, the card moves to **Needs you** and the tab title shows `(1)`. Overview says
-"Sade finished and is waiting for your review of F-007".
+"Sade finished and is waiting for your review of F-007". The task's **Summary** has a card, *Checked before it
+reached you*: the checks pass, the security check is clean, the review approved it, how many files changed, and
+anything worth a look (for example "Code changed, but no test was added or changed with it").
 
 ### Step 6. Review what it did
 
@@ -226,19 +246,23 @@ Almost always the flow above is all you see. These are the other things, what th
 
 ### It stops and needs you
 
-The card moves to the red strip at the top of the board: **Blocked**. Open it (*Look into it*) and the
-Summary says what failed, with the output. Then:
+The card moves to the red strip at the top of the board: **Blocked**. On autopilot Tess has already looked: a
+rate limit or a passing error she tries again herself, and after three builds that did not pass she sends Kofi
+guidance and starts a new round. What is left is yours. Open it (*Look into it*) and the Summary says what
+failed, with the output, and under *The manager* what Tess decided and why, in plain words. Then:
 
 | Why it is blocked | What it means | What to do |
 | --- | --- | --- |
-| **No approved build after 3 attempts** | Kofi and the checks or Sade could not agree | Open **Activity**: read the last findings. Often the spec was too big. Discard and split the item, or edit the item's description, then **Retry**. |
+| **No approved build after 3 attempts** | Kofi and the checks or Sade could not agree | Open **Activity**: read the last findings. Often the spec was too big. Press **Send guidance** and say what Kofi should do differently, or discard and split the item, or edit the item's description, then **Retry**. |
+| **Not ready** | Triage found the idea too large for one task, or could not say how to check it. Nothing was built | Split it, or add an `Acceptance:` line that says what done looks like, then **Retry**. |
 | **Every model in the chain is rate limited** | You have used your Claude allowance for now | Wait for the window to reset (the Overview meter shows when), then **Retry**. Or give the role a longer fallback chain in Agents. |
 | **The Claude command line is not logged in** | An authentication error. The factory does *not* retry it on another model, because that would hide the problem | Run `claude` in a terminal and log in, then **Retry**. |
 | **A stage failed to start** | A broken role file or settings | `⌘K` → *Is the setup right?*, or ask Bix. Fix it in Studio, then **Retry**. |
 | **You pressed Stop** | The stages end and the task moves to Blocked | **Retry** when you want it, or **Discard**. |
 | **Main moved on while it waited** | The card shows "Main moved on" and the panel says "main has 2 new commits since this was built". If the same code changed, Approve stops with "conflicts with work that landed after it was built; nothing was merged" | Press **Update this task** (or `factory update F-007`). Main is merged into the task's own branch; nothing is pushed. No clash: only the checks run again. A clash: Kofi resolves just those files and everything runs again as a new round ("Update from main · round N" on the card). If it cannot be finished, or the checks fail with the new main, the branch is put back exactly as it was. Once a task is approved and waiting for its pull request, update is not available: discard it and run it again. |
 
-**Retry** starts a fresh run from the beginning with the same item. **Discard** asks once, in place, and deletes
+**Retry** starts a fresh run from the beginning with the same item. **Send guidance** (on a task that got as
+far as a spec) continues on the same branch with the same spec, and Kofi reads your words first. **Discard** asks once, in place, and deletes
 the branch and folder. Neither affects `main`.
 
 ### Things around the pipeline
@@ -375,6 +399,8 @@ with auto-update and how to go back, is in the [README](../README.md#updating).
 | Open or close a task | Click it, `Esc` |
 | Switch tabs in a task | `1` to `5` |
 | Open a person | Click their robot |
+| Ask the team anything | Talk → **Talk to the team** |
+| Show a file to the team | In Talk: the attach button, drag and drop, or paste |
 
 **Commands** (slash command, or `factory ...` in a terminal)
 
@@ -389,6 +415,7 @@ with auto-update and how to go back, is in the [README](../README.md#updating).
 | `factory push F-007`, `merge F-007`, `revert F-007`, `sync` | GitHub |
 | `factory vcs ci`, `vcs auto-merge on`, `vcs auto-push on` | Checks, auto-merge and push on approval |
 | `factory team presets`, `team use lean`, `team agents 7` | The team |
+| `…:manage`, `factory manager`, `manager assist`, `manager off`, `manager report` | Talk to Tess in the terminal; what she may do by herself; the facts she works from |
 | `factory configure` | The setup and gate commands |
 | `factory scan`, `factory doctor` | Secret scan; setup check |
 | `…:release`, `…:deploy` | Release; deploy (only when you ask) |

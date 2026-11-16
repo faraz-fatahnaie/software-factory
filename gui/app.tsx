@@ -263,7 +263,6 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
         )}
       </article>
       <ManagerStrip events={p.events} items={p.backlog.items} role={managerRole} talkTo={p.talkTo} open={p.open} manager={manager} />
-      <HealthStrip health={p.health} recheck={p.recheck} explain={p.explain} />
       <Kpi title="People working" value={String(working.length + chatting.length)} unit={p.team ? ` of ${p.team.roles.length}` : ""} note={`${items.filter((i) => i.section === "In progress").length} tasks in progress, ${items.filter((i) => i.section === "Ready").length} ready`}>
         <Spark values={day.map((b) => b.stages)} label="Stages passed per hour, last 24 hours" />
       </Kpi>
@@ -313,6 +312,8 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
 
       <Line backlog={p.backlog} tasks={p.tasks} open={p.open} team={p.team} />
       <Throughput events={p.events} now={now} />
+      {/* Health sits below the work: the rail chip already says when something needs a look, and a red box should not be the first thing on the first page. */}
+      <HealthStrip health={p.health} recheck={p.recheck} explain={p.explain} />
 
       <article className="tile roster">
         <header><h2>Free right now</h2><p className="note">{free.length} of {p.team?.roles.length ?? 0}</p></header>

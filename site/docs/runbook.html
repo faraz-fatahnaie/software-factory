@@ -111,7 +111,18 @@ panel: what they are doing right now, the files they touched, their recent stage
 <p><strong>Try it:</strong> in Team, press <em>Preview</em> on a different preset. The agent count and the cost of a normal task change
 on screen, and nothing is saved until you say so.</p>
 <h2 id="3-from-an-idea-to-a-backlog">3. From an idea to a backlog</h2>
-<p>Dina does not need to know what to ask for. In <strong>Talk</strong>, Mara asks one question at a time.</p>
+<p>Dina does not need to know what to ask for, or whom. <strong>Talk</strong> opens on <strong>Talk to the team</strong>: one conversation
+with Tess, the Technical Manager. Dina writes what is on her mind, and Tess answers, or asks the people it
+concerns (up to three, who only read) and brings back one reply. What Tess looked at and whom she asked is a
+folded list under the reply.</p>
+<ul>
+<li><strong>Show, do not describe.</strong> Dina attaches a photo of her paper order form and the PDF price list: the button
+next to the message box, drag and drop, or paste. Up to eight files (pictures, PDF, text and code).</li>
+<li><strong>Keep typing.</strong> A message sent while a reply is coming waits its turn. <strong>Stop</strong> ends a reply, and
+<strong>New conversation</strong> starts a clean one. The conversation and an unsent draft survive a reload.</li>
+<li><strong>Any language.</strong> Replies are formatted, and right-to-left text reads correctly.</li>
+</ul>
+<p>To work something out in depth she picks the person, and that person asks one question at a time:</p>
 <ol>
 <li><strong>Brainstorm</strong> (<code>/software-factory:brainstorm</code>, or Talk → Mara). Who is it for, what problem, what does
 success look like, what is out of scope. Saves <code>docs/product/brief.md</code> only after Dina approves a draft.
@@ -128,7 +139,10 @@ Nothing is installed without a yes. Writes <code>docs/architecture/</code>.</li>
 in dependency order&quot;. They land in <strong>Inbox</strong>. Each task carries its milestone, the stories it serves, what it depends on, its
 acceptance checks and what is out of scope, and is small enough for one reviewer to read in one sitting.</li>
 </ol>
-<p>The tasks wait in Inbox. Nothing runs until a person promotes them to <strong>Ready</strong>.</p>
+<p>The tasks wait in Inbox. By default Tess is on <strong>autopilot</strong>: what Dina worked out in a conversation is moved to
+<strong>Ready</strong> and started by Tess, one task at a time, and each one still stops for Dina's decision before anything
+lands (see <a href="#autopilot">Autopilot</a>; a one-time notice in the dashboard says so, with the off switch). With
+autopilot off, nothing runs until a person promotes an item.</p>
 <p><strong>What she sees:</strong> each document has a line <code>Status: approved by the user on &lt;date&gt;</code> and is committed as it is
 saved (task agents work from the last commit). <code>factory status</code> (or <code>/software-factory:status</code>) always
 shows what exists and the one command to run next.</p>
@@ -149,17 +163,19 @@ to code on <code>main</code>, naming what is produced at every step.</p>
 </thead>
 <tbody>
 <tr><td><strong>Small and clear</strong></td><td><strong>Backlog → Add item</strong>, or <code>/software-factory:add &quot;…&quot;</code>. Add a description beginning <code>Acceptance:</code> and a priority.</td><td>The item already has its checks, so <strong>triage is skipped</strong>.</td></tr>
-<tr><td><strong>A loose idea</strong></td><td>The same, with no acceptance checks.</td><td><strong>Triage runs first</strong>: Idris classifies it (feature, bug, chore or docs), sizes it (and says how to split it if it is large), lists backlog items it overlaps, and writes the acceptance checks and any open questions. She does not design or write code. If triage finds the idea too large for one task, or cannot say how to check it, the task stops there as <strong>not ready</strong>, before anything is specified or built: split it, or say in the item what done looks like, and run it again.</td></tr>
+<tr><td><strong>A loose idea</strong></td><td>The same, with no acceptance checks.</td><td><strong>Triage runs first</strong>: Tess classifies it (feature, bug, chore or docs), sizes it (and says how to split it if it is large), lists backlog items it overlaps, and writes the acceptance checks and any open questions. She does not design or write code. If triage finds the idea too large for one task, or cannot say how to check it, the task stops there as <strong>not ready</strong>, before anything is specified or built: split it, or say in the item what done looks like, and run it again.</td></tr>
 <tr><td><strong>Big or unclear</strong></td><td>Talk → Mara (or Idris, <code>/software-factory:plan</code>)</td><td>A conversation that ends in several small tasks in dependency order, each with checks.</td></tr>
+<tr><td><strong>Not sure which</strong></td><td>Talk → <strong>Talk to the team</strong>, and say it to Tess</td><td>She adds it for you, or brings in the person it needs.</td></tr>
 </tbody>
 </table>
 <p>Dina types it in <strong>Backlog → Add item</strong> with priority P1. It becomes <code>F-007</code> in <strong>Inbox</strong>.</p>
 <p><em>Nothing has run and nothing has cost anything.</em></p>
 <h3 id="step-1-promote">Step 1. Promote</h3>
 <p>On the card, <strong>Promote to Ready</strong> (or <code>factory promote F-007</code>). Ready is run from the top: the first
-card says &quot;Runs first&quot;. This is your last chance to rethink before any usage is spent.</p>
+card says &quot;Runs first&quot;. This is your last chance to rethink before any usage is spent: on autopilot, Tess starts
+the top Ready card herself when nothing else is running.</p>
 <h3 id="step-2-run">Step 2. Run</h3>
-<p>On the Ready card press <strong>Run</strong> (or <strong>Run next</strong>, with a number to run several at once, each in its own
+<p>Tess starts it, or Dina does not wait: on the Ready card press <strong>Run</strong> (or <strong>Run next</strong>, with a number to run several at once, each in its own
 folder; or <code>/software-factory:run F-007</code>). Tick <strong>Dry run</strong> first to watch the whole pipeline with canned
 outputs and no model calls.</p>
 <p>The factory creates a branch <code>factory/F-007</code> and a folder <code>.worktrees/F-007</code>, runs the project's setup there,
@@ -167,6 +183,8 @@ and starts the stages. Dina's own files are never touched while it works.</p>
 <h3 id="step-3-watch-or-do-not">Step 3. Watch (or do not)</h3>
 <p>Close the laptop if you like. You can also follow it live:</p>
 <ul>
+<li><strong>Overview → the manager's strip.</strong> What Tess is doing, her last decision in one sentence (&quot;F-007 was next in
+line, so I started it&quot;), today's spend against the day's limit, and the list of everything she decided.</li>
 <li><strong>Overview → On shift.</strong> Kofi's card says <em>Building F-007</em>, with a live line: <em>Editing <code>src/orders/deposit.ts</code></em>,
 <em>Running <code>bun test</code></em>, and the last few actions. If an agent has been quiet for two minutes, the line turns
 amber: &quot;No activity for 3 min&quot;.</li>
@@ -197,7 +215,9 @@ stage is its output.</p>
 keeps only the latest.</p>
 <h3 id="step-5-it-stops-and-waits-for-you">Step 5. It stops and waits for you</h3>
 <p>When Sade approves, the card moves to <strong>Needs you</strong> and the tab title shows <code>(1)</code>. Overview says
-&quot;Sade finished and is waiting for your review of F-007&quot;.</p>
+&quot;Sade finished and is waiting for your review of F-007&quot;. The task's <strong>Summary</strong> has a card, <em>Checked before it
+reached you</em>: the checks pass, the security check is clean, the review approved it, how many files changed, and
+anything worth a look (for example &quot;Code changed, but no test was added or changed with it&quot;).</p>
 <h3 id="step-6-review-what-it-did">Step 6. Review what it did</h3>
 <p>Open the task (or press <strong>Review changes</strong>). It opens on <strong>Changes</strong>: a file tree with <code>M</code>, <code>A</code>, <code>D</code> letters
 and +/− counts, and a diff of each file. Read the <strong>Review</strong> tab for Sade's verdict and <strong>Spec</strong> for what was
@@ -243,14 +263,17 @@ Builder. That is the next chapter.</p>
 </tbody>
 </table>
 <h3 id="it-stops-and-needs-you">It stops and needs you</h3>
-<p>The card moves to the red strip at the top of the board: <strong>Blocked</strong>. Open it (<em>Look into it</em>) and the
-Summary says what failed, with the output. Then:</p>
+<p>The card moves to the red strip at the top of the board: <strong>Blocked</strong>. On autopilot Tess has already looked: a
+rate limit or a passing error she tries again herself, and after three builds that did not pass she sends Kofi
+guidance and starts a new round. What is left is yours. Open it (<em>Look into it</em>) and the Summary says what
+failed, with the output, and under <em>The manager</em> what Tess decided and why, in plain words. Then:</p>
 <table tabindex="0">
 <thead>
 <tr><th>Why it is blocked</th><th>What it means</th><th>What to do</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>No approved build after 3 attempts</strong></td><td>Kofi and the checks or Sade could not agree</td><td>Open <strong>Activity</strong>: read the last findings. Often the spec was too big. Discard and split the item, or edit the item's description, then <strong>Retry</strong>.</td></tr>
+<tr><td><strong>No approved build after 3 attempts</strong></td><td>Kofi and the checks or Sade could not agree</td><td>Open <strong>Activity</strong>: read the last findings. Often the spec was too big. Press <strong>Send guidance</strong> and say what Kofi should do differently, or discard and split the item, or edit the item's description, then <strong>Retry</strong>.</td></tr>
+<tr><td><strong>Not ready</strong></td><td>Triage found the idea too large for one task, or could not say how to check it. Nothing was built</td><td>Split it, or add an <code>Acceptance:</code> line that says what done looks like, then <strong>Retry</strong>.</td></tr>
 <tr><td><strong>Every model in the chain is rate limited</strong></td><td>You have used your Claude allowance for now</td><td>Wait for the window to reset (the Overview meter shows when), then <strong>Retry</strong>. Or give the role a longer fallback chain in Agents.</td></tr>
 <tr><td><strong>The Claude command line is not logged in</strong></td><td>An authentication error. The factory does <em>not</em> retry it on another model, because that would hide the problem</td><td>Run <code>claude</code> in a terminal and log in, then <strong>Retry</strong>.</td></tr>
 <tr><td><strong>A stage failed to start</strong></td><td>A broken role file or settings</td><td><code>⌘K</code> → <em>Is the setup right?</em>, or ask Bix. Fix it in Studio, then <strong>Retry</strong>.</td></tr>
@@ -258,7 +281,8 @@ Summary says what failed, with the output. Then:</p>
 <tr><td><strong>Main moved on while it waited</strong></td><td>The card shows &quot;Main moved on&quot; and the panel says &quot;main has 2 new commits since this was built&quot;. If the same code changed, Approve stops with &quot;conflicts with work that landed after it was built; nothing was merged&quot;</td><td>Press <strong>Update this task</strong> (or <code>factory update F-007</code>). Main is merged into the task's own branch; nothing is pushed. No clash: only the checks run again. A clash: Kofi resolves just those files and everything runs again as a new round (&quot;Update from main · round N&quot; on the card). If it cannot be finished, or the checks fail with the new main, the branch is put back exactly as it was. Once a task is approved and waiting for its pull request, update is not available: discard it and run it again.</td></tr>
 </tbody>
 </table>
-<p><strong>Retry</strong> starts a fresh run from the beginning with the same item. <strong>Discard</strong> asks once, in place, and deletes
+<p><strong>Retry</strong> starts a fresh run from the beginning with the same item. <strong>Send guidance</strong> (on a task that got as
+far as a spec) continues on the same branch with the same spec, and Kofi reads your words first. <strong>Discard</strong> asks once, in place, and deletes
 the branch and folder. Neither affects <code>main</code>.</p>
 <h3 id="things-around-the-pipeline">Things around the pipeline</h3>
 <ul>
@@ -382,6 +406,8 @@ with auto-update and how to go back, is in the <a href="index.html#updating">REA
 <tr><td>Open or close a task</td><td>Click it, <code>Esc</code></td></tr>
 <tr><td>Switch tabs in a task</td><td><code>1</code> to <code>5</code></td></tr>
 <tr><td>Open a person</td><td>Click their robot</td></tr>
+<tr><td>Ask the team anything</td><td>Talk → <strong>Talk to the team</strong></td></tr>
+<tr><td>Show a file to the team</td><td>In Talk: the attach button, drag and drop, or paste</td></tr>
 </tbody>
 </table>
 <p><strong>Commands</strong> (slash command, or <code>factory ...</code> in a terminal)</p>
@@ -399,6 +425,7 @@ with auto-update and how to go back, is in the <a href="index.html#updating">REA
 <tr><td><code>factory push F-007</code>, <code>merge F-007</code>, <code>revert F-007</code>, <code>sync</code></td><td>GitHub</td></tr>
 <tr><td><code>factory vcs ci</code>, <code>vcs auto-merge on</code>, <code>vcs auto-push on</code></td><td>Checks, auto-merge and push on approval</td></tr>
 <tr><td><code>factory team presets</code>, <code>team use lean</code>, <code>team agents 7</code></td><td>The team</td></tr>
+<tr><td><code>…:manage</code>, <code>factory manager</code>, <code>manager assist</code>, <code>manager off</code>, <code>manager report</code></td><td>Talk to Tess in the terminal; what she may do by herself; the facts she works from</td></tr>
 <tr><td><code>factory configure</code></td><td>The setup and gate commands</td></tr>
 <tr><td><code>factory scan</code>, <code>factory doctor</code></td><td>Secret scan; setup check</td></tr>
 <tr><td><code>…:release</code>, <code>…:deploy</code></td><td>Release; deploy (only when you ask)</td></tr>

@@ -22,6 +22,9 @@ try {
   const shot = (name: string) => page.screenshot({ path: join(out, `${name}.png`) });
   const open = async (view: string) => { await page.evaluate((h) => { location.hash = h; }, `#${view}`); await page.waitForTimeout(900); };
 
+  // Overview, with the manager's strip: the landing page's hero is cut from this one (the rail's 232px off the left, as a JPEG).
+  await page.locator(".tile.manager").waitFor(); await page.waitForTimeout(900); await shot("overview");
+
   // Talk, with her sentence in the box (the wipe in the video types it).
   await open("talk");
   const box = page.locator("textarea").first();

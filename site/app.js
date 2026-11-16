@@ -34,7 +34,7 @@ if (term) {
 // Control: the limits, typed as settings when they come into view
 const cfg = $("[data-cfg]");
 if (cfg) {
-  const text = 'deploy        = "only when you ask"\nmerge         = "only when you approve"\nsecrets       = "never in files"\ncode_editors  = ["builder"]';
+  const text = 'deploy        = "only when you ask"\nmerge         = "only when you approve"\nsecrets       = "never in files"\ncode_editors  = ["builder"]\nautopilot     = "inside your limits"';
   const hl = (s) => esc(s).replace(/^(\w+)|("[^"]*"?)/gm, (_, k, str) => (k ? `<span class="k">${k}</span>` : `<span class="s">${str}</span>`));
   const code = $("code", cfg);
   code.innerHTML = reduce ? hl(text) : "";
