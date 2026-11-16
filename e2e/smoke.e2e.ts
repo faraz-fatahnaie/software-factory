@@ -55,6 +55,12 @@ try {
     await strip.waitFor();
     await strip.getByRole("button", { name: /what she decided/ }).waitFor(); // her decisions arrive with the event stream
     assert.match(await strip.innerText(), /on autopilot/);
+    if (name === "desktop") { // the one-time notice: shown until answered, and gone for good after
+      await strip.getByRole("region", { name: "About autopilot" }).waitFor();
+      await a11y(page, `${name} autopilot notice`);
+      await strip.getByRole("button", { name: "Keep autopilot" }).click();
+      await strip.getByRole("region", { name: "About autopilot" }).waitFor({ state: "detached" });
+    }
     assert.match(await strip.innerText(), /of \$25 today/);
     await strip.getByRole("button", { name: /what she decided/ }).click();
     assert.ok((await strip.locator(".decisions li").count()) >= 2, `${name}: her decisions are listed`);

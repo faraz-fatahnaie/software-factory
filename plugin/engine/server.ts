@@ -52,7 +52,7 @@ function suggestOn(root: string, role?: string): boolean {
 }
 
 /** `supervisor`: the Technical Manager acts by itself, as its autonomy setting allows. Only `factory serve` asks for it; tests and the browser checks do not. */
-export async function serve(root: string, port = 4400, opts: { supervisor?: boolean } = {}) {
+export async function serve(root: string, port = 4400, opts: { supervisor?: boolean; /** Tests: how often the supervisor looks, and a multiplier for its waits. */ every?: number; scale?: number } = {}) {
   await buildGui();
   mkdirSync(join(root, ".factory"), { recursive: true });
   const store = openStore(join(root, ".factory", "events.db"));
@@ -60,7 +60,7 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
   /** Starts a command for some tasks in the background, and says so if it fails before a run exists. False when one of them is already running. */
   const launch = (ids: string[], argv: string[]) => {
     if (ids.some((id) => running.has(id))) return false;
-    const p = Bun.spawn([process.execPath, CLI, ...argv], { cwd: root, stdout: "inherit", stderr: "pipe" });
+    const p = Bun.spawn([process.execPath, CLI, ...argv], { cwd: root, stdout: "inherit", stderr: "pipe", env: process.env });
     const stderr = new Response(p.stderr).text();
     for (const id of ids) running.set(id, p);
     p.exited.then(async (code) => {
@@ -133,7 +133,8 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
     settings: () => managerOf(loadConfig(root)),
     group: (id) => new Set([...running].filter(([, p]) => p === running.get(id)).map(([k]) => k)).size,
     cli: async (...argv) => { const r = await sh(process.execPath, CLI, ...argv); return { code: r.code, out: `${r.out}${r.err}`.trim() }; },
-    hasSpec: (id) => { const run = store.lastRun(id); return !!run && existsSync(join(root, ".factory", "runs", run, "spec.md")); },
+    every: opts.every, scale: opts.scale,
+    hasSpec: (id) => !!store.output(id, "spec"),
     explain: (id, error) => model(id, `Task ${id} stopped with this error:\n${error.slice(0, 1500)}\n\nLook at the task and its latest run with \`factory status\` and the run files. Say in plain words, in under 100 words, what happened, why, and what the person should do. Reply with that explanation only.`),
     guide: (id, error) => model(id, `Task ${id} was built three times and the checks or the review still did not pass. The last error:\n${error.slice(0, 1500)}\n\nRead the latest run's files (build.md, review.md) with \`factory status\` to find the run. Write guidance for the Builder: what keeps going wrong and what to change, in under 120 words, no code. Reply with the guidance only.`),
   }) : undefined;
@@ -186,7 +187,8 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
       }
       if (route === "GET /api/manager") {
         const day = new Date(); day.setHours(0, 0, 0, 0);
-        return json({ settings: managerOf(loadConfig(root)), spentToday: store.spent(day.toISOString()), decisions: store.decisions("", 30) });
+        // `notice`: the one-time explanation that autopilot is on has not been seen yet (the page asks again until a person has answered it).
+        return json({ settings: managerOf(loadConfig(root)), spentToday: store.spent(day.toISOString()), decisions: store.decisions("", 30), notice: !existsSync(join(root, ".factory", "manager-notice")) });
       }
       if (route === "GET /api/chat/topics") {
         const team = projectTeam(root);
@@ -362,7 +364,11 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         }
       }
       if (route === "POST /api/manager") {
-        try { return json({ settings: writeManager(root, body as never) }); } catch (e) { return json({ error: (e as Error).message }, 400); }
+        try {
+          const { seen, ...patch } = body as Record<string, unknown>;
+          if (seen === true) writeFileSync(join(root, ".factory", "manager-notice"), `${new Date().toISOString()}\n`);
+          return json({ settings: Object.keys(patch).length ? writeManager(root, patch as never) : managerOf(loadConfig(root)) });
+        } catch (e) { return json({ error: (e as Error).message }, 400); }
       }
       if (route === "POST /api/chat") {
         try {

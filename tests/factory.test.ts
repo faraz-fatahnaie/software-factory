@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, readdirSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { add, FROM_CONVERSATION, move, parse, type Item } from "../plugin/engine/backlog";
 import { agentEvents, claudeArgs, classify } from "../plugin/engine/claude";
@@ -2382,6 +2382,12 @@ test("manager over HTTP: settings are read and changed; on autopilot a proposal 
     const first = (await (await fetch(`${base}/api/manager`)).json()) as any;
     expect(first.settings).toEqual(MANAGER_DEFAULTS);
     expect(first.spentToday).toBe(0);
+    expect(first.notice).toBe(true); // nobody has answered the one-time notice yet
+    await post("/api/manager", { seen: true });
+    expect(((await (await fetch(`${base}/api/manager`)).json()) as any).notice).toBe(false);
+    expect(existsSync(join(dir, ".factory", "manager-notice"))).toBe(true);
+    expect(((await (await post("/api/manager", { autonomy: "assist", seen: true })).json()) as any).settings.autonomy).toBe("assist");
+    await post("/api/manager", { autonomy: "autopilot" });
     expect((await post("/api/manager", { autonomy: "nope" })).status).toBe(400);
 
     const done = (await (await post("/api/chat", { topic: "manager", message: "yes, go" })).json()) as any;
@@ -2510,5 +2516,88 @@ test("combined pull request: several approved tasks go up as one, a clashing tas
     expect(sh("git", "branch", "--list", "factory/F-001", "factory/F-002", `factory/${batch}`).out).toBe("");
     expect(sh("git", "branch", "--list", "factory/F-003").out).toContain("factory/F-003");
     expect(section("F-001")).toBe("Done");
+  } finally { delete process.env.FACTORY_GH; }
+});
+
+// A stand-in for the claude command that plays every stage of the pipeline, so autopilot can be watched doing a whole task with no model.
+function standIn(mode: "ok" | "flaky" | "guided") {
+  const bin = join(tmp(), "bin");
+  mkdirSync(bin, { recursive: true });
+  const result = (text: string) => JSON.stringify({ type: "result", subtype: "success", is_error: false, result: text, session_id: "11111111-1111-1111-1111-111111111111", total_cost_usd: 0.01, usage: {} });
+  const say = (text: string) => `printf '%s\\n' '${result(text)}'`;
+  writeFileSync(join(bin, "claude"), `#!/bin/sh
+case "$2" in
+  *"Write guidance for the Builder"*) ${say("GUIDANCE-TOKEN: create ok.txt")}; exit 0;;
+  *"Stage: triage"*) ${say("Type: chore\nSize: small\nAcceptance: ok.txt exists")}; exit 0;;
+  *"Stage: spec"*) ${say("# Spec\nCreate ok.txt.")}; exit 0;;
+  *"Stage: review"*) ${say("APPROVE\nFine.")}; exit 0;;
+  *"Stage: document"*) ${say("## Chronicle\nDone.\n\n## Role notes\n")}; exit 0;;
+  *"Stage: build"*)
+    if [ "${mode}" = "flaky" ] && [ ! -f "$HOME_STATE/failed" ]; then touch "$HOME_STATE/failed"; echo "connection reset" >&2; exit 1; fi
+    if [ "${mode}" = "guided" ]; then case "$2" in *GUIDANCE-TOKEN*) touch ok.txt;; esac; else touch ok.txt; fi
+    ${say("Built.")}; exit 0;;
+esac
+${say("ok")}
+`);
+  chmodSync(join(bin, "claude"), 0o755);
+  return bin;
+}
+
+async function autopilot(mode: "ok" | "flaky" | "guided", gate: string[]) {
+  const { dir, section } = repo();
+  const bin = standIn(mode), state = tmp();
+  const cfg = JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8"));
+  writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ ...cfg, gate }));
+  Bun.spawnSync(["git", "commit", "-qam", "gate"], { cwd: dir, env: process.env });
+  writeFileSync(join(dir, "BACKLOG.md"), move(readFileSync(join(dir, "BACKLOG.md"), "utf8"), "F-002", "Inbox")); // one task, so the test ends when it is done
+  const path = process.env.PATH, home = process.env.HOME_STATE;
+  process.env.PATH = `${bin}:${path}`;
+  process.env.HOME_STATE = state;
+  const server = await serve(dir, 0, { supervisor: true, every: 150, scale: 0 });
+  try {
+    for (let i = 0; i < 200 && section("F-001") !== "Awaiting approval"; i++) await Bun.sleep(200);
+    const info = (await (await fetch(`http://127.0.0.1:${server.port}/api/manager`)).json()) as any;
+    return { where: section("F-001"), actions: info.decisions.reverse().filter((d: any) => d.type === "manager.decision").map((d: any) => d.data.action) as string[], dir };
+  } finally { server.stop(); process.env.PATH = path; if (home === undefined) delete process.env.HOME_STATE; else process.env.HOME_STATE = home; }
+}
+
+test("autopilot, end to end with a stand-in claude: it starts a Ready task by itself and the task reaches your review", async () => {
+  const r = await autopilot("ok", ["true"]);
+  expect(r.where).toBe("Awaiting approval");
+  expect(r.actions).toEqual(["start"]);
+  expect(existsSync(join(r.dir, ".worktrees/F-001/ok.txt"))).toBe(true);
+}, 120_000);
+
+test("autopilot, end to end: a task that stops on an error is tried again by itself and then reaches your review", async () => {
+  const r = await autopilot("flaky", ["true"]);
+  expect(r.where).toBe("Awaiting approval");
+  expect(r.actions).toEqual(["start", "wait", "retry"]);
+}, 120_000);
+
+test("autopilot, end to end: after three builds that do not pass the Builder is sent guidance, and the new round passes", async () => {
+  const r = await autopilot("guided", ["test -f ok.txt"]);
+  expect(r.where).toBe("Awaiting approval");
+  expect(r.actions).toEqual(["start", "guide"]);
+}, 120_000);
+
+test("the spec and the review come from the event log: a send-back keeps the spec, and a pull request carries both, even after the worktree is gone", () => {
+  const { dir, sh, cli } = repo();
+  const bare = tmp(), { calls, path } = fakeGh();
+  sh("git", "init", "-q", "--bare", bare);
+  sh("git", "remote", "add", "origin", bare);
+  process.env.FACTORY_GH = path;
+  try {
+    expect(cli("run", "F-001", "--stub").code).toBe(0);
+    expect(cli("reject", "F-001", "--feedback", "make it shorter", "--stub").code).toBe(0);
+    const runs = join(dir, ".worktrees/F-001/.factory/runs");
+    const spec = readdirSync(runs).map((r) => join(runs, r, "spec.md")).filter((f) => existsSync(f)).map((f) => readFileSync(f, "utf8"));
+    expect(spec.length).toBe(2);
+    expect(spec[1]).toBe(spec[0]); // round two got the earlier spec, not an empty file
+    expect(spec[1]!.trim().length).toBeGreaterThan(0);
+    cli("approve", "F-001"); // the worktree goes away here
+    expect(existsSync(join(dir, ".worktrees/F-001"))).toBe(false);
+    cli("push", "F-001");
+    expect(calls()).toContain("## What and why");
+    expect(calls()).toContain("## Review");
   } finally { delete process.env.FACTORY_GH; }
 });

@@ -10,7 +10,7 @@ import { Select } from "./ui";
 
 export type Autonomy = "autopilot" | "assist" | "off";
 export type ManagerSettings = { autonomy: Autonomy; parallel: number; recoveries: number; perTask: number; perDay: number; stall: number };
-export type ManagerInfo = { settings: ManagerSettings; spentToday: number };
+export type ManagerInfo = { settings: ManagerSettings; spentToday: number; /** The one-time explanation that autopilot is on has not been answered yet. */ notice?: boolean };
 
 export const AUTONOMY_OPTIONS: { value: Autonomy; label: string; hint: string }[] = [
   { value: "autopilot", label: "autopilot", hint: "Starts what you worked out in conversation, and recovers a stuck task, by itself, within the limits" },
@@ -32,7 +32,12 @@ export function useManager(events: Ev[]) {
     if (r.ok) { setInfo((i) => (i ? { ...i, settings: r.data.settings } : i)); setProblem(""); } else setProblem(r.error);
     return r.ok;
   };
-  return { info, set, problem };
+  /** Answers the one-time notice, optionally changing the autonomy at the same time. */
+  const dismiss = async (patch: Partial<ManagerSettings> = {}) => {
+    const r = await call<{ settings: ManagerSettings }>("/api/manager", { ...patch, seen: true });
+    if (r.ok) { setInfo((i) => (i ? { ...i, settings: r.data.settings, notice: false } : i)); setProblem(""); } else setProblem(r.error);
+  };
+  return { info, set, dismiss, problem };
 }
 
 /** Where things stand, in one sentence, from the backlog alone (no model). */
@@ -45,7 +50,7 @@ export function digest(items: { id: string; title: string; section: string }[]):
 
 type Props = { events: Ev[]; items: { id: string; title: string; section: string }[]; role: string; talkTo: (topic: string) => void; open: (id: string) => void; manager: ReturnType<typeof useManager> };
 
-export function ManagerStrip({ events, items, role, talkTo, open, manager: { info, set, problem } }: Props) {
+export function ManagerStrip({ events, items, role, talkTo, open, manager: { info, set, dismiss, problem } }: Props) {
   const [more, setMore] = useState(false);
   const mine = events.filter(isManager).slice(-8).reverse();
   const last = mine.find((e) => e.type === "manager.decision") ?? mine[0], who = personaFor(role).name; // the short decision, not her longer note
@@ -64,6 +69,12 @@ export function ManagerStrip({ events, items, role, talkTo, open, manager: { inf
         <Select small label="Autonomy" prefix="Manager" value={s.autonomy} options={AUTONOMY_OPTIONS} align="right" onChange={(v) => set({ autonomy: v as Autonomy })} />
         <button onClick={() => talkTo("manager")}>Talk to {who}</button>
       </header>
+      {info.notice && s.autonomy === "autopilot" && (
+        <section className="mgr-notice" role="region" aria-label="About autopilot">
+          <p><b>Autopilot is on.</b> {who} now starts what you work out in conversation, and tries a stopped task again, by herself. Her limits: {s.parallel} task{s.parallel === 1 ? "" : "s"} at a time, {s.recoveries} retries per task, ${s.perTask} per task and ${s.perDay} per day. She never approves, pushes, merges or deploys, and everything she decides is listed here.</p>
+          <div className="row gap"><button className="primary" onClick={() => dismiss()}>Keep autopilot</button><button onClick={() => dismiss({ autonomy: "assist" })}>Switch to assist</button><button onClick={() => dismiss({ autonomy: "off" })}>Turn it off</button></div>
+        </section>
+      )}
       <p className="digest">{digest(items)}</p>
       <div className="mgr-stats">
         <span className="stat"><b>${info.spentToday.toFixed(2)}</b> of ${s.perDay} today<meter value={Math.min(info.spentToday, s.perDay)} max={s.perDay} low={s.perDay * 0.7} high={s.perDay * 0.9} optimum={0} aria-label={`Spent today: $${info.spentToday.toFixed(2)} of $${s.perDay}`} /></span>

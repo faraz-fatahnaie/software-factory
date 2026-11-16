@@ -242,9 +242,8 @@ export function hasChecks(root: string): boolean {
 }
 
 /** The spec and review a task's last run produced, for the pull request text. */
-export function runTexts(root: string, run: string): { spec: string; review: string } {
-  const read = (f: string) => { try { return readFileSync(join(root, ".factory", "runs", run, f), "utf8"); } catch { return ""; } };
-  return { spec: read("spec.md"), review: read("review.md") };
+export function runTexts(store: { output(task: string, stage: string): string | undefined }, task: string): { spec: string; review: string } {
+  return { spec: store.output(task, "spec") ?? "", review: store.output(task, "review") ?? "" };
 }
 
 /** A backlog item for the checks that failed on a pull request: what to fix and where the logs are. */

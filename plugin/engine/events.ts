@@ -43,6 +43,9 @@ export function openStore(path: string) {
     /** US dollars spent by model stages since a time (ISO), for one task or for all of them. */
     spent: (since = "", task = "") =>
       (db.query("SELECT COALESCE(SUM(json_extract(data, '$.usage.costUsd')), 0) AS n FROM events WHERE type LIKE 'stage.%' AND ts >= ? AND (? = '' OR task = ?)").get(since, task, task) as { n: number }).n,
+    /** What the newest finished run of a stage wrote for a task (its spec, its review). Task runs live in the task's own worktree, which is gone once it is approved; the log keeps the text. */
+    output: (task: string, stage: string) =>
+      (db.query("SELECT json_extract(data, '$.output') AS text FROM events WHERE task = ? AND stage = ? AND type = 'stage.ok' AND json_extract(data, '$.output') IS NOT NULL ORDER BY seq DESC LIMIT 1").get(task, stage) as { text: string } | null)?.text,
     /** When the task last did anything (the manager's own notes do not count). */
     touched: (task: string) => (db.query("SELECT MAX(ts) AS t FROM events WHERE task = ? AND stage != 'manager'").get(task) as { t: string | null }).t,
     /** The type of the newest event of a task (the manager's own notes do not count). */

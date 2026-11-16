@@ -58,6 +58,8 @@ export type Ctx = {
   every?: number;
   /** The clock; tests move it. */
   now?: () => number;
+  /** Multiplies every wait before a retry; tests set 0. */
+  scale?: number;
 };
 
 /** The loop. One tick looks at stalls, then at stopped tasks, then at what to start. */
@@ -102,7 +104,7 @@ export function supervisor(ctx: Ctx) {
       }
       if (dayCost() >= s.perDay) { if (once(`day:${startOfDay()}`)) decide_(it.id, "budget", `The day's limit (${usd(s.perDay)}) is reached, so nothing more starts today.`); continue; }
       if (!retryAt.has(it.id)) {
-        retryAt.set(it.id, now + step.delayMin * 60_000);
+        retryAt.set(it.id, now + step.delayMin * 60_000 * (ctx.scale ?? 1));
         if (step.delayMin > 0) decide_(it.id, "wait", `${it.id}: ${step.text}`, { kind });
       }
       if (now < retryAt.get(it.id)!) continue;

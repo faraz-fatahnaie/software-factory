@@ -160,8 +160,7 @@ async function runItems(config: ReturnType<typeof loadConfig>, runner: Runner, c
 /** What a send-back or an update needs from the task's last run: its spec, and the next round number. */
 function resumeFrom(item: Item, feedback: string, files: string[], update = false): Resume {
   const store = openEvents(), before = store.last("run.start", item.id), lastRun = store.lastRun(item.id);
-  const specFile = lastRun ? join(root, ".factory", "runs", lastRun, "spec.md") : "";
-  const spec = specFile && existsSync(specFile) ? readFileSync(specFile, "utf8") : "";
+  const spec = store.output(item.id, "spec") ?? ""; // the log keeps it: the task's run folder is in its worktree
   store.close();
   return { spec, feedback, files, update, round: (((before?.data as { round?: number } | undefined)?.round) ?? 1) + 1 };
 }
@@ -465,7 +464,7 @@ async function main([cmd, ...args]: string[]) {
   /** Pushes an approved task and opens its pull request. Throws, in plain words, when it cannot (a possible secret, not signed in). */
   const pushItem = (item: Item) => {
     const store = openEvents(), run = store.lastRun(item.id) ?? "";
-    const { spec, review } = runTexts(root, run);
+    const { spec, review } = runTexts(store, item.id);
     const url = pushTask(root, item.id, item.title, spec, review);
     store.emit({ run, task: item.id, stage: "pr", type: "pr.opened", data: { url } });
     store.close();
@@ -478,7 +477,7 @@ async function main([cmd, ...args]: string[]) {
     const ids = args.filter((a) => /^F-\d+$/.test(a)), odd = args.filter((a) => !/^F-\d+$/.test(a) && a !== "--together");
     if (odd.length || ids.length < 2) throw new Error("usage: factory push <F-id> <F-id>... --together   (two to eight approved tasks)");
     const store = openEvents();
-    const tasks = ids.map((id) => { const item = find(id, "Done"); return { id, title: item.title, ...runTexts(root, store.lastRun(id) ?? "") }; });
+    const tasks = ids.map((id) => { const item = find(id, "Done"); return { id, title: item.title, ...runTexts(store, id) }; });
     const r = pushBatch(root, tasks);
     for (const id of r.included) store.emit({ run: store.lastRun(id) ?? "", task: id, stage: "pr", type: "pr.opened", data: { url: r.url, batch: r.branch } });
     store.close();
