@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { parse } from "./backlog";
-import { chatArgs, chatTurn, managerTurn, TOPICS } from "./chat";
+import { chatArgs, chatTurn, managerTurn, resumeChat, stopChat, TOPICS } from "./chat";
 import { loadConfig, managerOf, parseConfig, projectRoles, projectTeam } from "./config";
 import { parseProposal } from "./state";
 import { supervisor, writeManager } from "./supervisor";
@@ -125,7 +125,7 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
   };
 
   const model = async (id: string, message: string) => {
-    const r = await chatTurn(root, { topic: "manager", message, model: "haiku", effort: "low" }, projectTeam(root));
+    const r = await chatTurn(root, { topic: "manager", message, model: "haiku", effort: "low" }, projectTeam(root), { group: "supervisor" }); // its own group: a person stopping a conversation does not stop it
     return r.ok ? r.text.replace(/^(ASK [a-z]+:|PROPOSE:) .*$/gm, "").trim() : "";
   };
   const sup = opts.supervisor && !process.env.FACTORY_NO_SUPERVISOR ? supervisor({
@@ -370,8 +370,13 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
           return json({ settings: Object.keys(patch).length ? writeManager(root, patch as never) : managerOf(loadConfig(root)) });
         } catch (e) { return json({ error: (e as Error).message }, 400); }
       }
+      if (route === "POST /api/chat/stop") {
+        if (typeof body.topic !== "string" || !(body.topic in TOPICS)) return json({ error: "topic: one of " + Object.keys(TOPICS).join(", ") }, 400);
+        return json({ stopped: stopChat(body.topic) });
+      }
       if (route === "POST /api/chat") {
         try {
+          if (typeof body.topic === "string" && body.topic !== "manager") resumeChat(body.topic);
           chatArgs(body as never, projectTeam(root)); // validate before spending anything
           if (body.topic !== "manager") return json(await chatTurn(root, body as never, projectTeam(root)));
           const out = await managerTurn(root, body as never, projectTeam(root));

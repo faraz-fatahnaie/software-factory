@@ -9,6 +9,7 @@ import { Studio } from "./studio";
 import { Agents, Logs, Worktrees } from "./views";
 import { sendChat, Talk, useQueueDrain, type Chats } from "./talk";
 import { ManagerStrip, useManager } from "./manager";
+import { loadChats, saveChats, signature } from "./chatstore";
 import { Palette } from "./palette";
 import { HealthStrip, healthChip } from "./health";
 import { presenceOf, TALK_TO, Team, type TeamData } from "./team";
@@ -338,7 +339,9 @@ function App() {
   const [view, setView] = useHash(VIEWS);
   const [theme, toggleTheme] = useTheme();
   const [selected, setSelected] = useState<string | null>(null);
-  const [chats, setChats] = useState<Chats>({});
+  const [chats, setChats] = useState<Chats>(loadChats); // conversations survive a reload
+  const worthSaving = signature(chats);
+  useEffect(() => saveChats(chats), [worthSaving]);
   useQueueDrain(chats, setChats);
   const [topic, setTopic] = useState("");
   const [person, setPerson] = useState<string | null>(null);

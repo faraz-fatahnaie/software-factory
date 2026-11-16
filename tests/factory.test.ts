@@ -16,9 +16,10 @@ import { applyTeam, configure, ensureRoleFiles, detect, doctor, init, nextStep, 
 import { personaFor } from "../gui/robots";
 import { activeRoles, catalog, holderOf, chatPrompt, chatPromptFor, checkSettings, customStages, DEFAULT_PRESET, describeTeam, perTask, presets, renderRole, resolveTeam, stageDuties, stageRole, teamForAgents, toolsFor, validateTeam, type TeamSettings } from "../plugin/engine/team";
 import { addCustom, moveSettings, offSettings, parseChange, planTeam, removeCustom, renameSettings, teamView } from "../plugin/engine/teamctl";
-import { askable, chatArgs, checkAttachments, managerTurn, parseAsks, saveAttachments, TOPICS } from "../plugin/engine/chat";
+import { askable, chatArgs, chatTurn, checkAttachments, managerTurn, parseAsks, resumeChat, saveAttachments, stopChat, TOPICS } from "../plugin/engine/chat";
 import { parseBlocks, parseInline } from "../gui/mdparse";
 import { digest } from "../gui/manager";
+import { loadChats, pack, saveChats, signature, unpack } from "../gui/chatstore";
 import { estimate } from "../plugin/engine/estimate";
 import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugin/engine/vcs";
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
@@ -2600,4 +2601,88 @@ test("the spec and the review come from the event log: a send-back keeps the spe
     expect(calls()).toContain("## What and why");
     expect(calls()).toContain("## Review");
   } finally { delete process.env.FACTORY_GH; }
+});
+
+test("stop: a running reply is ended at once, the manager's consultations with it, and the next message starts fresh", async () => {
+  const bin = join(tmp(), "bin");
+  mkdirSync(bin, { recursive: true });
+  const log = join(bin, "calls.log");
+  const result = (text: string) => JSON.stringify({ type: "result", subtype: "success", is_error: false, result: text, session_id: "11111111-1111-1111-1111-111111111111", total_cost_usd: 0.01, usage: {} });
+  // A slow reply (exec, so the process that is stopped is the one that sleeps), a manager that asks the architect, and an architect that is slow.
+  writeFileSync(join(bin, "claude"), `#!/bin/sh
+echo call >> ${log}
+case "$2" in
+  "The Technical Manager is asking"*) exec sleep 30;;
+  "slow"*) exec sleep 30;;
+  "ask"*) printf '%s\\n' '${result("ASK design: Which database?")}';;
+  *) printf '%s\\n' '${result("Hello.")}';;
+esac
+`);
+  chmodSync(join(bin, "claude"), 0o755);
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  const team = resolveTeam(), root = tmp();
+  try {
+    const slow = chatTurn(root, { topic: "plan", message: "slow" }, team);
+    await Bun.sleep(400);
+    const t0 = Date.now();
+    expect(stopChat("plan")).toBe(1);
+    expect(await slow).toMatchObject({ ok: false, status: "stopped", text: "Stopped." });
+    expect(Date.now() - t0).toBeLessThan(3000);
+    resumeChat("plan"); // a new message
+    expect((await chatTurn(root, { topic: "plan", message: "hi" }, team)).text).toBe("Hello.");
+
+    const manager = managerTurn(root, { topic: "manager", message: "ask" }, team); // asks the architect, who is slow
+    await Bun.sleep(1200);
+    expect(stopChat("manager")).toBeGreaterThanOrEqual(1);
+    expect(await manager).toMatchObject({ ok: false, status: "stopped" });
+    expect(readFileSync(log, "utf8").trim().split("\n").length).toBe(4); // slow, hi, the manager, the architect: the manager never wrote its second turn
+    expect((await managerTurn(root, { topic: "manager", message: "hi" }, team)).text).toBe("Hello."); // and a new message works again
+  } finally { process.env.PATH = path; }
+}, 30_000);
+
+test("stop over HTTP: only a known conversation can be stopped", async () => {
+  const { dir } = repo();
+  const server = await serve(dir, 0);
+  const base = `http://127.0.0.1:${server.port}`;
+  const post = (body: unknown) => fetch(`${base}/api/chat/stop`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify(body) });
+  try {
+    expect((await post({ topic: "../x" })).status).toBe(400);
+    expect(await (await post({ topic: "plan" })).json()).toEqual({ stopped: 0 }); // nothing was running
+  } finally { server.stop(); }
+});
+
+test("conversations are kept across a reload: text only, capped, and a damaged entry is ignored", () => {
+  const mem = new Map<string, string>();
+  const store = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v), removeItem: (k: string) => void mem.delete(k), key: (i: number) => [...mem.keys()][i] ?? null, get length() { return mem.size; } };
+  const chats = {
+    manager: { busy: true, session: "11111111-2222-3333-4444-555555555555", subs: { design: "22222222-2222-3333-4444-555555555555" }, draft: "unsent", messages: [
+      { who: "you" as const, text: "look", files: [{ name: "shot.png", size: 10, url: "blob:http://x/1" }] },
+      { who: "team" as const, text: "## Plan", tools: [{ tool: "Bash", detail: "ls", output: "x".repeat(5000) }], cost: 0.02, proposal: { kind: "run" as const, ids: ["F-001"] }, acted: "Done" },
+    ] },
+    plan: { busy: false, messages: [] },
+  };
+  saveChats(chats, store);
+  expect([...mem.keys()]).toEqual(["factory-chat:manager"]); // an empty conversation leaves nothing behind
+  const back = loadChats(store).manager!;
+  expect(back.busy).toBe(false); // a reply that was on its way is not waited for after a reload
+  expect(back.session).toBe(chats.manager.session);
+  expect(back.subs).toEqual(chats.manager.subs);
+  expect(back.messages[0]!.files).toEqual([{ name: "shot.png", size: 10 }]); // the preview address would be dead
+  expect(back.messages[1]!.tools![0]!.output!.length).toBeLessThan(2100);
+  expect(back.messages[1]).toMatchObject({ text: "## Plan", cost: 0.02, acted: "Done", proposal: { kind: "run", ids: ["F-001"] } });
+  expect((back as any).draft).toBeUndefined();
+
+  const long = { busy: false, messages: Array.from({ length: 500 }, (_, i) => ({ who: "you" as const, text: `${i} ${"y".repeat(2000)}` })) };
+  const kept = unpack(pack(long))!.messages;
+  expect(kept.length).toBeLessThan(200);
+  expect(kept.at(-1)!.text.startsWith("499 ")).toBe(true); // the newest are the ones kept
+  expect(pack(long)!.length).toBeLessThanOrEqual(300_000);
+
+  for (const bad of ["", "not json", "{}", JSON.stringify({ v: 99, messages: [] }), JSON.stringify({ v: 1, messages: "x" })]) expect(unpack(bad)).toBeNull();
+  expect(unpack(JSON.stringify({ v: 1, session: "../../etc", messages: [{ who: "admin", text: "x" }, { who: "you", text: "ok" }] }))).toEqual({ messages: [{ who: "you", text: "ok" }], session: undefined, subs: undefined, busy: false });
+  saveChats({ manager: { busy: false, messages: [] } }, store); // cleared
+  expect(mem.size).toBe(0);
+  expect(signature(chats)).not.toBe(signature({ ...chats, manager: { ...chats.manager, messages: chats.manager.messages.slice(0, 1) } }));
+  expect(signature(chats)).toBe(signature({ ...chats, manager: { ...chats.manager, draft: "typing more" } })); // typing does not save
 });

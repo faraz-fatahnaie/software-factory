@@ -112,7 +112,7 @@ export async function sendChat(o: SendOpts) {
     const { text: shown, proposal } = d.ok ? parseProposal(split.text) : { text: split.text, proposal: undefined };
     const reply: Msg = d.ok
       ? { who: "team", text: shown, suggestions: split.suggestions, proposal, tools: d.tools, cost: d.costUsd }
-      : { who: "team", text: FAILURES[d.status] ?? d.text, bad: true };
+      : { who: "team", text: FAILURES[d.status] ?? d.text, bad: d.status !== "stopped" }; // a stop the person asked for is not an error
     // On autopilot the manager has already carried out what it proposed: the message says so, and there is no button.
     if (d.ok && d.executed) { reply.proposal = d.executed.proposal; reply.acted = d.executed.ok ? "Done" : "Failed"; reply.text = `${reply.text}\n\n${d.executed.note}`.trim(); reply.bad = !d.executed.ok; }
     if (d.denials.length) reply.tools = [...(reply.tools ?? []), ...d.denials.map((x) => ({ tool: "Not allowed", detail: x, error: true }))];
@@ -127,6 +127,8 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
   const [effort, setEffort] = useState("medium");
   const [problem, setProblem] = useState("");
   const [notice, setNotice] = useState("");
+  const [clearing, setClearing] = useState(false);
+  useEffect(() => setClearing(false), [key]);
   const [dragging, setDragging] = useState(false);
   const { info: manager, set: setManager, problem: managerProblem } = useManager([]);
   const end = useRef<HTMLDivElement>(null);
@@ -174,6 +176,9 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
     if (chat.busy) patch(key, (c) => ({ ...c, opts, queued: { message: c.queued ? `${c.queued.message}\n\n${message}`.trim() : message, files: [...(c.queued?.files ?? []), ...files].slice(0, ATTACH_MAX_FILES) } }));
     else sendChat({ key, message, files, chat, ...opts, setChats });
   };
+
+  /** Ends the reply that is coming (and what the manager asked others for), and drops a message that was waiting behind it. */
+  const stop = async () => { patch(key, (c) => ({ ...c, queued: undefined })); await call("/api/chat/stop", { topic: key }); };
 
   // The approval: the button calls the same endpoints as the dashboard's own buttons.
   const approve = async (i: number, p: Proposal) => {
@@ -238,6 +243,9 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
               <h2>{person.name}</h2>
               <p className="note">{topic.roleTitle} · {chat.busy ? "Thinking…" : "Listening"}</p>
             </div>
+            {chat.messages.length > 0 && (clearing
+              ? <span className="row gap-s" role="group" aria-label="Start a new conversation?"><span className="note">Clear this conversation?</span><button className="small" onClick={async () => { setClearing(false); if (chat.busy) await stop(); patch(key, () => ({ messages: [], busy: false })); }}>Yes, start over</button><button className="small quiet" onClick={() => setClearing(false)}>Keep it</button></span>
+              : <button className="small quiet" onClick={() => setClearing(true)} title="Clears the messages here and starts fresh. Documents the conversation wrote are kept.">New conversation</button>)}
             <label className="switch" title="End each reply with a few messages you could send next. They only send a message; they never do anything else."><input type="checkbox" role="switch" checked={!!topic.suggest} onChange={async (e) => { const on = e.target.checked; const r = await call("/api/chat/suggest", { topic: key, on }); if (r.ok) setTopics((ts) => ts && ts.map((t) => (t.role === topic.role ? { ...t, suggest: on } : t))); else setProblem(r.error); }} /><span>Suggest replies</span></label>
             {topic.manager && manager && <Select label="Autonomy" prefix="Manager" value={manager.settings.autonomy} options={AUTONOMY_OPTIONS} align="right" onChange={(v) => setManager({ autonomy: v as Autonomy })} />}
             <Select label="Model" prefix="Model" value={model} options={MODELS} onChange={setModel} align="right" />
@@ -286,14 +294,16 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
             <textarea
               ref={box} rows={1} dir="auto" aria-label="Your message" placeholder={chat.messages.length ? "Your answer…" : "Or type your first message here…"} value={text} maxLength={20000}
               onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(text); } }}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(text); } else if (e.key === "Escape" && chat.busy && !text) stop(); }}
               onPaste={(e) => { const files = [...e.clipboardData.files]; if (!files.length) return; e.preventDefault(); attach(files.map((f, i) => (f.name === "image.png" ? new File([f], `pasted-${new Date().toISOString().slice(11, 19).replace(/:/g, "")}${i ? `-${i}` : ""}.png`, { type: f.type }) : f))); }}
             />
             <div className="composer-bar">
               <input ref={picker} type="file" multiple hidden accept={ACCEPT} aria-label="Choose files to attach" tabIndex={-1} onChange={(e) => { attach([...(e.target.files ?? [])]); e.target.value = ""; }} />
               <button type="button" className="quiet icon" onClick={() => picker.current?.click()} aria-label="Attach files" title="Attach files (or drop them here, or paste a picture)"><Icon name="paperclip" size={18} /></button>
               <span className="note grow">{text.length > 16000 ? `${text.length.toLocaleString()} / 20,000 characters` : "Enter sends · Shift+Enter for a new line"}</span>
-              <button className="primary send" disabled={!text.trim() && !pending.length} aria-label={chat.busy ? "Send after the reply" : "Send"} title={chat.busy ? "Send after the reply" : "Send"}><Icon name="up" size={18} /></button>
+              {chat.busy && !text.trim() && !pending.length
+                ? <button type="button" className="primary send" aria-label="Stop" title="Stop the reply (Esc)" onClick={stop}><Icon name="stop" size={16} /></button>
+                : <button className="primary send" disabled={!text.trim() && !pending.length} aria-label={chat.busy ? "Send after the reply" : "Send"} title={chat.busy ? "Send after the reply" : "Send"}><Icon name="up" size={18} /></button>}
             </div>
           </form>
           {notice && <p className="error" role="alert">{notice}</p>}

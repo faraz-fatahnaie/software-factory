@@ -193,6 +193,24 @@ try {
     await page.locator(".md-code", { hasText: "const x = 1;" }).waitFor();
     await page.locator('.chat-md a[href="https://example.com"]').waitFor();
     await a11y(page, `${name} Talk reply`);
+
+    // A reload keeps the conversation; Stop ends a reply that is coming; New conversation clears it after asking.
+    await page.reload();
+    await open(page, "Talk");
+    await page.locator(".chat-md h4", { hasText: "Plan" }).waitFor();
+    assert.equal(await box.inputValue(), "a second thought", `${name}: the unsent message is still there too`);
+    await box.fill("stop this one");
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    await page.getByRole("button", { name: "Stop" }).click();
+    await page.locator(".bubble.team", { hasText: "Stopped." }).waitFor({ timeout: 5000 });
+    await page.getByRole("button", { name: "New conversation" }).click();
+    await a11y(page, `${name} Talk clearing`);
+    await page.getByRole("button", { name: "Yes, start over" }).click();
+    await page.getByRole("button", { name: "Start this conversation" }).waitFor();
+    assert.equal(await page.locator(".bubble.you").count(), 0, `${name}: the conversation is cleared`);
+    await page.reload();
+    await open(page, "Talk");
+    await page.getByRole("button", { name: "Start this conversation" }).waitFor(); // and it stays cleared
     await page.close();
   }
 } finally {

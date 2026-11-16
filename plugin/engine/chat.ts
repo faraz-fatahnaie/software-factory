@@ -137,7 +137,20 @@ export function chatArgs(r: ChatRequest, team: Preset, only?: { append?: string;
 }
 
 /** One turn of a conversation. Waits for the reply; the tool calls it made are returned so the page can show them. */
-export async function chatTurn(root: string, r: ChatRequest, team: Preset, only?: { append?: string; readOnly?: boolean }) {
+// The processes behind each conversation that are running now, so a person can stop a reply. A manager's consultations count as the manager's.
+const live = new Map<string, Set<{ kill(signal?: NodeJS.Signals): void }>>(), stopping = new Set<string>();
+/** Ends the running reply of a conversation, and what the manager asked other roles for it. Returns how many processes were ended. */
+export function stopChat(topic: string): number {
+  stopping.add(topic);
+  const procs = live.get(topic);
+  procs?.forEach((p) => p.kill("SIGTERM"));
+  return procs?.size ?? 0;
+}
+/** A new message starts fresh: an earlier stop no longer applies. */
+export const resumeChat = (topic: string) => stopping.delete(topic);
+const stoppedReply = () => ({ ok: false as const, status: "stopped", text: "Stopped.", session: undefined as string | undefined, costUsd: 0, denials: [] as string[], tools: [] as ToolStep[] });
+
+export async function chatTurn(root: string, r: ChatRequest, team: Preset, only?: { append?: string; readOnly?: boolean; /** Which conversation a stop for this turn belongs to (a consultation belongs to its manager). */ group?: string }) {
   chatArgs(r, team, only); // validates, before any file is saved
   const files = saveAttachments(root, r.attachments);
   const message = files.length ? `${r.message.trim() || "Please look at the attached file(s)."}\n\nAttached files (open each with the Read tool):\n${files.map((f) => `- ${f}`).join("\n")}` : r.message;
@@ -147,6 +160,10 @@ export async function chatTurn(root: string, r: ChatRequest, team: Preset, only?
     // FACTORY_ROOT is what the guard hook confines writes to; `factory` must resolve for the save and add commands.
     env: { ...process.env, FACTORY_SOURCE: "chat", FACTORY_ROOT: root, PATH: `${join(import.meta.dir, "..", "bin")}:${process.env.PATH}` },
   });
+  const key = only?.group ?? r.topic;
+  if (!live.has(key)) live.set(key, new Set());
+  live.get(key)!.add(p);
+  if (stopping.has(key)) p.kill("SIGTERM"); // a stop that arrived while this turn was starting
   const stderr = new Response(p.stderr).text();
   const tools: ToolStep[] = [], byId = new Map<string, ToolStep>();
   let buffer = "", result = "";
@@ -170,7 +187,10 @@ export async function chatTurn(root: string, r: ChatRequest, team: Preset, only?
       }
     }
   }
-  const out = classify(await p.exited, result || buffer, await stderr);
+  const code = await p.exited;
+  live.get(key)?.delete(p);
+  if (stopping.has(key)) return stoppedReply();
+  const out = classify(code, result || buffer, await stderr);
   const usage = (out.usage ?? {}) as { session?: string; costUsd?: number; denials?: string[] };
   return { ok: out.status === "ok", status: out.status, text: out.text, session: usage.session, costUsd: usage.costUsd, denials: usage.denials ?? [], tools };
 }
@@ -181,19 +201,23 @@ export async function chatTurn(root: string, r: ChatRequest, team: Preset, only?
  * One round only: the manager cannot ask again in the same turn.
  */
 export async function managerTurn(root: string, r: ChatRequest, team: Preset) {
-  const first = await chatTurn(root, r, team);
+  resumeChat("manager");
+  const first = await chatTurn(root, r, team, { group: "manager" });
+  if (first.status === "stopped") return { ...first, sessions: { ...r.subs } };
   const sessions = { ...r.subs };
   const asks = first.ok ? parseAsks(first.text, team) : [];
   if (!asks.length) return { ...first, text: first.text.replace(/^ASK [a-z]+: .*$/gm, "").trim() || first.text, sessions };
   const who = new Map(askable(team).map((a) => [a.key, a.roleTitle]));
   const answers = await Promise.all(asks.map(async (a) => {
-    const t = await chatTurn(root, { topic: a.topic, message: `The Technical Manager is asking you for the person, who is talking to the manager and not to you. Answer in under 200 words, in plain words. Do not ask the person questions: if you need something, say what is missing.\n\n${a.question}`, session: r.subs?.[a.topic], model: r.model, effort: r.effort }, team, { readOnly: true })
+    const t = await chatTurn(root, { topic: a.topic, message: `The Technical Manager is asking you for the person, who is talking to the manager and not to you. Answer in under 200 words, in plain words. Do not ask the person questions: if you need something, say what is missing.\n\n${a.question}`, session: r.subs?.[a.topic], model: r.model, effort: r.effort }, team, { readOnly: true, group: "manager" })
       .catch((e) => ({ ok: false as const, status: "error", text: String(e.message ?? e), session: undefined, costUsd: 0, denials: [] as string[], tools: [] as ToolStep[] }));
     if (t.session) sessions[a.topic] = t.session;
     return { ...a, roleTitle: who.get(a.topic)!, t };
   }));
+  if (answers.some((a) => a.t.status === "stopped")) return { ...stoppedReply(), sessions };
   const feed = answers.map((a) => `### ${a.roleTitle} (asked: ${a.question})\n${a.t.ok ? a.t.text : `Could not answer: ${a.t.text}`}`).join("\n\n");
-  const final = await chatTurn(root, { ...r, message: `The roles answered:\n\n${feed}\n\nNow write your reply to the person, as described.`, session: first.session ?? r.session, attachments: undefined }, team);
+  const final = await chatTurn(root, { ...r, message: `The roles answered:\n\n${feed}\n\nNow write your reply to the person, as described.`, session: first.session ?? r.session, attachments: undefined }, team, { group: "manager" });
+  if (final.status === "stopped") return { ...final, sessions };
   const steps: ToolStep[] = [
     ...first.tools,
     ...answers.map((a): ToolStep => ({ tool: `Asked ${a.roleTitle}`, detail: a.question, output: a.t.ok ? a.t.text : `Could not answer: ${a.t.text}`, ...(!a.t.ok && { error: true }) })),
