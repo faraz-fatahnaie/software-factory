@@ -253,7 +253,7 @@ export const tokens = (n: number) => (n >= 1_000_000 ? `${+(n / 1_000_000).toFix
 
 /** The commands a conversation's message box takes, as in Claude Code. `args` says what may follow the name. */
 export const CHAT_COMMANDS = [
-  { name: "compact", args: "[what to keep]", hint: "The agent keeps a summary of this conversation instead of every message" },
+  { name: "compact", args: "[what to keep]", hint: "Keep a summary instead of every message" },
   { name: "clear", args: "", hint: "Delete this conversation and start a new one" },
 ] as const;
 /**

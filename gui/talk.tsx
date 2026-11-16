@@ -322,17 +322,6 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
           <form className="composer-box" onSubmit={(e) => { e.preventDefault(); send(text); }}>
             {chat.queued && <p className="queued" role="status"><span>Waiting to send: {chat.queued.message.slice(0, 80) || "attached files"}</span><button type="button" className="quiet" onClick={() => patch(key, (c) => ({ ...c, queued: undefined }))}>Cancel</button></p>}
             {pending.length > 0 && <ul className="files tray" aria-label="Attached files">{pending.map((p, j) => <FileChip key={j} f={{ name: p.file.name, size: p.file.size, url: p.url }} onRemove={() => detach(j)} />)}</ul>}
-            {slash && (
-              <div className="slash" id="slash-commands" role="listbox" aria-label="Commands">
-                {slash.map((c) => (
-                  <div key={c.name} id={`slash-${c.name}`} role="option" aria-selected={c === picked} className={c === picked ? "on" : ""} onMouseDown={(e) => { e.preventDefault(); take(c, true); }} onMouseEnter={() => setPick(slash.indexOf(c))}>
-                    <code>/{c.name}{c.args && <i> {c.args}</i>}</code><span>{c.hint}</span>
-                  </div>
-                ))}
-                {slash.length === 0 && <p className="note">No command matches. The commands are /compact and /clear.</p>}
-                {slash.length > 0 && <p className="note keys" aria-hidden="true">↑↓ to choose · Enter to use · Tab to complete · Esc to close</p>}
-              </div>
-            )}
             <textarea
               ref={box} rows={1} dir="auto" aria-label="Your message" placeholder={chat.messages.length ? "Your answer…" : "Or type your first message here…"} value={text} maxLength={20000}
               onChange={(e) => { setText(e.target.value); setPick(0); }}
@@ -348,6 +337,16 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
               }}
               onPaste={(e) => { const files = [...e.clipboardData.files]; if (!files.length) return; e.preventDefault(); attach(files.map((f, i) => (f.name === "image.png" ? new File([f], `pasted-${new Date().toISOString().slice(11, 19).replace(/:/g, "")}${i ? `-${i}` : ""}.png`, { type: f.type }) : f))); }}
             />
+            {slash && (
+              <div className="slash" id="slash-commands" role="listbox" aria-label="Commands">
+                {slash.map((c) => (
+                  <div key={c.name} id={`slash-${c.name}`} role="option" aria-selected={c === picked} className={c === picked ? "on" : ""} onMouseDown={(e) => { e.preventDefault(); take(c, true); }} onMouseEnter={() => setPick(slash.indexOf(c))}>
+                    <code>/{c.name}{c.args && <i> {c.args}</i>}</code><span>{c.hint}</span>
+                  </div>
+                ))}
+                {slash.length === 0 && <p className="note">No command matches. The commands are /compact and /clear.</p>}
+              </div>
+            )}
             <div className="composer-bar">
               <input ref={picker} type="file" multiple hidden accept={ACCEPT} aria-label="Choose files to attach" tabIndex={-1} onChange={(e) => { attach([...(e.target.files ?? [])]); e.target.value = ""; }} />
               <button type="button" className="quiet icon" onClick={() => picker.current?.click()} aria-label="Attach files" title="Attach files (or drop them here, or paste a picture)"><Icon name="paperclip" size={18} /></button>
