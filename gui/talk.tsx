@@ -14,7 +14,7 @@ export type { Msg, Shown };
 /** A file waiting to be sent with the next message. Pictures get a preview. */
 export type Pending = { file: File; url?: string };
 /** One conversation. The unsent message, the files waiting to go with it and a message queued behind a reply live here, not in the Talk page, so leaving the page and coming back loses nothing. */
-export type Chat = { messages: Msg[]; session?: string; subs?: Record<string, string>; context?: Context; contexts?: Record<string, Context>; busy: boolean; /** Busy because the server says a reply is on its way (this page did not ask for it, for example after a reload): the page watches for it. */ remote?: boolean; draft?: string; files?: Pending[]; queued?: { message: string; files: Pending[] }; opts?: { suggest: boolean; model: string; effort: string } };
+export type Chat = { messages: Msg[]; session?: string; subs?: Record<string, string>; context?: Context; contexts?: Record<string, Context>; busy: boolean; /** Busy because it is being compacted, not because a reply is coming. */ compacting?: boolean; /** Busy because the server says a reply is on its way (this page did not ask for it, for example after a reload): the page watches for it. */ remote?: boolean; draft?: string; files?: Pending[]; queued?: { message: string; files: Pending[] }; opts?: { suggest: boolean; model: string; effort: string } };
 const draftKey = (k: string) => `factory-draft:${k}`;
 /** The unsent message of a conversation, kept in the browser too, so a reload keeps it. Storage can be blocked: then it only lives in the page. */
 const savedDraft = (k: string) => { try { return localStorage.getItem(draftKey(k)) ?? ""; } catch { return ""; } };
@@ -167,8 +167,25 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
 
   // Typing and sending stay open while a reply is on its way: a message sent meanwhile waits (one per conversation) and goes out when the reply is done.
   const opts = { suggest: topics?.find((t) => t.key === key)?.suggest ?? false, model, effort };
+  /** Compacts the conversation: Claude keeps a summary instead of every message, so replies get faster and cheaper. `focus` says what the summary must keep. */
+  const compact = async (focus = "") => {
+    const k = key;
+    if (!chat.session) return setNotice("There is nothing to compact yet.");
+    if (chat.busy) return setNotice("A reply is on its way. Wait for it, or stop it, then compact.");
+    setNotice("");
+    patch(k, (c) => ({ ...c, busy: true, compacting: true }));
+    const r = await call<Stored>("/api/chats/compact", { topic: k, focus, model });
+    patch(k, (c) => (r.ok ? mirror(c, r.data) : { ...c, busy: false, compacting: false, messages: [...c.messages, { who: "team", text: r.error, bad: true }] }));
+  };
   const send = (message: string) => {
     if (!message.trim() && !pending.length) return;
+    // Two typed commands, as in Claude Code. Anything else that looks like one is not sent to the agent, who would not know it.
+    const cmd = message.trim().match(/^\/([a-z-]+)(?:\s+([\s\S]*))?$/);
+    if (cmd && !pending.length) {
+      if (cmd[1] === "clear") { setText(""); return chat.messages.length ? setClearing(true) : undefined; }
+      if (cmd[1] === "compact") { setText(""); return void compact(cmd[2] ?? ""); }
+      return setNotice(`/${cmd[1]} is not a command here. The commands are /clear and /compact (optionally followed by what to keep).`);
+    }
     const files = pending;
     setText(""); setPending([]); setNotice("");
     if (chat.busy) patch(key, (c) => ({ ...c, opts, queued: { message: c.queued ? `${c.queued.message}\n\n${message}`.trim() : message, files: [...(c.queued?.files ?? []), ...files].slice(0, ATTACH_MAX_FILES) } }));
@@ -213,6 +230,8 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
     </div>
   );
   const topic = topics.find((t) => t.key === key);
+  const lastDivider = chat.messages.findLastIndex((m) => m.divider); // what is above it the agent holds as a summary: shown dimmed
+  const long = !!chat.context && chat.context.used / chat.context.window >= 0.7;
   const role = topic?.role ?? (topic?.readOnly ? topic.key : "");
   const person = personaFor(role);
   return (
@@ -239,17 +258,19 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
             <Robot role={role} size={56} status={chat.busy ? "working" : "free"} />
             <div className="grow">
               <h2>{person.name}</h2>
-              <p className="note">{topic.roleTitle} · {chat.busy ? "Thinking…" : "Listening"}</p>
+              <p className="note">{topic.roleTitle} · {chat.compacting ? "Compacting…" : chat.busy ? "Thinking…" : "Listening"}</p>
               {chat.context && <ContextMeter context={chat.context} others={Object.entries(chat.contexts ?? {}).flatMap(([k, c]) => { const t = topics.find((x) => x.key === k); return t ? [{ name: personaFor(t.role ?? t.key).name, context: c }] : []; })} />}
             </div>
+            {chat.session && !clearing && <button className="small quiet" disabled={chat.busy} onClick={() => compact()} title="The agent keeps a summary of this conversation instead of every message, so replies get faster and cheaper. The messages stay here for you to read. You can also type /compact, followed by what to keep.">Compact</button>}
             {chat.messages.length > 0 && (clearing
-              ? <span className="row gap-s" role="group" aria-label="Start a new conversation?"><span className="note">Clear this conversation?</span><button className="small" onClick={async () => { setClearing(false); if (chat.busy) await stop(); for (let i = 0; i < 20 && !(await call("/api/chats/clear", { topic: key })).ok; i++) await new Promise((ok) => setTimeout(ok, 250)); /* a stopped reply takes a moment to end */ patch(key, () => ({ messages: [], busy: false })); }}>Yes, start over</button><button className="small quiet" onClick={() => setClearing(false)}>Keep it</button></span>
-              : <button className="small quiet" onClick={() => setClearing(true)} title="Clears the messages here and starts fresh. Documents the conversation wrote are kept.">New conversation</button>)}
+              ? <span className="row gap-s" role="group" aria-label="Clear this conversation?"><span className="note">Clear this conversation? Anything agreed here but not saved as a document or a backlog item is lost.</span><button className="small" onClick={async () => { setClearing(false); if (chat.busy) await stop(); for (let i = 0; i < 20 && !(await call("/api/chats/clear", { topic: key })).ok; i++) await new Promise((ok) => setTimeout(ok, 250)); /* a stopped reply takes a moment to end */ patch(key, () => ({ messages: [], busy: false })); }}>Yes, clear it</button><button className="small quiet" onClick={() => setClearing(false)}>Keep it</button></span>
+              : <button className="small quiet" onClick={() => setClearing(true)} title="Deletes the messages here and starts a new conversation. Documents the conversation wrote are kept. You can also type /clear.">Clear</button>)}
             <label className="switch" title="End each reply with a few messages you could send next. They only send a message; they never do anything else."><input type="checkbox" role="switch" checked={!!topic.suggest} onChange={async (e) => { const on = e.target.checked; const r = await call("/api/chat/suggest", { topic: key, on }); if (r.ok) setTopics((ts) => ts && ts.map((t) => (t.role === topic.role ? { ...t, suggest: on } : t))); else setProblem(r.error); }} /><span>Suggest replies</span></label>
             {topic.manager && manager && <Select label="Autonomy" prefix="Manager" value={manager.settings.autonomy} options={AUTONOMY_OPTIONS} align="right" onChange={(v) => setManager({ autonomy: v as Autonomy })} />}
             <Select label="Model" prefix="Model" value={model} options={MODELS} onChange={setModel} align="right" />
             <Select label="Effort" prefix="Effort" value={effort} options={EFFORTS} onChange={setEffort} align="right" />
           </header>
+          {long && !chat.busy && !clearing && <p className="ctx-hint" role="status"><span>This conversation is getting long, so replies get slower and cost more.</span><button className="small" onClick={() => compact()}>Compact</button></p>}
           <div className="messages" role="log" aria-live="polite" aria-label={`${topic.title} conversation`}>
             {chat.messages.length === 0 && (
               <div className="intro">
@@ -257,8 +278,12 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
                 <button className="primary" onClick={() => send(topic.first)}>Start this conversation</button>
               </div>
             )}
-            {chat.messages.map((m, i) => (
-              <div key={i} className={`bubble ${m.who}`}>
+            {chat.messages.map((m, i) => (m.divider ? (
+              <p key={i} className="compacted" role="separator" title="The agent remembers what is above this line as a summary. The messages stay here for you to read.">
+                Compacted · {tokens(m.divider.before)} → {tokens(m.divider.after)} tokens · {new Date(m.divider.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </p>
+            ) : (
+              <div key={i} className={`bubble ${m.who}${i < lastDivider ? " old" : ""}`}>
                 {m.who === "team" && <Robot role={role} size={34} />}
                 <div className={`inner-card${m.bad ? " bad" : ""}`}>
                   {m.tools?.length ? <Steps steps={m.tools} /> : null}
@@ -273,14 +298,14 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
                   )}
                 </div>
               </div>
-            ))}
+            )))}
             {!chat.busy && topic.suggest && (chat.messages.at(-1)?.suggestions?.length ?? 0) > 0 && (
               <div className="suggest" role="group" aria-label="Suggested replies">
                 {chat.messages.at(-1)!.suggestions!.map((s) => <button key={s} onClick={() => send(s)}>{s}</button>)}
               </div>
             )}
             {chat.busy && (
-              <div className="bubble team" role="status" aria-label={`${person.name} is typing`}>
+              <div className="bubble team" role="status" aria-label={chat.compacting ? "Compacting the conversation" : `${person.name} is typing`}>
                 <Robot role={role} size={34} status="working" />
                 <div className="inner-card typing"><span /><span /><span /></div>
               </div>
@@ -299,7 +324,7 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
             <div className="composer-bar">
               <input ref={picker} type="file" multiple hidden accept={ACCEPT} aria-label="Choose files to attach" tabIndex={-1} onChange={(e) => { attach([...(e.target.files ?? [])]); e.target.value = ""; }} />
               <button type="button" className="quiet icon" onClick={() => picker.current?.click()} aria-label="Attach files" title="Attach files (or drop them here, or paste a picture)"><Icon name="paperclip" size={18} /></button>
-              <span className="note grow">{text.length > 16000 ? `${text.length.toLocaleString()} / 20,000 characters` : "Enter sends · Shift+Enter for a new line"}</span>
+              <span className="note grow">{text.length > 16000 ? `${text.length.toLocaleString()} / 20,000 characters` : text.startsWith("/") ? "Commands: /clear · /compact [what to keep]" : "Enter sends · Shift+Enter for a new line"}</span>
               {chat.busy && !text.trim() && !pending.length
                 ? <button type="button" className="primary send" aria-label="Stop" title="Stop the reply (Esc)" onClick={stop}><Icon name="stop" size={16} /></button>
                 : <button className="primary send" disabled={!text.trim() && !pending.length} aria-label={chat.busy ? "Send after the reply" : "Send"} title={chat.busy ? "Send after the reply" : "Send"}><Icon name="up" size={18} /></button>}

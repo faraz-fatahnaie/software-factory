@@ -307,8 +307,8 @@ try {
   await page.getByText("From the old browser copy").waitFor();
   assert.equal(await page.evaluate(() => localStorage.getItem("factory-chat:design")), null, "handed over, so removed from the browser");
   assert.equal(existsSync(join(dir, ".factory", "chats", "design.json")), true);
-  await page.getByRole("button", { name: "New conversation" }).click();
-  await page.getByRole("button", { name: "Yes, start over" }).click();
+  await page.getByRole("button", { name: "Clear", exact: true }).click();
+  await page.getByRole("button", { name: "Yes, clear it" }).click();
   await page.getByText("From the old browser copy").waitFor({ state: "detached" });
   assert.equal(existsSync(join(dir, ".factory", "chats", "design.json")), false, "clearing deletes it from disk");
 

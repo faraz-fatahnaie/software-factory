@@ -17,6 +17,7 @@ mkdirSync(bin, { recursive: true });
 const REPLY = "## Plan\\n\\nHere is **bold**, `code` and a [link](https://example.com).\\n\\n- one\\n- two\\n\\n| A | B |\\n|---|---|\\n| 1 | 2 |\\n\\n```ts\\nconst x = 1;\\n```\\n\\nسلام، این یک پیام فارسی است.";
 writeFileSync(join(bin, "claude"), `#!/bin/sh
 sleep 1.5
+case "$2" in "/compact"*) printf '%s\\n' '{"type":"system","subtype":"compact_boundary","compact_metadata":{"pre_tokens":148000,"post_tokens":9000}}' '{"type":"result","subtype":"success","is_error":false,"result":"","session_id":"11111111-2222-3333-4444-555555555555","total_cost_usd":0.01,"usage":{}}'; exit 0;; esac
 printf '%s\\n' '{"type":"assistant","message":{"model":"claude-x","usage":{"input_tokens":10,"cache_read_input_tokens":140000,"cache_creation_input_tokens":7990,"output_tokens":0},"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"git status"}}]}}'
 printf '%s\\n' '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"On branch main\\nnothing to commit"}]}}'
 printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"${REPLY}","session_id":"11111111-2222-3333-4444-555555555555","total_cost_usd":0.01,"usage":{},"modelUsage":{"claude-x":{"contextWindow":200000}}}'
@@ -202,6 +203,21 @@ try {
     await page.locator(".chat-head .ctx.warn", { hasText: "74% of context" }).waitFor(); // how full the conversation is, amber from 70%
     assert.match(await page.locator(".chat-head .ctx").getAttribute("title") ?? "", /148k of 200k tokens/);
     await a11y(page, `${name} Talk reply`);
+    // Long: a hint offers to compact. Typed commands: an unknown one is not sent, /compact (with what to keep) leaves a divider and dims what is above it.
+    await page.locator(".ctx-hint").getByRole("button", { name: "Compact" }).waitFor();
+    const draft = await box.inputValue();
+    await box.fill("/help");
+    await page.getByText("Commands: /clear · /compact [what to keep]").waitFor({ state: "attached" }); // the line under the box is hidden at phone width
+    await box.press("Enter");
+    await page.getByRole("alert").filter({ hasText: "/help is not a command here" }).waitFor();
+    await box.fill("/compact keep the plan");
+    await box.press("Enter");
+    await page.locator(".compacted", { hasText: "Compacted · 148k → 9k tokens" }).waitFor({ timeout: 20_000 });
+    await page.locator(".chat-head .ctx", { hasText: "5% of context" }).waitFor();
+    assert.ok(await page.locator(".bubble.old").count() >= 2, `${name}: what the agent now holds as a summary is shown quieter`);
+    assert.equal(await page.locator(".ctx-hint").count(), 0, `${name}: the hint is gone once compacted`);
+    await a11y(page, `${name} Talk compacted`);
+    await box.fill(draft);
 
     // A reload keeps the conversation; Stop ends a reply that is coming; New conversation clears it after asking.
     await page.reload();
@@ -212,9 +228,10 @@ try {
     await page.getByRole("button", { name: "Send", exact: true }).click();
     await page.getByRole("button", { name: "Stop" }).click();
     await page.locator(".bubble.team", { hasText: "Stopped." }).waitFor({ timeout: 5000 });
-    await page.getByRole("button", { name: "New conversation" }).click();
+    await box.fill("/clear"); // the typed command asks the same question as the Clear button
+    await box.press("Enter");
     await a11y(page, `${name} Talk clearing`);
-    await page.getByRole("button", { name: "Yes, start over" }).click();
+    await page.getByRole("button", { name: "Yes, clear it" }).click();
     await page.getByRole("button", { name: "Start this conversation" }).waitFor();
     assert.equal(await page.locator(".bubble.you").count(), 0, `${name}: the conversation is cleared`);
     await page.reload();

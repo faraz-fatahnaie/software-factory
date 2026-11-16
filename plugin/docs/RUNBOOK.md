@@ -80,7 +80,9 @@ folded list under the reply.
 - **Show, do not describe.** Dina attaches a photo of her paper order form and the PDF price list: the button
   next to the message box, drag and drop, or paste. Up to eight files (pictures, PDF, text and code).
 - **Keep typing.** A message sent while a reply is coming waits its turn. **Stop** ends a reply, and
-  **New conversation** starts a clean one. Each conversation is kept in the project (`.factory/chats/`, never
+  **Clear** (or typing `/clear`) starts a clean one. When a conversation gets long, **Compact** (or `/compact`,
+  optionally followed by what to keep) makes the agent keep a summary instead of every message; her messages stay
+  on screen. Each conversation is kept in the project (`.factory/chats/`, never
   committed), so it is still there after she closes the dashboard or opens it in another browser. A small meter
   under the person's name shows how full the conversation's context is.
 - **Any language.** Replies are formatted, and right-to-left text reads correctly.
@@ -403,6 +405,7 @@ with auto-update and how to go back, is in the [README](../README.md#updating).
 | Open a person | Click their robot |
 | Ask the team anything | Talk → **Talk to the team** |
 | Show a file to the team | In Talk: the attach button, drag and drop, or paste |
+| Shrink or restart a conversation | In Talk: **Compact** / **Clear**, or type `/compact`, `/clear` |
 
 **Commands** (slash command, or `factory ...` in a terminal)
 

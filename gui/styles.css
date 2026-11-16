@@ -573,6 +573,12 @@ button.small { min-height: 28px; font-size: 12.5px; padding: 0 10px; }
 .ctx meter { width: 72px; height: 6px; }
 .ctx.warn { color: var(--warn); }
 .ctx.bad { color: var(--bad); }
+.ctx-hint { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 10px 0 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; font-size: 13px; color: var(--muted); }
+.ctx-hint span { flex: 1; min-width: 12ch; }
+/* Where the conversation was compacted. What is above it the agent holds as a summary, so it is shown quieter. */
+.compacted { display: flex; align-items: center; gap: 12px; margin: 6px 0; font-size: 12px; color: var(--muted); text-align: center; }
+.compacted::before, .compacted::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
+.bubble.old { opacity: 0.75; }
 .chat { position: relative; grid-template-rows: auto minmax(0, 1fr) auto auto; height: max(560px, calc(100dvh - 150px)); min-height: 0; align-self: stretch; }
 .bubble { display: flex; align-items: flex-end; gap: 10px; }
 .bubble.you { justify-content: flex-end; }

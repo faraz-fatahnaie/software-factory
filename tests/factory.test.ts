@@ -2241,6 +2241,19 @@ test("manager: a failure is classified, and the decision stays inside the limits
   expect(decide("other", 0, 5.2, s).text).toMatch(/\$5\.20.*limit for one task/);
 });
 
+test("a config from before an update still loads: settings for a role that no longer runs unattended are left over, not an error", () => {
+  const { dir, cli } = repo();
+  const file = join(dir, "factory.config.json"), cfg = JSON.parse(readFileSync(file, "utf8"));
+  writeFileSync(file, JSON.stringify({ ...cfg, roles: { ...cfg.roles, planner: role } })); // the Planner triaged before the Technical Manager did
+  const loaded = loadConfig(dir);
+  expect(loaded.roles.planner).toBeUndefined(); // nothing runs as the Planner now, so nothing sees its old settings
+  expect(loaded.roles["technical-manager"]).toBeDefined();
+  expect(cli("manager", "assist").code).toBe(0); // a settings change still writes
+  expect(cli("status").code).toBe(0);
+  writeFileSync(file, JSON.stringify({ ...cfg, roles: { ...cfg.roles, plannr: role } }));
+  expect(() => loadConfig(dir)).toThrow(/roles\.plannr: unknown role/); // a name that is no role of this team is still a mistake
+});
+
 test("manager settings: validated, merged with the defaults, and written back to the config", () => {
   const base = { gate: ["true"], roles: config.roles };
   expect(() => parseConfig({ ...base, manager: { autonomy: "yolo" } })).toThrow(/manager\.autonomy: one of autopilot, assist, off/);
@@ -2847,7 +2860,9 @@ test("conversations over HTTP: each turn is written before it is answered, a rel
   const result = (text: string) => JSON.stringify({ type: "result", subtype: "success", is_error: false, result: text, session_id: "11111111-1111-1111-1111-111111111111", total_cost_usd: 0.01, usage: {}, modelUsage: { "claude-x": { contextWindow: 200000 } } });
   const said = JSON.stringify({ type: "assistant", parent_tool_use_id: null, message: { model: "claude-x", content: [], usage: { input_tokens: 10, cache_read_input_tokens: 30000, cache_creation_input_tokens: 9000, output_tokens: 990 } } });
   const inner = JSON.stringify({ type: "assistant", parent_tool_use_id: "toolu_1", message: { model: "claude-x", content: [], usage: { input_tokens: 5, output_tokens: 5 } } }); // a subagent's request is not the conversation's context
-  writeFileSync(join(bin, "claude"), `#!/bin/sh\ncase "$2" in\n  "slow"*) exec sleep 30;;\n  *) printf '%s\\n' '${said}' '${inner}' '${result("Hello.\nSUGGEST: Tell me more")}';;\nesac\n`);
+  const boundary = JSON.stringify({ type: "system", subtype: "compact_boundary", compact_metadata: { trigger: "manual", pre_tokens: 40000, post_tokens: 3290 } });
+  const asked = join(bin, "asked.log");
+  writeFileSync(join(bin, "claude"), `#!/bin/sh\necho "$2" >> ${asked}\ncase "$2" in\n  "slow"*) exec sleep 30;;\n  "/compact"*) printf '%s\\n' '${boundary}' '${result("")}';;\n  *) printf '%s\\n' '${said}' '${inner}' '${result("Hello.\nSUGGEST: Tell me more")}';;\nesac\n`);
   chmodSync(join(bin, "claude"), 0o755);
   const path = process.env.PATH;
   process.env.PATH = `${bin}:${path}`;
@@ -2863,6 +2878,15 @@ test("conversations over HTTP: each turn is written before it is answered, a rel
     expect(first.data.chat.context).toEqual({ used: 40_000, window: 200_000 }); // 20% of the context, as of this reply
     expect((await all()).plan).toMatchObject({ busy: false, session: "11111111-1111-1111-1111-111111111111", context: { used: 40_000, window: 200_000 } }); // what a reload, another browser or another port reads
     expect(JSON.parse(readFileSync(join(dir, ".factory/chats/plan.json"), "utf8")).messages).toHaveLength(2);
+    // Compact: Claude's own /compact on the same session, with the person's note on what to keep; a divider marks it and the context is what was left.
+    expect((await post("/api/chats/compact", { topic: "research" })).status).toBe(409); // a conversation that has not started
+    const compacted = await post("/api/chats/compact", { topic: "plan", focus: "keep the\nprices" });
+    expect(readFileSync(asked, "utf8")).toContain("/compact keep the prices\n"); // one line, as a command
+    expect(compacted.data.messages.at(-1)).toMatchObject({ who: "team", text: "", divider: { before: 40_000, after: 3290, at: expect.stringMatching(/^20\d\d-/) } });
+    expect(compacted.data).toMatchObject({ session: "11111111-1111-1111-1111-111111111111", context: { used: 3290, window: 200_000 } });
+    expect((await all()).plan!.messages).toHaveLength(3); // the earlier messages stay readable
+    await post("/api/chats/clear", { topic: "plan" });
+    await post("/api/chat", { topic: "plan", message: "hi there", shown: "Hi", attachments: [{ name: "note.txt", data: Buffer.from("hello").toString("base64") }] });
     expect((await post("/api/chat", { topic: "plan", message: "x", model: "nope" })).status).toBe(400);
     expect((await all()).plan!.messages).toHaveLength(2); // a refused message is not kept
 

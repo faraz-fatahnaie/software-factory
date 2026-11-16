@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { parseProposal, splitSuggestions, type Context, type Proposal, type ToolStep } from "./state";
 
 export type Shown = { name: string; size: number; url?: string };
-export type Msg = { who: "you" | "team"; text: string; files?: Shown[]; suggestions?: string[]; tools?: ToolStep[]; cost?: number; bad?: boolean; proposal?: Proposal; acted?: string };
+export type Msg = { who: "you" | "team"; text: string; files?: Shown[]; suggestions?: string[]; tools?: ToolStep[]; cost?: number; bad?: boolean; proposal?: Proposal; acted?: string; /** Not a message: the line where the conversation was compacted. What is above it the model now holds as a summary. */ divider?: { before: number; after: number; at: string } };
 /** One conversation as it is kept: the messages, and the Claude sessions it continues (its own, and for the manager one per role it consulted). */
 export type Stored = { messages: Msg[]; session?: string; subs?: Record<string, string>; /** How full the context was after the last reply; for the manager, also that of each role's side conversation. */ context?: Context; contexts?: Record<string, Context> };
 
@@ -61,6 +61,12 @@ export function appendChat(root: string, topic: string, messages: Msg[], session
   const c = readChat(root, topic);
   // A turn that was stopped reports no context: what was measured last still describes the session.
   return write(root, topic, { messages: [...c.messages, ...messages], session: sessions.session ?? c.session, subs: sessions.subs ?? c.subs, context: sessions.context ?? c.context, contexts: { ...c.contexts, ...sessions.contexts } });
+}
+
+/** The conversation was compacted: a divider is added, and its context is now what the compaction left (the window is unchanged). */
+export function markCompacted(root: string, topic: string, c: { before: number; after: number }, session?: string): Stored {
+  const now = readChat(root, topic);
+  return write(root, topic, { ...now, session: session ?? now.session, context: now.context ? { used: c.after, window: now.context.window } : undefined, messages: [...now.messages, { who: "team", text: "", divider: { ...c, at: new Date().toISOString() } }] });
 }
 
 /** A person pressed the button a reply proposed: the reply says how it went, and the outcome follows it as a message. */

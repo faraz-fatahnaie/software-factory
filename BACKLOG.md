@@ -4,8 +4,6 @@ The factory's intake queue. `factory run` takes the top item under Ready.
 Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
-- [ ] F-085 (P1) Clear and compact a conversation
-  A conversation menu with Compact and Clear, and the typed commands /clear and /compact (with an optional focus note). Compact runs Claude's own /compact on the session and leaves a divider with the size before and after; earlier messages stay readable, dimmed.
 - [ ] F-008 (P2) Release 2: Codex CLI runner
 - [ ] F-009 (P2) Release 2: API key vault in the macOS Keychain
 - [ ] F-010 (P2) Release 2: Ollama through a per-role base URL
@@ -164,3 +162,5 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Chat history lived in the browser (and in 1.0.1 only in the page), so it was lost with another browser, a port change or cleared site data. Keep each conversation in .factory/chats/, written by the server each turn; the page mirrors it.
 - [x] F-084 (P1) Show context usage in each conversation
   A meter in the conversation header: how full the context is (from the last reply's usage and the model's window), amber at 70%, red at 90%, with a hint to compact. For the manager, the side conversations on hover.
+- [x] F-085 (P1) Clear and compact a conversation
+  A conversation menu with Compact and Clear, and the typed commands /clear and /compact (with an optional focus note). Compact runs Claude's own /compact on the session and leaves a divider with the size before and after; earlier messages stay readable, dimmed.

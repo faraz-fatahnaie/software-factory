@@ -1,10 +1,10 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { parse } from "./backlog";
-import { chatArgs, chatTurn, managerTurn, resumeChat, stopChat, TOPICS } from "./chat";
+import { chatArgs, chatTurn, managerTurn, resumeChat, stopChat, TOPICS, compactTurn } from "./chat";
 import { loadConfig, managerOf, parseConfig, projectRoles, projectTeam } from "./config";
 import { parseProposal, type Context } from "./state";
-import { appendChat, clearChat, importChat, markActed, readChat, replyMsg } from "./chatlog";
+import { appendChat, clearChat, importChat, markActed, markCompacted, readChat, replyMsg } from "./chatlog";
 import { allEvents, report } from "./retro";
 import { supervisor, writeManager } from "./supervisor";
 import { openStore } from "./events";
@@ -391,6 +391,17 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
           if (route === "POST /api/chats/clear") { if (chatting.has(topic)) return json({ error: "a reply is on its way: stop it first" }, 409); clearChat(root, topic); return json({ messages: [] }); }
           if (route === "POST /api/chats/acted") return json(markActed(root, topic, body.index as number, body.ok === true, String(body.text ?? "")));
           if (route === "POST /api/chats/import") return json(importChat(root, topic, body.raw));
+          if (route === "POST /api/chats/compact") {
+            const session = readChat(root, topic).session;
+            if (!session) return json({ error: "There is nothing to compact yet: this conversation has not started." }, 409);
+            if (chatting.has(topic)) return json({ error: "a reply is on its way: wait for it, or stop it first" }, 409);
+            if (body.focus !== undefined && typeof body.focus !== "string") return json({ error: "focus: text" }, 400);
+            chatting.add(topic);
+            try {
+              const r = await compactTurn(root, { topic, session, focus: body.focus as string | undefined, model: body.model as string | undefined }, projectTeam(root));
+              return json(r.ok ? markCompacted(root, topic, r.compact!, r.session) : appendChat(root, topic, [{ who: "team", text: r.text, ...(r.status !== "stopped" && r.status !== "ok" && { bad: true }) }]));
+            } finally { chatting.delete(topic); }
+          }
         } catch (e) { return json({ error: (e as Error).message }, 400); }
       }
       if (route === "POST /api/chat") {

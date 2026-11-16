@@ -10,7 +10,7 @@ const LEGACY = "factory-chat:";
 export function mirror(mine: Chat | undefined, kept: Stored & { busy?: boolean }): Chat {
   const before = mine?.messages ?? [];
   return {
-    ...mine, session: kept.session, subs: kept.subs, context: kept.context, contexts: kept.contexts, busy: !!kept.busy, remote: !!kept.busy,
+    ...mine, session: kept.session, subs: kept.subs, context: kept.context, contexts: kept.contexts, compacting: false, busy: !!kept.busy, remote: !!kept.busy,
     messages: kept.messages.map((m, i) => (m.files && before[i]?.files ? { ...m, files: m.files.map((f, j) => (before[i]!.files![j]?.name === f.name ? { ...f, url: before[i]!.files![j]!.url } : f)) } : m)),
   };
 }

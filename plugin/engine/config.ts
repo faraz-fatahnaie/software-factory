@@ -95,10 +95,12 @@ export function parseConfig(raw: unknown): Config {
       else if (!MANAGER_RULES[k as keyof ManagerSettings](v)) errs.push(`manager.${k}: ${k === "autonomy" ? `one of ${AUTONOMY.join(", ")}` : "a number in range (parallel 1 to 8, recoveries 0 to 5, perTask and perDay in dollars, stall 5 to 240 minutes)"}`);
     }
   }
-  let roleNames: string[] = [];
-  try { roleNames = activeRoles(teamOf(c)); } catch (e) { errs.push(`team: ${(e as Error).message}`); }
+  let roleNames: string[] = [], known: string[] = [];
+  try { const team = teamOf(c); roleNames = activeRoles(team); known = Object.keys(team.roles); } catch (e) { errs.push(`team: ${(e as Error).message}`); }
+  // Model settings for a role of this team that no longer runs unattended are left over, not wrong: an update of the plugin can move a role's
+  // unattended work to another role (triage went from the Planner to the Technical Manager), and a project's config must still load.
   for (const name of Object.keys(c.roles ?? {}))
-    if (roleNames.length && !roleNames.includes(name)) errs.push(`roles.${name}: unknown role`);
+    if (roleNames.length && !roleNames.includes(name) && !known.includes(name)) errs.push(`roles.${name}: unknown role`);
   for (const role of roleNames) {
     const r = c.roles?.[role];
     if (!r) { errs.push(`roles.${role}: missing`); continue; }
@@ -135,7 +137,9 @@ export function loadConfig(dir: string): Config {
   const roles = { ...(raw?.roles ?? {}) };
   try {
     const team = teamOf(raw);
-    for (const name of activeRoles(team)) if (!roles[name] && team.roles[name]?.defaults) roles[name] = { runner: "claude", ...team.roles[name]!.defaults };
+    const active = activeRoles(team);
+    for (const name of active) if (!roles[name] && team.roles[name]?.defaults) roles[name] = { runner: "claude", ...team.roles[name]!.defaults };
+    for (const name of Object.keys(roles)) if (team.roles[name] && !active.includes(name)) delete roles[name]; // left over from before an update: nothing runs as this role now
   } catch { /* an invalid team is reported by parseConfig below */ }
   return parseConfig({ ...raw, roles });
 }
