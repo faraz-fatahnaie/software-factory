@@ -82,7 +82,7 @@ folded list under the reply.
 - **Keep typing.** A message sent while a reply is coming waits its turn. **Stop** ends a reply, and
   **Clear** (or typing `/clear`) starts a clean one. When a conversation gets long, **Compact** (or `/compact`,
   optionally followed by what to keep) makes the agent keep a summary instead of every message; her messages stay
-  on screen. Each conversation is kept in the project (`.factory/chats/`, never
+  on screen. Typing `/` lists the commands; arrow keys choose, Enter uses one. Each conversation is kept in the project (`.factory/chats/`, never
   committed), so it is still there after she closes the dashboard or opens it in another browser. A small meter
   under the person's name shows how full the conversation's context is.
 - **Any language.** Replies are formatted, and right-to-left text reads correctly.

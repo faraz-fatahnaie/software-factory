@@ -1,7 +1,7 @@
 // Talk: conversations with the people (robots) who hold each job. Checks: the factory's own commands, one button each.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Msg, Shown, Stored } from "../plugin/engine/chatlog";
-import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, stepsSummary, tokens, type Context, type Proposal, type ToolStep } from "../plugin/engine/state";
+import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, CHAT_COMMANDS, matchCommands, stepsSummary, tokens, type Context, type Proposal, type ToolStep } from "../plugin/engine/state";
 import { mirror } from "./chatstore";
 import { call } from "./data";
 import { Icon } from "./icons";
@@ -128,6 +128,8 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
   const [clearing, setClearing] = useState(false);
   useEffect(() => setClearing(false), [key]);
   const [dragging, setDragging] = useState(false);
+  const [pick, setPick] = useState(0); // which suggested command is highlighted
+  const [hushed, setHushed] = useState(""); // the text for which the person closed the suggestions (Esc): they stay closed until it changes
   const { info: manager, set: setManager, problem: managerProblem } = useManager([]);
   const end = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLTextAreaElement>(null);
@@ -230,6 +232,11 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
     </div>
   );
   const topic = topics.find((t) => t.key === key);
+  // Typing a slash suggests the commands, narrowed by what follows it, until a space starts the command's own words.
+  const slash = /^\/[a-z*-]*$/i.test(text) && hushed !== text ? matchCommands(text.slice(1), CHAT_COMMANDS) : null;
+  const picked = slash?.[Math.min(pick, slash.length - 1)];
+  /** Takes a suggestion. One that takes words of its own is written into the box, ready for them; one that does not is run. */
+  const take = (c: (typeof CHAT_COMMANDS)[number], run: boolean) => { setPick(0); if (c.args || !run) { setText(`/${c.name}${c.args ? " " : ""}`); if (!c.args) setHushed(`/${c.name}`); box.current?.focus(); } else send(`/${c.name}`); };
   const lastDivider = chat.messages.findLastIndex((m) => m.divider); // what is above it the agent holds as a summary: shown dimmed
   const long = !!chat.context && chat.context.used / chat.context.window >= 0.7;
   const role = topic?.role ?? (topic?.readOnly ? topic.key : "");
@@ -315,16 +322,36 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
           <form className="composer-box" onSubmit={(e) => { e.preventDefault(); send(text); }}>
             {chat.queued && <p className="queued" role="status"><span>Waiting to send: {chat.queued.message.slice(0, 80) || "attached files"}</span><button type="button" className="quiet" onClick={() => patch(key, (c) => ({ ...c, queued: undefined }))}>Cancel</button></p>}
             {pending.length > 0 && <ul className="files tray" aria-label="Attached files">{pending.map((p, j) => <FileChip key={j} f={{ name: p.file.name, size: p.file.size, url: p.url }} onRemove={() => detach(j)} />)}</ul>}
+            {slash && (
+              <div className="slash" id="slash-commands" role="listbox" aria-label="Commands">
+                {slash.map((c) => (
+                  <div key={c.name} id={`slash-${c.name}`} role="option" aria-selected={c === picked} className={c === picked ? "on" : ""} onMouseDown={(e) => { e.preventDefault(); take(c, true); }} onMouseEnter={() => setPick(slash.indexOf(c))}>
+                    <code>/{c.name}{c.args && <i> {c.args}</i>}</code><span>{c.hint}</span>
+                  </div>
+                ))}
+                {slash.length === 0 && <p className="note">No command matches. The commands are /compact and /clear.</p>}
+                {slash.length > 0 && <p className="note keys" aria-hidden="true">↑↓ to choose · Enter to use · Tab to complete · Esc to close</p>}
+              </div>
+            )}
             <textarea
               ref={box} rows={1} dir="auto" aria-label="Your message" placeholder={chat.messages.length ? "Your answer…" : "Or type your first message here…"} value={text} maxLength={20000}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(text); } else if (e.key === "Escape" && chat.busy && !text) stop(); }}
+              onChange={(e) => { setText(e.target.value); setPick(0); }}
+              aria-autocomplete="list" aria-controls={slash ? "slash-commands" : undefined} aria-activedescendant={picked ? `slash-${picked.name}` : undefined}
+              onKeyDown={(e) => {
+                if (slash?.length && !e.nativeEvent.isComposing) {
+                  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); setPick((p) => (Math.min(p, slash.length - 1) + (e.key === "ArrowDown" ? 1 : slash.length - 1)) % slash.length); return; }
+                  if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); take(picked!, false); return; }
+                  if (e.key === "Enter" && !e.shiftKey && text !== `/${picked!.name}`) { e.preventDefault(); take(picked!, true); return; } // a name typed in full goes on to be sent as it is
+                }
+                if (slash && e.key === "Escape") { e.preventDefault(); setHushed(text); return; }
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(text); } else if (e.key === "Escape" && chat.busy && !text) stop();
+              }}
               onPaste={(e) => { const files = [...e.clipboardData.files]; if (!files.length) return; e.preventDefault(); attach(files.map((f, i) => (f.name === "image.png" ? new File([f], `pasted-${new Date().toISOString().slice(11, 19).replace(/:/g, "")}${i ? `-${i}` : ""}.png`, { type: f.type }) : f))); }}
             />
             <div className="composer-bar">
               <input ref={picker} type="file" multiple hidden accept={ACCEPT} aria-label="Choose files to attach" tabIndex={-1} onChange={(e) => { attach([...(e.target.files ?? [])]); e.target.value = ""; }} />
               <button type="button" className="quiet icon" onClick={() => picker.current?.click()} aria-label="Attach files" title="Attach files (or drop them here, or paste a picture)"><Icon name="paperclip" size={18} /></button>
-              <span className="note grow">{text.length > 16000 ? `${text.length.toLocaleString()} / 20,000 characters` : text.startsWith("/") ? "Commands: /clear · /compact [what to keep]" : "Enter sends · Shift+Enter for a new line"}</span>
+              <span className="note grow">{text.length > 16000 ? `${text.length.toLocaleString()} / 20,000 characters` : "Enter sends · Shift+Enter for a new line"}</span>
               {chat.busy && !text.trim() && !pending.length
                 ? <button type="button" className="primary send" aria-label="Stop" title="Stop the reply (Esc)" onClick={stop}><Icon name="stop" size={16} /></button>
                 : <button className="primary send" disabled={!text.trim() && !pending.length} aria-label={chat.busy ? "Send after the reply" : "Send"} title={chat.busy ? "Send after the reply" : "Send"}><Icon name="up" size={18} /></button>}

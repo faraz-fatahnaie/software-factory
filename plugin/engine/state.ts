@@ -251,6 +251,22 @@ export function contextOf(last: { model?: string; usage?: Record<string, unknown
 /** "120k", "1M": a token count short enough for a header. */
 export const tokens = (n: number) => (n >= 1_000_000 ? `${+(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
 
+/** The commands a conversation's message box takes, as in Claude Code. `args` says what may follow the name. */
+export const CHAT_COMMANDS = [
+  { name: "compact", args: "[what to keep]", hint: "The agent keeps a summary of this conversation instead of every message" },
+  { name: "clear", args: "", hint: "Delete this conversation and start a new one" },
+] as const;
+/**
+ * The commands to suggest for what is typed after the slash. Loose on purpose: the letters only have to appear in that order ("cmp" and "pact" both find compact),
+ * and `*` stands for anything. A name that starts with what was typed comes first, then one that contains it, then the rest.
+ */
+export function matchCommands<T extends { name: string }>(typed: string, commands: readonly T[]): T[] {
+  const q = typed.toLowerCase().replace(/[^a-z*-]/g, "");
+  const loose = new RegExp(q.split("").map((c) => (c === "*" ? ".*" : c.replace("-", "\\-"))).join(".*"));
+  const rank = (n: string) => (n.startsWith(q) ? 0 : n.includes(q) ? 1 : 2);
+  return commands.map((c, i) => ({ c, i })).filter(({ c }) => loose.test(c.name)).sort((a, b) => rank(a.c.name) - rank(b.c.name) || a.i - b.i).map(({ c }) => c);
+}
+
 /** A reply that ends with `SUGGEST: …` lines: the reply without them, and up to three short messages the person could send next. */
 export function splitSuggestions(text: string): { text: string; suggestions: string[] } {
   const found: string[] = [];

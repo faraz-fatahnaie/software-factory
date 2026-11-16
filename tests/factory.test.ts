@@ -27,7 +27,7 @@ import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugi
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
 import { doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
-import { parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev, contextOf, tokens } from "../plugin/engine/state";
+import { parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev, contextOf, tokens, CHAT_COMMANDS, matchCommands } from "../plugin/engine/state";
 import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
 import { counts, lineDiff, marks, splitDiff, withGaps } from "../gui/linediff";
 import { gateIsPlaceholder, healthChecks, waitedLong } from "../plugin/engine/health";
@@ -2828,6 +2828,19 @@ test("conversations are kept on disk in the project: text only, capped, cleared 
   expect(measured).toMatchObject({ context: { used: 17_000, window: 200_000 }, contexts: { design: { used: 5000, window: 200_000 } } });
   expect(appendChat(root, "research", [{ who: "team", text: "Stopped." }]).context).toEqual({ used: 17_000, window: 200_000 });
   expect(unpack(JSON.stringify({ v: 1, session: "44444444-2222-3333-4444-555555555555", context: { used: "many", window: 0 }, contexts: { "../x": { used: 1, window: 2 } }, messages: [] }))).toEqual({ messages: [], session: "44444444-2222-3333-4444-555555555555", subs: undefined });
+
+  // The commands suggested while a slash is typed: loose matching, the closest first, and * for anything.
+  const names = (typed: string) => matchCommands(typed, CHAT_COMMANDS).map((c) => c.name);
+  expect(names("")).toEqual(["compact", "clear"]);
+  expect(names("c")).toEqual(["compact", "clear"]);
+  expect(names("cl")).toEqual(["clear"]);
+  expect(names("pact")).toEqual(["compact"]); // inside the name
+  expect(names("cmp")).toEqual(["compact"]); // the letters in order
+  expect(names("CL")).toEqual(["clear"]);
+  expect(names("*ar")).toEqual(["clear"]);
+  expect(names("c*t")).toEqual(["compact"]);
+  expect(names("help")).toEqual([]);
+  expect(matchCommands("a", [{ name: "data" }, { name: "add" }, { name: "plan" }]).map((c) => c.name)).toEqual(["add", "data", "plan"]); // starts with, then contains, then loose
 
   // What a browser kept before: taken over once, into an empty conversation only.
   const old = JSON.stringify({ v: 1, session: "33333333-2222-3333-4444-555555555555", messages: [{ who: "you", text: "from the browser" }] });

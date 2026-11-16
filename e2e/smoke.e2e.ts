@@ -206,11 +206,26 @@ try {
     // Long: a hint offers to compact. Typed commands: an unknown one is not sent, /compact (with what to keep) leaves a divider and dims what is above it.
     await page.locator(".ctx-hint").getByRole("button", { name: "Compact" }).waitFor();
     const draft = await box.inputValue();
+    // Typing a slash suggests the commands; what follows narrows them loosely; the keyboard chooses, completes and closes.
+    await box.fill("/");
+    const list = page.getByRole("listbox", { name: "Commands" });
+    assert.deepEqual(await list.getByRole("option").locator("code").allTextContents(), ["/compact [what to keep]", "/clear"]);
+    assert.equal(await box.getAttribute("aria-activedescendant"), "slash-compact");
+    await a11y(page, `${name} Talk commands`);
+    await box.press("ArrowDown");
+    assert.equal(await list.getByRole("option", { selected: true }).locator("code").textContent(), "/clear");
+    await box.press("Escape");
+    await list.waitFor({ state: "detached" });
     await box.fill("/help");
-    await page.getByText("Commands: /clear · /compact [what to keep]").waitFor({ state: "attached" }); // the line under the box is hidden at phone width
+    await list.getByText("No command matches").waitFor();
     await box.press("Enter");
     await page.getByRole("alert").filter({ hasText: "/help is not a command here" }).waitFor();
-    await box.fill("/compact keep the plan");
+    await box.fill("/pact"); // loose: the letters in order are enough
+    assert.deepEqual(await list.getByRole("option").locator("code").allTextContents(), ["/compact [what to keep]"]);
+    await box.press("Tab");
+    assert.equal(await box.inputValue(), "/compact ", `${name}: Tab completes the command, ready for what to keep`);
+    await list.waitFor({ state: "detached" });
+    await box.pressSequentially("keep the plan");
     await box.press("Enter");
     await page.locator(".compacted", { hasText: "Compacted · 148k → 9k tokens" }).waitFor({ timeout: 20_000 });
     await page.locator(".chat-head .ctx", { hasText: "5% of context" }).waitFor();
@@ -228,7 +243,7 @@ try {
     await page.getByRole("button", { name: "Send", exact: true }).click();
     await page.getByRole("button", { name: "Stop" }).click();
     await page.locator(".bubble.team", { hasText: "Stopped." }).waitFor({ timeout: 5000 });
-    await box.fill("/clear"); // the typed command asks the same question as the Clear button
+    await box.fill("/cl"); // Enter on a suggestion runs it: the typed command asks the same question as the Clear button
     await box.press("Enter");
     await a11y(page, `${name} Talk clearing`);
     await page.getByRole("button", { name: "Yes, clear it" }).click();
