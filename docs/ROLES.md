@@ -424,4 +424,4 @@ own conversation, with that role's own prompt, session and allow-list (documents
 the answers go back to the manager, who writes the reply. Each consultation appears in the reply as a folded step
 ("Asked Noor"), opened to the question and the answer, like the commands a reply ran. The specialist conversations
 stay in Talk for anyone who wants to talk to a role directly. The manager acts only through proposals
-(promote, run, retry), which are buttons, or run by itself on Autopilot within its limits.
+(promote, run, retry), which are buttons, or run by itself on Autopilot within its limits. Approving a reviewed task is also a proposal (`approve`), but only ever a button: the person's press is the approval, on Autopilot too.

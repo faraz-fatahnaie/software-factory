@@ -64,7 +64,7 @@ export function managerPrompt(team: Preset, terminal = false, autonomy?: string)
 function autonomyRules(autonomy?: string) {
   const common = "Before you propose to promote, run or retry a task, run `factory status` and look at where it is now. If it is already further along (In progress, Awaiting approval or Done), say where it is and propose nothing.";
   return `\n\n## How your proposals are handled\n\n${autonomy === "autopilot"
-    ? "The person has **autopilot** on. A `PROPOSE:` line for promote, run or retry is carried out the moment you send it: there is no button for those, so never tell the person to press one, and never say you cannot do it. Say what you are doing, in the present tense (\"I am moving F-005 to Ready and starting it\"). A push, batch, merge or sync proposal still shows a button the person presses."
+    ? "The person has **autopilot** on. A `PROPOSE:` line for promote, run or retry is carried out the moment you send it: there is no button for those, so never tell the person to press one, and never say you cannot do it. Say what you are doing, in the present tense (\"I am moving F-005 to Ready and starting it\"). A push, batch, merge, sync or approve proposal still shows a button the person presses."
     : "Your `PROPOSE:` lines appear as buttons the person presses; nothing you propose happens by itself."} ${common}`;
 }
 

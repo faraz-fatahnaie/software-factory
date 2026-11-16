@@ -46,11 +46,12 @@ const EFFORTS = [
   { value: "medium", label: "medium", hint: "Balanced" },
   { value: "high", label: "high", hint: "Thorough, but slower" },
 ];
-const PROPOSAL_BUTTON: Record<Proposal["kind"], string> = { push: "Push", batch: "Push together", merge: "Merge", sync: "Sync", promote: "Promote", run: "Run", retry: "Retry" };
+const PROPOSAL_BUTTON: Record<Proposal["kind"], string> = { push: "Push", batch: "Push together", merge: "Merge", sync: "Sync", promote: "Promote", run: "Run", retry: "Retry", approve: "Approve and land" };
 const PROPOSAL_ASK: Record<Proposal["kind"], (ids: string[]) => string> = {
   push: (ids) => (ids.length === 1 ? `Push ${ids[0]} to GitHub and open a pull request?` : `Push ${ids.join(", ")} to GitHub and open ${ids.length} pull requests?`),
   batch: (ids) => `Push ${ids.join(", ")} together, as one pull request?`,
   merge: (ids) => (ids.length === 1 ? `Merge ${ids[0]}'s pull request into main?` : `Merge the pull requests of ${ids.join(", ")} into main, in that order?`), sync: () => "Update from GitHub?",
+  approve: (ids) => (ids.length === 1 ? `Approve ${ids[0]} and land it? You have its review above.` : `Approve ${ids.join(", ")} and land them, in that order?`),
   promote: (ids) => `Move ${ids.join(", ")} to Ready, in that order?`, run: (ids) => `Run ${ids.join(", ")} now?`, retry: (ids) => `Try ${ids.join(", ")} again?`,
 };
 const toBase64 = (f: File) => new Promise<string>((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] ?? ""); r.onerror = () => no(r.error); r.readAsDataURL(f); });

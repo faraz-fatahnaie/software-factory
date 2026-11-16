@@ -2143,6 +2143,8 @@ test("manager: proposals are parsed by kind, ASK lines only name roles that can 
   expect(parseProposal("Do it.\nPROPOSE: promote F-001 F-002")).toEqual({ text: "Do it.", proposal: { kind: "promote", ids: ["F-001", "F-002"] } });
   expect(parseProposal("PROPOSE: retry F-003").proposal).toEqual({ kind: "retry", ids: ["F-003"] });
   expect(parseProposal("PROPOSE: sync").proposal).toEqual({ kind: "sync", ids: [] });
+  expect(parseProposal("Reviewed: fine.\nPROPOSE: approve F-005")).toEqual({ text: "Reviewed: fine.", proposal: { kind: "approve", ids: ["F-005"] } }); // a button: only the person's press approves
+  expect(parseProposal("PROPOSE: approve").proposal).toBeUndefined(); // it must name a task
   expect(parseProposal("PROPOSE: push F-001 F-002").proposal).toEqual({ kind: "push", ids: ["F-001", "F-002"] }); // everything that is waiting, with one yes
   expect(parseProposal(`PROPOSE: merge ${Array.from({ length: 9 }, (_, i) => `F-00${i + 1}`).join(" ")}`).proposal).toBeUndefined(); // but not nine
   expect(parseProposal("PROPOSE: sync F-001").proposal).toBeUndefined();
@@ -2505,7 +2507,7 @@ test("manager over HTTP: settings are read and changed; on autopilot a proposal 
   const bin = join(tmp(), "bin");
   mkdirSync(bin, { recursive: true });
   const result = (text: string) => JSON.stringify({ type: "result", subtype: "success", is_error: false, result: text, session_id: "11111111-1111-1111-1111-111111111111", total_cost_usd: 0.01, usage: {} });
-  writeFileSync(join(bin, "claude"), `#!/bin/sh\nprintf '%s\\n' '${result("Yes.\nPROPOSE: promote F-003")}'\n`);
+  writeFileSync(join(bin, "claude"), `#!/bin/sh\ncase "$2" in\n  "approve"*) printf '%s\\n' '${result("Reviewed, it is fine.\nPROPOSE: approve F-001")}';;\n  *) printf '%s\\n' '${result("Yes.\nPROPOSE: promote F-003")}';;\nesac\n`);
   chmodSync(join(bin, "claude"), 0o755);
   const path = process.env.PATH;
   process.env.PATH = `${bin}:${path}`;
@@ -2531,6 +2533,11 @@ test("manager over HTTP: settings are read and changed; on autopilot a proposal 
     expect(parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).find((i) => i.id === "F-003")!.section).toBe("Ready");
     expect(((await (await fetch(`${base}/api/manager`)).json()) as any).decisions[0].data).toMatchObject({ action: "promote", auto: true, by: "conversation" });
 
+    // Approving is the person's yes: even on autopilot it stays a button, and nothing is approved by the proposal itself.
+    const approving = (await (await post("/api/chat", { topic: "manager", message: "approve it" })).json()) as any;
+    expect(approving.executed).toBeUndefined();
+    expect(approving.text).toContain("PROPOSE: approve F-001");
+    expect(parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).find((i) => i.id === "F-001")!.section).toBe("Ready"); // not approved, not touched
     // A second proposal for what has already moved is not a failure: it says where the task is.
     const again = (await (await post("/api/chat", { topic: "manager", message: "yes, go again" })).json()) as any;
     expect(again.executed).toMatchObject({ ok: true, note: "F-003 is already in Ready; nothing to move." });

@@ -5,6 +5,7 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **Approve from the manager's chat.** After she reviews a task you can ask her to approve it: her reply ends with an **Approve and land** button, and only your press approves, even on autopilot. Before, she could only tell you to run a slash command. She still never approves, pushes, merges or deploys on her own.
 - **Fix: the manager no longer says she cannot do what she just did.** On autopilot she was still told her proposals show as buttons, so after moving a task to Ready and starting it she could tell you to "press the button" and that she "can't move it myself". She is now told how her proposals are handled (autopilot: promote, run and retry happen at once, in the present tense; assist: buttons), and to check where a task is with `factory status` before proposing. A second proposal for a task that has already moved is no longer shown as Failed: it says where the task is.
 
 ## 1.1.0

@@ -283,10 +283,10 @@ export const ATTACH_EXT = ["png", "jpg", "jpeg", "gif", "webp", "pdf", "ipynb", 
 export const ATTACH_MAX_FILES = 8, ATTACH_MAX_BYTES = 20 * 1024 * 1024;
 
 /** An action a conversation proposes. Only a button the person presses runs it. */
-export type Proposal = { kind: "push" | "batch" | "merge" | "sync" | "promote" | "run" | "retry"; ids: string[] };
+export type Proposal = { kind: "push" | "batch" | "merge" | "sync" | "promote" | "run" | "retry" | "approve"; ids: string[] };
 /** Takes the one `PROPOSE:` line out of a reply. A line that does not fit its kind (a sync names no task, everything else one to eight) is not a proposal, and stays in the text. */
 export function parseProposal(text: string): { text: string; proposal?: Proposal } {
-  const m = /^PROPOSE: (push|batch|merge|sync|promote|run|retry)((?: (?:F-\d+|batch-\d+(?:-\d+)?))*)[ \t]*$/m.exec(text);
+  const m = /^PROPOSE: (push|batch|merge|sync|promote|run|retry|approve)((?: (?:F-\d+|batch-\d+(?:-\d+)?))*)[ \t]*$/m.exec(text);
   if (!m) return { text };
   const kind = m[1] as Proposal["kind"], ids = m[2]!.trim() ? m[2]!.trim().split(" ") : [];
   const fits = kind === "sync" ? ids.length === 0 : kind === "batch" ? ids.length >= 2 && ids.length <= 8 && ids.every((i) => i.startsWith("F-")) : kind === "merge" ? ids.length >= 1 && ids.length <= 8 : ids.length >= 1 && ids.length <= 8 && ids.every((i) => i.startsWith("F-"));
