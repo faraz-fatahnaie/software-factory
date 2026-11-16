@@ -3,7 +3,14 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
-## Unreleased
+## 1.1.0
+
+**Before you update, two things change in your projects.** The Technical Manager (Tess) is on **autopilot by
+default**: while the dashboard is open she starts what you worked out in conversation and retries a stuck task, inside
+limits (one task at a time, $5 per task, $25 a day). A one-time notice in the dashboard says so, with a switch to
+assist or off (`factory manager assist|off`). And **run `factory team apply` once in each project** (or
+`/software-factory:doctor`, which says so) to create her role file. Nothing is pushed, merged or deployed without
+your yes, as before.
 
 - **Technical Manager (first step).** A new role, Tess, who will be the face of the team (you talk to her, and she asks
   the others and answers for them) and will run the work: triage, starting and watching tasks, explaining what
