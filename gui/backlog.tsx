@@ -359,6 +359,15 @@ function Panel(p: { behind?: number; busy: boolean; item: Item; run?: TaskRun; e
                 </section>
               )}
               {sec === "Blocked" && sending && <SendBack id={item.id} blocked builder={run?.stages.build?.role ?? "builder"} files={[]} stub={p.stub} act={act} done={() => setSending(false)} />}
+              {sec === "Awaiting approval" && (() => {
+                const done = [...all].reverse().find((e) => e.type === "manager.decision" && e.data?.action === "done");
+                return done && (
+                  <section className="bk-card" aria-label="What the manager says">
+                    <h3>Checked before it reached you</h3>
+                    <p>{String(done.data?.text ?? "")}</p>
+                  </section>
+                );
+              })()}
               {sec === "Blocked" && (() => {
                 const note = [...all].reverse().find((e) => e.type === "manager.note"), said = [...all].reverse().find((e) => e.type === "manager.decision");
                 return (note || said) && (

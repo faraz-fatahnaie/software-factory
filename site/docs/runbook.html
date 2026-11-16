@@ -149,7 +149,7 @@ to code on <code>main</code>, naming what is produced at every step.</p>
 </thead>
 <tbody>
 <tr><td><strong>Small and clear</strong></td><td><strong>Backlog → Add item</strong>, or <code>/software-factory:add &quot;…&quot;</code>. Add a description beginning <code>Acceptance:</code> and a priority.</td><td>The item already has its checks, so <strong>triage is skipped</strong>.</td></tr>
-<tr><td><strong>A loose idea</strong></td><td>The same, with no acceptance checks.</td><td><strong>Triage runs first</strong>: Idris classifies it (feature, bug, chore or docs), sizes it (and says how to split it if it is large), lists backlog items it overlaps, and writes the acceptance checks and any open questions. She does not design or write code.</td></tr>
+<tr><td><strong>A loose idea</strong></td><td>The same, with no acceptance checks.</td><td><strong>Triage runs first</strong>: Idris classifies it (feature, bug, chore or docs), sizes it (and says how to split it if it is large), lists backlog items it overlaps, and writes the acceptance checks and any open questions. She does not design or write code. If triage finds the idea too large for one task, or cannot say how to check it, the task stops there as <strong>not ready</strong>, before anything is specified or built: split it, or say in the item what done looks like, and run it again.</td></tr>
 <tr><td><strong>Big or unclear</strong></td><td>Talk → Mara (or Idris, <code>/software-factory:plan</code>)</td><td>A conversation that ends in several small tasks in dependency order, each with checks.</td></tr>
 </tbody>
 </table>

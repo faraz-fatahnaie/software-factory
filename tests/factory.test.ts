@@ -23,7 +23,7 @@ import { loadChats, pack, saveChats, signature, unpack } from "../gui/chatstore"
 import { estimate } from "../plugin/engine/estimate";
 import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugin/engine/vcs";
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
-import { followUps, needsTriage, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
+import { doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
 import { parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
 import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
@@ -31,6 +31,7 @@ import { counts, lineDiff, marks, splitDiff, withGaps } from "../gui/linediff";
 import { gateIsPlaceholder, healthChecks, waitedLong } from "../plugin/engine/health";
 
 const task = { id: "F-001", title: "First" };
+const TRIAGED = "- **Size**: small\n- **Acceptance**:\n  - it works\n- **Open questions**: None"; // what a triage that found the item ready replies
 
 test("config: rejects bad input and names every problem", () => {
   expect(parseConfig(config)).toEqual(config);
@@ -66,7 +67,7 @@ test("pipeline: fails over on rate limit, loops on gate failure and review, coll
     if (stage === "spec" && model === "sonnet") return { status: "rate_limited", text: "" };
     if (stage === "build") return { status: "ok", text: `build ${++builds} ${prompt.includes("feedback") ? "with feedback" : ""}` };
     if (stage === "review") return { status: "ok", text: builds < 3 ? "REQUEST_CHANGES\nrename x" : "APPROVE\n## Follow-ups\n- Add retry metrics\n## Notes\n- not this" };
-    return { status: "ok", text: stage };
+    return { status: "ok", text: stage === "triage" ? TRIAGED : stage };
   };
   const dir = tmp();
   const result = await runTask(task, { config, store, runner, gate: async () => ({ ok: ++gates > 1, output: "test failed" }), cwd: dir });
@@ -84,7 +85,7 @@ test("pipeline: stops on auth errors, exhausted chains and build limit", async (
   const run = (runner: Runner) => runTask(task, { config, store: openStore(":memory:"), runner, gate: shellGate(["false"]), cwd: tmp() });
   expect(await run(async () => ({ status: "auth", text: "" }))).toMatchObject({ ok: false, error: expect.stringMatching(/auth/) });
   expect(await run(async () => ({ status: "rate_limited", text: "" }))).toMatchObject({ ok: false, error: expect.stringMatching(/rate limited/) });
-  expect(await run(async () => ({ status: "ok", text: "APPROVE" }))).toMatchObject({ ok: false, error: expect.stringMatching(/3 attempts/) });
+  expect(await run(async ({ stage }) => ({ status: "ok", text: stage === "triage" ? TRIAGED : "APPROVE" }))).toMatchObject({ ok: false, error: expect.stringMatching(/3 attempts/) });
   expect(followUps("no heading\n- nope")).toEqual([]);
 });
 
@@ -462,7 +463,7 @@ test("pipeline: the planner triages ad-hoc items only; items with acceptance che
   const run = async (detail?: string) => {
     const store = openStore(":memory:");
     const stages: string[] = [], roles: string[] = [];
-    const runner: Runner = async ({ stage, role }) => { stages.push(stage); roles.push(role); return { status: "ok", text: stage === "review" ? "APPROVE" : stage }; };
+    const runner: Runner = async ({ stage, role }) => { stages.push(stage); roles.push(role); return { status: "ok", text: stage === "review" ? "APPROVE" : stage === "triage" ? TRIAGED : stage }; };
     const dir = tmp();
     const result = await runTask({ ...task, detail }, { config, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
     return { stages, roles, events: store.list(result.run).map((e) => `${e.stage}:${e.type}`), taskFile: readFileSync(join(dir, ".factory/runs", result.run, "task.md"), "utf8") };
@@ -698,7 +699,7 @@ test("pipeline: the scribe runs after an approved review, never blocks a task, c
     const runner: Runner = async ({ stage, prompt }) => {
       prompts[stage] = prompt;
       if (stage === "document" && opts.scribe === "fail") return { status: "error", text: "model unavailable" };
-      return { status: "ok", text: stage === "review" ? "APPROVE" : stage === "document" ? "## Chronicle\nDone." : stage };
+      return { status: "ok", text: stage === "review" ? "APPROVE" : stage === "document" ? "## Chronicle\nDone." : stage === "triage" ? TRIAGED : stage };
     };
     const cfg = { ...config, roles: { ...config.roles, scribe: { ...role, ...(opts.scribe === "off" && { enabled: false }) } } };
     const result = await runTask({ ...task, detail: "Acceptance: x" }, { config: cfg, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
@@ -706,7 +707,7 @@ test("pipeline: the scribe runs after an approved review, never blocks a task, c
   };
   const normal = await run();
   expect(normal.result.ok).toBe(true);
-  expect(normal.events.slice(-3)).toEqual(["document:stage.start", "document:stage.ok", "run:run.done"]);
+  expect(normal.events.slice(-4)).toEqual(["document:stage.start", "document:stage.ok", "manager:manager.decision", "run:run.done"]);
   const failed = await run({ scribe: "fail" });
   expect(failed.result.ok).toBe(true); // a task that passed review is not lost because the summary failed
   expect(failed.events).toContain("document:stage.skipped");
@@ -876,7 +877,7 @@ test("pipeline security gate: secrets block without a model; sensitive changes c
     const runner: Runner = async ({ stage, prompt, cwd }) => {
       if (stage === "build") { builds++; feedbackSeen.push(prompt); o.write?.(cwd, builds); }
       if (stage === "security") { securityRuns++; prompts.push(prompt); return { status: "ok", text: o.verdict!(securityRuns) }; }
-      return { status: "ok", text: stage === "review" ? "APPROVE" : stage };
+      return { status: "ok", text: stage === "review" ? "APPROVE" : stage === "triage" ? TRIAGED : stage };
     };
     const cfg = { ...config, ...(o.security && { security: o.security }), roles: { ...config.roles, "security-performance": { ...role, ...(o.roleOff && { enabled: false }) } } };
     const result = await runTask({ ...task, detail: "Acceptance: x" }, { config: cfg, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
@@ -1268,7 +1269,7 @@ test("pipeline in a lean team: the stage roles come from who holds each responsi
     const runner: Runner = async ({ stage, role, prompt, cwd }) => {
       calls.push({ stage, role, prompt });
       if (stage === "build") write?.(cwd);
-      return { status: "ok", text: stage === "review" ? "APPROVE" : stage === "security" ? verdict : stage === "extra" ? "Looks fine.\n\n## Follow-ups\n- Add alt text to the logo" : stage };
+      return { status: "ok", text: stage === "review" ? "APPROVE" : stage === "security" ? verdict : stage === "extra" ? "Looks fine.\n\n## Follow-ups\n- Add alt text to the logo" : stage === "triage" ? TRIAGED : stage };
     };
     const { dir } = repo(); // a git repository: the security gate reads what changed from git
     const result = await runTask(task, { config: cfg, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
@@ -1416,7 +1417,7 @@ test("verdicts are fail-closed: only the exact word on the first line approves",
 
 test("every stage prompt says to run commands one at a time", async () => {
   const prompts: string[] = [];
-  const runner: Runner = async ({ stage, prompt }) => { prompts.push(prompt); return { status: "ok", text: stage === "review" ? "APPROVE" : stage }; };
+  const runner: Runner = async ({ stage, prompt }) => { prompts.push(prompt); return { status: "ok", text: stage === "review" ? "APPROVE" : stage === "triage" ? TRIAGED : stage }; };
   const { dir } = repo();
   await runTask({ ...task, detail: "Acceptance: x" }, { config, store: openStore(":memory:"), runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
   expect(prompts.length).toBeGreaterThan(3);
@@ -1457,7 +1458,7 @@ test("regrouping keeps what each stage costs: a stage moved into another role ke
   // The pipeline uses a stage's own settings.
   const seen: Record<string, string> = {};
   const cfg = parseConfig({ gate: ["true"], team: { preset: "lean" }, roles: { ...configFor({ preset: "lean" }).roles, architect: { ...configFor({ preset: "lean" }).roles.architect, stages: { spec: { model: "haiku", effort: "low", fallback: [] } } } } });
-  const runner: Runner = async ({ stage, model, effort }) => { seen[stage] = `${model}/${effort}`; return { status: "ok", text: stage === "review" ? "APPROVE" : stage }; };
+  const runner: Runner = async ({ stage, model, effort }) => { seen[stage] = `${model}/${effort}`; return { status: "ok", text: stage === "review" ? "APPROVE" : stage === "triage" ? TRIAGED : stage }; };
   const { dir } = repo();
   await runTask({ ...task, detail: "Acceptance: x" }, { config: cfg, store: openStore(":memory:"), runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
   expect(seen.spec).toBe("haiku/low"); // the architect's spec stage uses its own setting
@@ -1972,7 +1973,7 @@ test("send back: a person's comments start a new round on the same spec, and onl
   expect(peopleFeedback({ feedback: " Use 30%. ", files: ["a.ts", "b.ts"] })).toBe("A person reviewed the earlier build and asked for changes. Address exactly this feedback and change nothing else:\n\n“Use 30%.”\n(about: a.ts, b.ts)");
   const store = openStore(":memory:");
   const stages: string[] = [], prompts: string[] = [];
-  const runner: Runner = async ({ stage, prompt }) => { stages.push(stage); if (stage === "build") prompts.push(prompt); return { status: "ok", text: stage === "review" ? "APPROVE" : stage }; };
+  const runner: Runner = async ({ stage, prompt }) => { stages.push(stage); if (stage === "build") prompts.push(prompt); return { status: "ok", text: stage === "review" ? "APPROVE" : stage === "triage" ? TRIAGED : stage }; };
   const dir = tmp();
   const result = await runTask(task, { config, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir, resume: { spec: "THE OLD SPEC", feedback: "Use 30%", files: ["deposit.ts"], round: 2 } });
   expect(result.ok).toBe(true);
@@ -2206,14 +2207,16 @@ function manage(settings: Partial<ManagerSettings> = {}, items: Item[] = [], bef
   const running = new Map<string, { kill(): void }>();
   const state = { items };
   let clock = Date.now() + 50;
+  const canTriage = { value: true };
   const sup = supervisor({
+    canTriage: () => canTriage.value,
     root: "/x", store, settings: () => ({ ...MANAGER_DEFAULTS, ...settings }), items: () => state.items, running, group: () => 1, every: 3_600_000, now: () => clock,
     launch: (id, argv) => { if (running.has(id)) return false; launched.push(argv); running.set(id, { kill: () => killed.push(id) }); return true; },
     cli: async (...argv) => { promoted.push(argv[1]!); state.items = state.items.map((i) => (i.id === argv[1] ? { ...i, section: "Ready" } : i)); return { code: 0, out: "" }; },
     explain: async () => "A plain explanation.", guide: async () => "Use the existing helper.", hasSpec: () => true,
   });
   const decisions = () => store.decisions("", 50).reverse().filter((e) => e.type === "manager.decision").map((e) => (e.data as { action: string }).action);
-  return { store, launched, killed, promoted, running, state, tick: sup.tick, decisions, advance: (ms: number) => { clock += ms; }, stop: sup.stop };
+  return { store, launched, killed, promoted, running, state, canTriage, tick: sup.tick, decisions, advance: (ms: number) => { clock += ms; }, stop: sup.stop };
 }
 const failed = (store: ReturnType<typeof openStore>, task: string, error: string) => store.emit({ run: "r1", task, stage: "run", type: "run.failed", data: error });
 
@@ -2313,6 +2316,47 @@ test("supervisor: a task that names the files a running task changes waits for i
   await m.tick();
   expect(m.launched).toContainEqual(["run", "F-002"]);
   m.stop();
+});
+
+test("ready and done (M14): triage stops an item that is too large or has no checks; a finished task carries what was checked", async () => {
+  expect(unready(TRIAGED)).toBe("");
+  expect(unready("**Type**: feature\n**Size**: large. Split it into login and signup.\n**Acceptance**:\n- works")).toMatch(/too large/);
+  expect(unready("Size: medium (not large)\nAcceptance: the total shows whole cents\nOpen questions: None")).toBe("");
+  expect(unready("Size: small\nAcceptance: None\nOpen questions: what should it do?")).toMatch(/acceptance checks/);
+  expect(unready("I could not tell what this is.")).toMatch(/acceptance checks/);
+  expect(doneNotes(["src/a.ts", "tests/a.test.ts"])).toEqual([]);
+  expect(doneNotes(["README.md"])).toEqual([]);
+  expect(doneNotes(["src/a.ts"])).toEqual(["Code changed, but no test was added or changed with it."]);
+  expect(doneNotes([])).toEqual(["Nothing was changed: check that the task was not already done."]);
+  expect(doneNotes([], true)).toEqual([]); // a round a person asked for is judged by them
+  expect(failureKind("Error: not ready: triage found it too large")).toBe("unready");
+  expect(decide("unready", 0, 0, { recoveries: 2, perTask: 5 }).action).toBe("escalate"); // trying again would not make it smaller
+
+  const run = async (triage: string, dod = false) => {
+    const store = openStore(":memory:"), stages: string[] = [], prompts: Record<string, string> = {};
+    const { dir } = repo();
+    if (dod) { mkdirSync(join(dir, "docs/plan"), { recursive: true }); writeFileSync(join(dir, "docs/plan/roadmap.md"), "# Roadmap\n\n## Definition of done\n- Privacy rules were checked.\n\n## Milestones\n- M1\n"); }
+    const runner: Runner = async ({ stage, prompt, cwd }) => { stages.push(stage); prompts[stage] = prompt; if (stage === "build") writeFileSync(join(cwd, "total.ts"), "export const total = 1;\n"); return { status: "ok", text: stage === "review" ? "APPROVE" : stage === "triage" ? triage : stage }; };
+    const result = await runTask(task, { config, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
+    return { result, stages, prompts, said: store.decisions("F-001").map((e) => e.data as { action: string; text: string; notes: string[] }) };
+  };
+  const large = await run("Size: large. Split it.\nAcceptance:\n- x works");
+  expect(large.result).toMatchObject({ ok: false, error: expect.stringMatching(/not ready: triage found it too large/) });
+  expect(large.stages).toEqual(["triage"]); // nothing was specified or built
+  const fine = await run(TRIAGED, true);
+  expect(fine.result.ok).toBe(true);
+  expect(fine.prompts.review).toContain("Privacy rules were checked."); // the reviewer checks against the project's definition of done
+  expect(fine.prompts.review).not.toContain("- M1");
+  expect(fine.said[0]).toMatchObject({ action: "done", notes: ["Code changed, but no test was added or changed with it."] });
+  expect(fine.said[0]!.text).toMatch(/F-001 is ready for your decision\..*against your definition of done.*\(\d+ files? changed\)\. To look at: Code changed/);
+
+  const hold = manage({}, [mItem("F-001", "Ready"), mItem("F-002", "Ready", "Acceptance: it works")]);
+  hold.canTriage.value = false; // a team with no triage: the loose idea waits, the item with checks starts
+  await hold.tick();
+  await hold.tick();
+  expect(hold.launched).toEqual([["run", "F-002"]]);
+  expect(hold.decisions()).toEqual(["hold", "start"]);
+  hold.stop();
 });
 
 test("supervisor: a stopped task is retried after a wait, guided after three failed builds, and handed to the person when it should not go on", async () => {
@@ -2584,20 +2628,20 @@ async function autopilot(mode: "ok" | "flaky" | "guided", gate: string[]) {
 test("autopilot, end to end with a stand-in claude: it starts a Ready task by itself and the task reaches your review", async () => {
   const r = await autopilot("ok", ["true"]);
   expect(r.where).toBe("Awaiting approval");
-  expect(r.actions).toEqual(["start"]);
+  expect(r.actions).toEqual(["start", "done"]);
   expect(existsSync(join(r.dir, ".worktrees/F-001/ok.txt"))).toBe(true);
 }, 120_000);
 
 test("autopilot, end to end: a task that stops on an error is tried again by itself and then reaches your review", async () => {
   const r = await autopilot("flaky", ["true"]);
   expect(r.where).toBe("Awaiting approval");
-  expect(r.actions).toEqual(["start", "wait", "retry"]);
+  expect(r.actions).toEqual(["start", "wait", "retry", "done"]);
 }, 120_000);
 
 test("autopilot, end to end: after three builds that do not pass the Builder is sent guidance, and the new round passes", async () => {
   const r = await autopilot("guided", ["test -f ok.txt"]);
   expect(r.where).toBe("Awaiting approval");
-  expect(r.actions).toEqual(["start", "guide"]);
+  expect(r.actions).toEqual(["start", "guide", "done"]);
 }, 120_000);
 
 test("the spec and the review come from the event log: a send-back keeps the spec, and a pull request carries both, even after the worktree is gone", () => {

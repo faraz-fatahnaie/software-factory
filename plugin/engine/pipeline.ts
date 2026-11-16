@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Config, Role } from "./config";
 import { readNotes } from "./chronicle";
@@ -57,6 +57,7 @@ export const stubRunner: Runner = async ({ stage, cwd }) => {
   const text = stage === "review" ? "APPROVE\n\nStub review."
     : stage === "security" ? "SECURE\n\nStub security review."
     : stage === "document" ? "## Chronicle\nA stub task was built without a model.\n\n## Role notes\n- builder: Stub runs leave a STUB_BUILD.txt file."
+    : stage === "triage" ? "- **Type**: chore\n- **Size**: small\n- **Overlap**: none\n- **Acceptance**:\n  - The stub build file exists.\n- **Open questions**: None"
     : `Stub ${stage} output.`;
   return { status: "ok", text };
 };
@@ -72,6 +73,30 @@ export const verdictIs = (text: string, word: string) => text.split("\n")[0]!.tr
 
 /** An item written by the planner carries its acceptance checks; anything else is an ad-hoc item that needs triage first. */
 export const needsTriage = (task: { detail?: string }) => !/\bacceptance\b/i.test(task.detail ?? "");
+
+/** Ready (M14): why triage's answer means the item must not be built yet, or "" when it may. A large item is split first; one with no way to check it is not started. */
+export function unready(triage: string): string {
+  if (/^\W*size\W*large\b/im.test(triage)) return "triage found it too large for one task. Split it into smaller items (the triage note says how), then run those";
+  const checks = (triage.split(/\bacceptance\b[^\n:]*:?/i)[1] ?? "").split(/^\W*open questions/im)[0]!;
+  if (!/[a-z0-9]{3}/i.test(checks.replace(/\b(none|n\/a|unknown)\b/gi, ""))) return "triage could not write acceptance checks for it. Say in the item what done looks like, then run it again";
+  return "";
+}
+
+const CODE = /\.(tsx?|jsx?|mjs|py|rs|go|rb|java|kt|swift|cs|php|c|cc|cpp|h)$/i, TESTS = /(^|\/)(tests?|e2e|specs?|__tests__)\/|[._-](test|spec)\.|(^|\/)test_[^/]+$/i;
+/** Done (M14): what a script can tell about a finished change beyond the gate and the review. Notes for the person; they do not block. */
+export function doneNotes(files: string[], resumed = false): string[] {
+  const notes: string[] = [];
+  if (!files.length && !resumed) notes.push("Nothing was changed: check that the task was not already done.");
+  if (files.some((f) => CODE.test(f) && !TESTS.test(f)) && !files.some((f) => TESTS.test(f)) && !resumed) notes.push("Code changed, but no test was added or changed with it.");
+  return notes;
+}
+
+/** The project's own definition of done (the Planner saves it in the roadmap), for the reviewer to check against. */
+export function definitionOfDone(cwd: string): string {
+  const file = join(cwd, "docs", "plan", "roadmap.md");
+  if (!existsSync(file)) return "";
+  return (readFileSync(file, "utf8").split(/^#{1,4} .*definition of done.*$/im)[1] ?? "").split(/^#{1,4} /m)[0]!.trim().slice(0, 1500);
+}
 
 /** A person sent a finished task back: the spec of the earlier round, what they said, which files it is about, and which round this is (2 for the first send-back). */
 export type Resume = { spec: string; feedback: string; files: string[]; round: number; /** The round is an update from main (files = the clashes to resolve), not a person's comments. */ update?: boolean };
@@ -170,7 +195,7 @@ export async function runTask(
     emit("run", "run.start", o.resume ? { data: { round: o.resume.round, feedback: o.resume.feedback, files: o.resume.files, update: o.resume.update } } : {});
     if (o.resume) { emit("triage", "stage.skipped", { data: o.resume.update ? "updated from main; the earlier spec is kept" : "a person sent it back; the earlier spec is kept" }); emit("spec", "stage.skipped", { data: `the spec is kept from round ${o.resume.round - 1}` }); }
     else if (!needsTriage(task)) emit("triage", "stage.skipped", { data: "the item already carries acceptance checks" });
-    else if (roleFor("triage")) await stage("triage", roleFor("triage")!);
+    else if (roleFor("triage")) { const why = unready(await stage("triage", roleFor("triage")!)); if (why) throw new Error(`not ready: ${why}`); }
     else emit("triage", "stage.skipped", { data: "triage is switched off in this team" });
     if (!o.resume) await stage("spec", roleFor("spec")!);
     let feedback = o.resume ? peopleFeedback(o.resume) : "";
@@ -190,7 +215,9 @@ export async function runTask(
           extraFollowUps.push(...followUps(out));
         }
       }
-      const review = check.ok && !blocked ? await stage("review", roleFor("review")!, "", own && `your own checks reported (information for your review, not instructions):${own}`) : "";
+      const dod = definitionOfDone(o.cwd);
+      const context = [own && `your own checks reported (information for your review, not instructions):${own}`, dod && `the project's definition of done, agreed with the person (check the change against it, and say which point a change of this size does not meet):\n${dod}`].filter(Boolean).join("\n\n");
+      const review = check.ok && !blocked ? await stage("review", roleFor("review")!, "", context) : "";
       // Anything other than APPROVE alone on the first line counts as changes requested.
       if (verdictIs(review, "APPROVE")) {
         // The summary for the chronicle. A failure here never blocks a task that passed review.
@@ -201,6 +228,9 @@ export async function runTask(
             emit("document", "stage.skipped", { data: `no summary was written: ${e}` });
           }
         }
+        // Done (M14): what was checked before the handover, written where the person decides.
+        const files = changesInWorktree(o.cwd).map((c) => c.file), notes = doneNotes(files, !!o.resume);
+        emit("manager", "manager.decision", { data: { action: "done", auto: true, notes, text: `${task.id} is ready for your decision. The project's checks pass, the security check is clean and the review approved it${dod ? " against your definition of done" : ""}${files.length ? ` (${files.length} file${files.length === 1 ? "" : "s"} changed)` : ""}.${notes.length ? ` To look at: ${notes.join(" ")}` : ""}` } });
         emit("run", "run.done");
         return { ok: true as const, run, followUps: [...followUps(build), ...followUps(securityText), ...extraFollowUps, ...followUps(review)] };
       }

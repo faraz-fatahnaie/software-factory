@@ -8,7 +8,7 @@ import { supervisor, writeManager } from "./supervisor";
 import { openStore } from "./events";
 import { healthChecks, type Health } from "./health";
 import { parseFind, roleSkills, SKILLS_CLI } from "./skills";
-import { chatPromptFor, holderOf } from "./team";
+import { chatPromptFor, holderOf, stageRole } from "./team";
 import { changeTeam, parseChanges, planTeam, presetList, teamView } from "./teamctl";
 import { commitDetail, fileDiff, graphInfo, sourceInfo } from "./source";
 import { BATCH, hasChecks, remoteUrl, vcsStatus } from "./vcs";
@@ -135,6 +135,7 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
     cli: async (...argv) => { const r = await sh(process.execPath, CLI, ...argv); return { code: r.code, out: `${r.out}${r.err}`.trim() }; },
     every: opts.every, scale: opts.scale,
     hasSpec: (id) => !!store.output(id, "spec"),
+    canTriage: () => !!stageRole(projectTeam(root), "triage"),
     explain: (id, error) => model(id, `Task ${id} stopped with this error:\n${error.slice(0, 1500)}\n\nLook at the task and its latest run with \`factory status\` and the run files. Say in plain words, in under 100 words, what happened, why, and what the person should do. Reply with that explanation only.`),
     guide: (id, error) => model(id, `Task ${id} was built three times and the checks or the review still did not pass. The last error:\n${error.slice(0, 1500)}\n\nRead the latest run's files (build.md, review.md) with \`factory status\` to find the run. Write guidance for the Builder: what keeps going wrong and what to change, in under 120 words, no code. Reply with the guidance only.`),
   }) : undefined;

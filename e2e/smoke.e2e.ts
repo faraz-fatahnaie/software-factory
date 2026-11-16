@@ -116,6 +116,7 @@ try {
     for (const tab of ["Summary", "Activity", "Spec", "Review"]) await page.getByRole("tab", { name: new RegExp(`^${tab}`) }).click();
     await page.getByRole("tab", { name: "Summary" }).click();
     await page.getByRole("heading", { name: /main has 1 new commit/ }).waitFor();
+    await page.getByLabel("What the manager says").getByText(/F-005 is ready for your decision/).waitFor(); // what was checked before the handover (M14)
     await page.getByRole("button", { name: "Update this task" }).waitFor();
     await a11y(page, `${name} task panel (needs you)`);
     await page.getByRole("button", { name: "Send back with comments" }).click();

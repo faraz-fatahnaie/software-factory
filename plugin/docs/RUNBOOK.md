@@ -114,7 +114,7 @@ Three ways, from smallest to biggest. They all end in the same place: a line in 
 | If the request is... | Do this | What happens |
 | --- | --- | --- |
 | **Small and clear** | **Backlog → Add item**, or `/software-factory:add "…"`. Add a description beginning `Acceptance:` and a priority. | The item already has its checks, so **triage is skipped**. |
-| **A loose idea** | The same, with no acceptance checks. | **Triage runs first**: Idris classifies it (feature, bug, chore or docs), sizes it (and says how to split it if it is large), lists backlog items it overlaps, and writes the acceptance checks and any open questions. She does not design or write code. |
+| **A loose idea** | The same, with no acceptance checks. | **Triage runs first**: Idris classifies it (feature, bug, chore or docs), sizes it (and says how to split it if it is large), lists backlog items it overlaps, and writes the acceptance checks and any open questions. She does not design or write code. If triage finds the idea too large for one task, or cannot say how to check it, the task stops there as **not ready**, before anything is specified or built: split it, or say in the item what done looks like, and run it again. |
 | **Big or unclear** | Talk → Mara (or Idris, `/software-factory:plan`) | A conversation that ends in several small tasks in dependency order, each with checks. |
 
 Dina types it in **Backlog → Add item** with priority P1. It becomes `F-007` in **Inbox**.

@@ -6,14 +6,16 @@ import { join } from "node:path";
 import { FROM_CONVERSATION, type Item } from "./backlog";
 import { type Autonomy, managerOf, type ManagerSettings, parseConfig } from "./config";
 import type { Store } from "./events";
+import { needsTriage } from "./pipeline";
 
-export type Kind = "rate_limit" | "auth" | "stopped" | "stalled" | "builds" | "setup" | "clash" | "other";
+export type Kind = "rate_limit" | "auth" | "stopped" | "stalled" | "builds" | "setup" | "clash" | "unready" | "other";
 /** What kind of failure an error message describes. These are the messages the pipeline and the CLI write. */
 export function failureKind(error: string): Kind {
   if (/every model in the .+ chain is rate limited/.test(error)) return "rate_limit";
   if (/: auth:|not logged in/i.test(error)) return "auth";
   if (/^Error: stopped|stopped by request/.test(error)) return "stopped";
   if (/no approved build after/.test(error)) return "builds";
+  if (/^Error: not ready:/.test(error)) return "unready";
   if (/setup failed/.test(error)) return "setup";
   if (/conflict markers remain|clash/.test(error)) return "clash";
   return "other";
@@ -27,6 +29,7 @@ export function decide(kind: Kind, tries: number, spent: number, s: { recoveries
   if (kind === "auth") return hand("The Claude command line is not logged in. Run `claude` in a terminal and log in, then retry the task.");
   if (kind === "stopped") return hand("It was stopped on purpose, so I left it alone.");
   if (kind === "setup") return hand("The project's setup or check command failed before any work started. That needs a person to fix the command.");
+  if (kind === "unready") return hand("Triage says it is not ready to build: it is too large for one task, or there is no way to check it. Split it or say what done looks like, then run it again.");
   if (kind === "clash") return hand("It clashes with changes on main. Use Update this task, so the Builder can resolve the clash.");
   if (tries >= s.recoveries) return hand(`It was already tried again ${tries} time${tries === 1 ? "" : "s"} and stopped again, so I am not trying a third way on my own.`);
   if (spent >= s.perTask) return hand(`It has used ${usd(spent)}, which is the limit for one task (${usd(s.perTask)}).`);
@@ -69,6 +72,8 @@ export type Ctx = {
   explain: (id: string, error: string) => Promise<string>;
   guide: (id: string, error: string) => Promise<string>;
   hasSpec: (id: string) => boolean;
+  /** Whether this team has someone to triage a loose idea. Without one, an item with no acceptance checks is not started on autopilot. */
+  canTriage?: () => boolean;
   every?: number;
   /** The clock; tests move it. */
   now?: () => number;
@@ -150,6 +155,8 @@ export function supervisor(ctx: Ctx) {
     const mine = (id: string): Item => ({ id, title: "", section: "", detail: "" });
     for (const it of ready) {
       if (room <= 0) break;
+      // M14: nothing is built without a way to check it. Triage writes the checks for a loose idea; with no triage in the team, the person does.
+      if (needsTriage(it) && ctx.canTriage?.() === false) { if (once(`ready:${it.id}`)) decide_(it.id, "hold", `${it.id} has no acceptance checks, and this team has no triage to write them. Add an "Acceptance:" line to the item, or run it yourself.`); continue; }
       const mineFiles = touching(it);
       const hit = busyFiles().map((b) => ({ id: b.id, file: overlap(mineFiles, b.files) })).find((h) => h.file);
       if (hit) { if (once(`clash:${it.id}:${hit.id}`)) decide_(it.id, "hold", `${it.id} waits for ${hit.id}: both are likely to change ${hit.file}.`, { with: hit.id }); continue; }
