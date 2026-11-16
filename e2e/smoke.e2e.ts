@@ -10,14 +10,16 @@ import { repo, seedStates } from "../tests/fixture";
 import { serve } from "../plugin/engine/server";
 
 const { dir, cli } = repo();
+// (Done before the seeded tasks are built, so that its commit is not "main moved on".) A skill installed in the project: a slash offers it next to the dashboard's own commands, and typing it sends it to the agent.
+mkdirSync(join(dir, ".claude", "skills", "hello"), { recursive: true });
+writeFileSync(join(dir, ".claude", "skills", "hello", "SKILL.md"), "---\nname: hello\ndescription: Greets the person. Use when asked to say hello.\n---\nSay hello.\n");
+cli("team", "apply"); // the role files exist before a skill is attached to one
+cli("skill", "attach", "hello", "--role", "technical-manager"); // attached to the manager's role only: other people's lists do not hold it
 seedStates(dir, cli);
 // A stand-in for the claude command for the Talk checks: one command with its output, then a reply that uses every kind of Markdown. It waits a moment so the box can be used while a reply is on its way.
 const bin = join(dir, ".factory", "fakebin");
 mkdirSync(bin, { recursive: true });
 const REPLY = "## Plan\\n\\nHere is **bold**, `code` and a [link](https://example.com).\\n\\n- one\\n- two\\n\\n| A | B |\\n|---|---|\\n| 1 | 2 |\\n\\n```ts\\nconst x = 1;\\n```\\n\\nسلام، این یک پیام فارسی است.";
-// A skill installed in the project: a slash offers it next to the dashboard's own commands, and typing it sends it to the agent.
-mkdirSync(join(dir, ".claude", "skills", "hello"), { recursive: true });
-writeFileSync(join(dir, ".claude", "skills", "hello", "SKILL.md"), "---\nname: hello\ndescription: Greets the person. Use when asked to say hello.\n---\nSay hello.\n");
 writeFileSync(join(bin, "claude"), `#!/bin/sh
 sleep 1.5
 printf '%s\\n' '{"type":"system","subtype":"init","slash_commands":["compact","clear","model","hello","review:security"]}'

@@ -4,7 +4,7 @@ import { parse } from "./backlog";
 import { chatArgs, chatTurn, managerTurn, resumeChat, stopChat, TOPICS, compactTurn, managerPrompt } from "./chat";
 import { loadConfig, managerOf, parseConfig, projectRoles, projectTeam } from "./config";
 import { parseProposal, type Context } from "./state";
-import { commandsFor } from "./commands";
+import { commandsFor, projectCommands } from "./commands";
 import { appendChat, clearChat, importChat, markActed, markCompacted, readChat, replyMsg } from "./chatlog";
 import { allEvents, report } from "./retro";
 import { supervisor, writeManager } from "./supervisor";
@@ -201,11 +201,13 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         const all = Object.keys(TOPICS).map((t) => [t, { ...readChat(root, t), busy: chatting.has(t) }] as const);
         return json(Object.fromEntries(all.filter(([, c]) => c.messages.length || c.busy)));
       }
+      // The role behind a conversation (the Guide has none): its attached skills are the skills its person may run.
+      const chatRole = (topic: string) => { const t = TOPICS[topic]; return !t || t.guide ? undefined : holderOf(projectTeam(root), t.ids[0]!); };
       if (route === "GET /api/chat/commands") {
         // What the message box offers when a slash is typed: the dashboard's commands, and what this conversation's agent can run.
         const topic = url.searchParams.get("topic") ?? "";
         if (!(topic in TOPICS)) return json({ error: "topic: one of " + Object.keys(TOPICS).join(", ") }, 400);
-        return json(commandsFor(root, readChat(root, topic).commands));
+        return json(commandsFor(root, readChat(root, topic).commands, chatRole(topic)));
       }
       if (route === "GET /api/chat/topics") {
         const team = projectTeam(root);
@@ -421,6 +423,10 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         try {
           if (typeof body.topic === "string" && body.topic !== "manager") resumeChat(body.topic);
           chatArgs(body as never, projectTeam(root)); // validate before spending anything
+          // A skill typed as /name runs as the message, so it is checked against what this person may run: one installed for other roles only is refused.
+          const typed = String(body.message ?? "").trim().match(/^\/([a-z0-9][\w.:-]*)/i)?.[1];
+          if (typed && typed !== "compact" && typed !== "clear" && projectCommands(root).some((c) => c.name === typed) && !commandsFor(root, undefined, chatRole(topic)).some((c) => c.name === typed))
+            return json({ error: `/${typed} is not attached to this role. Attach it in Studio (or with factory skill attach ${typed} --role <role>) to let this person use it.` }, 400);
           if (chatting.has(topic)) return json({ error: "a reply is already on its way in this conversation" }, 409);
           const attached = (body.attachments as { name: string; data: string }[] | undefined) ?? [];
           appendChat(root, topic, [{ who: "you", text: typeof body.shown === "string" && body.shown.trim() ? body.shown.slice(0, 20_000) : String(body.message), ...(attached.length && { files: attached.map((a) => ({ name: a.name, size: Buffer.from(a.data, "base64").length })) }) }]);

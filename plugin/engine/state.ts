@@ -251,6 +251,14 @@ export function contextOf(last: { model?: string; usage?: Record<string, unknown
 /** "120k", "1M": a token count short enough for a header. */
 export const tokens = (n: number) => (n >= 1_000_000 ? `${+(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
 
+/** A command the message box offers when a slash is typed. */
+export type Command = { name: string; hint: string; /** What may follow the name. A command that takes words is completed into the box; one that does not is run. */ args?: string; source: "dashboard" | "skill" | "command" | "plugin" };
+
+export const DASHBOARD_COMMANDS: Command[] = [
+  { name: "compact", args: "[what to keep]", hint: "Clear conversation history but keep a summary in context. Optional: /compact [what to keep]", source: "dashboard" },
+  { name: "clear", hint: "Clear conversation history and free up context", source: "dashboard" },
+];
+
 /**
  * The commands to suggest for what is typed after the slash. Loose on purpose: the letters only have to appear in that order ("cmp" and "pact" both find compact),
  * and `*` stands for anything. A name that starts with what was typed comes first, then one that contains it, then the rest.

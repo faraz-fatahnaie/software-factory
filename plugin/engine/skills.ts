@@ -44,28 +44,40 @@ export function parseFind(stdout: string): { pkg: string; installs: string; url:
   });
 }
 
-/** Installs a skills.sh package at project level and attaches it to one role. */
-export function addSkill(cwd: string, pkg: string, role: string) {
+/** A role list as typed: one role, or several separated by commas. Every one must be a role of this project's team. */
+export function parseRoles(cwd: string, text: string): string[] {
+  const roles = [...new Set(text.split(",").map((r) => r.trim()).filter(Boolean))];
+  const bad = roles.filter((r) => !projectRoles(cwd).includes(r));
+  if (!roles.length || bad.length) throw new Error(`--role must be one or more of ${projectRoles(cwd).join(", ")} (separated by commas)${bad.length ? `; not a role: ${bad.join(", ")}` : ""}`);
+  return roles;
+}
+
+/** Installs a skills.sh package at project level (once) and attaches it to each of the chosen roles. */
+export function addSkill(cwd: string, pkg: string, roles: string | string[]) {
   if (!PKG.test(pkg)) throw new Error(`skill must look like owner/repo@skill, got "${pkg}"`);
-  if (!projectRoles(cwd).includes(role)) throw new Error(`--role must be one of ${projectRoles(cwd).join(", ")}`);
+  const chosen = parseRoles(cwd, Array.isArray(roles) ? roles.join(",") : roles);
   // argv array, no shell: the package string is never interpreted.
   const p = Bun.spawnSync(["npx", "-y", SKILLS_CLI, "add", pkg, "-a", "claude-code", "-y"], {
     cwd,
     stdio: ["ignore", "inherit", "inherit"],
   });
   if (p.exitCode !== 0) throw new Error(`skills add failed for ${pkg}`);
-  const file = join(cwd, ".claude", "agents", `${role}.md`);
-  writeFileSync(file, attachSkill(readFileSync(file, "utf8"), pkg.split("@")[1]!));
+  for (const role of chosen) {
+    const file = join(cwd, ".claude", "agents", `${role}.md`);
+    writeFileSync(file, attachSkill(readFileSync(file, "utf8"), pkg.split("@")[1]!));
+  }
 }
 
 /** Attaches or detaches a skill that is already installed in this project. */
-export function setSkill(cwd: string, action: "attach" | "detach", skill: string, role: string) {
+export function setSkill(cwd: string, action: "attach" | "detach", skill: string, roles: string | string[]) {
   if (!/^[A-Za-z0-9][\w.:-]*$/.test(skill)) throw new Error(`bad skill name "${skill}"`);
-  if (!projectRoles(cwd).includes(role)) throw new Error(`--role must be one of ${projectRoles(cwd).join(", ")}`);
+  const chosen = parseRoles(cwd, Array.isArray(roles) ? roles.join(",") : roles);
   if (action === "attach" && !existsSync(join(cwd, ".claude", "skills", skill, "SKILL.md")))
-    throw new Error(`${skill} is not installed here; use: factory skill add <owner/repo@${skill}> --role ${role}`);
-  const file = join(cwd, ".claude", "agents", `${role}.md`);
-  writeFileSync(file, (action === "attach" ? attachSkill : detachSkill)(readFileSync(file, "utf8"), skill));
+    throw new Error(`${skill} is not installed here; use: factory skill add <owner/repo@${skill}> --role ${chosen[0]}`);
+  for (const role of chosen) {
+    const file = join(cwd, ".claude", "agents", `${role}.md`);
+    writeFileSync(file, (action === "attach" ? attachSkill : detachSkill)(readFileSync(file, "utf8"), skill));
+  }
 }
 
 /** Searches skills.sh through the pinned CLI. Returns packages with their install counts and review pages. */

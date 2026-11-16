@@ -12,13 +12,10 @@
 // the model, the permissions or the settings belong to the dashboard and `factory.config.json`.
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { roleSkills } from "./skills";
 
-export type Command = { name: string; hint: string; /** What may follow the name. A command that takes words is completed into the box; one that does not is run. */ args?: string; source: "dashboard" | "skill" | "plugin" };
-
-export const DASHBOARD_COMMANDS: Command[] = [
-  { name: "compact", args: "[what to keep]", hint: "Clear conversation history but keep a summary in context. Optional: /compact [what to keep]", source: "dashboard" },
-  { name: "clear", hint: "Clear conversation history and free up context", source: "dashboard" },
-];
+export { DASHBOARD_COMMANDS, type Command } from "./state"; // defined there: the page imports them, and this file reads the disk
+import { DASHBOARD_COMMANDS, type Command } from "./state";
 
 const NAME = /^[a-z0-9][\w.:-]{0,79}$/i;
 /** One short line: the first sentence, cut to fit a row. */
@@ -33,24 +30,29 @@ function front(md: string): Record<string, string> {
 /** The skills and commands installed in the project: `.claude/skills/<name>/SKILL.md` and `.claude/commands/**.md`. One a person cannot call is left out. */
 export function projectCommands(root: string): Command[] {
   const out: Command[] = [];
-  const add = (name: string, file: string) => {
+  const add = (name: string, file: string, source: "skill" | "command") => {
     let f: Record<string, string>;
     try { f = front(readFileSync(file, "utf8").slice(0, 8000)); } catch { return; }
     const n = f.name && NAME.test(f.name) ? f.name : name;
     if (!NAME.test(n) || f["user-invocable"] === "false" || out.some((c) => c.name === n)) return;
-    out.push({ name: n, hint: short(f.description ?? "") || "A skill installed in this project", ...(f["argument-hint"] && { args: f["argument-hint"].slice(0, 60) }), source: "skill" });
+    out.push({ name: n, hint: short(f.description ?? "") || "A skill installed in this project", ...(f["argument-hint"] && { args: f["argument-hint"].slice(0, 60) }), source });
   };
   const skills = join(root, ".claude", "skills");
-  if (existsSync(skills)) for (const d of readdirSync(skills).sort()) if (existsSync(join(skills, d, "SKILL.md"))) add(d, join(skills, d, "SKILL.md"));
+  if (existsSync(skills)) for (const d of readdirSync(skills).sort()) if (existsSync(join(skills, d, "SKILL.md"))) add(d, join(skills, d, "SKILL.md"), "skill");
   const walk = (dir: string, prefix: string) => {
     for (const e of readdirSync(dir).sort()) {
       const p = join(dir, e);
       if (statSync(p).isDirectory()) walk(p, `${prefix}${e}:`);
-      else if (e.endsWith(".md")) add(`${prefix}${e.slice(0, -3)}`, p);
+      else if (e.endsWith(".md")) add(`${prefix}${e.slice(0, -3)}`, p, "command");
     }
   };
   if (existsSync(join(root, ".claude", "commands"))) walk(join(root, ".claude", "commands"), "");
   return out;
+}
+
+/** The skills attached to a role: the list in its role file. undefined when the role has no file (a role that only talks has none, so skills cannot be attached to it yet). */
+export function roleSkillsOf(root: string, role: string): string[] | undefined {
+  try { return /^[\w-]+$/.test(role) ? roleSkills(readFileSync(join(root, ".claude", "agents", `${role}.md`), "utf8")) : undefined; } catch { return undefined; }
 }
 
 /** The names a Claude Code session reports it can run, from the `init` line of its stream. Checked: they are shown and typed back. */
@@ -58,13 +60,17 @@ export const reportedBy = (init: { slash_commands?: unknown } | undefined): stri
   Array.isArray(init?.slash_commands) ? [...new Set(init.slash_commands.filter((n): n is string => typeof n === "string" && NAME.test(n)))].slice(0, 400) : undefined;
 
 /**
- * What to offer in one conversation: the dashboard's commands, then the project's skills and commands, then what plugins bring.
+ * What to offer in one conversation: the dashboard's commands, then the skills attached to this conversation's role and the project's commands, then what plugins bring.
+ * A skill is offered only to the roles it is attached to (Studio, or `factory skill attach`), so each person's list holds what is theirs.
+ * A role that only talks has no role file to attach to yet, so it is offered every skill; a conversation with no role (the Guide) is offered none.
  * `reported` is what the conversation's agent last said it can run; once there is one, a skill it does not report is left out
  * (it would not run), and plugin commands (named `plugin:command`) are taken from it.
  */
-export function commandsFor(root: string, reported?: string[]): Command[] {
+export function commandsFor(root: string, reported?: string[], role?: string): Command[] {
   const taken = new Set(DASHBOARD_COMMANDS.map((c) => c.name));
-  const mine = projectCommands(root).filter((c) => !taken.has(c.name) && (!reported || reported.includes(c.name)));
+  const attached = role ? roleSkillsOf(root, role) : [];
+  const allowed = (c: Command) => c.source === "command" || (!!role && (attached === undefined || attached.includes(c.name)));
+  const mine = projectCommands(root).filter((c) => !taken.has(c.name) && allowed(c) && (!reported || reported.includes(c.name)));
   for (const c of mine) taken.add(c.name);
   const plugins = (reported ?? []).filter((n) => n.includes(":") && !taken.has(n)).sort().map((n): Command => ({ name: n, hint: `From the ${n.split(":")[0]} plugin`, source: "plugin" }));
   return [...DASHBOARD_COMMANDS, ...mine, ...plugins];

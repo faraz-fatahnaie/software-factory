@@ -188,7 +188,7 @@ async function main([cmd, ...args]: string[]) {
     else setSkill(root, action, skill, role);
     // Committed, because task worktrees branch from HEAD: an uncommitted skill or role file never reaches a run.
     commitPaths(`skills: ${action} ${skill} for ${role}`, ".claude", ...(existsSync(join(root, "skills-lock.json")) ? ["skills-lock.json"] : []));
-    return console.log(`${action === "detach" ? "detached" : "attached"} ${skill} ${action === "detach" ? "from" : "to"} ${role}`);
+    return console.log(`${action === "detach" ? "detached" : "attached"} ${skill} ${action === "detach" ? "from" : "to"} ${role.split(",").join(", ")}`);
   }
 
   if (cmd === "serve") {

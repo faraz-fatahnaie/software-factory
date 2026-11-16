@@ -335,6 +335,9 @@ button.danger-btn { background: var(--bad); border-color: var(--bad); color: var
 .facts { list-style: none; padding: 4px 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--inset); }
 .facts li { padding: 8px 0; }
 .facts li + li { border-top: 1px solid var(--line); }
+.who { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.who legend { width: 100%; padding: 0; }
+.who label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 .skills { border: 1px solid var(--line); border-radius: var(--r-md); margin: 0 0 12px; padding: 8px 14px; background: var(--tile); }
 .skills p, .skills form { margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .skill-search { display: flex; gap: 8px; align-items: center; }

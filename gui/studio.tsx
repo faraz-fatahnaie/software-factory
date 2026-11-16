@@ -170,14 +170,15 @@ function RoleSkills({ role, skills, locked, changed, setError }: { role: string;
   const [found, setFound] = useState<Found[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [confirming, setConfirming] = useState(""); // the result whose install awaits a yes
+  const [forRoles, setForRoles] = useState<string[]>([role]); // who gets it: this role, and any others ticked
   const [limit, setLimit] = useState(10); // a search can return a hundred; ten at a time keeps the page short
   const [busy, setBusy] = useState("");
-  useEffect(() => { setFound(null); setQuery(""); setConfirming(""); setLimit(10); }, [role]);
+  useEffect(() => { setFound(null); setQuery(""); setConfirming(""); setLimit(10); setForRoles([role]); }, [role]);
   const attached = skills.roles[role] ?? [];
   const clear = () => { setQuery(""); setFound(null); setShown(""); setConfirming(""); setLimit(10); };
-  const change = async (action: string, skill: string) => {
+  const change = async (action: string, skill: string, roles: string[] = [role]) => {
     setBusy(`${action} ${skill}…`);
-    const r = await post("/api/skill", { action, skill, role });
+    const r = await post("/api/skill", { action, skill, role: roles.join(",") });
     setBusy(""); setConfirming("");
     setError(r.ok ? "" : r.error);
     await changed();
@@ -233,9 +234,17 @@ function RoleSkills({ role, skills, locked, changed, setError }: { role: string;
                   <div className="grow">
                     <b>{name}</b> <span className="note">{repo} · {f.installs} installs</span>
                     {confirming === f.pkg && <p className="warn-note" role="alert">A skill is third-party instructions your agents will follow. <a href={f.url} target="_blank" rel="noreferrer">Review it on skills.sh</a> first.</p>}
+                    {confirming === f.pkg && (
+                      <fieldset className="who" aria-label="Who gets this skill">
+                        <legend className="note">Who gets it? Only these people can use it.</legend>
+                        {Object.keys(skills.roles).map((r) => (
+                          <label key={r}><input type="checkbox" checked={forRoles.includes(r)} onChange={(e) => setForRoles((l) => (e.target.checked ? [...l, r] : l.filter((x) => x !== r)))} /> {personaFor(r).name}</label>
+                        ))}
+                      </fieldset>
+                    )}
                   </div>
                   {confirming === f.pkg ? (
-                    <span className="row gap"><button className="primary" onClick={() => change("add", f.pkg)}>Install and attach</button><button className="quiet" onClick={() => setConfirming("")}>Cancel</button></span>
+                    <span className="row gap"><button className="primary" disabled={!forRoles.length} onClick={() => change("add", f.pkg, forRoles)}>Install and attach</button><button className="quiet" onClick={() => setConfirming("")}>Cancel</button></span>
                   ) : (
                     <span className="row gap"><a href={f.url} target="_blank" rel="noreferrer">Review</a><button disabled={done || attached.includes(name)} onClick={() => setConfirming(f.pkg)}>{done ? "Installed" : "Install"}</button></span>
                   )}

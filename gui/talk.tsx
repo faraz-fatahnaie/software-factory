@@ -1,8 +1,7 @@
 // Talk: conversations with the people (robots) who hold each job. Checks: the factory's own commands, one button each.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Msg, Shown, Stored } from "../plugin/engine/chatlog";
-import { DASHBOARD_COMMANDS, type Command } from "../plugin/engine/commands";
-import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, matchCommands, stepsSummary, tokens, type Context, type Proposal, type ToolStep } from "../plugin/engine/state";
+import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, matchCommands, stepsSummary, tokens, type Context, type Proposal, type ToolStep, DASHBOARD_COMMANDS, type Command } from "../plugin/engine/state";
 import { mirror } from "./chatstore";
 import { call } from "./data";
 import { Icon } from "./icons";

@@ -1368,7 +1368,7 @@ test("factory team: choose a preset at init, switch, resize, regroup, rename and
   expect(p.config().roles.historian).toEqual({ runner: "claude", model: "haiku", effort: "low", fallback: ["sonnet"] });
   expect(p.config().roles.scribe).toBeUndefined();
   expect(readFileSync(join(p.dir, ".claude/agents/historian.md"), "utf8")).toMatch(/^---\nname: historian\n[\s\S]*skills:\n  - tdd\n---/); // attached skills moved with it
-  expect(p.cli("skill", "attach", "tdd", "--role", "scribe").out).toMatch(/--role must be one of .*historian/); // roles follow the team
+  expect(p.cli("skill", "attach", "tdd", "--role", "scribe").out).toMatch(/--role must be one or more of .*historian/); // roles follow the team
   expect(p.cli("team", "title", "tester", "QA Lead").out).toContain("● QA Lead (tester)");
   expect(p.cli("team", "move", "V3", "--to", "reviewer").out).toMatch(/created|rebuilt|Reviewer/);
   expect(p.cli("team", "off", "O3", "S6").out).toContain("Switched off: O3 S6");
@@ -2859,14 +2859,20 @@ test("conversations are kept on disk in the project: text only, capped, cleared 
   expect(projectCommands(proj)).toEqual([
     { name: "clear", hint: "A skill that takes a dashboard command's name.", source: "skill" },
     { name: "tdd", hint: "Drives development with tests.", args: "[what to build]", source: "skill" },
-    { name: "git:sync", hint: "A skill installed in this project", source: "skill" },
+    { name: "git:sync", hint: "A skill installed in this project", source: "command" },
   ]);
   expect(projectCommands(tmp())).toEqual([]);
-  expect(commandsFor(proj).map((c) => c.name)).toEqual(["compact", "clear", "tdd", "git:sync"]); // before a first reply: what is installed; the dashboard's own name wins
+  expect(commandsFor(proj).map((c) => c.name)).toEqual(["compact", "clear", "git:sync"]); // no role (the Guide): no skills, but the project's own commands
+  expect(commandsFor(proj, undefined, "planner").map((c) => c.name)).toEqual(["compact", "clear", "tdd", "git:sync"]); // a role with no role file cannot have skills attached: it is offered all, and the dashboard's own name wins
+  mkdirSync(join(proj, ".claude/agents"), { recursive: true });
+  writeFileSync(join(proj, ".claude/agents/builder.md"), "---\nname: builder\ndescription: x\nskills:\n  - tdd\n---\n");
+  writeFileSync(join(proj, ".claude/agents/reviewer.md"), "---\nname: reviewer\ndescription: x\n---\n");
+  expect(commandsFor(proj, undefined, "builder").map((c) => c.name)).toEqual(["compact", "clear", "tdd", "git:sync"]); // attached to this role
+  expect(commandsFor(proj, undefined, "reviewer").map((c) => c.name)).toEqual(["compact", "clear", "git:sync"]); // a role with a file and nothing attached: none
   const said = reportedBy({ slash_commands: ["compact", "model", "tdd", "review:security", "review:security", "bad name", 7, "../x"] })!;
   expect(said).toEqual(["compact", "model", "tdd", "review:security"]); // names only, each once, nothing that is not a name
   expect(reportedBy({})).toBeUndefined();
-  expect(commandsFor(proj, said).map((c) => `${c.name} (${c.source})`)).toEqual(["compact (dashboard)", "clear (dashboard)", "tdd (skill)", "review:security (plugin)"]); // the agent's built-ins (model) stay out; a skill it does not report would not run
+  expect(commandsFor(proj, said, "builder").map((c) => `${c.name} (${c.source})`)).toEqual(["compact (dashboard)", "clear (dashboard)", "tdd (skill)", "review:security (plugin)"]); // the agent's built-ins (model) stay out; a skill it does not report would not run
   expect(unpack(JSON.stringify({ v: 1, commands: ["tdd", "../x", 5], messages: [] }))!.commands).toEqual(["tdd"]);
 
   // What a browser kept before: taken over once, into an empty conversation only.
@@ -2907,7 +2913,7 @@ test("conversations over HTTP: each turn is written before it is answered, a rel
   chmodSync(join(bin, "claude"), 0o755);
   const path = process.env.PATH;
   process.env.PATH = `${bin}:${path}`;
-  const { dir } = repo();
+  const { dir, cli } = repo();
   const server = await serve(dir, 0);
   const base = `http://127.0.0.1:${server.port}`;
   const post = async (p: string, body: unknown) => { const r = await fetch(`${base}${p}`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify(body) }); return { status: r.status, data: await r.json() as any }; };
@@ -2928,7 +2934,15 @@ test("conversations over HTTP: each turn is written before it is answered, a rel
     expect(first.data.chat.messages).toEqual([{ who: "you", text: "Hi", files: [{ name: "note.txt", size: 5 }] }, expect.objectContaining({ who: "team", text: "Hello.", suggestions: ["Tell me more"], cost: 0.01 })]);
     expect(first.data.chat.context).toEqual({ used: 40_000, window: 200_000 });
     expect(await offered("plan")).toEqual(["compact", "clear", "tdd", "review:security"]); // after one: what its agent reports, with the plugin's command and without its built-ins
-    expect(await offered("design")).toEqual(["compact", "clear", "tdd", "unreported"]); // each conversation has its own // 20% of the context, as of this reply
+    expect(await offered("design")).toEqual(["compact", "clear", "tdd", "unreported"]); // the Architect has no role file in this project yet: a role with nothing to attach to is offered all
+    writeFileSync(join(dir, ".claude/agents/architect.md"), "---\nname: architect\ndescription: x\ntools: Read\n---\nDesign it.\n");
+    expect(await offered("design")).toEqual(["compact", "clear"]); // now it has a file, and no skill attached: each conversation has its own
+    expect((await post("/api/chat", { topic: "design", message: "/tdd now" })).data.error).toMatch(/not attached to this role/); // a skill for other roles only is not run here
+    expect(cli("skill", "attach", "tdd", "--role", "architect,builder").out).toMatch(/attached tdd to architect, builder/); // several roles at once
+    expect(cli("skill", "attach", "tdd", "--role", "architect,nobody").out).toMatch(/not a role: nobody/); // all or nothing
+    expect(await offered("design")).toEqual(["compact", "clear", "tdd"]);
+    expect((await post("/api/chat", { topic: "design", message: "/tdd now" })).status).toBe(200);
+    await post("/api/chats/clear", { topic: "design" }); // so the Design conversation starts empty again below // 20% of the context, as of this reply
     expect((await all()).plan).toMatchObject({ busy: false, session: "11111111-1111-1111-1111-111111111111", context: { used: 40_000, window: 200_000 } }); // what a reload, another browser or another port reads
     expect(JSON.parse(readFileSync(join(dir, ".factory/chats/plan.json"), "utf8")).messages).toHaveLength(2);
     // Compact: Claude's own /compact on the same session, with the person's note on what to keep; a divider marks it and the context is what was left.
