@@ -422,6 +422,7 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
           json({ ...out, chat: appendChat(root, topic, [replyMsg(out)], { session: out.session, subs: out.sessions, context: out.context, contexts: out.contexts, commands: out.commands }) });
         try {
           if (typeof body.topic === "string" && body.topic !== "manager") resumeChat(body.topic);
+          if (topic === "manager") body.autonomy = managerOf(loadConfig(root)).autonomy; // she is told how her proposals are handled: the page is not asked
           chatArgs(body as never, projectTeam(root)); // validate before spending anything
           // A skill typed as /name runs as the message, so it is checked against what this person may run: one installed for other roles only is refused.
           const typed = String(body.message ?? "").trim().match(/^\/([a-z0-9][\w.:-]*)/i)?.[1];
@@ -438,11 +439,23 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
           const { proposal, text } = out.ok ? parseProposal(out.text) : { proposal: undefined, text: out.text };
           if (!proposal || !["promote", "run", "retry"].includes(proposal.kind) || managerOf(loadConfig(root)).autonomy !== "autopilot") return done(out);
           let ok = true, note = "";
+          const where = (id: string) => items().find((i) => i.id === id)?.section;
           if (proposal.kind === "promote") {
-            for (const id of proposal.ids) { const r = await sh(process.execPath, CLI, "promote", id); if (r.code !== 0) { ok = false; note = `${r.out}${r.err}`.trim(); break; } }
-            note ||= `Moved ${proposal.ids.join(", ")} to Ready.`;
-          } else if (launch(proposal.ids, ["run", ...proposal.ids])) note = `Started ${proposal.ids.join(", ")}. Follow it in Backlog.`;
-          else { ok = false; note = "It is already running."; }
+            // A task that is already past Inbox has been moved (by autopilot, or by an earlier message): that is where she wanted it, not a failure.
+            const moved: string[] = [], already: string[] = [];
+            for (const id of proposal.ids) {
+              const at = where(id);
+              if (at && at !== "Inbox") { already.push(`${id} is already ${at === "In progress" ? "in progress" : at === "Awaiting approval" ? "waiting for your approval" : at === "Done" ? "done" : `in ${at}`}`); continue; }
+              const r = await sh(process.execPath, CLI, "promote", id);
+              if (r.code !== 0) { ok = false; note = `${r.out}${r.err}`.trim(); break; }
+              moved.push(id);
+            }
+            note ||= [moved.length ? `Moved ${moved.join(", ")} to Ready.` : "", ...already.map((a) => `${a}; nothing to move.`)].filter(Boolean).join(" ");
+          } else {
+            const idle = proposal.ids.filter((id) => !running.has(id) && !["Awaiting approval", "Done"].includes(where(id) ?? ""));
+            if (idle.length && launch(idle, ["run", ...idle])) note = `Started ${idle.join(", ")}. Follow it in Backlog.${idle.length < proposal.ids.length ? ` The others are already running or finished.` : ""}`;
+            else note = `${proposal.ids.join(", ")} ${proposal.ids.length === 1 ? "is" : "are"} already running or finished; nothing to start.`;
+          }
           for (const id of proposal.ids) store.emit({ run: store.lastRun(id) ?? "", task: id, stage: "manager", type: "manager.decision", data: { action: proposal.kind, text: `${id}: ${note}`, auto: true, by: "conversation" } });
           return done({ ...out, text, executed: { proposal, ok, note } });
         } catch (e) {

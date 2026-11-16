@@ -3,6 +3,10 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
+## Unreleased
+
+- **Fix: the manager no longer says she cannot do what she just did.** On autopilot she was still told her proposals show as buttons, so after moving a task to Ready and starting it she could tell you to "press the button" and that she "can't move it myself". She is now told how her proposals are handled (autopilot: promote, run and retry happen at once, in the present tense; assist: buttons), and to check where a task is with `factory status` before proposing. A second proposal for a task that has already moved is no longer shown as Failed: it says where the task is.
+
 ## 1.1.0
 
 **Before you update, two things change in your projects.** The Technical Manager (Tess) is on **autopilot by

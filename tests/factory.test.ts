@@ -2531,6 +2531,13 @@ test("manager over HTTP: settings are read and changed; on autopilot a proposal 
     expect(parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).find((i) => i.id === "F-003")!.section).toBe("Ready");
     expect(((await (await fetch(`${base}/api/manager`)).json()) as any).decisions[0].data).toMatchObject({ action: "promote", auto: true, by: "conversation" });
 
+    // A second proposal for what has already moved is not a failure: it says where the task is.
+    const again = (await (await post("/api/chat", { topic: "manager", message: "yes, go again" })).json()) as any;
+    expect(again.executed).toMatchObject({ ok: true, note: "F-003 is already in Ready; nothing to move." });
+    expect(managerPrompt(resolveTeam({}), false, "autopilot")).toMatch(/\*\*autopilot\*\* on[\s\S]*carried out the moment you send it[\s\S]*never tell the person to press one[\s\S]*run `factory status`/);
+    expect(managerPrompt(resolveTeam({}), false, "assist")).toMatch(/appear as buttons the person presses[\s\S]*run `factory status`/);
+    expect(managerPrompt(resolveTeam({}), false, "assist")).not.toContain("carried out the moment");
+
     expect(((await (await post("/api/manager", { autonomy: "assist" })).json()) as any).settings.autonomy).toBe("assist");
     cli("add", "A fourth item");
     const kept = (await (await post("/api/chat", { topic: "manager", message: "again" })).json()) as any;
