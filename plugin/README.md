@@ -191,7 +191,7 @@ push | merge | revert | sync | vcs | team | configure | scan | release | status 
 | The commands that must pass before a review (tests, lint) and the setup command | `factory configure`; `factory.config.json` |
 | The rules every agent follows | `AGENTS.md`, in Studio |
 | A role's instructions and tools | `.claude/agents/<role>.md`, in Studio. Edits survive a rebuild unless you ask to overwrite. |
-| Skills, per role | Studio: attach, detach, search skills.sh and install |
+| Skills, per role | Studio: attach, detach, search skills.sh and install (tick who gets it); `factory skill add\|attach\|detach <skill> --role a,b`. A conversation offers only the skills attached to its role. |
 | What counts as sensitive for the security review | `security` in `factory.config.json` (always, paths, keywords) |
 | Auto-merge of pull requests (off by default) | The GitHub tile, `factory vcs auto-merge on` |
 | Push on approval (off by default): approving a task also pushes it and opens its pull request | The GitHub tile, `factory vcs auto-push on` |

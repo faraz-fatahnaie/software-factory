@@ -193,7 +193,7 @@ delete it can only be started by you.</p>
 <tr><td>The commands that must pass before a review (tests, lint) and the setup command</td><td><code>factory configure</code>; <code>factory.config.json</code></td></tr>
 <tr><td>The rules every agent follows</td><td><code>AGENTS.md</code>, in Studio</td></tr>
 <tr><td>A role's instructions and tools</td><td><code>.claude/agents/&lt;role&gt;.md</code>, in Studio. Edits survive a rebuild unless you ask to overwrite.</td></tr>
-<tr><td>Skills, per role</td><td>Studio: attach, detach, search skills.sh and install</td></tr>
+<tr><td>Skills, per role</td><td>Studio: attach, detach, search skills.sh and install (tick who gets it); <code>factory skill add|attach|detach &lt;skill&gt; --role a,b</code>. A conversation offers only the skills attached to its role.</td></tr>
 <tr><td>What counts as sensitive for the security review</td><td><code>security</code> in <code>factory.config.json</code> (always, paths, keywords)</td></tr>
 <tr><td>Auto-merge of pull requests (off by default)</td><td>The GitHub tile, <code>factory vcs auto-merge on</code></td></tr>
 <tr><td>Push on approval (off by default): approving a task also pushes it and opens its pull request</td><td>The GitHub tile, <code>factory vcs auto-push on</code></td></tr>

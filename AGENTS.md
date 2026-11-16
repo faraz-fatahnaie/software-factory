@@ -16,7 +16,7 @@ model working here; `CLAUDE.md` only imports it.
 - `bun run factory manager [autopilot|assist|off | report | set <setting> <value>]` — what the Technical Manager may do by itself (autopilot is the default: it starts what was worked out in conversation, recovers a stuck task, and stays inside the spend and retry limits; `report` prints the facts behind her milestone, retrospective and team-health answers, from `plugin/engine/retro.ts`). `factory consult <topic> "<question>"` asks one role a question, read-only.
 - `bun run factory serve [port]` — local control plane on `127.0.0.1`, one port per project in 4400-4499 (from its path; `serve` moves to the next free one, and reports if this project's is already up): the GUI (overview, backlog, talk, team, agents, logs, worktrees, studio, graph), a live event stream, and the endpoints behind them. Studio saves commit the edited file, with a message the person can edit.
 - `bun run factory add "<title>"` — add an item to Inbox.
-- `bun run factory skill add <owner/repo@skill> --role <role>` — install a skill for one role. `skill attach|detach <skill> --role <role>` for one already installed. Each is committed, because task worktrees branch from HEAD.
+- `bun run factory skill add <owner/repo@skill> --role <role>[,<role>...]` — install a skill for one or several roles. `skill attach|detach <skill> --role <role>[,<role>...]` for one already installed. Each is committed, because task worktrees branch from HEAD.
 
 ## Layout
 

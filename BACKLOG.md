@@ -4,6 +4,10 @@ The factory's intake queue. `factory run` takes the top item under Ready.
 Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
+- [ ] F-088 (P3) Skills grid in Studio
+  One table with the skills down the side and the roles across, a tick per cell, instead of attaching and detaching per role.
+- [ ] F-089 (P2) Attach skills to roles that only talk
+  The Product Partner, Planner and Tester have no role file, so a skill cannot be attached to them and their conversations are offered every skill. Give them somewhere to keep an attached-skills list (a role file, or a setting in the config) so each person's list can be narrowed too.
 - [ ] F-008 (P2) Release 2: Codex CLI runner
 - [ ] F-009 (P2) Release 2: API key vault in the macOS Keychain
 - [ ] F-010 (P2) Release 2: Ollama through a per-role base URL
@@ -24,7 +28,6 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 - [ ] F-023 Model health test in the matrix: a one-token prompt per model
 - [ ] F-024 Show a skill's SKILL.md in the studio before installing it, not only its skills.sh page
 - [ ] F-025 Assign a local port per task worktree once tasks start dev servers
-
 - [ ] F-027 (P1) Multi-project view at user scope
   Project registry in the plugin data folder; project switcher in the GUI.
 - [x] F-032 (P2) Dashboard design refactor
@@ -33,10 +36,28 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   When a role reaches its cap or a usage limit, keep working on another model instead of stopping. Deferred by the user on 2026-11-13.
 - [ ] F-034 (P2) Default skills per role
   The user will supply the skill sets for each role; until then roles ship with the existing defaults only.
-- [ ] F-028 (P1) Phase 11: brainstorming role
-  A role that works out with the user what to build, for projects in any language. Design to be agreed first.
-- [ ] F-029 (P1) Phase 12: publish
-  Public GitHub repository, install docs, real owner and author in the manifests, version bump and tag.
+- [ ] F-038 (P2) Task-time decision records and dependency checks
+  The headless half of A3 and A4: when a spec adds a dependency or makes a costly decision, check it and record it. Needs the spec stage to write documents.
+- [ ] F-040 (P3) Milestone-triggered Scribe run
+  Run the documentation update (K1) automatically when a milestone completes, as a proposal the user reviews.
+- [ ] F-042 (P2) Security gate 1 at task time
+  Review a spec that changes the data model, an interface or a login boundary before the builder starts (A5 and Q1 in task mode).
+- [ ] F-043 (P3) Opt-in dynamic probes, load tests and runtime checks
+  S6, Q3 and Q4 against a running test environment; needs the release step and the user's request each time.
+- [ ] F-045 (P2) Maintenance intake (O3)
+  Turn bug reports and dependency updates into backlog items on request.
+- [ ] F-046 (P2) Deployment and release in the GUI
+  Show readiness, the deployment plan and the deploy log; start a release from the page. A deploy stays a conversation the user approves step by step.
+- [ ] F-054 (P3) Model-written pull request description
+  The text is a trimmed spec and review today; one cheap stage could write it in plain words.
+- [ ] F-068 (P3) Backlog List view (a table), and drag a card from Inbox to Ready and reorder Ready (needs a small server change)
+- [ ] F-066 (P3) Workroom: a floor plan with a station per stage where robots hand work over (wireframes first, with a text equivalent and reduced motion)
+- [ ] F-062 (P3) Typography video of the home-bakery scenario showing every capability (later)
+- [ ] F-071 (P3) Polish the landing page: self-host the fonts, test in Firefox and Safari, more real screenshots, a better video (F-062)
+- [ ] F-049 (P2) Set models per role and per stage from the command line
+  Today only by editing factory.config.json or the Models page (roles only); stage settings are set automatically when a stage moves.
+- [ ] F-050 (P3) Custom unattended checks beyond advisory
+  Let a custom check block or be triggered by sensitive areas, with the same rules as the security gate.
 
 ## Ready
 
@@ -73,24 +94,12 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   brainstorm, research and plan commands; factory role, add --detail and ordered promote; documents with approval status; next-step hint in status.
 - [x] F-037 (P1) Roles step 3: Architect design conversation
   design command: stack, system design, dependencies, decision records, foundation and gate, skill suggestions; factory configure, skill search and docs save; plan pauses for and resumes after the design.
-- [ ] F-038 (P2) Task-time decision records and dependency checks
-  The headless half of A3 and A4: when a spec adds a dependency or makes a costly decision, check it and record it. Needs the spec stage to write documents.
 - [x] F-039 (P1) Roles step 4: Scribe, document structure and the graph on by default
   Scribe stage after an approved review; chronicle and role notes recorded on approve; docs command; docs map written by init; graph built by init and refreshed on landing.
-- [ ] F-040 (P3) Milestone-triggered Scribe run
-  Run the documentation update (K1) automatically when a milestone completes, as a proposal the user reviews.
 - [x] F-041 (P1) Roles step 5: Tester and the Security and Performance Engineer
   Secret scan and sensitive-area triggers on every task, unattended security review with blockers and advisories, secure and test conversations, factory scan.
-- [ ] F-042 (P2) Security gate 1 at task time
-  Review a spec that changes the data model, an interface or a login boundary before the builder starts (A5 and Q1 in task mode).
-- [ ] F-043 (P3) Opt-in dynamic probes, load tests and runtime checks
-  S6, Q3 and Q4 against a running test environment; needs the release step and the user's request each time.
 - [x] F-044 (P1) Roles step 6: Release Engineer
   release and deploy conversations, deployment plan and runbooks, version and changelog with factory release tag, readiness checks, deploys only on request.
-- [ ] F-045 (P2) Maintenance intake (O3)
-  Turn bug reports and dependency updates into backlog items on request.
-- [ ] F-046 (P2) Deployment and release in the GUI
-  Show readiness, the deployment plan and the deploy log; start a release from the page. A deploy stays a conversation the user approves step by step.
 - [x] F-047 (P1) Roles step 7: presets, regrouping and custom responsibilities
   Lean, Balanced and Full; factory team (use, agents, move, merge, rename, title, off, on, add, remove); the pipeline finds stage roles by responsibility; stage costs survive a regrouping; team and ask skills.
 - [x] F-048 (P2) Team view in the GUI
@@ -101,8 +110,6 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Commits grouped by task with the robot that made each, branch lanes against main, a warning for work that is not saved, and commits not yet on GitHub.
 - [x] F-053 (P2) CI status and revert
   Per-check detail on a pull request, failing checks as a backlog item, revert of a merged task (a pull request you push when GitHub is the remote), and a workflow generated from the gate commands. Merging now deletes the pull request branch so a later revert can reuse the task id.
-- [ ] F-054 (P3) Model-written pull request description
-  The text is a trimmed spec and review today; one cheap stage could write it in plain words.
 - [x] F-055 (P2) Commit graph and a Git tool window for Source
   A lane graph across all branches (merges, HEAD, tags, remote branches), a Changes tab (folder tree, status colours, +/- counts, diff) and a Log tab (branch filter, graph, commit files and diffs), after PyCharm and VS Code.
 - [x] F-056 (P1) Search over the commit graph
@@ -115,27 +122,19 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   A live "Now" line on each On-shift card from the tool events ("Editing src/app.ts"), the five actions before it (folded), a warning after two quiet minutes, people answering in Talk shown on shift, "last did X" for free people and on the Team view, the tab title and icon, and opt-in desktop notifications.
 - [x] F-067 (P1) Backlog redesign
   A board of five columns (blocked tasks in a strip, Done folded) with richer cards, an Add item box with priority and description, filter and keys, and a side panel per task: pipeline stepper, Summary, Activity with replay, Spec, Review, Changes and a single Approve and land. Motion on the panel, tabs, stepper and cards moving between columns, all off under reduced motion.
-- [ ] F-068 (P3) Backlog List view (a table), and drag a card from Inbox to Ready and reorder Ready (needs a small server change)
 - [x] F-070 (P1) Command palette and health signal
   ⌘K (and a search button on phones) runs the factory's checks, jumps anywhere and asks Bix; the Checks tab is gone. A Health strip and rail chip run free checks on load: setup, secrets, uncommitted rules, a placeholder gate, tasks waiting over a day, usage near the limit. Rebuild the role files moved to Team.
 - [x] F-065 (P2) Per-agent panel
   Click a robot on Overview, Team or Backlog: live feed, files touched, recent stages, Stop; a free person shows what they did last and a way to talk to them.
 - [x] F-069 (P1) Smoke test of every view (`bun run smoke`): seeded states, desktop and phone, console errors and axe. It found keyboard-unreachable scroll areas in Logs and Source, and a light-theme contrast miss, all fixed.
-- [ ] F-066 (P3) Workroom: a floor plan with a station per stage where robots hand work over (wireframes first, with a text equivalent and reduced motion)
 - [x] F-059 (P1) Suggested next prompts in chats
   `SUGGEST:` lines at the end of a reply become up to three one-click chips; a per-person switch in the chat header, on for the Product Partner by default, saved in the config. Checked once against a real model (Haiku).
 - [x] F-060 (P1) Guide
   Bix, a read-only person in Talk, and a box under the Checks results that asks Bix about the latest result. Read-only is enforced by its permissions (checked with a real model that it refuses to write files or change the config). A bug found on the way: reloading the topic list moved you back to the conversation you were sent to.
 - [x] F-061 (P1) Plugin README and runbook with the home-bakery scenario
   `plugin/README.md` (install, value, commands, what you can and cannot change) and `plugin/docs/RUNBOOK.md` (a full course; chapter 4 follows one feature request from first word to code on main, chapter 5 lists everything that can happen on the way). Commands checked against a dry run. The landing page and the video reuse the same story.
-- [ ] F-062 (P3) Typography video of the home-bakery scenario showing every capability (later)
 - [x] F-063 Landing page and documentation site in `site/`
   Static HTML, built from the README and runbook by `bun site/build-docs.ts`; checked by `bun run site`. Publishing it (for example GitHub Pages) is not done.
-- [ ] F-071 (P3) Polish the landing page: self-host the fonts, test in Firefox and Safari, more real screenshots, a better video (F-062)
-- [ ] F-049 (P2) Set models per role and per stage from the command line
-  Today only by editing factory.config.json or the Models page (roles only); stage settings are set automatically when a stage moves.
-- [ ] F-050 (P3) Custom unattended checks beyond advisory
-  Let a custom check block or be triggered by sensitive areas, with the same rules as the security gate.
 - [x] F-072 (P1) Upgrade path: create the role file of a role added by an update, by itself
   A project updated from 1.0.1 has no .claude/agents/technical-manager.md, so triage fails. Create missing role files (never overwrite) when the dashboard or a run starts, and say so in the log.
 - [x] F-073 (P1) One-time notice after an update that autopilot is on
@@ -166,3 +165,9 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   A conversation menu with Compact and Clear, and the typed commands /clear and /compact (with an optional focus note). Compact runs Claude's own /compact on the session and leaves a divider with the size before and after; earlier messages stay readable, dimmed.
 - [x] F-086 (P1) Offer skills and plugin commands in a conversation
   The slash list held two fixed commands. Build it from what the conversation's agent reports (skills, plugin commands) plus the dashboard's own, so it follows what is installed and does not depend on the kind of agent; the agent's own built-ins stay out.
+- [x] F-028 (P1) Phase 11: brainstorming role
+  A role that works out with the user what to build, for projects in any language. Design to be agreed first.
+- [x] F-029 (P1) Phase 12: publish
+  Public GitHub repository, install docs, real owner and author in the manifests, version bump and tag.
+- [x] F-087 (P1) Choose who gets a skill, and make conversations follow it
+  Install a skill for one or several roles at once (Studio: tick the people; `--role a,b`); each person's slash list offers only the skills attached to their role, and a skill typed for another role is refused.
