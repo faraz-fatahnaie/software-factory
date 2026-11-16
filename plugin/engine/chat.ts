@@ -3,6 +3,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, toolDetail, type ToolStep, contextOf, type Context } from "./state";
+import { reportedBy } from "./commands";
 import { classify, hookSettings } from "./claude";
 import { chatPromptFor, holderOf, lookup, type Preset } from "./team";
 
@@ -148,7 +149,7 @@ export function stopChat(topic: string): number {
 }
 /** A new message starts fresh: an earlier stop no longer applies. */
 export const resumeChat = (topic: string) => stopping.delete(topic);
-const stoppedReply = () => ({ ok: false as const, status: "stopped", text: "Stopped.", session: undefined as string | undefined, costUsd: 0, denials: [] as string[], tools: [] as ToolStep[], context: undefined as Context | undefined, compact: undefined as { before: number; after: number } | undefined });
+const stoppedReply = () => ({ ok: false as const, status: "stopped", text: "Stopped.", session: undefined as string | undefined, costUsd: 0, denials: [] as string[], tools: [] as ToolStep[], context: undefined as Context | undefined, compact: undefined as { before: number; after: number } | undefined, commands: undefined as string[] | undefined });
 
 export async function chatTurn(root: string, r: ChatRequest, team: Preset, only?: { append?: string; readOnly?: boolean; /** Which conversation a stop for this turn belongs to (a consultation belongs to its manager). */ group?: string }) {
   chatArgs(r, team, only); // validates, before any file is saved
@@ -166,7 +167,7 @@ export async function chatTurn(root: string, r: ChatRequest, team: Preset, only?
   if (stopping.has(key)) p.kill("SIGTERM"); // a stop that arrived while this turn was starting
   const stderr = new Response(p.stderr).text();
   const tools: ToolStep[] = [], byId = new Map<string, ToolStep>();
-  let buffer = "", result = "", last: { model?: string; usage?: Record<string, unknown> } | undefined, compact: { before: number; after: number } | undefined;
+  let buffer = "", result = "", last: { model?: string; usage?: Record<string, unknown> } | undefined, compact: { before: number; after: number } | undefined, commands: string[] | undefined;
   const decoder = new TextDecoder();
   for await (const chunk of p.stdout) {
     buffer += decoder.decode(chunk, { stream: true });
@@ -179,6 +180,7 @@ export async function chatTurn(root: string, r: ChatRequest, team: Preset, only?
       if (msg.type === "assistant" && !msg.parent_tool_use_id && msg.message?.usage) last = msg.message;
       // Claude's own /compact reports what the session held before and holds now.
       if (msg.type === "system" && msg.subtype === "compact_boundary" && Number.isFinite(msg.compact_metadata?.pre_tokens) && Number.isFinite(msg.compact_metadata?.post_tokens)) compact = { before: msg.compact_metadata.pre_tokens, after: msg.compact_metadata.post_tokens };
+      if (msg.type === "system" && msg.subtype === "init") commands = reportedBy(msg); // what this session says it can run: its skills and its plugins' commands
       if (msg.type === "result") result = line;
       else for (const b of msg.message?.content ?? []) {
         if (msg.type === "assistant" && b.type === "tool_use") { const s: ToolStep = { tool: String(b.name), detail: toolDetail(b.input).slice(0, 4000) }; tools.push(s); byId.set(b.id, s); }
@@ -198,7 +200,7 @@ export async function chatTurn(root: string, r: ChatRequest, team: Preset, only?
   const usage = (out.usage ?? {}) as { session?: string; costUsd?: number; denials?: string[] };
   let final: any;
   try { final = JSON.parse(result); } catch { /* no result line: a crash */ }
-  return { ok: out.status === "ok", status: out.status, text: out.text, session: usage.session, costUsd: usage.costUsd, denials: usage.denials ?? [], tools, context: contextOf(last, final), compact };
+  return { ok: out.status === "ok", status: out.status, text: out.text, session: usage.session, costUsd: usage.costUsd, denials: usage.denials ?? [], tools, context: contextOf(last, final), compact, commands };
 }
 
 /**
@@ -227,7 +229,7 @@ export async function managerTurn(root: string, r: ChatRequest, team: Preset) {
   const who = new Map(askable(team).map((a) => [a.key, a.roleTitle]));
   const answers = await Promise.all(asks.map(async (a) => {
     const t = await chatTurn(root, { topic: a.topic, message: `The Technical Manager is asking you for the person, who is talking to the manager and not to you. Answer in under 200 words, in plain words. Do not ask the person questions: if you need something, say what is missing.\n\n${a.question}`, session: r.subs?.[a.topic], model: r.model, effort: r.effort }, team, { readOnly: true, group: "manager" })
-      .catch((e) => ({ ok: false as const, status: "error", text: String(e.message ?? e), session: undefined, costUsd: 0, denials: [] as string[], tools: [] as ToolStep[], context: undefined }));
+      .catch((e) => ({ ok: false as const, status: "error", text: String(e.message ?? e), session: undefined, costUsd: 0, denials: [] as string[], tools: [] as ToolStep[], context: undefined, compact: undefined, commands: undefined }));
     if (t.session) sessions[a.topic] = t.session;
     if (t.context) contexts[a.topic] = t.context;
     return { ...a, roleTitle: who.get(a.topic)!, t };

@@ -1115,10 +1115,10 @@ button.icon:hover { color: var(--text); background: color-mix(in srgb, var(--tex
 .composer-box { display: grid; gap: 6px; padding: 8px 8px 6px 12px; border: 1px solid var(--line-strong); border-radius: 18px; background: var(--inset); transition: border-color 0.15s var(--ease); }
 .composer-box:focus-within { border-color: var(--accent); }
 /* The commands suggested while a slash is typed, laid out as the Claude Code command line does: plain rows under the input box, the name in one column and a short description in the next, the chosen row marked by colour alone. */
-.slash { display: grid; gap: 2px; padding: 0 14px; font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 13px; }
-.slash [role="option"] { display: grid; grid-template-columns: 14ch minmax(0, 1fr); gap: 2ch; cursor: pointer; color: var(--muted); }
+.slash { display: grid; gap: 2px; max-height: 9.5lh; overflow-y: auto; padding: 0 14px; font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 13px; }
+.slash [role="option"] { display: grid; grid-template-columns: var(--name, 14ch) minmax(0, 1fr); gap: 2ch; cursor: pointer; color: var(--muted); }
 .slash [role="option"].on { color: var(--accent); }
-.slash .cmd { white-space: nowrap; }
+.slash .cmd { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .slash p { margin: 0; color: var(--muted); }
 .composer-box textarea { width: 100%; min-height: 28px; max-height: min(40vh, 360px); resize: none; overflow-y: auto; padding: 4px 4px 0 0; border: 0; background: none; outline: none; line-height: 1.5; field-sizing: content; }
 .composer-bar { display: flex; align-items: center; gap: 8px; }

@@ -1,7 +1,8 @@
 // Talk: conversations with the people (robots) who hold each job. Checks: the factory's own commands, one button each.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Msg, Shown, Stored } from "../plugin/engine/chatlog";
-import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, CHAT_COMMANDS, matchCommands, stepsSummary, tokens, type Context, type Proposal, type ToolStep } from "../plugin/engine/state";
+import { DASHBOARD_COMMANDS, type Command } from "../plugin/engine/commands";
+import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, matchCommands, stepsSummary, tokens, type Context, type Proposal, type ToolStep } from "../plugin/engine/state";
 import { mirror } from "./chatstore";
 import { call } from "./data";
 import { Icon } from "./icons";
@@ -128,6 +129,10 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
   const [clearing, setClearing] = useState(false);
   useEffect(() => setClearing(false), [key]);
   const [dragging, setDragging] = useState(false);
+  // What a slash offers here: the dashboard's commands at once, then also what this conversation's agent can run (its skills, its plugins' commands). Read again after each reply, which is when the agent reports them.
+  const [commands, setCommands] = useState<Command[]>(DASHBOARD_COMMANDS);
+  const replies = chats[key]?.messages.length ?? 0;
+  useEffect(() => { if (!key) return; let live = true; call<Command[]>(`/api/chat/commands?topic=${key}`).then((r) => { if (live && r.ok) setCommands(r.data); }); return () => { live = false; }; }, [key, replies]);
   const [pick, setPick] = useState(0); // which suggested command is highlighted
   const [hushed, setHushed] = useState(""); // the text for which the person closed the suggestions (Esc): they stay closed until it changes
   const { info: manager, set: setManager, problem: managerProblem } = useManager([]);
@@ -182,11 +187,12 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
   const send = (message: string) => {
     if (!message.trim() && !pending.length) return;
     // Two typed commands, as in Claude Code. Anything else that looks like one is not sent to the agent, who would not know it.
-    const cmd = message.trim().match(/^\/([a-z-]+)(?:\s+([\s\S]*))?$/);
+    const cmd = message.trim().match(/^\/([a-z0-9][\w.:-]*)(?:\s+([\s\S]*))?$/i);
     if (cmd && !pending.length) {
       if (cmd[1] === "clear") { setText(""); return chat.messages.length ? setClearing(true) : undefined; }
       if (cmd[1] === "compact") { setText(""); return void compact(cmd[2] ?? ""); }
-      return setNotice(`/${cmd[1]} is not a command here. The commands are /clear and /compact (optionally followed by what to keep).`);
+      // A skill or a plugin's command goes to the agent as the message, which is how it is run. Anything else is not sent: the agent would not know it.
+      if (!commands.some((c) => c.name === cmd[1])) return setNotice(`/${cmd[1]} is not a command here. Type / to see the commands this conversation has.`);
     }
     const files = pending;
     setText(""); setPending([]); setNotice("");
@@ -233,10 +239,10 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
   );
   const topic = topics.find((t) => t.key === key);
   // Typing a slash suggests the commands, narrowed by what follows it, until a space starts the command's own words.
-  const slash = /^\/[a-z*-]*$/i.test(text) && hushed !== text ? matchCommands(text.slice(1), CHAT_COMMANDS) : null;
+  const slash = /^\/[\w*:.-]*$/.test(text) && hushed !== text ? matchCommands(text.slice(1), commands) : null;
   const picked = slash?.[Math.min(pick, slash.length - 1)];
   /** Takes a suggestion. One that takes words of its own is written into the box, ready for them; one that does not is run. */
-  const take = (c: (typeof CHAT_COMMANDS)[number], run: boolean) => { setPick(0); if (c.args || !run) { setText(`/${c.name}${c.args ? " " : ""}`); if (!c.args) setHushed(`/${c.name}`); box.current?.focus(); } else send(`/${c.name}`); };
+  const take = (c: Command, run: boolean) => { setPick(0); if (c.args || !run) { setText(`/${c.name}${c.args ? " " : ""}`); if (!c.args) setHushed(`/${c.name}`); box.current?.focus(); } else send(`/${c.name}`); };
   const lastDivider = chat.messages.findLastIndex((m) => m.divider); // what is above it the agent holds as a summary: shown dimmed
   const long = !!chat.context && chat.context.used / chat.context.window >= 0.7;
   const role = topic?.role ?? (topic?.readOnly ? topic.key : "");
@@ -347,9 +353,9 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
             </div>
           </form>
           {slash && (
-            <div className="slash" id="slash-commands" role="listbox" aria-label="Commands">
+            <div className="slash" id="slash-commands" role="listbox" aria-label="Commands" tabIndex={0} style={{ "--name": `${Math.min(32, Math.max(12, ...slash.map((c) => c.name.length + 1)))}ch` } as React.CSSProperties}>
               {slash.map((c) => (
-                <div key={c.name} id={`slash-${c.name}`} role="option" aria-selected={c === picked} className={c === picked ? "on" : ""} onMouseDown={(e) => { e.preventDefault(); take(c, true); }} onMouseEnter={() => setPick(slash.indexOf(c))}>
+                <div key={c.name} id={`slash-${c.name}`} role="option" aria-selected={c === picked} className={c === picked ? "on" : ""} ref={c === picked ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined} onMouseDown={(e) => { e.preventDefault(); take(c, true); }} onMouseEnter={() => setPick(slash.indexOf(c))}>
                   <span className="cmd">/{c.name}</span><span>{c.hint}</span>
                 </div>
               ))}

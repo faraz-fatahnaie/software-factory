@@ -15,8 +15,12 @@ seedStates(dir, cli);
 const bin = join(dir, ".factory", "fakebin");
 mkdirSync(bin, { recursive: true });
 const REPLY = "## Plan\\n\\nHere is **bold**, `code` and a [link](https://example.com).\\n\\n- one\\n- two\\n\\n| A | B |\\n|---|---|\\n| 1 | 2 |\\n\\n```ts\\nconst x = 1;\\n```\\n\\nسلام، این یک پیام فارسی است.";
+// A skill installed in the project: a slash offers it next to the dashboard's own commands, and typing it sends it to the agent.
+mkdirSync(join(dir, ".claude", "skills", "hello"), { recursive: true });
+writeFileSync(join(dir, ".claude", "skills", "hello", "SKILL.md"), "---\nname: hello\ndescription: Greets the person. Use when asked to say hello.\n---\nSay hello.\n");
 writeFileSync(join(bin, "claude"), `#!/bin/sh
 sleep 1.5
+printf '%s\\n' '{"type":"system","subtype":"init","slash_commands":["compact","clear","model","hello","review:security"]}'
 case "$2" in "/compact"*) printf '%s\\n' '{"type":"system","subtype":"compact_boundary","compact_metadata":{"pre_tokens":148000,"post_tokens":9000}}' '{"type":"result","subtype":"success","is_error":false,"result":"","session_id":"11111111-2222-3333-4444-555555555555","total_cost_usd":0.01,"usage":{}}'; exit 0;; esac
 printf '%s\\n' '{"type":"assistant","message":{"model":"claude-x","usage":{"input_tokens":10,"cache_read_input_tokens":140000,"cache_creation_input_tokens":7990,"output_tokens":0},"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"git status"}}]}}'
 printf '%s\\n' '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"On branch main\\nnothing to commit"}]}}'
@@ -195,7 +199,7 @@ try {
     await page.locator(".run-steps > summary").first().click();
     await page.locator(".run-step > summary").first().click();
     await page.locator(".run-step pre.out", { hasText: "nothing to commit" }).waitFor();
-    await page.locator(".chat-md h4", { hasText: "Plan" }).waitFor();
+    await page.locator(".chat-md h4", { hasText: "Plan" }).first().waitFor();
     assert.equal(await page.locator(".chat-md p", { hasText: "فارسی" }).evaluate((e) => getComputedStyle(e).direction), "rtl", `${name}: Persian text reads right to left`);
     assert.equal(await page.locator(".chat-md p", { hasText: "Here is" }).evaluate((e) => getComputedStyle(e).direction), "ltr");
     await page.locator(".chat-md table td", { hasText: "2" }).waitFor();
@@ -210,7 +214,8 @@ try {
     // Typing a slash suggests the commands; what follows narrows them loosely; the keyboard chooses, completes and closes.
     await box.fill("/");
     const list = page.getByRole("listbox", { name: "Commands" });
-    assert.deepEqual(await list.getByRole("option").locator(".cmd").allTextContents(), ["/compact", "/clear"]);
+    assert.deepEqual(await list.getByRole("option").locator(".cmd").allTextContents(), ["/compact", "/clear", "/hello", "/review:security"], `${name}: the dashboard's commands, the project's skill and a plugin's command; the agent's own built-ins stay out`);
+    await list.getByRole("option", { name: /hello/ }).getByText("Greets the person.").waitFor();
     assert.equal(await box.getAttribute("aria-activedescendant"), "slash-compact");
     await a11y(page, `${name} Talk commands`);
     await box.press("ArrowDown");
@@ -221,6 +226,11 @@ try {
     await list.getByText("No matching commands").waitFor();
     await box.press("Enter");
     await page.getByRole("alert").filter({ hasText: "/help is not a command here" }).waitFor();
+    const sent = await page.locator(".bubble.you").count();
+    await box.fill("/hel"); // a skill is run by sending it: Enter on the suggestion does that
+    await box.press("Enter");
+    await page.locator(".bubble.you", { hasText: "/hello" }).waitFor();
+    await page.waitForFunction((n) => document.querySelectorAll(".bubble.you").length === n + 1 && !document.querySelector(".typing"), sent, { timeout: 20_000 });
     await box.fill("/pact"); // loose: the letters in order are enough
     assert.deepEqual(await list.getByRole("option").locator(".cmd").allTextContents(), ["/compact"]);
     await box.press("Tab");
@@ -238,7 +248,7 @@ try {
     // A reload keeps the conversation; Stop ends a reply that is coming; New conversation clears it after asking.
     await page.reload();
     await open(page, "Talk");
-    await page.locator(".chat-md h4", { hasText: "Plan" }).waitFor();
+    await page.locator(".chat-md h4", { hasText: "Plan" }).first().waitFor();
     assert.equal(await box.inputValue(), "a second thought", `${name}: the unsent message is still there too`);
     await box.fill("stop this one");
     await page.getByRole("button", { name: "Send", exact: true }).click();

@@ -27,7 +27,8 @@ import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugi
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
 import { doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
-import { parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev, contextOf, tokens, CHAT_COMMANDS, matchCommands } from "../plugin/engine/state";
+import { parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev, contextOf, tokens, matchCommands } from "../plugin/engine/state";
+import { commandsFor, DASHBOARD_COMMANDS, projectCommands, reportedBy } from "../plugin/engine/commands";
 import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
 import { counts, lineDiff, marks, splitDiff, withGaps } from "../gui/linediff";
 import { gateIsPlaceholder, healthChecks, waitedLong } from "../plugin/engine/health";
@@ -2830,7 +2831,7 @@ test("conversations are kept on disk in the project: text only, capped, cleared 
   expect(unpack(JSON.stringify({ v: 1, session: "44444444-2222-3333-4444-555555555555", context: { used: "many", window: 0 }, contexts: { "../x": { used: 1, window: 2 } }, messages: [] }))).toEqual({ messages: [], session: "44444444-2222-3333-4444-555555555555", subs: undefined });
 
   // The commands suggested while a slash is typed: loose matching, the closest first, and * for anything.
-  const names = (typed: string) => matchCommands(typed, CHAT_COMMANDS).map((c) => c.name);
+  const names = (typed: string) => matchCommands(typed, DASHBOARD_COMMANDS).map((c) => c.name);
   expect(names("")).toEqual(["compact", "clear"]);
   expect(names("c")).toEqual(["compact", "clear"]);
   expect(names("cl")).toEqual(["clear"]);
@@ -2841,6 +2842,32 @@ test("conversations are kept on disk in the project: text only, capped, cleared 
   expect(names("c*t")).toEqual(["compact"]);
   expect(names("help")).toEqual([]);
   expect(matchCommands("a", [{ name: "data" }, { name: "add" }, { name: "plan" }]).map((c) => c.name)).toEqual(["add", "data", "plan"]); // starts with, then contains, then loose
+
+  expect(matchCommands("sec:rev", [{ name: "security:review" }, { name: "sec-review" }]).map((c) => c.name)).toEqual(["security:review"]); // a plugin's command, by its own name
+  expect(matchCommands("TDD", [{ name: "tdd" }]).map((c) => c.name)).toEqual(["tdd"]);
+
+  // Which commands a conversation offers: the dashboard's, the project's skills and commands, and what its plugins bring. No list per kind of agent.
+  const proj = tmp();
+  mkdirSync(join(proj, ".claude/skills/tdd"), { recursive: true });
+  mkdirSync(join(proj, ".claude/skills/hidden"), { recursive: true });
+  mkdirSync(join(proj, ".claude/skills/clear"), { recursive: true });
+  mkdirSync(join(proj, ".claude/commands/git"), { recursive: true });
+  writeFileSync(join(proj, ".claude/skills/tdd/SKILL.md"), "---\nname: tdd\ndescription: >\n  Drives development with tests. Use when implementing any logic,\n  fixing any bug.\nargument-hint: \"[what to build]\"\n---\nBody\n");
+  writeFileSync(join(proj, ".claude/skills/hidden/SKILL.md"), "---\nname: hidden\ndescription: Background knowledge.\nuser-invocable: false\n---\n");
+  writeFileSync(join(proj, ".claude/skills/clear/SKILL.md"), "---\nname: clear\ndescription: A skill that takes a dashboard command's name.\n---\n");
+  writeFileSync(join(proj, ".claude/commands/git/sync.md"), "Update from the remote.\n"); // no frontmatter: still a command
+  expect(projectCommands(proj)).toEqual([
+    { name: "clear", hint: "A skill that takes a dashboard command's name.", source: "skill" },
+    { name: "tdd", hint: "Drives development with tests.", args: "[what to build]", source: "skill" },
+    { name: "git:sync", hint: "A skill installed in this project", source: "skill" },
+  ]);
+  expect(projectCommands(tmp())).toEqual([]);
+  expect(commandsFor(proj).map((c) => c.name)).toEqual(["compact", "clear", "tdd", "git:sync"]); // before a first reply: what is installed; the dashboard's own name wins
+  const said = reportedBy({ slash_commands: ["compact", "model", "tdd", "review:security", "review:security", "bad name", 7, "../x"] })!;
+  expect(said).toEqual(["compact", "model", "tdd", "review:security"]); // names only, each once, nothing that is not a name
+  expect(reportedBy({})).toBeUndefined();
+  expect(commandsFor(proj, said).map((c) => `${c.name} (${c.source})`)).toEqual(["compact (dashboard)", "clear (dashboard)", "tdd (skill)", "review:security (plugin)"]); // the agent's built-ins (model) stay out; a skill it does not report would not run
+  expect(unpack(JSON.stringify({ v: 1, commands: ["tdd", "../x", 5], messages: [] }))!.commands).toEqual(["tdd"]);
 
   // What a browser kept before: taken over once, into an empty conversation only.
   const old = JSON.stringify({ v: 1, session: "33333333-2222-3333-4444-555555555555", messages: [{ who: "you", text: "from the browser" }] });
@@ -2872,10 +2899,11 @@ test("conversations over HTTP: each turn is written before it is answered, a rel
   mkdirSync(bin, { recursive: true });
   const result = (text: string) => JSON.stringify({ type: "result", subtype: "success", is_error: false, result: text, session_id: "11111111-1111-1111-1111-111111111111", total_cost_usd: 0.01, usage: {}, modelUsage: { "claude-x": { contextWindow: 200000 } } });
   const said = JSON.stringify({ type: "assistant", parent_tool_use_id: null, message: { model: "claude-x", content: [], usage: { input_tokens: 10, cache_read_input_tokens: 30000, cache_creation_input_tokens: 9000, output_tokens: 990 } } });
+  const init = JSON.stringify({ type: "system", subtype: "init", slash_commands: ["compact", "clear", "model", "tdd", "review:security"] });
   const inner = JSON.stringify({ type: "assistant", parent_tool_use_id: "toolu_1", message: { model: "claude-x", content: [], usage: { input_tokens: 5, output_tokens: 5 } } }); // a subagent's request is not the conversation's context
   const boundary = JSON.stringify({ type: "system", subtype: "compact_boundary", compact_metadata: { trigger: "manual", pre_tokens: 40000, post_tokens: 3290 } });
   const asked = join(bin, "asked.log");
-  writeFileSync(join(bin, "claude"), `#!/bin/sh\necho "$2" >> ${asked}\ncase "$2" in\n  "slow"*) exec sleep 30;;\n  "/compact"*) printf '%s\\n' '${boundary}' '${result("")}';;\n  *) printf '%s\\n' '${said}' '${inner}' '${result("Hello.\nSUGGEST: Tell me more")}';;\nesac\n`);
+  writeFileSync(join(bin, "claude"), `#!/bin/sh\necho "$2" >> ${asked}\ncase "$2" in\n  "slow"*) exec sleep 30;;\n  "/compact"*) printf '%s\\n' '${boundary}' '${result("")}';;\n  *) printf '%s\\n' '${init}' '${said}' '${inner}' '${result("Hello.\nSUGGEST: Tell me more")}';;\nesac\n`);
   chmodSync(join(bin, "claude"), 0o755);
   const path = process.env.PATH;
   process.env.PATH = `${bin}:${path}`;
@@ -2889,9 +2917,18 @@ test("conversations over HTTP: each turn is written before it is answered, a rel
     const topics = await (await fetch(`${base}/api/chat/topics`)).json() as { key: string; available: boolean; reason?: string }[];
     expect(topics.find((t) => t.key === "manager")).toMatchObject({ available: true }); // the face of the team can always be talked to
     expect(topics.filter((t) => !t.available).map((t) => `${t.key}: ${t.reason}`)).toEqual([]);
+    mkdirSync(join(dir, ".claude/skills/tdd"), { recursive: true });
+    mkdirSync(join(dir, ".claude/skills/unreported"), { recursive: true });
+    writeFileSync(join(dir, ".claude/skills/tdd/SKILL.md"), "---\nname: tdd\ndescription: Tests first.\n---\n");
+    writeFileSync(join(dir, ".claude/skills/unreported/SKILL.md"), "---\nname: unreported\ndescription: Installed after the conversation started.\n---\n");
+    const offered = async (topic: string) => (await (await fetch(`${base}/api/chat/commands?topic=${topic}`)).json() as { name: string }[]).map((c) => c.name);
+    expect(await offered("plan")).toEqual(["compact", "clear", "tdd", "unreported"]); // before a reply: the dashboard's commands and what is installed
+    expect((await fetch(`${base}/api/chat/commands?topic=nope`)).status).toBe(400);
     const first = await post("/api/chat", { topic: "plan", message: "hi there", shown: "Hi", attachments: [{ name: "note.txt", data: Buffer.from("hello").toString("base64") }] });
     expect(first.data.chat.messages).toEqual([{ who: "you", text: "Hi", files: [{ name: "note.txt", size: 5 }] }, expect.objectContaining({ who: "team", text: "Hello.", suggestions: ["Tell me more"], cost: 0.01 })]);
-    expect(first.data.chat.context).toEqual({ used: 40_000, window: 200_000 }); // 20% of the context, as of this reply
+    expect(first.data.chat.context).toEqual({ used: 40_000, window: 200_000 });
+    expect(await offered("plan")).toEqual(["compact", "clear", "tdd", "review:security"]); // after one: what its agent reports, with the plugin's command and without its built-ins
+    expect(await offered("design")).toEqual(["compact", "clear", "tdd", "unreported"]); // each conversation has its own // 20% of the context, as of this reply
     expect((await all()).plan).toMatchObject({ busy: false, session: "11111111-1111-1111-1111-111111111111", context: { used: 40_000, window: 200_000 } }); // what a reload, another browser or another port reads
     expect(JSON.parse(readFileSync(join(dir, ".factory/chats/plan.json"), "utf8")).messages).toHaveLength(2);
     // Compact: Claude's own /compact on the same session, with the person's note on what to keep; a divider marks it and the context is what was left.

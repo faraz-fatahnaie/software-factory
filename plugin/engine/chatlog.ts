@@ -8,7 +8,7 @@ import { parseProposal, splitSuggestions, type Context, type Proposal, type Tool
 export type Shown = { name: string; size: number; url?: string };
 export type Msg = { who: "you" | "team"; text: string; files?: Shown[]; suggestions?: string[]; tools?: ToolStep[]; cost?: number; bad?: boolean; proposal?: Proposal; acted?: string; /** Not a message: the line where the conversation was compacted. What is above it the model now holds as a summary. */ divider?: { before: number; after: number; at: string } };
 /** One conversation as it is kept: the messages, and the Claude sessions it continues (its own, and for the manager one per role it consulted). */
-export type Stored = { messages: Msg[]; session?: string; subs?: Record<string, string>; /** How full the context was after the last reply; for the manager, also that of each role's side conversation. */ context?: Context; contexts?: Record<string, Context> };
+export type Stored = { messages: Msg[]; session?: string; subs?: Record<string, string>; /** How full the context was after the last reply; for the manager, also that of each role's side conversation. */ context?: Context; contexts?: Record<string, Context>; /** The names its agent last reported it can run (skills, plugin commands). */ commands?: string[] };
 
 const VERSION = 1, MAX_MESSAGES = 200, MAX_CHARS = 300_000, MAX_OUTPUT = 2000;
 const SESSION = /^[\w-]{8,64}$/, TOPIC = /^[a-z]{1,30}$/;
@@ -23,7 +23,7 @@ const slim = (m: Msg): Msg => ({
 /** What is kept of one conversation, as text. The oldest messages go first when it grows too large. */
 export function pack(chat: Stored): string {
   let messages = chat.messages.slice(-MAX_MESSAGES).map(slim);
-  const text = () => JSON.stringify({ v: VERSION, session: chat.session, subs: chat.subs, context: chat.context, contexts: chat.contexts, messages });
+  const text = () => JSON.stringify({ v: VERSION, session: chat.session, subs: chat.subs, context: chat.context, contexts: chat.contexts, commands: chat.commands, messages });
   while (messages.length > 1 && text().length > MAX_CHARS) messages = messages.slice(Math.ceil(messages.length / 4));
   return text();
 }
@@ -38,7 +38,8 @@ export function unpack(raw: string | null): Stored | null {
     const subs = d.subs && typeof d.subs === "object" ? Object.fromEntries(Object.entries(d.subs).filter(([k, v]) => TOPIC.test(k) && typeof v === "string" && SESSION.test(v as string))) as Record<string, string> : undefined;
     const ctx = (c: any): Context | undefined => (Number.isFinite(c?.used) && Number.isFinite(c?.window) && c.used >= 0 && c.window > 0 ? { used: c.used, window: c.window } : undefined);
     const contexts = d.contexts && typeof d.contexts === "object" ? Object.fromEntries(Object.entries(d.contexts).flatMap(([k, v]) => (TOPIC.test(k) && ctx(v) ? [[k, ctx(v)!]] : []))) : undefined;
-    return { messages, session, subs, ...(session && ctx(d.context) && { context: ctx(d.context) }), ...(contexts && Object.keys(contexts).length && { contexts }) };
+    const commands = Array.isArray(d.commands) ? d.commands.filter((n: unknown) => typeof n === "string" && /^[a-z0-9][\w.:-]{0,79}$/i.test(n)).slice(0, 400) : undefined;
+    return { messages, session, subs, ...(commands?.length && { commands }), ...(session && ctx(d.context) && { context: ctx(d.context) }), ...(contexts && Object.keys(contexts).length && { contexts }) };
   } catch { return null; }
 }
 
@@ -57,10 +58,10 @@ function write(root: string, topic: string, chat: Stored): Stored {
 }
 
 /** Adds messages to a conversation, and records the sessions it now continues. */
-export function appendChat(root: string, topic: string, messages: Msg[], sessions: { session?: string; subs?: Record<string, string>; context?: Context; contexts?: Record<string, Context> } = {}): Stored {
+export function appendChat(root: string, topic: string, messages: Msg[], sessions: { session?: string; subs?: Record<string, string>; context?: Context; contexts?: Record<string, Context>; commands?: string[] } = {}): Stored {
   const c = readChat(root, topic);
   // A turn that was stopped reports no context: what was measured last still describes the session.
-  return write(root, topic, { messages: [...c.messages, ...messages], session: sessions.session ?? c.session, subs: sessions.subs ?? c.subs, context: sessions.context ?? c.context, contexts: { ...c.contexts, ...sessions.contexts } });
+  return write(root, topic, { messages: [...c.messages, ...messages], session: sessions.session ?? c.session, subs: sessions.subs ?? c.subs, context: sessions.context ?? c.context, contexts: { ...c.contexts, ...sessions.contexts }, commands: sessions.commands ?? c.commands });
 }
 
 /** The conversation was compacted: a divider is added, and its context is now what the compaction left (the window is unchanged). */

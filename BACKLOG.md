@@ -164,3 +164,5 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   A meter in the conversation header: how full the context is (from the last reply's usage and the model's window), amber at 70%, red at 90%, with a hint to compact. For the manager, the side conversations on hover.
 - [x] F-085 (P1) Clear and compact a conversation
   A conversation menu with Compact and Clear, and the typed commands /clear and /compact (with an optional focus note). Compact runs Claude's own /compact on the session and leaves a divider with the size before and after; earlier messages stay readable, dimmed.
+- [x] F-086 (P1) Offer skills and plugin commands in a conversation
+  The slash list held two fixed commands. Build it from what the conversation's agent reports (skills, plugin commands) plus the dashboard's own, so it follows what is installed and does not depend on the kind of agent; the agent's own built-ins stay out.

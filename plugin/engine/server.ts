@@ -4,6 +4,7 @@ import { parse } from "./backlog";
 import { chatArgs, chatTurn, managerTurn, resumeChat, stopChat, TOPICS, compactTurn, managerPrompt } from "./chat";
 import { loadConfig, managerOf, parseConfig, projectRoles, projectTeam } from "./config";
 import { parseProposal, type Context } from "./state";
+import { commandsFor } from "./commands";
 import { appendChat, clearChat, importChat, markActed, markCompacted, readChat, replyMsg } from "./chatlog";
 import { allEvents, report } from "./retro";
 import { supervisor, writeManager } from "./supervisor";
@@ -199,6 +200,12 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         // Every conversation that has something in it, as kept on disk, and whether a reply is on its way right now.
         const all = Object.keys(TOPICS).map((t) => [t, { ...readChat(root, t), busy: chatting.has(t) }] as const);
         return json(Object.fromEntries(all.filter(([, c]) => c.messages.length || c.busy)));
+      }
+      if (route === "GET /api/chat/commands") {
+        // What the message box offers when a slash is typed: the dashboard's commands, and what this conversation's agent can run.
+        const topic = url.searchParams.get("topic") ?? "";
+        if (!(topic in TOPICS)) return json({ error: "topic: one of " + Object.keys(TOPICS).join(", ") }, 400);
+        return json(commandsFor(root, readChat(root, topic).commands));
       }
       if (route === "GET /api/chat/topics") {
         const team = projectTeam(root);
@@ -409,8 +416,8 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         const topic = body.topic as string;
         let said = false;
         // The reply is written to the conversation's file before it is sent back, so it is kept even if the page has gone meanwhile.
-        const done = (out: Parameters<typeof replyMsg>[0] & { session?: string; sessions?: Record<string, string>; context?: Context; contexts?: Record<string, Context> }) =>
-          json({ ...out, chat: appendChat(root, topic, [replyMsg(out)], { session: out.session, subs: out.sessions, context: out.context, contexts: out.contexts }) });
+        const done = (out: Parameters<typeof replyMsg>[0] & { session?: string; sessions?: Record<string, string>; context?: Context; contexts?: Record<string, Context>; commands?: string[] }) =>
+          json({ ...out, chat: appendChat(root, topic, [replyMsg(out)], { session: out.session, subs: out.sessions, context: out.context, contexts: out.contexts, commands: out.commands }) });
         try {
           if (typeof body.topic === "string" && body.topic !== "manager") resumeChat(body.topic);
           chatArgs(body as never, projectTeam(root)); // validate before spending anything
