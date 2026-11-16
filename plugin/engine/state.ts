@@ -235,6 +235,22 @@ export function timelineOf(events: Ev[], role: string, limit = 12): Stint[] {
   return out.reverse().slice(0, limit);
 }
 
+/** How full a conversation's context is after its last reply: the tokens the model was sent and wrote, and the model's window. */
+export type Context = { used: number; window: number };
+/**
+ * Reads a conversation's context from Claude's stream. `usage` is the last main-thread assistant message's (what that request read, plus what it wrote,
+ * is what the next message starts from); `result` is the final line, whose `modelUsage` gives each model's window.
+ */
+export function contextOf(last: { model?: string; usage?: Record<string, unknown> } | undefined, result: { modelUsage?: Record<string, { contextWindow?: number }> } | undefined): Context | undefined {
+  const u = last?.usage, n = (k: string) => (typeof u?.[k] === "number" ? (u[k] as number) : 0);
+  const used = n("input_tokens") + n("cache_read_input_tokens") + n("cache_creation_input_tokens") + n("output_tokens");
+  const windows = result?.modelUsage ?? {};
+  const window = windows[last?.model ?? ""]?.contextWindow ?? Math.max(0, ...Object.values(windows).map((m) => m.contextWindow ?? 0));
+  return used > 0 && window > 0 ? { used, window } : undefined;
+}
+/** "120k", "1M": a token count short enough for a header. */
+export const tokens = (n: number) => (n >= 1_000_000 ? `${+(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
+
 /** A reply that ends with `SUGGEST: …` lines: the reply without them, and up to three short messages the person could send next. */
 export function splitSuggestions(text: string): { text: string; suggestions: string[] } {
   const found: string[] = [];

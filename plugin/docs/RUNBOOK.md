@@ -81,7 +81,8 @@ folded list under the reply.
   next to the message box, drag and drop, or paste. Up to eight files (pictures, PDF, text and code).
 - **Keep typing.** A message sent while a reply is coming waits its turn. **Stop** ends a reply, and
   **New conversation** starts a clean one. Each conversation is kept in the project (`.factory/chats/`, never
-  committed), so it is still there after she closes the dashboard or opens it in another browser.
+  committed), so it is still there after she closes the dashboard or opens it in another browser. A small meter
+  under the person's name shows how full the conversation's context is.
 - **Any language.** Replies are formatted, and right-to-left text reads correctly.
 
 To work something out in depth she picks the person, and that person asks one question at a time:

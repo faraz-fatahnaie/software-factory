@@ -27,7 +27,7 @@ import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugi
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
 import { doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
-import { parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev } from "../plugin/engine/state";
+import { parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev, contextOf, tokens } from "../plugin/engine/state";
 import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
 import { counts, lineDiff, marks, splitDiff, withGaps } from "../gui/linediff";
 import { gateIsPlaceholder, healthChecks, waitedLong } from "../plugin/engine/health";
@@ -2752,12 +2752,13 @@ esac
     resumeChat("plan"); // a new message
     expect((await chatTurn(root, { topic: "plan", message: "hi" }, team)).text).toBe("Hello.");
 
+    const calls = () => readFileSync(log, "utf8").trim().split("\n").length, before = calls(); // on a busy machine the first, stopped call may never have logged
     const manager = managerTurn(root, { topic: "manager", message: "ask" }, team); // asks the architect, who is slow
-    for (let i = 0; i < 100 && readFileSync(log, "utf8").trim().split("\n").length < 4; i++) await Bun.sleep(100); // until the architect was asked (a fixed wait was too short on a busy machine)
+    for (let i = 0; i < 100 && calls() < before + 2; i++) await Bun.sleep(100); // until the architect was asked
     await Bun.sleep(200);
     expect(stopChat("manager")).toBeGreaterThanOrEqual(1);
     expect(await manager).toMatchObject({ ok: false, status: "stopped" });
-    expect(readFileSync(log, "utf8").trim().split("\n").length).toBe(4); // slow, hi, the manager, the architect: the manager never wrote its second turn
+    expect(calls()).toBe(before + 2); // the manager and the architect: the manager never wrote its second turn
     expect((await managerTurn(root, { topic: "manager", message: "hi" }, team)).text).toBe("Hello."); // and a new message works again
   } finally { process.env.PATH = path; }
 }, 30_000);
@@ -2803,6 +2804,18 @@ test("conversations are kept on disk in the project: text only, capped, cleared 
   writeFileSync(join(root, ".factory/chats/plan.json"), "damaged");
   expect(readChat(root, "plan")).toEqual({ messages: [] });
 
+  // How full the context is: read from Claude's stream, kept with the conversation, and a stopped turn leaves the last measure in place.
+  const usage = { input_tokens: 2, cache_read_input_tokens: 9000, cache_creation_input_tokens: 7500, output_tokens: 498 };
+  expect(contextOf({ model: "claude-x", usage }, { modelUsage: { "claude-x": { contextWindow: 200_000 }, "claude-small": { contextWindow: 1_000_000 } } })).toEqual({ used: 17_000, window: 200_000 });
+  expect(contextOf({ model: "other", usage }, { modelUsage: { "claude-x": { contextWindow: 200_000 } } })).toEqual({ used: 17_000, window: 200_000 }); // an unknown model name: the largest window reported
+  expect(contextOf(undefined, { modelUsage: {} })).toBeUndefined();
+  expect(contextOf({ usage }, undefined)).toBeUndefined();
+  expect([tokens(950), tokens(17_000), tokens(1_000_000), tokens(1_250_000)]).toEqual(["950", "17k", "1M", "1.3M"]);
+  const measured = appendChat(root, "research", [{ who: "team", text: "x" }], { session: "44444444-2222-3333-4444-555555555555", context: { used: 17_000, window: 200_000 }, contexts: { design: { used: 5000, window: 200_000 } } });
+  expect(measured).toMatchObject({ context: { used: 17_000, window: 200_000 }, contexts: { design: { used: 5000, window: 200_000 } } });
+  expect(appendChat(root, "research", [{ who: "team", text: "Stopped." }]).context).toEqual({ used: 17_000, window: 200_000 });
+  expect(unpack(JSON.stringify({ v: 1, session: "44444444-2222-3333-4444-555555555555", context: { used: "many", window: 0 }, contexts: { "../x": { used: 1, window: 2 } }, messages: [] }))).toEqual({ messages: [], session: "44444444-2222-3333-4444-555555555555", subs: undefined });
+
   // What a browser kept before: taken over once, into an empty conversation only.
   const old = JSON.stringify({ v: 1, session: "33333333-2222-3333-4444-555555555555", messages: [{ who: "you", text: "from the browser" }] });
   expect(importChat(root, "design", old).messages).toHaveLength(1);
@@ -2819,6 +2832,7 @@ test("conversations are kept on disk in the project: text only, capped, cleared 
   const mine = { busy: true, draft: "typing", messages: [{ who: "you" as const, text: "look", files: [{ name: "shot.png", size: 10, url: "blob:1" }] }] };
   const shown = mirror(mine, { messages: [{ who: "you", text: "look", files: [{ name: "shot.png", size: 10 }] }, { who: "team", text: "ok" }], session: "s".repeat(8) });
   expect(shown).toMatchObject({ busy: false, remote: false, draft: "typing", session: "ssssssss" });
+  expect(mirror(mine, { messages: [], context: { used: 1, window: 2 } }).context).toEqual({ used: 1, window: 2 });
   expect(shown.messages[0]!.files![0]!.url).toBe("blob:1");
   const merged = merge({ plan: mine, design: { busy: false, messages: [{ who: "you", text: "old" }] }, test: { busy: false, messages: [], draft: "half a thought" } }, { plan: { messages: [] }, manager: { messages: [{ who: "you", text: "hi" }], busy: true } });
   expect(merged.plan).toBe(mine); // this page asked: its reply brings the new state
@@ -2830,8 +2844,10 @@ test("conversations are kept on disk in the project: text only, capped, cleared 
 test("conversations over HTTP: each turn is written before it is answered, a reload reads it back, and clearing deletes it", async () => {
   const bin = join(tmp(), "bin");
   mkdirSync(bin, { recursive: true });
-  const result = (text: string) => JSON.stringify({ type: "result", subtype: "success", is_error: false, result: text, session_id: "11111111-1111-1111-1111-111111111111", total_cost_usd: 0.01, usage: {} });
-  writeFileSync(join(bin, "claude"), `#!/bin/sh\ncase "$2" in\n  "slow"*) exec sleep 30;;\n  *) printf '%s\\n' '${result("Hello.\nSUGGEST: Tell me more")}';;\nesac\n`);
+  const result = (text: string) => JSON.stringify({ type: "result", subtype: "success", is_error: false, result: text, session_id: "11111111-1111-1111-1111-111111111111", total_cost_usd: 0.01, usage: {}, modelUsage: { "claude-x": { contextWindow: 200000 } } });
+  const said = JSON.stringify({ type: "assistant", parent_tool_use_id: null, message: { model: "claude-x", content: [], usage: { input_tokens: 10, cache_read_input_tokens: 30000, cache_creation_input_tokens: 9000, output_tokens: 990 } } });
+  const inner = JSON.stringify({ type: "assistant", parent_tool_use_id: "toolu_1", message: { model: "claude-x", content: [], usage: { input_tokens: 5, output_tokens: 5 } } }); // a subagent's request is not the conversation's context
+  writeFileSync(join(bin, "claude"), `#!/bin/sh\ncase "$2" in\n  "slow"*) exec sleep 30;;\n  *) printf '%s\\n' '${said}' '${inner}' '${result("Hello.\nSUGGEST: Tell me more")}';;\nesac\n`);
   chmodSync(join(bin, "claude"), 0o755);
   const path = process.env.PATH;
   process.env.PATH = `${bin}:${path}`;
@@ -2844,7 +2860,8 @@ test("conversations over HTTP: each turn is written before it is answered, a rel
     expect(await all()).toEqual({});
     const first = await post("/api/chat", { topic: "plan", message: "hi there", shown: "Hi", attachments: [{ name: "note.txt", data: Buffer.from("hello").toString("base64") }] });
     expect(first.data.chat.messages).toEqual([{ who: "you", text: "Hi", files: [{ name: "note.txt", size: 5 }] }, expect.objectContaining({ who: "team", text: "Hello.", suggestions: ["Tell me more"], cost: 0.01 })]);
-    expect((await all()).plan).toMatchObject({ busy: false, session: "11111111-1111-1111-1111-111111111111" }); // what a reload, another browser or another port reads
+    expect(first.data.chat.context).toEqual({ used: 40_000, window: 200_000 }); // 20% of the context, as of this reply
+    expect((await all()).plan).toMatchObject({ busy: false, session: "11111111-1111-1111-1111-111111111111", context: { used: 40_000, window: 200_000 } }); // what a reload, another browser or another port reads
     expect(JSON.parse(readFileSync(join(dir, ".factory/chats/plan.json"), "utf8")).messages).toHaveLength(2);
     expect((await post("/api/chat", { topic: "plan", message: "x", model: "nope" })).status).toBe(400);
     expect((await all()).plan!.messages).toHaveLength(2); // a refused message is not kept

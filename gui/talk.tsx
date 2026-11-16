@@ -1,7 +1,7 @@
 // Talk: conversations with the people (robots) who hold each job. Checks: the factory's own commands, one button each.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Msg, Shown, Stored } from "../plugin/engine/chatlog";
-import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, stepsSummary, type Proposal, type ToolStep } from "../plugin/engine/state";
+import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, stepsSummary, tokens, type Context, type Proposal, type ToolStep } from "../plugin/engine/state";
 import { mirror } from "./chatstore";
 import { call } from "./data";
 import { Icon } from "./icons";
@@ -14,7 +14,7 @@ export type { Msg, Shown };
 /** A file waiting to be sent with the next message. Pictures get a preview. */
 export type Pending = { file: File; url?: string };
 /** One conversation. The unsent message, the files waiting to go with it and a message queued behind a reply live here, not in the Talk page, so leaving the page and coming back loses nothing. */
-export type Chat = { messages: Msg[]; session?: string; subs?: Record<string, string>; busy: boolean; /** Busy because the server says a reply is on its way (this page did not ask for it, for example after a reload): the page watches for it. */ remote?: boolean; draft?: string; files?: Pending[]; queued?: { message: string; files: Pending[] }; opts?: { suggest: boolean; model: string; effort: string } };
+export type Chat = { messages: Msg[]; session?: string; subs?: Record<string, string>; context?: Context; contexts?: Record<string, Context>; busy: boolean; /** Busy because the server says a reply is on its way (this page did not ask for it, for example after a reload): the page watches for it. */ remote?: boolean; draft?: string; files?: Pending[]; queued?: { message: string; files: Pending[] }; opts?: { suggest: boolean; model: string; effort: string } };
 const draftKey = (k: string) => `factory-draft:${k}`;
 /** The unsent message of a conversation, kept in the browser too, so a reload keeps it. Storage can be blocked: then it only lives in the page. */
 const savedDraft = (k: string) => { try { return localStorage.getItem(draftKey(k)) ?? ""; } catch { return ""; } };
@@ -68,6 +68,19 @@ function FileChip({ f, onRemove }: { f: Shown; onRemove?: () => void }) {
       <span className="meta"><b title={f.name}>{f.name}</b><span>{ext(f.name).toUpperCase()} · {sizeOf(f.size)}</span></span>
       {onRemove && <button type="button" className="quiet x" onClick={onRemove} aria-label={`Remove ${f.name}`}><Icon name="x" size={14} /></button>}
     </li>
+  );
+}
+
+/** How full a conversation's context is, as of its last reply. Amber from 70%, red from 90%: a full context makes replies slower and dearer, and the oldest parts are summarised away. */
+function ContextMeter({ context, others }: { context: Context; others: { name: string; context: Context }[] }) {
+  const share = Math.min(1, context.used / context.window), pct = Math.max(1, Math.round(share * 100));
+  const line = (c: Context) => `${tokens(c.used)} of ${tokens(c.window)} tokens`;
+  const title = [`${line(context)}, after the last reply.`, ...others.map((o) => `Asked ${o.name}: ${line(o.context)}`)].join("\n");
+  return (
+    <span className={`ctx${share >= 0.9 ? " bad" : share >= 0.7 ? " warn" : ""}`} title={title}>
+      <meter value={share} max={1} low={0.7} high={0.9} optimum={0} aria-label={`Context used: ${pct}%, ${line(context)}`} />
+      <span className="num">{pct}% of context</span>
+    </span>
   );
 }
 
@@ -227,6 +240,7 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
             <div className="grow">
               <h2>{person.name}</h2>
               <p className="note">{topic.roleTitle} · {chat.busy ? "Thinking…" : "Listening"}</p>
+              {chat.context && <ContextMeter context={chat.context} others={Object.entries(chat.contexts ?? {}).flatMap(([k, c]) => { const t = topics.find((x) => x.key === k); return t ? [{ name: personaFor(t.role ?? t.key).name, context: c }] : []; })} />}
             </div>
             {chat.messages.length > 0 && (clearing
               ? <span className="row gap-s" role="group" aria-label="Start a new conversation?"><span className="note">Clear this conversation?</span><button className="small" onClick={async () => { setClearing(false); if (chat.busy) await stop(); for (let i = 0; i < 20 && !(await call("/api/chats/clear", { topic: key })).ok; i++) await new Promise((ok) => setTimeout(ok, 250)); /* a stopped reply takes a moment to end */ patch(key, () => ({ messages: [], busy: false })); }}>Yes, start over</button><button className="small quiet" onClick={() => setClearing(false)}>Keep it</button></span>

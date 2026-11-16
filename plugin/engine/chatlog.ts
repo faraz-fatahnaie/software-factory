@@ -3,12 +3,12 @@
 // Only text is kept: no file contents, and long command output is cut. Clearing a conversation deletes its file.
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseProposal, splitSuggestions, type Proposal, type ToolStep } from "./state";
+import { parseProposal, splitSuggestions, type Context, type Proposal, type ToolStep } from "./state";
 
 export type Shown = { name: string; size: number; url?: string };
 export type Msg = { who: "you" | "team"; text: string; files?: Shown[]; suggestions?: string[]; tools?: ToolStep[]; cost?: number; bad?: boolean; proposal?: Proposal; acted?: string };
 /** One conversation as it is kept: the messages, and the Claude sessions it continues (its own, and for the manager one per role it consulted). */
-export type Stored = { messages: Msg[]; session?: string; subs?: Record<string, string> };
+export type Stored = { messages: Msg[]; session?: string; subs?: Record<string, string>; /** How full the context was after the last reply; for the manager, also that of each role's side conversation. */ context?: Context; contexts?: Record<string, Context> };
 
 const VERSION = 1, MAX_MESSAGES = 200, MAX_CHARS = 300_000, MAX_OUTPUT = 2000;
 const SESSION = /^[\w-]{8,64}$/, TOPIC = /^[a-z]{1,30}$/;
@@ -23,7 +23,7 @@ const slim = (m: Msg): Msg => ({
 /** What is kept of one conversation, as text. The oldest messages go first when it grows too large. */
 export function pack(chat: Stored): string {
   let messages = chat.messages.slice(-MAX_MESSAGES).map(slim);
-  const text = () => JSON.stringify({ v: VERSION, session: chat.session, subs: chat.subs, messages });
+  const text = () => JSON.stringify({ v: VERSION, session: chat.session, subs: chat.subs, context: chat.context, contexts: chat.contexts, messages });
   while (messages.length > 1 && text().length > MAX_CHARS) messages = messages.slice(Math.ceil(messages.length / 4));
   return text();
 }
@@ -36,7 +36,9 @@ export function unpack(raw: string | null): Stored | null {
     const messages = d.messages.filter((m: any) => (m?.who === "you" || m?.who === "team") && typeof m.text === "string");
     const session = typeof d.session === "string" && SESSION.test(d.session) ? d.session : undefined;
     const subs = d.subs && typeof d.subs === "object" ? Object.fromEntries(Object.entries(d.subs).filter(([k, v]) => TOPIC.test(k) && typeof v === "string" && SESSION.test(v as string))) as Record<string, string> : undefined;
-    return { messages, session, subs };
+    const ctx = (c: any): Context | undefined => (Number.isFinite(c?.used) && Number.isFinite(c?.window) && c.used >= 0 && c.window > 0 ? { used: c.used, window: c.window } : undefined);
+    const contexts = d.contexts && typeof d.contexts === "object" ? Object.fromEntries(Object.entries(d.contexts).flatMap(([k, v]) => (TOPIC.test(k) && ctx(v) ? [[k, ctx(v)!]] : []))) : undefined;
+    return { messages, session, subs, ...(session && ctx(d.context) && { context: ctx(d.context) }), ...(contexts && Object.keys(contexts).length && { contexts }) };
   } catch { return null; }
 }
 
@@ -55,9 +57,10 @@ function write(root: string, topic: string, chat: Stored): Stored {
 }
 
 /** Adds messages to a conversation, and records the sessions it now continues. */
-export function appendChat(root: string, topic: string, messages: Msg[], sessions: { session?: string; subs?: Record<string, string> } = {}): Stored {
+export function appendChat(root: string, topic: string, messages: Msg[], sessions: { session?: string; subs?: Record<string, string>; context?: Context; contexts?: Record<string, Context> } = {}): Stored {
   const c = readChat(root, topic);
-  return write(root, topic, { messages: [...c.messages, ...messages], session: sessions.session ?? c.session, subs: sessions.subs ?? c.subs });
+  // A turn that was stopped reports no context: what was measured last still describes the session.
+  return write(root, topic, { messages: [...c.messages, ...messages], session: sessions.session ?? c.session, subs: sessions.subs ?? c.subs, context: sessions.context ?? c.context, contexts: { ...c.contexts, ...sessions.contexts } });
 }
 
 /** A person pressed the button a reply proposed: the reply says how it went, and the outcome follows it as a message. */

@@ -3,7 +3,7 @@ import { basename, join } from "node:path";
 import { parse } from "./backlog";
 import { chatArgs, chatTurn, managerTurn, resumeChat, stopChat, TOPICS } from "./chat";
 import { loadConfig, managerOf, parseConfig, projectRoles, projectTeam } from "./config";
-import { parseProposal } from "./state";
+import { parseProposal, type Context } from "./state";
 import { appendChat, clearChat, importChat, markActed, readChat, replyMsg } from "./chatlog";
 import { allEvents, report } from "./retro";
 import { supervisor, writeManager } from "./supervisor";
@@ -397,8 +397,8 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         const topic = body.topic as string;
         let said = false;
         // The reply is written to the conversation's file before it is sent back, so it is kept even if the page has gone meanwhile.
-        const done = (out: Parameters<typeof replyMsg>[0] & { session?: string; sessions?: Record<string, string> }) =>
-          json({ ...out, chat: appendChat(root, topic, [replyMsg(out)], { session: out.session, subs: out.sessions }) });
+        const done = (out: Parameters<typeof replyMsg>[0] & { session?: string; sessions?: Record<string, string>; context?: Context; contexts?: Record<string, Context> }) =>
+          json({ ...out, chat: appendChat(root, topic, [replyMsg(out)], { session: out.session, subs: out.sessions, context: out.context, contexts: out.contexts }) });
         try {
           if (typeof body.topic === "string" && body.topic !== "manager") resumeChat(body.topic);
           chatArgs(body as never, projectTeam(root)); // validate before spending anything

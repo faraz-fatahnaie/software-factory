@@ -10,7 +10,7 @@ const LEGACY = "factory-chat:";
 export function mirror(mine: Chat | undefined, kept: Stored & { busy?: boolean }): Chat {
   const before = mine?.messages ?? [];
   return {
-    ...mine, session: kept.session, subs: kept.subs, busy: !!kept.busy, remote: !!kept.busy,
+    ...mine, session: kept.session, subs: kept.subs, context: kept.context, contexts: kept.contexts, busy: !!kept.busy, remote: !!kept.busy,
     messages: kept.messages.map((m, i) => (m.files && before[i]?.files ? { ...m, files: m.files.map((f, j) => (before[i]!.files![j]?.name === f.name ? { ...f, url: before[i]!.files![j]!.url } : f)) } : m)),
   };
 }
@@ -20,7 +20,7 @@ export const merge = (all: Chats, kept: Record<string, Stored & { busy?: boolean
   const out: Chats = { ...all };
   for (const [topic, c] of Object.entries(kept)) if (!all[topic]?.busy || all[topic]!.remote) out[topic] = mirror(all[topic], c);
   // Gone on the server (cleared elsewhere, or a reply this page was only watching ended with nothing kept): gone here too, but never what is being typed.
-  for (const [topic, c] of Object.entries(all)) if (!(topic in kept) && (c.remote || (!c.busy && c.messages.length))) out[topic] = { ...c, messages: [], session: undefined, subs: undefined, busy: false, remote: false };
+  for (const [topic, c] of Object.entries(all)) if (!(topic in kept) && (c.remote || (!c.busy && c.messages.length))) out[topic] = { ...c, messages: [], session: undefined, subs: undefined, context: undefined, contexts: undefined, busy: false, remote: false };
   return out;
 };
 

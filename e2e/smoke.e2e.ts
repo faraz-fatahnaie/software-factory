@@ -17,9 +17,9 @@ mkdirSync(bin, { recursive: true });
 const REPLY = "## Plan\\n\\nHere is **bold**, `code` and a [link](https://example.com).\\n\\n- one\\n- two\\n\\n| A | B |\\n|---|---|\\n| 1 | 2 |\\n\\n```ts\\nconst x = 1;\\n```\\n\\nسلام، این یک پیام فارسی است.";
 writeFileSync(join(bin, "claude"), `#!/bin/sh
 sleep 1.5
-printf '%s\\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"git status"}}]}}'
+printf '%s\\n' '{"type":"assistant","message":{"model":"claude-x","usage":{"input_tokens":10,"cache_read_input_tokens":140000,"cache_creation_input_tokens":7990,"output_tokens":0},"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"git status"}}]}}'
 printf '%s\\n' '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"On branch main\\nnothing to commit"}]}}'
-printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"${REPLY}","session_id":"11111111-2222-3333-4444-555555555555","total_cost_usd":0.01,"usage":{}}'
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"${REPLY}","session_id":"11111111-2222-3333-4444-555555555555","total_cost_usd":0.01,"usage":{},"modelUsage":{"claude-x":{"contextWindow":200000}}}'
 `);
 chmodSync(join(bin, "claude"), 0o755);
 process.env.PATH = `${bin}:${process.env.PATH}`;
@@ -199,6 +199,8 @@ try {
     await page.locator(".chat-md table td", { hasText: "2" }).waitFor();
     await page.locator(".md-code", { hasText: "const x = 1;" }).waitFor();
     await page.locator('.chat-md a[href="https://example.com"]').waitFor();
+    await page.locator(".chat-head .ctx.warn", { hasText: "74% of context" }).waitFor(); // how full the conversation is, amber from 70%
+    assert.match(await page.locator(".chat-head .ctx").getAttribute("title") ?? "", /148k of 200k tokens/);
     await a11y(page, `${name} Talk reply`);
 
     // A reload keeps the conversation; Stop ends a reply that is coming; New conversation clears it after asking.
