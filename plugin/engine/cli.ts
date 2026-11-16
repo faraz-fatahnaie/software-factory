@@ -212,12 +212,17 @@ async function main([cmd, ...args]: string[]) {
     const { AUTONOMY, MANAGER_DEFAULTS } = await import("./config");
     const { AUTONOMY_TEXT, writeManager } = await import("./supervisor");
     const [sub, key, value] = args;
+    if (sub === "report") { // the facts she works from: milestones, what stopped tasks, what each role cost
+      const { allEvents, report } = await import("./retro");
+      const store = openEvents();
+      try { return console.log(report(readItems(), allEvents(store))); } finally { store.close(); }
+    }
     let m = managerOf(loadConfig(root));
     if (sub && (AUTONOMY as string[]).includes(sub)) m = writeManager(root, { autonomy: sub as never });
     else if (sub === "set") {
       if (!key || !(key in MANAGER_DEFAULTS) || key === "autonomy" || value === undefined || Number.isNaN(Number(value))) throw new Error(`usage: factory manager set <${Object.keys(MANAGER_DEFAULTS).filter((k) => k !== "autonomy").join("|")}> <number>`);
       m = writeManager(root, { [key]: Number(value) });
-    } else if (sub) throw new Error("usage: factory manager [autopilot|assist|off | set <setting> <value>]");
+    } else if (sub) throw new Error("usage: factory manager [autopilot|assist|off | report | set <setting> <value>]");
     if (sub) commitPaths(`manager: ${sub === "set" ? `${key} ${value}` : sub}`, "factory.config.json");
     return console.log(`${AUTONOMY_TEXT[m.autonomy]}.\nAt most ${m.parallel} task${m.parallel === 1 ? "" : "s"} at once · ${m.recoveries} automatic retries per task · up to $${m.perTask} per task and $${m.perDay} per day · a task with no sign of life for ${m.stall} minutes is stopped.`);
   }

@@ -753,7 +753,8 @@
     "access": [
       "read"
     ],
-    "title": "Track milestones"
+    "title": "Track milestones",
+    "instruction": "When the person asks about progress toward a milestone, or a milestone has just been finished, run `factory manager report`: its first part lists each milestone the backlog names, how many of its tasks are done and which are open. Say where each stands in one line. When every task of a milestone is done, say so plainly and name the milestone work that is now due: bringing the documents up to date, a security audit, and checking that it is ready to release. Offer to start each by asking the role that does it; start nothing the person did not agree to, and never release or deploy."
   },
   {
     "id": "M13",
@@ -797,7 +798,8 @@
     "access": [
       "read"
     ],
-    "title": "Hold a retrospective"
+    "title": "Hold a retrospective",
+    "instruction": "When a milestone is done, or the person asks what keeps going wrong, run `factory manager report` and read what stopped tasks and how many builds were sent back. Name a cause only when it happened more than once, with the tasks it happened on, and say what would prevent it: a line in the project's rules, a note for a role, or a skill for a role. Propose each fix as a backlog item the person can approve (add it with `factory add` only when they agree). With too little history to see a pattern, say so instead of guessing."
   },
   {
     "id": "M17",
@@ -808,7 +810,8 @@
     "access": [
       "read"
     ],
-    "title": "Watch team health"
+    "title": "Watch team health",
+    "instruction": "When the person asks how the team is doing, or which role costs or fails the most, run `factory manager report` and read the roles part. Point out a role only when the numbers show it: one that failed in a large share of its stages, or one that costs far more than the others for the same kind of work. Say what you would change (a cheaper or a stronger model for that role, moving a responsibility to another role, or switching one off) and what it would cost or save, and tell them where to change it: the Team view, or `factory team`. Do not change the team yourself."
   },
   {
     "id": "M18",

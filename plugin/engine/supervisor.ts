@@ -6,7 +6,8 @@ import { join } from "node:path";
 import { FROM_CONVERSATION, type Item } from "./backlog";
 import { type Autonomy, managerOf, type ManagerSettings, parseConfig } from "./config";
 import type { Store } from "./events";
-import { needsTriage } from "./pipeline";
+import { followUps, needsTriage } from "./pipeline";
+import { milestones } from "./retro";
 
 export type Kind = "rate_limit" | "auth" | "stopped" | "stalled" | "builds" | "setup" | "clash" | "unready" | "other";
 /** What kind of failure an error message describes. These are the messages the pipeline and the CLI write. */
@@ -53,6 +54,7 @@ export function overlap(a: string[], b: string[]): string | undefined {
   }
 }
 
+const RECENT = 7 * 24 * 3_600_000; // a milestone finished longer ago than this is history, not news
 const AWAITING_LIMIT = 3; // the person is the bottleneck: no new work while this many tasks wait for a decision
 const startOfDay = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); };
 
@@ -74,6 +76,8 @@ export type Ctx = {
   hasSpec: (id: string) => boolean;
   /** Whether this team has someone to triage a loose idea. Without one, an item with no acceptance checks is not started on autopilot. */
   canTriage?: () => boolean;
+  /** A model's retrospective when a milestone is done: what kept going wrong, with proposals under "## Follow-ups". May fail; the milestone is announced either way. */
+  retro?: (milestone: string) => Promise<string>;
   every?: number;
   /** The clock; tests move it. */
   now?: () => number;
@@ -92,9 +96,24 @@ export function supervisor(ctx: Ctx) {
 
   async function tick() {
     const s = ctx.settings();
-    if (s.autonomy !== "autopilot") { retryAt.clear(); return; }
     const now = ctx.now?.() ?? Date.now(), items = ctx.items();
     const dayCost = () => ctx.store.spent(startOfDay());
+
+    // M12: say when a milestone is done, once, and look back at it (M16). Said on assist too: it is news, not an action.
+    if (s.autonomy !== "off") for (const m of milestones(items)) {
+      if (m.open.length || !once(`milestone:${m.name}`)) continue;
+      const last = m.ids.map((id) => ctx.store.touched(id) ?? "").sort().pop();
+      if (!last || now - Date.parse(last) > RECENT) continue;
+      if (ctx.store.decisions("", 1000).some((e) => (e.data as { action?: string; milestone?: string } | undefined)?.action === "milestone" && (e.data as { milestone?: string }).milestone === m.name)) continue;
+      decide_("", "milestone", `Milestone "${m.name}" is done: all ${m.ids.length} of its tasks are finished. This is the moment for the milestone work: bring the documents up to date, run a security audit and check that it is ready to release. Ask me in Talk and I will start each with the right person.`, { milestone: m.name });
+      if (dayCost() < s.perDay) ctx.retro?.(m.name).then(async (text) => {
+        if (!text.trim()) return;
+        ctx.store.emit({ run: "", task: "", stage: "manager", type: "manager.note", data: { text: text.split(/^## Follow-ups\s*$/m)[0]!.trim(), milestone: m.name } });
+        // Her proposals go to the Inbox like any agent's follow-up: a person promotes them, autopilot does not.
+        for (const title of followUps(text).slice(0, 3)) await ctx.cli("add", title.slice(0, 200), "--detail", `Proposed in the retrospective of the milestone "${m.name}".`);
+      }).catch(() => {});
+    }
+    if (s.autonomy !== "autopilot") { retryAt.clear(); return; }
 
     // Stalled: a running task that has shown no sign of life for too long is stopped, and tried again below.
     for (const it of items) {

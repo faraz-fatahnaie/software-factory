@@ -8,7 +8,7 @@ import { chatPromptFor, holderOf, lookup, type Preset } from "./team";
 
 /** The conversations the GUI offers. Each names responsibilities, like the matching command, so it works in any team grouping. */
 export const TOPICS: Record<string, { title: string; summary: string; ids: string[]; first: string; guide?: boolean; manager?: boolean }> = {
-  manager: { title: "Talk to the team", summary: "Ask anything. I answer, or ask the people it concerns and bring you their answers. I also tell you where things stand and what to do when a task stops.", ids: ["M18", "M8", "M4", "M5", "M9"], first: "Where do things stand?", manager: true },
+  manager: { title: "Talk to the team", summary: "Ask anything. I answer, or ask the people it concerns and bring you their answers. I also tell you where things stand and what to do when a task stops.", ids: ["M18", "M8", "M4", "M5", "M9", "M12", "M16", "M17"], first: "Where do things stand?", manager: true },
   brainstorm: { title: "Brainstorm an idea", summary: "Work out what to build, for whom, and what success looks like.", ids: ["D1", "D3"], first: "I would like to brainstorm an idea." },
   research: { title: "Research similar products", summary: "Find what already exists and what can be learned from it.", ids: ["D2"], first: "Please research products similar to this project." },
   plan: { title: "Plan the work", summary: "Turn the brief into requirements, milestones and backlog items.", ids: ["R1", "R2", "R3", "R4", "P1", "P2", "P3"], first: "Please help me plan the work." },
@@ -29,7 +29,7 @@ const ALLOW = ["Read", "Grep", "Glob", "WebSearch", "WebFetch", "Write(docs/**)"
 
 // The Guide only answers questions: it can look at the project and run the read-only commands, and nothing else.
 // The manager reads the project and the runs, and may add a backlog item. It cannot write documents: the roles it asks may, one at a time, in their own conversations.
-const MANAGER_ALLOW = ["Read", "Grep", "Glob", "Bash(factory status:*)", "Bash(factory doctor:*)", "Bash(factory vcs)", "Bash(factory add:*)", "Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)"];
+const MANAGER_ALLOW = ["Read", "Grep", "Glob", "Bash(factory status:*)", "Bash(factory doctor:*)", "Bash(factory vcs)", "Bash(factory manager report)", "Bash(factory add:*)", "Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)"];
 const GUIDE_ALLOW = ["Read", "Grep", "Glob", "Bash(factory doctor:*)", "Bash(factory status:*)", "Bash(factory vcs)", "Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)"];
 const guidePrompt = (productDir: string) => `You are Bix, the Guide of this project's software factory: a read-only helper who explains what the tool is doing and how to control it. You change nothing: you have no way to edit files, and you must not ask to be allowed to.
 

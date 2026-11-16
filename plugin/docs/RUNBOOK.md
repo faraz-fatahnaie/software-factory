@@ -345,6 +345,11 @@ decision is in **Logs**.
 To take control: `factory manager assist` (Tess only proposes, Dina presses the buttons) or
 `factory manager off`, or the **Manager** menu in Talk. `factory manager set perDay 10` changes a limit.
 
+When the last task of a milestone is finished, Tess says so, names what is due now (the documents, a security
+audit, a release check) and looks back at what kept going wrong; anything she proposes lands in the Inbox for
+Dina to promote. `factory manager report` prints the facts she works from: milestones, what stopped tasks, and
+what each role ran, failed and cost.
+
 ## Updating the plugin
 
 When a new version is released, Dina updates from a terminal (not inside the project's chat):

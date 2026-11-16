@@ -5,6 +5,7 @@ import { add, FROM_CONVERSATION, move, parse, type Item } from "../plugin/engine
 import { agentEvents, claudeArgs, classify } from "../plugin/engine/claude";
 import { loadConfig, MANAGER_DEFAULTS, managerOf, parseConfig, type ManagerSettings } from "../plugin/engine/config";
 import { decide, failureKind, overlap, pathsIn, supervisor } from "../plugin/engine/supervisor";
+import { allEvents, health, milestones, report } from "../plugin/engine/retro";
 import { formatChecks, formatInfo, readiness, releaseInfo, tagRelease, versionFiles } from "../plugin/engine/release";
 import { allTracked, changesInWorktree, changesSince, parseDiff, scanSecrets, sensitiveReasons } from "../plugin/engine/security";
 import { appendChronicle, appendNotes, chronicleEntry, parseScribe, readNotes, stageOutput } from "../plugin/engine/chronicle";
@@ -16,7 +17,7 @@ import { applyTeam, configure, ensureRoleFiles, detect, doctor, init, nextStep, 
 import { personaFor } from "../gui/robots";
 import { activeRoles, catalog, holderOf, chatPrompt, chatPromptFor, checkSettings, customStages, DEFAULT_PRESET, describeTeam, perTask, presets, renderRole, resolveTeam, stageDuties, stageRole, teamForAgents, toolsFor, validateTeam, type TeamSettings } from "../plugin/engine/team";
 import { addCustom, moveSettings, offSettings, parseChange, planTeam, removeCustom, renameSettings, teamView } from "../plugin/engine/teamctl";
-import { askable, chatArgs, chatTurn, checkAttachments, managerTurn, parseAsks, resumeChat, saveAttachments, stopChat, TOPICS } from "../plugin/engine/chat";
+import { askable, chatArgs, chatTurn, checkAttachments, managerPrompt, managerTurn, parseAsks, resumeChat, saveAttachments, stopChat, TOPICS } from "../plugin/engine/chat";
 import { parseBlocks, parseInline } from "../gui/mdparse";
 import { digest } from "../gui/manager";
 import { loadChats, pack, saveChats, signature, unpack } from "../gui/chatstore";
@@ -451,7 +452,7 @@ test("team apply: rebuilds generated files, keeps skills, leaves hand-edited fil
   expect(readFileSync(file("architect"), "utf8")).toContain("  - tdd"); // attached skills survive a rebuild
   expect(readFileSync(file("architect"), "utf8")).not.toContain("outdated");
   expect(cli("team", "apply", "--force").out).toMatch(/rebuilt  \.claude\/agents\/reviewer\.md/);
-  expect(cli("team").out).toMatch(/● Product Partner \(product-partner\) {2}\[chat\]\n {4}built: {3}D1 D2 D3[\s\S]*● Planner \(planner\) {2}\[chat\]\n {4}built: {3}R1 R2 R3 R4 P1 P2 P3\n[\s\S]*● Technical Manager \(technical-manager\) {2}\[chat \+ agent\] {2}sonnet, medium\n {4}built: {3}P4 M4 M5 M8 M9 M18\n {4}planned: M1 M6 M7/);
+  expect(cli("team").out).toMatch(/● Product Partner \(product-partner\) {2}\[chat\]\n {4}built: {3}D1 D2 D3[\s\S]*● Planner \(planner\) {2}\[chat\]\n {4}built: {3}R1 R2 R3 R4 P1 P2 P3\n[\s\S]*● Technical Manager \(technical-manager\) {2}\[chat \+ agent\] {2}sonnet, medium\n {4}built: {3}P4 M4 M5 M8 M9 M12 M16 M17 M18\n {4}planned: M1 M6 M7 M15/);
   expect(cli("team", "bogus").code).toBe(1);
 }, 60_000);
 
@@ -2203,7 +2204,7 @@ function manage(settings: Partial<ManagerSettings> = {}, items: Item[] = [], bef
   const store = openStore(":memory:");
   before?.(store);
   Bun.sleepSync(5); // the supervisor ignores what happened before it started
-  const launched: string[][] = [], killed: string[] = [], promoted: string[] = [];
+  const launched: string[][] = [], killed: string[] = [], promoted: string[] = [], added: string[] = [];
   const running = new Map<string, { kill(): void }>();
   const state = { items };
   let clock = Date.now() + 50;
@@ -2212,11 +2213,12 @@ function manage(settings: Partial<ManagerSettings> = {}, items: Item[] = [], bef
     canTriage: () => canTriage.value,
     root: "/x", store, settings: () => ({ ...MANAGER_DEFAULTS, ...settings }), items: () => state.items, running, group: () => 1, every: 3_600_000, now: () => clock,
     launch: (id, argv) => { if (running.has(id)) return false; launched.push(argv); running.set(id, { kill: () => killed.push(id) }); return true; },
-    cli: async (...argv) => { promoted.push(argv[1]!); state.items = state.items.map((i) => (i.id === argv[1] ? { ...i, section: "Ready" } : i)); return { code: 0, out: "" }; },
+    retro: async () => "Builds kept failing on rounding.\n\n## Follow-ups\n- Add a rounding rule to the project's rules",
+    cli: async (...argv) => { if (argv[0] === "add") { added.push(argv[1]!); return { code: 0, out: "" }; } promoted.push(argv[1]!); state.items = state.items.map((i) => (i.id === argv[1] ? { ...i, section: "Ready" } : i)); return { code: 0, out: "" }; },
     explain: async () => "A plain explanation.", guide: async () => "Use the existing helper.", hasSpec: () => true,
   });
   const decisions = () => store.decisions("", 50).reverse().filter((e) => e.type === "manager.decision").map((e) => (e.data as { action: string }).action);
-  return { store, launched, killed, promoted, running, state, canTriage, tick: sup.tick, decisions, advance: (ms: number) => { clock += ms; }, stop: sup.stop };
+  return { store, launched, killed, promoted, added, running, state, canTriage, tick: sup.tick, decisions, advance: (ms: number) => { clock += ms; }, stop: sup.stop };
 }
 const failed = (store: ReturnType<typeof openStore>, task: string, error: string) => store.emit({ run: "r1", task, stage: "run", type: "run.failed", data: error });
 
@@ -2357,6 +2359,60 @@ test("ready and done (M14): triage stops an item that is too large or has no che
   expect(hold.launched).toEqual([["run", "F-002"]]);
   expect(hold.decisions()).toEqual(["hold", "start"]);
   hold.stop();
+});
+
+test("milestones, retrospective and team health (M12, M16, M17): counted from the backlog and the log; a finished milestone is announced once", async () => {
+  const ms = (id: string, section: string, name: string) => mItem(id, section, `Milestone: ${name}\nAcceptance: it works`);
+  const items = [ms("F-001", "Done", "Orders online"), ms("F-002", "Done", "Orders online"), ms("F-003", "Ready", "Payments"), mItem("F-004", "Ready")];
+  expect(milestones(items)).toEqual([{ name: "Orders online", ids: ["F-001", "F-002"], done: 2, open: [] }, { name: "Payments", ids: ["F-003"], done: 0, open: ["F-003"] }]);
+
+  const store = openStore(":memory:");
+  const ev = (task: string, stage: string, type: string, extra: object = {}) => store.emit({ run: `r-${task}`, task, stage, type, ...extra });
+  for (const t of ["F-001", "F-002"]) { ev(t, "run", "run.start"); ev(t, "build", "stage.ok", { role: "builder", model: "sonnet", data: { usage: { costUsd: 1.5 } } }); }
+  ev("F-001", "check", "stage.failed", { data: "1 test fails" });
+  ev("F-001", "review", "stage.ok", { role: "reviewer", model: "opus", data: { output: "REQUEST_CHANGES\nrename", usage: { costUsd: 0.5 } } });
+  ev("F-001", "run", "run.failed", { data: "Error: no approved build after 3 attempts" });
+  ev("F-002", "run", "run.failed", { data: "Error: no approved build after 3 attempts" });
+  ev("F-002", "run", "run.failed", { data: "Error: stopped" }); // a person stopped it: not a failure
+  const h = health(allEvents(store));
+  expect(h).toMatchObject({ runs: 2, stopped: 2, builds: 2, checksFailed: 1, reviewsBack: 1 });
+  expect(h.causes).toEqual([{ kind: "builds", text: expect.stringMatching(/three builds/), count: 2, tasks: ["F-001", "F-002"] }]);
+  expect(h.roles.map((r) => `${r.role} ${r.stages} $${r.cost}`)).toEqual(["builder 2 $3", "reviewer 1 $0.5"]); // most expensive first
+  const text = report(items, allEvents(store));
+  expect(text).toContain("- Orders online: 2 of 2 tasks done\n- Payments: 0 of 1 task done (open: F-003)");
+  expect(text).toContain("- three builds did not pass the checks or the review: 2 times (F-001, F-002)");
+  expect(text).toContain("Builds sent back before one was approved: 2 of 2 builds (checks failed 1, review asked for changes 1, security 0)");
+  store.close();
+
+  const { dir, cli } = repo();
+  expect(cli("manager", "report").out).toMatch(/^Milestones\n- No backlog item names a milestone/);
+  expect(managerPrompt(resolveTeam({}))).toMatch(/factory manager report[\s\S]*Do not change the team yourself/); // she can do all three on request
+  void dir;
+
+  // The supervisor: said once, on assist too, with a retrospective whose proposals go to the Inbox; old milestones are left alone.
+  for (const autonomy of ["autopilot", "assist"] as const) {
+    const m = manage({ autonomy }, items.filter((i) => i.id !== "F-004" && i.id !== "F-003"), (s) => { s.emit({ run: "r1", task: "F-001", stage: "run", type: "run.done" }); });
+    await m.tick(); await m.tick();
+    await Bun.sleep(5);
+    expect(m.decisions()).toEqual(["milestone"]);
+    const notes = m.store.decisions("", 10).filter((e) => e.type === "manager.note").map((e) => (e.data as { text: string }).text);
+    expect(notes).toEqual(["Builds kept failing on rounding."]); // the proposals are not part of the note
+    expect(m.added).toEqual(["Add a rounding rule to the project's rules"]);
+    m.stop();
+  }
+  const off = manage({ autonomy: "off" }, items, (s) => { s.emit({ run: "r1", task: "F-001", stage: "run", type: "run.done" }); });
+  await off.tick();
+  expect(off.decisions()).toEqual([]);
+  off.stop();
+  const old = manage({}, items.slice(0, 2), (s) => { s.emit({ run: "r1", task: "F-001", stage: "run", type: "run.done" }); });
+  old.advance(8 * 24 * 3_600_000); // finished more than a week ago: history, not news
+  await old.tick();
+  expect(old.decisions()).toEqual([]);
+  old.stop();
+  const open = manage({}, items); // Payments still has an open task; Orders online has no history in this log
+  await open.tick();
+  expect(open.decisions().filter((d) => d === "milestone")).toEqual([]);
+  open.stop();
 });
 
 test("supervisor: a stopped task is retried after a wait, guided after three failed builds, and handed to the person when it should not go on", async () => {

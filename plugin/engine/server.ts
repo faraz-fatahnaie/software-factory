@@ -4,6 +4,7 @@ import { parse } from "./backlog";
 import { chatArgs, chatTurn, managerTurn, resumeChat, stopChat, TOPICS } from "./chat";
 import { loadConfig, managerOf, parseConfig, projectRoles, projectTeam } from "./config";
 import { parseProposal } from "./state";
+import { allEvents, report } from "./retro";
 import { supervisor, writeManager } from "./supervisor";
 import { openStore } from "./events";
 import { healthChecks, type Health } from "./health";
@@ -136,6 +137,7 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
     every: opts.every, scale: opts.scale,
     hasSpec: (id) => !!store.output(id, "spec"),
     canTriage: () => !!stageRole(projectTeam(root), "triage"),
+    retro: (name) => model("", `The milestone "${name}" is done. Hold a short retrospective from these facts, counted from the project's log:\n\n${report(items(), allEvents(store))}\n\nSay in plain words, in under 150 words: what went well, what kept going wrong and its likely cause, and whether one role fails or costs far more than the others. Only say what the facts show; with too little history, say so in one sentence. If a change to the project's rules, a role's notes or a skill would prevent a recurring cause, end with a "## Follow-ups" heading and at most three lines starting with "- ", each one a backlog item title a person could approve. Do not add them yourself.`),
     explain: (id, error) => model(id, `Task ${id} stopped with this error:\n${error.slice(0, 1500)}\n\nLook at the task and its latest run with \`factory status\` and the run files. Say in plain words, in under 100 words, what happened, why, and what the person should do. Reply with that explanation only.`),
     guide: (id, error) => model(id, `Task ${id} was built three times and the checks or the review still did not pass. The last error:\n${error.slice(0, 1500)}\n\nRead the latest run's files (build.md, review.md) with \`factory status\` to find the run. Write guidance for the Builder: what keeps going wrong and what to change, in under 120 words, no code. Reply with the guidance only.`),
   }) : undefined;
