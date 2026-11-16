@@ -2886,6 +2886,9 @@ test("conversations over HTTP: each turn is written before it is answered, a rel
   const all = async () => await (await fetch(`${base}/api/chats`)).json() as Record<string, { messages: { who: string; text: string }[]; session?: string; busy: boolean }>;
   try {
     expect(await all()).toEqual({});
+    const topics = await (await fetch(`${base}/api/chat/topics`)).json() as { key: string; available: boolean; reason?: string }[];
+    expect(topics.find((t) => t.key === "manager")).toMatchObject({ available: true }); // the face of the team can always be talked to
+    expect(topics.filter((t) => !t.available).map((t) => `${t.key}: ${t.reason}`)).toEqual([]);
     const first = await post("/api/chat", { topic: "plan", message: "hi there", shown: "Hi", attachments: [{ name: "note.txt", data: Buffer.from("hello").toString("base64") }] });
     expect(first.data.chat.messages).toEqual([{ who: "you", text: "Hi", files: [{ name: "note.txt", size: 5 }] }, expect.objectContaining({ who: "team", text: "Hello.", suggestions: ["Tell me more"], cost: 0.01 })]);
     expect(first.data.chat.context).toEqual({ used: 40_000, window: 200_000 }); // 20% of the context, as of this reply

@@ -168,6 +168,7 @@ try {
     // Talk: a long message makes the box taller; files attach by button and by drop; the box stays open while a reply is coming;
     // the reply is drawn as Markdown and its command is a collapsed step that opens to its output.
     await open(page, "Talk");
+    await page.getByRole("region", { name: /^Talk to the team with Tess/ }).waitFor(); // Talk opens on the Technical Manager
     const box = page.getByRole("textbox", { name: "Your message" });
     const before = (await box.boundingBox())!.height;
     await box.fill(Array(12).fill("a long line of text").join("\n"));

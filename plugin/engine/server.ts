@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { parse } from "./backlog";
-import { chatArgs, chatTurn, managerTurn, resumeChat, stopChat, TOPICS, compactTurn } from "./chat";
+import { chatArgs, chatTurn, managerTurn, resumeChat, stopChat, TOPICS, compactTurn, managerPrompt } from "./chat";
 import { loadConfig, managerOf, parseConfig, projectRoles, projectTeam } from "./config";
 import { parseProposal, type Context } from "./state";
 import { appendChat, clearChat, importChat, markActed, markCompacted, readChat, replyMsg } from "./chatlog";
@@ -206,7 +206,8 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
           // The role that holds the conversation's first responsibility, so the page shows the right person even after a regrouping.
           const role = t.guide ? undefined : holderOf(team, t.ids[0]!), base = { key, title: t.title, summary: t.summary, first: t.first, manager: t.manager, role, roleTitle: t.guide ? "Guide" : role ? team.roles[role]!.title : undefined, suggest: suggestOn(root, t.guide ? "guide" : role), readOnly: !!t.guide };
           if (t.guide) return { ...base, available: true };
-          try { chatPromptFor(t.ids, team); return { ...base, available: true }; }
+          // The manager's conversation has its own prompt (it also holds unattended responsibilities, which are no conversation by themselves).
+          try { if (t.manager) managerPrompt(team); else chatPromptFor(t.ids, team); return { ...base, available: true }; }
           catch (e) { return { ...base, available: false, reason: (e as Error).message }; }
         }));
       }
