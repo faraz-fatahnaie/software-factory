@@ -13,7 +13,7 @@ export type ManagerSettings = { autonomy: Autonomy; parallel: number; recoveries
 export type ManagerInfo = { settings: ManagerSettings; spentToday: number; /** The one-time explanation that autopilot is on has not been answered yet. */ notice?: boolean };
 
 export const AUTONOMY_OPTIONS: { value: Autonomy; label: string; hint: string }[] = [
-  { value: "autopilot", label: "autopilot", hint: "Starts what you worked out in conversation, and recovers a stuck task, by itself, within the limits" },
+  { value: "autopilot", label: "autopilot", hint: "Starts what you ask her to build, and recovers a stuck task, by itself, within the limits" },
   { value: "assist", label: "assist", hint: "Diagnoses and proposes; you press the buttons" },
   { value: "off", label: "off", hint: "Does nothing by itself. You can still talk to the manager" },
 ];
@@ -64,14 +64,14 @@ export function ManagerStrip({ events, items, role, talkTo, open, manager: { inf
         <Robot role={role} size={44} status={s.autonomy === "autopilot" ? "working" : "free"} />
         <div className="grow">
           <h2>{headline}</h2>
-          <span className="note">{last ? <>{String(last.data?.text ?? "").slice(0, 200)} · {agoShort(last.ts)} ago</> : s.autonomy === "off" ? "Nothing starts by itself." : "Nothing to do yet. She starts what you work out in conversation."}</span>
+          <span className="note">{last ? <>{String(last.data?.text ?? "").slice(0, 200)} · {agoShort(last.ts)} ago</> : s.autonomy === "off" ? "Nothing starts by itself." : "Nothing to do yet. She starts what you ask her to build."}</span>
         </div>
         <Select small label="Autonomy" prefix="Manager" value={s.autonomy} options={AUTONOMY_OPTIONS} align="right" onChange={(v) => set({ autonomy: v as Autonomy })} />
         <button onClick={() => talkTo("manager")}>Talk to {who}</button>
       </header>
       {info.notice && s.autonomy === "autopilot" && (
         <section className="mgr-notice" role="region" aria-label="About autopilot">
-          <p><b>Autopilot is on.</b> {who} now starts what you work out in conversation, and tries a stopped task again, by herself. Her limits: {s.parallel} task{s.parallel === 1 ? "" : "s"} at a time, {s.recoveries} retries per task, ${s.perTask} per task and ${s.perDay} per day. She never approves, pushes, merges or deploys, and everything she decides is listed here.</p>
+          <p><b>Autopilot is on.</b> {who} now starts what you ask her to build (an item you only add to the Inbox waits for your word), and tries a stopped task again, by herself. Her limits: {s.parallel} task{s.parallel === 1 ? "" : "s"} at a time, {s.recoveries} retries per task, ${s.perTask} per task and ${s.perDay} per day. She never approves, pushes, merges or deploys, and everything she decides is listed here.</p>
           <div className="row gap"><button className="primary" onClick={() => dismiss()}>Keep autopilot</button><button onClick={() => dismiss({ autonomy: "assist" })}>Switch to assist</button><button onClick={() => dismiss({ autonomy: "off" })}>Turn it off</button></div>
         </section>
       )}

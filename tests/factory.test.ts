@@ -2274,7 +2274,7 @@ test("manager settings: validated, merged with the defaults, and written back to
   expect(cli("manager", "autopilot").out).toMatch(/^Autopilot:/);
 });
 
-test("manager: an item added in conversation carries a mark that autopilot reads; one an agent suggested does not", () => {
+test("manager: an item added in conversation says where it came from; one an agent suggested does not", () => {
   const { dir, cli } = repo();
   process.env.FACTORY_SOURCE = "chat";
   try { cli("add", "Worked out together", "--detail", "Acceptance: it works"); } finally { delete process.env.FACTORY_SOURCE; }
@@ -2285,7 +2285,7 @@ test("manager: an item added in conversation carries a mark that autopilot reads
   expect(items.find((i) => i.title === "Suggested by an agent")!.detail).not.toContain(FROM_CONVERSATION);
 });
 
-test("supervisor: starts Ready items one at a time, promotes only what was worked out in conversation, and does nothing unless on autopilot", async () => {
+test("supervisor: starts Ready items one at a time, never moves an item out of the Inbox, and does nothing unless on autopilot", async () => {
   const a = manage({}, [mItem("F-001", "Ready"), mItem("F-002", "Ready")]);
   await a.tick();
   expect(a.launched).toEqual([["run", "F-001"]]); // the limit is one task at once
@@ -2296,10 +2296,10 @@ test("supervisor: starts Ready items one at a time, promotes only what was worke
 
   const b = manage({}, [mItem("F-001", "Inbox", FROM_CONVERSATION), mItem("F-002", "Inbox", "from an agent")]);
   await b.tick();
-  expect(b.promoted).toEqual(["F-001"]);
-  expect(b.launched).toEqual([["run", "F-001"]]);
-  expect(b.state.items.find((i) => i.id === "F-002")!.section).toBe("Inbox");
-  expect(b.decisions()).toEqual(["promote", "start"]);
+  expect(b.promoted).toEqual([]); // adding to the Inbox is not asking for it to be built, even when it was added in conversation
+  expect(b.launched).toEqual([]);
+  expect(b.state.items.find((i) => i.id === "F-001")!.section).toBe("Inbox");
+  expect(b.decisions()).toEqual([]);
   b.stop();
 
   for (const autonomy of ["assist", "off"] as const) {
@@ -2398,6 +2398,8 @@ test("milestones, retrospective and team health (M12, M16, M17): counted from th
   const text = report(items, allEvents(store));
   expect(text).toContain("- Orders online: 2 of 2 tasks done\n- Payments: 0 of 1 task done (open: F-003)");
   expect(text).toContain("- three builds did not pass the checks or the review: 2 times (F-001, F-002)");
+  expect(text).toContain("What the manager decided lately (newest first)\n- Nothing yet.");
+  expect(report(items, [...allEvents(store), { seq: 99, ts: "2026-11-16T18:22:02.455Z", run: "", task: "F-049", stage: "manager", type: "manager.decision", data: { text: "F-049 was next in line, so I started it." } }])).toContain("- 2026-11-16 18:22 F-049 was next in line, so I started it.");
   expect(text).toContain("Builds sent back before one was approved: 2 of 2 builds (checks failed 1, review asked for changes 1, security 0)");
   store.close();
 

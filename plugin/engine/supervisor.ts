@@ -3,7 +3,7 @@
 // Every action is written to the event log as `manager.decision`, in plain words, so nothing it does is hidden.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { FROM_CONVERSATION, type Item } from "./backlog";
+import type { Item } from "./backlog";
 import { type Autonomy, managerOf, type ManagerSettings, parseConfig } from "./config";
 import type { Store } from "./events";
 import { followUps, needsTriage } from "./pipeline";
@@ -155,19 +155,15 @@ export function supervisor(ctx: Ctx) {
       if (ctx.launch(it.id, ["run", it.id])) decide_(it.id, "retry", `${it.id}: ${step.action === "guide" ? "Started it again from the beginning." : step.text}`, { kind });
     }
 
-    // New work: promote what the person agreed in conversation, then start Ready items in order, within the limits.
+    // New work: start Ready items in order, within the limits. Ready is the person's word that it may be built (they promoted it, or told the manager to: that proposal is carried out at once in the conversation).
+    // An item that was only added to the Inbox is never moved by the supervisor: adding is not asking for it to be built, and building spends money.
     const fresh = ctx.items(), awaiting = fresh.filter((i) => i.section === "Awaiting approval").length;
     let room = s.parallel - ctx.running.size;
     if (room <= 0 || awaiting >= AWAITING_LIMIT) return;
     if (dayCost() >= s.perDay) { if (once(`day:${startOfDay()}`)) decide_("", "budget", `The day's limit (${usd(s.perDay)}) is reached, so nothing more starts today.`); return; }
     // A task the person discarded goes back to Ready, but they threw it away: autopilot leaves it until they run it themselves.
     const startable = (i: Item) => i.section === "Ready" && !ctx.running.has(i.id) && ctx.store.lastType(i.id) !== "task.discarded";
-    let ready = fresh.filter(startable);
-    for (const it of fresh.filter((i) => i.section === "Inbox" && i.detail.includes(FROM_CONVERSATION))) {
-      if (ready.length >= room) break;
-      const r = await ctx.cli("promote", it.id);
-      if (r.code === 0) { decide_(it.id, "promote", `${it.id} was worked out in conversation, so I moved it to Ready.`); ready = ctx.items().filter(startable); }
-    }
+    const ready = fresh.filter(startable);
     // M13: a task that names the files a running task is changing waits for it (the spec says what the running one will touch).
     const touching = (i: Item) => pathsIn(`${i.title}\n${i.detail}\n${ctx.store.output(i.id, "spec") ?? ""}`);
     const busyFiles = () => [...ctx.running.keys()].map((id) => ({ id, files: touching(fresh.find((i) => i.id === id) ?? mine(id)) }));
@@ -200,7 +196,7 @@ export function writeManager(root: string, patch: ManagerSettings): Required<Man
 }
 
 export const AUTONOMY_TEXT: Record<Autonomy, string> = {
-  autopilot: "Autopilot: the manager starts what you worked out in conversation, and recovers a stuck task, by itself, within the limits",
+  autopilot: "Autopilot: the manager starts what you ask her to build, and recovers a stuck task, by itself, within the limits",
   assist: "Assist: the manager diagnoses and proposes; you press the buttons",
   off: "Off: the manager does nothing by itself (you can still talk to it)",
 };

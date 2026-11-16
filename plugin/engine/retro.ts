@@ -68,6 +68,7 @@ const n = (count: number, word: string) => `${count} ${word}${count === 1 ? "" :
 /** The report `factory manager report` prints, and what the manager is given for a retrospective. Plain text, facts only. */
 export function report(items: Item[], events: Ev[]): string {
   const ms = milestones(items), h = health(events), back = h.checksFailed + h.reviewsBack + h.securityBack;
+  const decided = events.filter((e) => e.type === "manager.decision").slice(-8).reverse(); // so she can say why something started or stopped, instead of guessing
   return [
     "Milestones",
     ...(ms.length ? ms.map((m) => `- ${m.name}: ${m.done} of ${n(m.ids.length, "task")} done${m.open.length ? ` (open: ${m.open.join(", ")})` : ""}`) : ["- No backlog item names a milestone (a `Milestone: <name>` line in its detail)."]),
@@ -76,6 +77,9 @@ export function report(items: Item[], events: Ev[]): string {
     ...(h.causes.length ? h.causes.map((c) => `- ${c.text}: ${n(c.count, "time")} (${c.tasks.join(", ")})`) : ["- Nothing stopped."]),
     "",
     `Builds sent back before one was approved: ${back} of ${n(h.builds, "build")} (checks failed ${h.checksFailed}, review asked for changes ${h.reviewsBack}, security ${h.securityBack})`,
+    "",
+    "What the manager decided lately (newest first)",
+    ...(decided.length ? decided.map((e) => `- ${e.ts.slice(0, 16).replace("T", " ")} ${String((e.data as { text?: string } | undefined)?.text ?? "").slice(0, 160)}`) : ["- Nothing yet."]),
     "",
     "Roles, most expensive first",
     ...(h.roles.length ? h.roles.map((r) => `- ${r.role}: ${n(r.stages, "stage")}, ${r.failed} failed, $${r.cost.toFixed(2)}`) : ["- No model stage has run yet."]),

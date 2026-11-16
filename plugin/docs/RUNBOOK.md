@@ -104,10 +104,10 @@ To work something out in depth she picks the person, and that person asks one qu
    in dependency order". They land in **Inbox**. Each task carries its milestone, the stories it serves, what it depends on, its
    acceptance checks and what is out of scope, and is small enough for one reviewer to read in one sitting.
 
-The tasks wait in Inbox. By default Tess is on **autopilot**: what Dina worked out in a conversation is moved to
-**Ready** and started by Tess, one task at a time, and each one still stops for Dina's decision before anything
-lands (see [Autopilot](#autopilot); a one-time notice in the dashboard says so, with the off switch). With
-autopilot off, nothing runs until a person promotes an item.
+The tasks wait in Inbox, and adding to the Inbox never builds anything. By default Tess is on **autopilot**: when
+Dina tells her to build them (or presses Promote), they move to **Ready** and Tess starts them, one task at a time, and
+each one still stops for Dina's decision before anything lands (see [Autopilot](#autopilot); a one-time notice in the
+dashboard says so, with the off switch). With autopilot off, nothing runs until a person promotes an item and runs it.
 
 **What she sees:** each document has a line `Status: approved by the user on <date>` and is committed as it is
 saved (task agents work from the last commit). `factory status` (or `/software-factory:status`) always
@@ -363,7 +363,8 @@ ever knows the variable's name.
 ## Autopilot
 
 By default Tess runs the work while the dashboard is open. Dina brainstorms with Mara, Mara adds the items to
-the Inbox, and Tess moves them to Ready and starts them, one at a time. When a task stops, Tess looks at why.
+the Inbox, and they wait there. When Dina says "build these" (to Tess, or with Promote), they go to Ready and Tess
+starts them, one at a time. When a task stops, Tess looks at why.
 A rate limit or a network error: she waits and tries again (up to twice). Three builds that did not pass: she
 writes the Builder guidance and starts a new round. Not logged in, a broken setup command, a clash with main, or a
 task Dina stopped herself: Tess tells her, in plain words, and leaves it. She never approves, pushes, merges or

@@ -5,6 +5,7 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **Fix: adding to the Inbox no longer builds anything.** Autopilot used to move every item added in conversation to Ready and build it, so asking Tess to "add these to the Inbox" started builds (and spent money) you had not asked for. Now an item only added to the Inbox stays there; autopilot starts what is under Ready, which is what you promote or tell her to build. Tess also knows this now, can say why something started (`factory manager report` lists her latest decisions), and no longer says she does not know why the factory ran something.
 - **Approve from the manager's chat.** After she reviews a task you can ask her to approve it: her reply ends with an **Approve and land** button, and only your press approves, even on autopilot. Before, she could only tell you to run a slash command. She still never approves, pushes, merges or deploys on her own.
 - **Fix: the manager no longer says she cannot do what she just did.** On autopilot she was still told her proposals show as buttons, so after moving a task to Ready and starting it she could tell you to "press the button" and that she "can't move it myself". She is now told how her proposals are handled (autopilot: promote, run and retry happen at once, in the present tense; assist: buttons), and to check where a task is with `factory status` before proposing. A second proposal for a task that has already moved is no longer shown as Failed: it says where the task is.
 
