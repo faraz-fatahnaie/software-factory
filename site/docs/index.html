@@ -106,9 +106,10 @@ the slash commands and the built-in catalog. It does not touch <code>BACKLOG.md<
 your role files in <code>.claude/agents/</code>, your skills, your docs or any task. Those belong to your project. When a
 release adds something that needs a change in your files (a new responsibility, a new setting), its entry in
 <code>CHANGELOG.md</code> says what to do, and the <em>Team</em> view shows the new responsibilities so you can switch them on.</p>
-<p><strong>Updating automatically.</strong> Third-party marketplaces do not update by themselves. In <code>/plugin</code>, open the
-<em>Marketplaces</em> tab, choose <code>software-factory</code> and turn auto-update on; Claude Code then checks when it starts.
-Restart the dashboard after it does.</p>
+<p><strong>Updating automatically.</strong> Third-party marketplaces do not update by themselves. Claude Code can refresh a
+marketplace when it starts: look for an auto-update switch for <code>software-factory</code> in <code>/plugin</code>, in its list of
+marketplaces. If your version of Claude Code has none, the two commands above are the way. Either way, restart the
+dashboard after an update.</p>
 <p><strong>&quot;It says I am up to date, but there is a newer version.&quot;</strong> Run the marketplace update line above first: the
 plugin update only looks at the list your computer already has. Still stuck? Remove and add it again:
 <code>claude plugin uninstall software-factory@software-factory</code>, then the two install lines in <em>Install</em>. Your

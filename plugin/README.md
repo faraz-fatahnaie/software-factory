@@ -93,9 +93,10 @@ your role files in `.claude/agents/`, your skills, your docs or any task. Those 
 release adds something that needs a change in your files (a new responsibility, a new setting), its entry in
 `CHANGELOG.md` says what to do, and the *Team* view shows the new responsibilities so you can switch them on.
 
-**Updating automatically.** Third-party marketplaces do not update by themselves. In `/plugin`, open the
-*Marketplaces* tab, choose `software-factory` and turn auto-update on; Claude Code then checks when it starts.
-Restart the dashboard after it does.
+**Updating automatically.** Third-party marketplaces do not update by themselves. Claude Code can refresh a
+marketplace when it starts: look for an auto-update switch for `software-factory` in `/plugin`, in its list of
+marketplaces. If your version of Claude Code has none, the two commands above are the way. Either way, restart the
+dashboard after an update.
 
 **"It says I am up to date, but there is a newer version."** Run the marketplace update line above first: the
 plugin update only looks at the list your computer already has. Still stuck? Remove and add it again:
