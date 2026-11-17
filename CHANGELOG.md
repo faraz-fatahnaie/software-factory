@@ -3,6 +3,25 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
+## Unreleased
+
+- **Who may do what is now checked.** The rules about what each role, skill, conversation and script may do are written
+  down in one place and checked wherever they could be broken (`factory authority` shows them and the result):
+  - **Only the builder edits code, and the manager cannot also build or judge** what she starts, retries and guides.
+    Nothing that runs by itself may reach outside the project, change governance files or change configuration. Every
+    way of changing the team (use, move, off, agents, a preset) goes through these rules and is refused, with the
+    reason, before anything is written.
+  - **A skill may not widen a role.** Installing or attaching one that grants edits to anyone but the builder, the shell
+    wholesale, something only a person may do, or its own hooks is refused (and a skill that was just installed is
+    removed again); saving such a skill or a role file in Studio is refused too. Skills that are already installed are
+    shown as worth a look, so an update never locks a project out.
+  - **A role file cannot grant more than its responsibilities need,** and cannot set its own permissions, hooks or connections.
+  - **What a conversation is told to run, it must be allowed to run.** Two real gaps were found and written down (F-098);
+    the dashboard conversations for tests and audits can now run `factory gate`, `factory scan` and `factory skill search`.
+    A new gap fails the tests until it is decided.
+  - **The manager's limits must agree** (a task's limit cannot be above the day's).
+  - Nothing is started, by hand or by autopilot, while a rule is broken, and `factory doctor` and the Health strip say so.
+
 ## 1.1.1
 
 A patch release: it stops loops that spent money, and fixes what Tess says about autopilot. **Update, restart the
