@@ -1,5 +1,5 @@
 // GitHub in the dashboard: what is waiting to be pushed or merged, and the buttons that do it. Each button is the person's approval.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Item } from "./data";
 import { Icon } from "./icons";
 import { Skel } from "./ui";
@@ -12,6 +12,33 @@ export type VcsData = {
   /** Combined pull requests: one pull request holding several tasks. */
   batches?: { id: string; tasks: string[]; pr: VcsPr }[];
 };
+
+export type Integration = { waiting: { id: string }[]; main: { id: string; files: string[] }[]; between: { a: string; b: string; files: string[] }[]; steps: { ids: string[]; then: string[] }[]; forecast: boolean };
+/** What is waiting to reach main, who clashes with whom, and the order to merge in: read again whenever the GitHub data is. */
+function useIntegration(key: unknown): Integration | null {
+  const [plan, setPlan] = useState<Integration | null>(null);
+  useEffect(() => { let live = true; fetch("/api/integrate").then((r) => r.json()).then((p) => live && setPlan(p)).catch(() => {}); return () => { live = false; }; }, [key]);
+  return plan;
+}
+
+/** The order to merge in. Each step is tasks that can go together; the ones after it that clash with it are updated once it has landed. */
+function MergeOrder({ plan }: { plan: Integration }) {
+  const clashes = plan.main.length + plan.between.length;
+  if (plan.waiting.length < 2 && !clashes) return null;
+  return (
+    <section className="merge-order" aria-label="Order to merge">
+      <h3>Order to merge</h3>
+      <ol>
+        {plan.steps.map((s, i) => (
+          <li key={i}><b>{s.ids.join(" and ")}</b>{s.ids.length > 1 && <span className="note"> together: no clash between them</span>}{s.then.length > 0 && <span className="note"> · then update {s.then.join(", ")}, which clash with it</span>}</li>
+        ))}
+      </ol>
+      {clashes > 0
+        ? <p className="note">{[...plan.main.map((m) => `${m.id} clashes with main (${m.files.slice(0, 3).join(", ")})`), ...plan.between.map((c) => `${c.a} and ${c.b} clash with each other (${c.files.slice(0, 3).join(", ")})`)].join(" · ")}</p>
+        : plan.forecast && <p className="note">No clashes: each merges cleanly into main, and into each other.</p>}
+    </section>
+  );
+}
 
 /** The short status for the side rail: where this project's work lives. */
 export function vcsChip(v: VcsData | null): { tone: "ok" | "warn" | "off"; text: string; title: string } {
@@ -59,7 +86,12 @@ function MergeBox(p: { id: string; pr: VcsPr; vcs: VcsData; busy: string; run: (
         );
       })}
       {!pr.mergeable && (
-        <div className="conflict"><span className="big"><Icon name="x" /></span><span className="what-text"><b>This branch has conflicts that must be resolved</b><span className="note">Later work changed the same lines. Rebuild the task from the new {vcs.base}: discard it, then run it again.</span></span></div>
+        <div className="conflict"><span className="big"><Icon name="x" /></span><span className="what-text"><b>This branch has conflicts that must be resolved</b>
+          {p.combined
+            ? <span className="note">Later work changed the same lines. Update the tasks that clash (the order below says which), then push them together again.</span>
+            : <span className="note">Later work changed the same lines. Update this branch: the Builder resolves the clash in the task's own folder and it comes back to you for a yes, then you push the update. Rebuilding it is the last resort.</span>}
+          {!p.combined && <button disabled={p.busy !== ""} onClick={() => p.run(`update-${p.id}`, "/api/update", { id: p.id })}>{p.busy === `update-${p.id}` ? "Updating…" : "Update this branch"}</button>}
+        </span></div>
       )}
       <div className="foot">
         {vcs.autoMerge ? <span className="note">Auto-merge is on: this merges when the checks pass.</span> : (
@@ -90,6 +122,7 @@ export function GitHub(p: { vcs: VcsData | null; items: Item[]; act: (path: stri
     setProgress(""); await p.refresh(); setBusy("");
   };
   const title = (id: string) => p.items.find((i) => i.id === id)?.title ?? "";
+  const integration = useIntegration(p.vcs);
 
   if (!vcs) return <article className="tile github"><Skel w={160} h={14} /><div style={{ height: 12 }} /><Skel w="70%" h={14} /></article>;
   if (!vcs.remote) return (
@@ -125,6 +158,7 @@ export function GitHub(p: { vcs: VcsData | null; items: Item[]; act: (path: stri
       {!vcs.hasChecks && (
         <p className="note ci-note">No checks yet, so a pull request has nothing to wait for. <button className="small" disabled={busy !== ""} onClick={() => run("ci", "/api/ci", {})}>{busy === "ci" ? "Adding…" : "Add checks (CI)"}</button> writes a GitHub Actions workflow from your gate commands; you review it before it does anything.</p>
       )}
+      {integration && <MergeOrder plan={integration} />}
       {rows.length === 0 && batches.length === 0 ? <p className="empty">Nothing is waiting to be pushed or merged.</p> : (
         <div className="prs">
           {ready.length > 0 && (

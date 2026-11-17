@@ -4,11 +4,12 @@ import { join } from "node:path";
 import { add, dependsOn, FROM_CONVERSATION, move, parse, type Item } from "../plugin/engine/backlog";
 import { ensureWorktree, isLanded } from "../plugin/engine/worktree";
 import { newer, replaceOlder, VERSION, who } from "../plugin/engine/upgrade";
+import { filesOf, formatPlan, order, plan as integrationPlan, trial, waiting as waitingTasks } from "../plugin/engine/integrate";
 import { authorityMatrix, checkAuthority, checkConversations, checkGrants, checkLimits, checkRoleFile, checkSkillFile, commandsNamed, KNOWN_GAPS, PERSON_ONLY } from "../plugin/engine/authority";
 import { ALLOW as CHAT_ALLOW, MANAGER_ALLOW, GUIDE_ALLOW } from "../plugin/engine/chat";
 import { ALLOW as TASK_ALLOW } from "../plugin/engine/claude";
 import { agentEvents, claudeArgs, classify } from "../plugin/engine/claude";
-import { loadConfig, MANAGER_DEFAULTS, managerOf, parseConfig, type ManagerSettings } from "../plugin/engine/config";
+import { loadConfig, MANAGER_DEFAULTS, managerOf, parseConfig, readConfig, withRoleDefaults, type ManagerSettings } from "../plugin/engine/config";
 import { decide, failureKind, overlap, pathsIn, supervisor, usableGuidance } from "../plugin/engine/supervisor";
 import { allEvents, health, milestones, report } from "../plugin/engine/retro";
 import { formatChecks, formatInfo, readiness, releaseInfo, tagRelease, versionFiles } from "../plugin/engine/release";
@@ -408,7 +409,7 @@ test("init: detects the stack, writes without overwriting, and doctor confirms t
 
 test("team: the Balanced preset covers the catalog and obeys the enforced rules; bad teams are rejected", () => {
   const balanced = presets[DEFAULT_PRESET]!;
-  expect(catalog).toHaveLength(71);
+  expect(catalog).toHaveLength(72);
   expect(validateTeam(balanced)).toEqual([]);
   expect(activeRoles(balanced)).toEqual(["technical-manager", "architect", "builder", "reviewer", "security-performance", "scribe"]); // the roles that hold something built
 
@@ -2209,7 +2210,7 @@ esac
 // ---- Technical Manager, phase 3: the supervisor, its limits and its log ----
 const mItem = (id: string, section: string, detail = ""): Item => ({ id, section, title: id, detail });
 
-function manage(settings: Partial<ManagerSettings> = {}, items: Item[] = [], before?: (store: ReturnType<typeof openStore>) => void, guide?: () => Promise<string>, authority?: () => string[]) {
+function manage(settings: Partial<ManagerSettings> = {}, items: Item[] = [], before?: (store: ReturnType<typeof openStore>) => void, guide?: () => Promise<string>, authority?: () => string[], integration?: { unmerged?: string[]; clashing?: { head: string; tasks: { id: string; files: string[] }[] } }) {
   const store = openStore(":memory:");
   before?.(store);
   Bun.sleepSync(5); // the supervisor ignores what happened before it started
@@ -2221,6 +2222,7 @@ function manage(settings: Partial<ManagerSettings> = {}, items: Item[] = [], bef
   const unlanded = new Set<string>(), autonomy: string[] = [];
   const sup = supervisor({
     canTriage: () => canTriage.value, landed: (id) => !unlanded.has(id), setAutonomy: (a) => autonomy.push(a), authority,
+    ...(integration && { unmerged: () => integration.unmerged ?? [], clashing: () => integration.clashing ?? { head: "", tasks: [] } }),
     root: "/x", store, settings: () => ({ ...MANAGER_DEFAULTS, ...settings }), items: () => state.items, running, group: () => 1, every: 3_600_000, now: () => clock,
     launch: (id, argv) => { if (running.has(id)) return false; launched.push(argv); running.set(id, { kill: () => killed.push(id) }); return true; },
     retro: async () => "Builds kept failing on rounding.\n\n## Follow-ups\n- Add a rounding rule to the project's rules",
@@ -4168,3 +4170,402 @@ test("updating: a dashboard says which version it is, and one of this project's 
     expect(await replaceOlder(stranger, root, "1.2.0")).toEqual({ state: "none" });
   } finally { /* the fakes that are still running are killed above; the rest exited */ }
 }, 60_000);
+
+// ======================================================================================================================================
+// Integration: finished work waits on branches until somebody merges it. Which branch holds what, who will clash, in what order to merge, and
+// keeping clashing branches up to date, so a person never meets a wall of conflicts at merge time.
+// ======================================================================================================================================
+
+/** A repository whose main holds a.txt, b.txt and c.txt, with one branch per task, each branched from that same main (as the factory does). */
+function branches(spec: Record<string, Record<string, string>>) {
+  const { dir, sh, cli, section } = repo();
+  writeFileSync(join(dir, "a.txt"), "one\ntwo\nthree\n"); writeFileSync(join(dir, "b.txt"), "one\ntwo\nthree\n"); writeFileSync(join(dir, "c.txt"), "one\ntwo\nthree\n");
+  sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "files");
+  for (const [id, files] of Object.entries(spec)) {
+    sh("git", "checkout", "-q", "-b", `factory/${id}`);
+    for (const [f, text] of Object.entries(files)) writeFileSync(join(dir, f), text);
+    sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", id);
+    sh("git", "checkout", "-q", "main");
+  }
+  return { dir, sh, cli, section };
+}
+const itemAt = (id: string, section: string, detail = ""): Item => ({ id, section, title: `Task ${id}`, detail });
+
+test("integrate: a trial merge says which files clash, or none, or that git cannot say, and changes nothing", () => {
+  const { dir, sh } = branches({ "F-001": { "a.txt": "one\nMINE\nthree\n" }, "F-002": { "a.txt": "one\nYOURS\nthree\n" }, "F-003": { "b.txt": "one\ntwo\nTHREE\n" } });
+  const head = sh("git", "rev-parse", "HEAD").out, status = sh("git", "status", "--porcelain").out;
+  expect(trial(dir, "factory/F-001", "factory/F-002")).toEqual(["a.txt"]); // the same line in the same file
+  expect(trial(dir, "factory/F-001", "factory/F-003")).toEqual([]); // different files
+  expect(trial(dir, "HEAD", "factory/F-001")).toEqual([]);
+  expect(trial(dir, "HEAD", "factory/F-404")).toBeUndefined(); // no such branch: git cannot say
+  expect(sh("git", "rev-parse", "HEAD").out).toBe(head); // nothing moved,
+  expect(sh("git", "status", "--porcelain").out).toBe(status); // nothing was written to the folder,
+  expect(sh("git", "branch", "--list").out.split("\n").length).toBe(4); // and no branch was made
+  expect(filesOf(dir, "factory/F-001")).toEqual(["a.txt"]);
+  expect(filesOf(dir, "factory/F-404")).toEqual([]);
+});
+
+test("integrate: what is waiting, who clashes with whom, and the order, with dependencies first", () => {
+  const { dir } = branches({
+    "F-001": { "a.txt": "one\nMINE\nthree\n" },
+    "F-002": { "b.txt": "one\ntwo\nTHREE\n" },
+    "F-003": { "a.txt": "one\nYOURS\nthree\nand more\n", "c.txt": "x\n" },
+    "F-004": { "c.txt": "y\n" },
+    "F-005": { "b.txt": "unrelated\n" },
+  });
+  const items = [itemAt("F-001", "Done"), itemAt("F-002", "Awaiting approval"), itemAt("F-003", "Done"), itemAt("F-004", "Awaiting approval", "Depends on: F-002"), itemAt("F-005", "Ready"), itemAt("F-006", "Done")];
+  const w = waitingTasks(dir, items);
+  expect(w.map((x) => `${x.id} ${x.state}`)).toEqual(["F-001 approved", "F-002 awaiting", "F-003 approved", "F-004 awaiting"]); // F-005 is not finished, F-006 has no branch
+  expect(w.find((x) => x.id === "F-003")!.files).toEqual(["a.txt", "c.txt"]);
+  expect(w.find((x) => x.id === "F-004")!.dependsOn).toEqual(["F-002"]);
+
+  const p = integrationPlan(dir, items);
+  expect(p.forecast).toBe(true);
+  expect(p.main).toEqual([]); // every branch left the same main
+  expect(p.between).toEqual([{ a: "F-001", b: "F-003", files: ["a.txt"] }, { a: "F-003", b: "F-004", files: ["c.txt"] }]);
+  // F-002 clashes with nothing; F-004 depends on it, and clashes with F-003; F-001 and F-003 clash. The small change goes first.
+  expect(p.steps).toEqual([{ ids: ["F-002"], then: [] }, { ids: ["F-001"], then: ["F-003"] }, { ids: ["F-004"], then: ["F-003"] }, { ids: ["F-003"], then: [] }]);
+  expect(formatPlan(p)).toBe(`Waiting to reach main (4):
+  F-001  approved · 1 file · up to date with main  Task F-001
+  F-002  waiting for your decision · 1 file · up to date with main  Task F-002
+  F-003  approved · 2 files · up to date with main  Task F-003
+  F-004  waiting for your decision · 1 file · up to date with main · needs F-002  Task F-004
+
+Clashes:
+  F-001 and F-003 clash with each other (a.txt)
+  F-003 and F-004 clash with each other (c.txt)
+
+Merge in this order, one step at a time (sync after each):
+  1. F-002
+  2. F-001, then update F-003 (they clash with it: \`factory update <id>\` lets the Builder resolve it)
+  3. F-004, then update F-003 (they clash with it: \`factory update <id>\` lets the Builder resolve it)
+  4. F-003`);
+});
+
+test("integrate: once one lands, the others that clash with it clash with main, and the landed one is no longer waiting", () => {
+  const { dir, sh } = branches({ "F-001": { "a.txt": "one\nMINE\nthree\n" }, "F-002": { "a.txt": "one\nYOURS\nthree\n" }, "F-003": { "b.txt": "one\ntwo\nTHREE\n" } });
+  const items = [itemAt("F-001", "Done"), itemAt("F-002", "Done"), itemAt("F-003", "Done")];
+  expect(integrationPlan(dir, items).steps.map((s) => s.ids)).toEqual([["F-003"], ["F-001"], ["F-002"]]);
+  sh("git", "merge", "-q", "--no-ff", "-m", "merge F-001", "factory/F-001"); // the person merged it
+  const after = integrationPlan(dir, items);
+  expect(after.waiting.map((x) => x.id)).toEqual(["F-002", "F-003"]); // F-001 is in main
+  expect(after.main).toEqual([{ id: "F-002", files: ["a.txt"] }]); // and F-002 now clashes with main itself
+  expect(after.waiting.find((x) => x.id === "F-003")!.behind).toBe(1); // F-003 is behind main but merges cleanly: nothing to do for it
+  expect(formatPlan(after)).toContain("F-002 clashes with main now (a.txt)");
+});
+
+test("integrate: tasks that clash with nothing go together as one step, and an empty list says so", () => {
+  const { dir } = branches({ "F-001": { "a.txt": "x\n" }, "F-002": { "b.txt": "y\n" }, "F-003": { "c.txt": "z\n" } });
+  const p = integrationPlan(dir, [itemAt("F-001", "Done"), itemAt("F-002", "Done"), itemAt("F-003", "Awaiting approval")]);
+  expect(p.steps).toEqual([{ ids: ["F-001", "F-002", "F-003"], then: [] }]);
+  expect(formatPlan(p)).toContain("No clashes: each of them merges cleanly into main, and into each other.");
+  expect(formatPlan(p)).toContain("1. F-001 and F-002 and F-003 (together: no clash between them)");
+  expect(formatPlan(integrationPlan(dir, [itemAt("F-009", "Done")]))).toBe("Nothing is waiting to be merged: every finished task is in main.");
+});
+
+test("integrate: the order never drops a task, whatever the dependencies", () => {
+  const w = (id: string, files: string[], dep: string[] = []) => ({ id, title: id, branch: `factory/${id}`, state: "approved" as const, files, behind: 0, dependsOn: dep });
+  const loop = order([w("F-001", ["a"], ["F-002"]), w("F-002", ["b"], ["F-001"]), w("F-003", ["c"])], []);
+  expect(loop.flatMap((s) => s.ids).sort()).toEqual(["F-001", "F-002", "F-003"]); // a loop of dependencies is placed anyway
+  expect(order([], [])).toEqual([]);
+  const chain = order([w("F-003", ["c"], ["F-002"]), w("F-002", ["b"], ["F-001"]), w("F-001", ["a"])], []);
+  expect(chain.map((s) => s.ids)).toEqual([["F-001"], ["F-002"], ["F-003"]]);
+  expect(order([w("F-001", ["a"], ["F-900"])], []).map((s) => s.ids)).toEqual([["F-001"]]); // a dependency that is not waiting holds nothing up
+  // A task that clashes with main now is never put in the free step.
+  expect(order([w("F-001", ["a"]), w("F-002", ["b"])], [], [{ id: "F-001", files: ["a"] }]).map((s) => s.ids)).toEqual([["F-002"], ["F-001"]]);
+});
+
+test("integrate: factory integrate prints the plan, and --json the same as data; /api/integrate serves it", async () => {
+  const { dir, cli } = branches({ "F-001": { "a.txt": "one\nMINE\nthree\n" }, "F-002": { "a.txt": "one\nYOURS\nthree\n" } });
+  writeFileSync(join(dir, "BACKLOG.md"), "# Backlog\n\n## Inbox\n\n## Ready\n\n## In progress\n\n## Awaiting approval\n\n## Blocked\n\n## Done\n- [x] F-001 Task F-001\n- [x] F-002 Task F-002\n");
+  const text = cli("integrate");
+  expect(text.code).toBe(0);
+  expect(text.out).toContain("F-001 and F-002 clash with each other (a.txt)");
+  expect(text.out).toContain("1. F-001, then update F-002");
+  const json = JSON.parse(cli("integrate", "--json").out);
+  expect(json.between).toEqual([{ a: "F-001", b: "F-002", files: ["a.txt"] }]);
+  expect(json.steps).toEqual([{ ids: ["F-001"], then: ["F-002"] }, { ids: ["F-002"], then: [] }]);
+  const server = await serve(dir, 0);
+  try {
+    const api = (await (await fetch(`http://127.0.0.1:${server.port}/api/integrate`)).json()) as any;
+    expect(api.steps).toEqual(json.steps);
+    expect(api.text).toBe(text.out);
+  } finally { server.stop(); }
+});
+
+test("integrate: the manager updates a task that clashes with main, once for each state of main, and not while it has no room", async () => {
+  const clash = { head: "abc", tasks: [{ id: "F-002", files: ["a.txt", "b.txt"] }] };
+  const m = manage({}, [mItem("F-002", "Done")], undefined, undefined, undefined, { clashing: clash });
+  await m.tick(); await m.tick();
+  expect(m.launched).toEqual([["update", "F-002"]]);
+  expect(m.decisions()).toEqual(["update"]); // said once
+  expect((m.store.decisions("F-002")[0]!.data as { text: string }).text).toBe("F-002 clashes with main in a.txt, b.txt, so I am updating it: the Builder resolves the clash in its own folder, and it comes back to you for a yes.");
+  m.running.clear();
+  await m.tick();
+  expect(m.launched).toHaveLength(1); // the same main: what a round could not resolve is not tried again
+  clash.head = "def"; // main moved
+  await m.tick();
+  expect(m.launched).toEqual([["update", "F-002"], ["update", "F-002"]]);
+  m.stop();
+
+  const busy = manage({}, [mItem("F-001", "In progress"), mItem("F-002", "Done")], undefined, undefined, undefined, { clashing: { head: "x", tasks: [{ id: "F-002", files: ["a.txt"] }] } });
+  busy.running.set("F-001", { kill() {} }); // one task at a time: no room
+  await busy.tick();
+  expect(busy.launched).toEqual([]);
+  busy.stop();
+
+  const same = manage({}, [mItem("F-002", "Done")], undefined, undefined, undefined, { clashing: { head: "x", tasks: [{ id: "F-002", files: ["a.txt"] }] } });
+  same.running.set("F-002", { kill() {} }); // already being worked on
+  await same.tick();
+  expect(same.launched).toEqual([]);
+  same.stop();
+
+  for (const autonomy of ["assist", "off"] as const) {
+    const quiet = manage({ autonomy }, [mItem("F-002", "Done")], undefined, undefined, undefined, { clashing: { head: "x", tasks: [{ id: "F-002", files: ["a.txt"] }] } });
+    await quiet.tick();
+    expect(quiet.launched).toEqual([]); // only autopilot acts by itself
+    quiet.stop();
+  }
+});
+
+test("integrate: no new work while too many approved tasks are not merged, with the reason and the way out", async () => {
+  const ready = [mItem("F-010", "Ready")];
+  const three = manage({}, [...ready, mItem("F-001", "Done"), mItem("F-002", "Done"), mItem("F-003", "Done")], undefined, undefined, undefined, { unmerged: ["F-001", "F-002", "F-003"] });
+  await three.tick(); await three.tick();
+  expect(three.launched).toEqual([]);
+  expect(three.decisions()).toEqual(["hold"]); // said once
+  expect((three.store.decisions("")[0]!.data as { text: string }).text).toBe("3 approved tasks are not merged into main yet (F-001, F-002, F-003). I am not starting more until they are: each new task is another branch on the same main, and another clash to come. Merge them in the order `factory integrate` gives (the Release Engineer can explain it), and I go on.");
+  three.stop();
+
+  const two = manage({}, [...ready], undefined, undefined, undefined, { unmerged: ["F-001", "F-002"] });
+  await two.tick();
+  expect(two.launched).toEqual([["run", "F-010"]]); // under the limit
+  two.stop();
+
+  const strict = manage({ unmerged: 1 }, [...ready], undefined, undefined, undefined, { unmerged: ["F-001"] });
+  await strict.tick();
+  expect(strict.launched).toEqual([]); // the limit is the person's to set
+  strict.stop();
+
+  const merged = manage({}, [...ready], undefined, undefined, undefined, { unmerged: [] });
+  await merged.tick();
+  expect(merged.launched).toEqual([["run", "F-010"]]); // merged: it goes on
+  merged.stop();
+});
+
+test("integrate: the pile-up limit is a setting, 1 to 10, three by default, and the manager's summary says it", () => {
+  expect(MANAGER_DEFAULTS.unmerged).toBe(3);
+  const base = { gate: ["true"], roles: config.roles };
+  expect(() => parseConfig({ ...base, manager: { unmerged: 0 } })).toThrow(/manager\.unmerged/);
+  expect(() => parseConfig({ ...base, manager: { unmerged: 11 } })).toThrow(/manager\.unmerged/);
+  expect(() => parseConfig({ ...base, manager: { unmerged: 2.5 } })).toThrow(/manager\.unmerged/);
+  expect(managerOf(parseConfig({ ...base, manager: { unmerged: 5 } })).unmerged).toBe(5);
+  const { cli } = repo();
+  expect(cli("manager").out).toContain("no new work while 3 approved tasks are not merged yet");
+  expect(cli("manager", "set", "unmerged", "5").out).toContain("no new work while 5 approved tasks are not merged yet");
+  expect(cli("manager", "set", "unmerged", "0").code).toBe(1);
+});
+
+test("update: an approved task waiting on GitHub is brought up to date: a clean merge needs no new yes, a clash goes to the Builder and comes back for one, a failure changes nothing", () => {
+  const { dir, sh, cli, section } = repo();
+  const bare = tmp();
+  sh("git", "init", "-q", "--bare", bare); sh("git", "remote", "add", "origin", bare);
+  const branch = () => sh("git", "rev-parse", "factory/F-001").out;
+  expect(cli("run", "F-001", "--stub").code).toBe(0);
+  expect(cli("approve", "F-001").out).toContain("approved; not pushed yet");
+  expect(section("F-001")).toBe("Done");
+  expect(existsSync(join(dir, ".worktrees/F-001"))).toBe(false);
+  expect(isLanded(dir, "F-001")).toBe(false);
+
+  // Approving recorded the chronicle in main, so the branch is one commit behind: a clean merge, and a second try finds nothing to do. No folder is left behind.
+  expect(cli("update", "F-001", "--stub").out).toContain("F-001 is up to date with main (1 commit(s) merged");
+  expect(cli("update", "F-001", "--stub").out).toContain("already up to date");
+  expect(existsSync(join(dir, ".worktrees/F-001"))).toBe(false);
+
+  // A clean update: main moved on in another file. The branch takes it, the task stays approved, and the folder made for it is removed again.
+  writeFileSync(join(dir, "other.txt"), "main moved on\n"); sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "main moved");
+  const before = branch();
+  const clean = cli("update", "F-001", "--stub");
+  expect(clean.code).toBe(0);
+  expect(clean.out).toContain("F-001 is up to date with main (1 commit(s) merged, checks pass). Nothing was pushed. Push the update to its pull request with: factory push F-001");
+  expect(branch()).not.toBe(before);
+  expect(sh("git", "show", "factory/F-001:other.txt").out).toBe("main moved on");
+  expect(section("F-001")).toBe("Done"); // the code did not change: no new yes
+  expect(existsSync(join(dir, ".worktrees/F-001"))).toBe(false);
+  expect(Bun.spawnSync(["git", "branch", "--list"], { cwd: bare }).stdout.toString()).toBe(""); // nothing was pushed
+
+  // The checks fail with the new main: the branch is exactly as it was.
+  writeFileSync(join(dir, "again.txt"), "more\n"); sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "more");
+  const cfg = JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8"));
+  writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ ...cfg, gate: ["false"] })); sh("git", "commit", "-qam", "failing gate");
+  const kept = branch();
+  const failed = cli("update", "F-001", "--stub");
+  expect(failed.code).toBe(1);
+  expect(failed.out).toContain("F-001 was not updated: the checks fail with the new main. Nothing changed.");
+  expect(branch()).toBe(kept);
+  expect(section("F-001")).toBe("Done");
+  expect(existsSync(join(dir, ".worktrees/F-001"))).toBe(false);
+  writeFileSync(join(dir, "factory.config.json"), JSON.stringify(cfg)); sh("git", "commit", "-qam", "gate back");
+
+  // A clash: main changed the same file the task wrote. The Builder resolves it in a folder made for it, and the task comes back for the person's yes.
+  writeFileSync(join(dir, "STUB_BUILD.txt"), "main wrote this first\n"); sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "clash");
+  const clash = cli("update", "F-001", "--stub");
+  expect(clash.out).toContain("clash");
+  expect(section("F-001")).toBe("Awaiting approval");
+  expect(existsSync(join(dir, ".worktrees/F-001"))).toBe(true);
+  expect(cli("approve", "F-001").out).toContain("approved; not pushed yet"); // approved again: the branch holds the resolution
+  expect(isLanded(dir, "F-001")).toBe(false);
+}, 120_000);
+
+test("update: a task that is already in main, or is not finished, is refused with the reason", () => {
+  const { dir, cli } = repo();
+  expect(cli("run", "F-001", "--stub").code).toBe(0);
+  expect(cli("approve", "F-001").out).toContain("merged locally"); // no GitHub origin: approving merges
+  const landed = cli("update", "F-001", "--stub");
+  expect(landed.code).toBe(1);
+  expect(landed.out).toContain("F-001 is already in main: there is nothing to update");
+  const notDone = cli("update", "F-002", "--stub");
+  expect(notDone.code).toBe(1);
+  expect(notDone.out).toContain('F-002 is under "Ready"; expected Awaiting approval or Done');
+  expect(existsSync(join(dir, ".worktrees/F-001"))).toBe(false);
+});
+
+test("update: pushing an approved task whose pull request is open sends the update to it", () => {
+  const { dir, sh, cli } = repo();
+  const bare = tmp(), { prs, path } = fakeGh();
+  sh("git", "init", "-q", "--bare", bare); sh("git", "remote", "add", "origin", bare);
+  process.env.FACTORY_GH = path;
+  try {
+    expect(cli("run", "F-001", "--stub").code).toBe(0);
+    cli("approve", "F-001");
+    expect(cli("push", "F-001").out).toContain("pull request");
+    const tip = (ref: string) => Bun.spawnSync(["git", "rev-parse", ref], { cwd: bare }).stdout.toString().trim();
+    const pushedTip = tip("factory/F-001");
+    expect(pushedTip).toBe(sh("git", "rev-parse", "factory/F-001").out);
+    prs([ghPr(7, "F-001", "SUCCESS")]); // the pull request is open
+    writeFileSync(join(dir, "other.txt"), "main moved on\n"); sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "main moved");
+    expect(cli("update", "F-001", "--stub").code).toBe(0);
+    expect(tip("factory/F-001")).toBe(pushedTip); // updated here, not yet there
+    expect(cli("push", "F-001").out).toContain("https://github.com/o/r/pull/7");
+    expect(tip("factory/F-001")).toBe(sh("git", "rev-parse", "factory/F-001").out); // the update reached the pull request
+    expect(tip("factory/F-001")).not.toBe(pushedTip);
+  } finally { delete process.env.FACTORY_GH; }
+}, 60_000);
+
+test("update: over HTTP, a task waiting for a decision or for a merge can be updated, and nothing else", async () => {
+  const { dir, cli } = repo();
+  const bare = tmp();
+  Bun.spawnSync(["git", "init", "-q", "--bare", bare]); Bun.spawnSync(["git", "remote", "add", "origin", bare], { cwd: dir });
+  cli("run", "F-001", "--stub"); cli("approve", "F-001");
+  const server = await serve(dir, 0);
+  const base = `http://127.0.0.1:${server.port}`;
+  const post = (body: unknown) => fetch(`${base}/api/update`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify(body) });
+  try {
+    expect((await post({ id: "F-002" })).status).toBe(409); // Ready
+    expect((await post({})).status).toBe(400);
+    const r = await post({ id: "F-001", stub: true }); // approved, not merged: allowed (and started, in the background)
+    expect(r.status).toBe(202);
+    await Bun.sleep(3000);
+    expect(existsSync(join(dir, ".worktrees/F-001"))).toBe(false); // the update finished and removed its folder
+  } finally { server.stop(true); }
+}, 60_000);
+
+test("integrate: an update is proposed as a button, never carried out by the proposal itself", () => {
+  expect(parseProposal("It clashes.\nPROPOSE: update F-014")).toEqual({ text: "It clashes.", proposal: { kind: "update", ids: ["F-014"] } });
+  expect(parseProposal("PROPOSE: update").proposal).toBeUndefined();
+  expect(parseProposal("PROPOSE: update F-001 F-002").proposal).toEqual({ kind: "update", ids: ["F-001", "F-002"] });
+  const manager = catalog.find((r) => r.id === "M5")!.instruction!, release = catalog.find((r) => r.id === "G2")!.instruction!;
+  expect(manager).toContain("`PROPOSE: update F-014` (a finished task that `factory integrate` says clashes with main)");
+  expect(release).toMatch(/run `factory integrate` first.*PROPOSE: update F-014/s);
+});
+
+test("integrate: the responsibility is a script of every preset, read-only, and its command is one a conversation may run", () => {
+  const g3 = catalog.find((r) => r.id === "G3")!;
+  expect(g3).toMatchObject({ how: "script", access: ["read"], area: "Version control" });
+  for (const name of Object.keys(presets)) {
+    const team = resolveTeam({ preset: name });
+    expect(team.scripts).toContain("G3");
+    expect(validateTeam(team)).toEqual([]);
+    expect(checkConversations(team).filter((v) => !v.known)).toEqual([]);
+  }
+  expect(CHAT_ALLOW).toContain("Bash(factory integrate:*)");
+  expect(MANAGER_ALLOW).toContain("Bash(factory integrate:*)");
+  expect(checkGrants()).toEqual([]);
+});
+
+// ======================================================================================================================================
+// Upgrades: a project made by an earlier version meets the code of this one. Every action that reads or changes the configuration is run against
+// configs shaped like each earlier release, so a role or a section added since never makes an old project fail.
+// ======================================================================================================================================
+
+/** The configuration of a project as each earlier release wrote it (what the fixture writes today, with what that release did not have taken away). */
+const OLD_CONFIGS: Record<string, (c: any) => any> = {
+  "1.0.x: no manager role, the planner still triages, no manager, vcs or chat settings": (c) => { const { "technical-manager": _m, ...roles } = c.roles; return { gate: c.gate, setup: c.setup, graph: c.graph, roles: { ...roles, planner: c.roles.architect } }; },
+  "1.1.0: no technical-manager entry, a manager section from before the unmerged limit": (c) => { const { "technical-manager": _m, ...roles } = c.roles; return { ...c, roles, manager: { autonomy: "autopilot", perDay: 25 } }; },
+  "a config with a team section but no role settings for the roles added since": (c) => ({ gate: c.gate, setup: c.setup, team: { preset: "balanced" }, roles: { builder: c.roles.builder, reviewer: c.roles.reviewer, architect: c.roles.architect } }),
+  "no roles at all": (c) => ({ gate: c.gate, setup: c.setup }),
+  "the lean preset with only its own roles": (c) => ({ gate: c.gate, team: { preset: "lean" }, roles: { architect: c.roles.architect, builder: c.roles.builder, reviewer: c.roles.reviewer, scribe: c.roles.scribe } }),
+};
+
+test("upgrades: the role defaults an old config lacks are given to everything that reads or changes it", () => {
+  const base = { gate: ["true"], roles: { builder: config.roles.builder } };
+  const filled = withRoleDefaults(base);
+  expect(Object.keys(filled.roles).sort()).toEqual(["architect", "builder", "reviewer", "scribe", "security-performance", "technical-manager"]); // balanced: every role that runs unattended
+  expect(filled.roles.builder).toBe(config.roles.builder); // what the file has is not touched
+  expect(withRoleDefaults({ roles: { planner: config.roles.architect, builder: config.roles.builder }, team: { preset: "balanced" } }).roles.planner).toBeUndefined(); // a leftover for a role that no longer runs
+  expect(() => parseConfig(base)).toThrow(/roles\.technical-manager: missing/); // the error the person met
+  expect(() => parseConfig(filled)).not.toThrow();
+  expect(withRoleDefaults({ team: { preset: "nope" }, roles: {} }).roles).toEqual({}); // an invalid team is left for parseConfig to explain
+});
+
+for (const [name, old] of Object.entries(OLD_CONFIGS)) {
+  test(`upgrades: every command that changes the configuration works on an old project (${name})`, () => {
+    const { dir, sh, cli } = repo();
+    const file = join(dir, "factory.config.json"), original = JSON.parse(readFileSync(file, "utf8"));
+    writeFileSync(file, JSON.stringify(old(original)));
+    sh("git", "commit", "-qam", "an older config");
+    expect(() => loadConfig(dir)).not.toThrow(); // reading
+    expect(() => readConfig(dir)).not.toThrow();
+    const run = (...args: string[]) => { const r = cli(...args); expect({ args, out: r.out.includes("Invalid factory.config.json") ? r.out : "", code: r.code }).toEqual({ args, out: "", code: 0 }); return r; };
+    run("status"); run("authority"); run("integrate"); run("manager");
+    expect(cli("doctor").out).not.toContain("Invalid factory.config.json"); // it says what is missing (the role files, until `team apply`), and the config is not what fails
+    run("manager", "assist"); run("manager", "autopilot"); run("manager", "set", "perDay", "30"); run("manager", "set", "unmerged", "4"); run("manager", "off"); run("manager", "autopilot");
+    run("vcs", "auto-push", "on"); run("vcs", "auto-push", "off");
+    run("configure", "--gate", "true");
+    run("team", "apply");
+    run("team", "agents", "7");
+    run("team", "use", "balanced");
+    expect(JSON.parse(readFileSync(file, "utf8")).manager).toBeDefined(); // the manager's settings were written
+    expect(() => loadConfig(dir)).not.toThrow();
+    expect(checkAuthority(dir).errors).toEqual([]);
+    expect(cli("run", "F-001", "--stub").code).toBe(0); // and it still builds
+  }, 120_000);
+
+  test(`upgrades: every dashboard action that changes the configuration works on an old project (${name})`, async () => {
+    const { dir, sh, cli } = repo();
+    const file = join(dir, "factory.config.json"), original = JSON.parse(readFileSync(file, "utf8"));
+    writeFileSync(file, JSON.stringify(old(original)));
+    sh("git", "commit", "-qam", "an older config");
+    cli("team", "apply"); // creates the role files, as opening the dashboard does
+    const server = await serve(dir, 0);
+    const base = `http://127.0.0.1:${server.port}`;
+    const post = async (url: string, body: unknown) => { const r = await fetch(`${base}${url}`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify(body) }); const t = await r.text(); return { url, status: r.status, bad: t.includes("Invalid factory.config.json") ? t : "" }; };
+    try {
+      for (const [url, body] of [
+        ["/api/vcs/auto-push", { on: true }], ["/api/vcs/auto-push", { on: false }],
+        ["/api/manager", { autonomy: "assist" }], ["/api/manager", { autonomy: "autopilot", perDay: 30 }], ["/api/manager", { seen: true }],
+        ["/api/chat/suggest", { topic: "brainstorm", on: false }], ["/api/chat/suggest", { topic: "brainstorm", on: true }],
+        ["/api/configure", { gate: ["true"] }],
+        ["/api/team/preview", { changes: [{ kind: "use", preset: "lean" }] }],
+      ] as [string, unknown][]) {
+        const r = await post(url, body);
+        expect({ url, bad: r.bad }).toEqual({ url, bad: "" });
+        expect({ url, ok: r.status < 500 }).toEqual({ url, ok: true });
+      }
+      const get = async (url: string) => { const r = await fetch(`${base}${url}`); return { url, status: r.status }; };
+      for (const url of ["/api/team", "/api/manager", "/api/backlog", "/api/config", "/api/chat/topics", "/api/chats", "/api/chat/commands?topic=manager", "/api/integrate", "/api/health", "/api/vcs", "/api/skills", "/api/files", "/api/worktrees", "/api/source", "/api/project"]) expect(await get(url)).toEqual({ url, status: 200 });
+      const models = await post("/api/config", { roles: loadConfig(dir).roles });
+      expect(models).toMatchObject({ status: 200 }); // the model matrix saves
+    } finally { server.stop(true); }
+  }, 120_000);
+}

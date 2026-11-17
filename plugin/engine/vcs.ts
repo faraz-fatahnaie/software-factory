@@ -114,7 +114,11 @@ export function pushTask(root: string, id: string, title: string, spec = "", rev
   const found = scanSecrets(parseDiff(git(root, "diff", `${base}...${branch}`, "-U0", "--no-color")));
   if (found.length) throw new Error(`${id} was not pushed: possible secrets in what would be uploaded.\n${formatFindings(found)}\nRemove them (or mark a known false alarm with "factory:allow-secret" on the line), then push again.`);
   const open = listPrs(root)?.get(id);
-  if (open?.state === "OPEN") return open.url;
+  if (open?.state === "OPEN") {
+    // The pull request is already there: what was added to the branch since (an update from main) goes to it. Nothing else changes.
+    try { git(root, "push", "-q", "origin", branch); } catch (e) { throw new Error(`${id}'s pull request is open, but its new commits were not pushed: ${(e as Error).message}`); }
+    return open.url;
+  }
   const revert = isRevert(root, branch);
   try { git(root, "push", "-q", "-u", "origin", branch); } catch (e) {
     throw new Error(`${(e as Error).message}\nIf an older branch named ${branch} is still on GitHub from an earlier pull request, delete it there, then push again.`);

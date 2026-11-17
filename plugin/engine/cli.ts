@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { checkAuthority } from "./authority";
 import { add, dependsOn, FROM_CONVERSATION, move, parse, type Item, type Section } from "./backlog";
 import { claudeRunner } from "./claude";
-import { loadConfig, managerOf, parseConfig, projectTeam } from "./config";
+import { loadConfig, managerOf, parseConfig, projectTeam, readConfig } from "./config";
 import { openStore } from "./events";
 import { applyTeam, configure, ensureRoleFiles, detect, DOC_PATHS, doctor, init, nextStep, projectDocs } from "./init";
 import { appendChronicle, appendNotes, chronicleEntry, parseScribe, stageOutput } from "./chronicle";
@@ -17,7 +17,7 @@ import { runTask, shellGate, stopAll, stubRunner, type Resume, type Runner } fro
 import { addSkill, searchSkills, setSkill } from "./skills";
 import { armAutoMerge, ciWorkflow, failingChecksItem, formatStatus, hasChecks, listPrs, mergeTask, pushTask, revertTask, runTexts, syncGithub, vcsStatus, BATCH, pushBatch } from "./vcs";
 import { baseBranch } from "./vcs";
-import { abortUpdate, APPROVED, behindBy, commitAll, ensureWorktree, land, mergeBase, removeWorktree, unresolved, worktreeOf, isLanded } from "./worktree";
+import { abortUpdate, APPROVED, behindBy, commitAll, ensureWorktree, land, mergeBase, removeWorktree, unresolved, worktreeOf, isLanded, branchOf, git } from "./worktree";
 
 const root = process.cwd();
 const backlogPath = join(root, "BACKLOG.md");
@@ -232,7 +232,14 @@ async function main([cmd, ...args]: string[]) {
       m = writeManager(root, { [key]: Number(value) });
     } else if (sub) throw new Error("usage: factory manager [autopilot|assist|off | report | set <setting> <value>]");
     if (sub) commitPaths(`manager: ${sub === "set" ? `${key} ${value}` : sub}`, "factory.config.json");
-    return console.log(`${AUTONOMY_TEXT[m.autonomy]}.\nAt most ${m.parallel} task${m.parallel === 1 ? "" : "s"} at once · ${m.recoveries} automatic retries per task · up to $${m.perTask} per task and $${m.perDay} per day · a task with no sign of life for ${m.stall} minutes is stopped.`);
+    return console.log(`${AUTONOMY_TEXT[m.autonomy]}.\nAt most ${m.parallel} task${m.parallel === 1 ? "" : "s"} at once · ${m.recoveries} automatic retries per task · up to $${m.perTask} per task and $${m.perDay} per day · a task with no sign of life for ${m.stall} minutes is stopped · no new work while ${m.unmerged} approved tasks are not merged yet.`);
+  }
+
+  if (cmd === "integrate") {
+    // What is waiting to reach main, which of it will clash, and the order to merge it in. Only reads.
+    const { plan, formatPlan } = await import("./integrate");
+    const p = plan(root, readItems());
+    return console.log(args.includes("--json") ? JSON.stringify(p) : formatPlan(p));
   }
 
   if (cmd === "authority") {
@@ -456,14 +463,14 @@ async function main([cmd, ...args]: string[]) {
     const [sub, value] = args;
     if (!sub) return console.log(formatStatus(vcsStatus(root), autoMerge(), autoPush()));
     if (sub === "auto-push" && (value === "on" || value === "off") && args.length === 2) {
-      const file = join(root, "factory.config.json"), raw = JSON.parse(readFileSync(file, "utf8"));
+      const file = join(root, "factory.config.json"), raw = readConfig(root);
       writeFileSync(file, `${JSON.stringify(parseConfig({ ...raw, vcs: { ...raw.vcs, autoPush: value === "on" } }), null, 2)}\n`);
       commitPaths(`software-factory: push on approval ${value}`, "factory.config.json");
       return console.log(value === "on" ? "push on approval on: approving a task pushes its branch and opens its pull request at once (the secret scan still runs first)" : "push on approval off: you push each task yourself");
     }
     if (sub === "auto-merge" && (value === "on" || value === "off") && args.length === 2) {
       if (value === "on" && !hasChecks(root)) throw new Error("auto-merge waits for the checks to pass, and this project has none (no workflow in .github/workflows), so it would merge at once. Add checks first, then turn it on");
-      const file = join(root, "factory.config.json"), raw = JSON.parse(readFileSync(file, "utf8"));
+      const file = join(root, "factory.config.json"), raw = readConfig(root);
       writeFileSync(file, `${JSON.stringify(parseConfig({ ...raw, vcs: { ...raw.vcs, autoMerge: value === "on" } }), null, 2)}\n`);
       commitPaths(`software-factory: auto-merge ${value}`, "factory.config.json");
       return console.log(value === "on" ? "auto-merge on: a pull request merges as soon as its checks pass, with nobody to approve it" : "auto-merge off: you merge pull requests");
@@ -609,11 +616,16 @@ async function main([cmd, ...args]: string[]) {
     // Main moved on while the task waited for a decision: merge it into the task's own branch, never into main, and check again.
     const unknown = args.filter((a) => !/^F-\d+$/.test(a) && a !== "--stub");
     if (unknown.length) throw new Error(`unknown argument: ${unknown.join(" ")}`);
-    const item = find(args.find((a) => /^F-\d+$/.test(a)), "Awaiting approval");
+    const item = find(args.find((a) => /^F-\d+$/.test(a)), "Awaiting approval", "Done");
+    // An approved task (with a GitHub origin its branch waits for a pull request to be merged) has no folder any more: one is made for the update, and removed again.
+    const approved = item.section === "Done";
+    if (approved && (Bun.spawnSync(["git", "rev-parse", "--verify", "--quiet", `refs/heads/${branchOf(item.id)}`], { cwd: root }).exitCode !== 0 || isLanded(root, item.id)))
+      throw new Error(`${item.id} is already in ${baseBranch(root)}: there is nothing to update`);
     const config = loadConfig(root), base = baseBranch(root), dir = worktreeOf(root, item.id);
+    if (approved && !existsSync(dir)) git(root, "worktree", "add", "-q", dir, branchOf(item.id));
     const runner = args.includes("--stub") ? stubRunner : claudeRunner(config.gate);
     const behind = behindBy(root, item.id);
-    if (!behind) return console.log(`${item.id} is already up to date with ${base}`);
+    if (!behind) { if (approved) removeWorktree(root, item.id, true); return console.log(`${item.id} is already up to date with ${base}`); }
     const store = openEvents(), run = store.lastRun(item.id) ?? "";
     const note = (type: string, data: unknown, stage = "update") => store.emit({ run, task: item.id, stage, type, data });
     note("update.start", { base, commits: behind });
@@ -622,7 +634,10 @@ async function main([cmd, ...args]: string[]) {
       note("update.conflict", { files: clash });
       store.close();
       console.log(`${item.id}: ${base} has ${behind} new commit(s) and ${clash.join(", ")} clash${clash.length === 1 ? "es" : ""}; the Builder resolves it`);
-      return runItems(config, runner, [item], resumeFrom(item, `Update from ${base}: resolve the conflicts in ${clash.join(", ")}`, clash, true));
+      await runItems(config, runner, [item], resumeFrom(item, `Update from ${base}: resolve the conflicts in ${clash.join(", ")}`, clash, true));
+      // New code (the Builder's resolution) needs the person's yes again. If it could not be resolved, the task is approved as it was: the branch is put back, and the failure stays in the log.
+      if (approved && readItems().find((i) => i.id === item.id)?.section === "Blocked") { editBacklog(`${item.id} → Done (the update failed; approved as it was)`, (t) => move(t, item.id, "Done")); removeWorktree(root, item.id, true); }
+      return;
     }
     // A clean merge: the Builder changed nothing, so only the checks run again. A failure puts the branch back as it was.
     store.emit({ run, task: item.id, stage: "check", type: "stage.start" });
@@ -630,6 +645,7 @@ async function main([cmd, ...args]: string[]) {
     store.emit({ run, task: item.id, stage: "check", type: check.ok ? "stage.ok" : "stage.failed", data: check.output });
     if (!check.ok) {
       abortUpdate(dir);
+      if (approved) removeWorktree(root, item.id, true);
       note("update.failed", { output: check.output.slice(-1000) });
       store.close();
       throw new Error(`${item.id} was not updated: the checks fail with the new ${base}. Nothing changed. Send it back with a comment to have the Builder fix it.\n${check.output}`);
@@ -637,7 +653,8 @@ async function main([cmd, ...args]: string[]) {
     for (const st of ["security", "review"]) store.emit({ run, task: item.id, stage: st, type: "stage.skipped", data: "kept: the code did not change" });
     note("update.done", { base, commits: behind });
     store.close();
-    return console.log(`${item.id} is up to date with ${base} (${behind} commit(s) merged, checks pass). Nothing was pushed.`);
+    if (approved) removeWorktree(root, item.id, true); // the branch keeps the merge; there is no folder to keep
+    return console.log(`${item.id} is up to date with ${base} (${behind} commit(s) merged, checks pass). Nothing was pushed.${approved ? ` Push the update to its pull request with: factory push ${item.id}` : ""}`);
   }
 
   console.log(USAGE);

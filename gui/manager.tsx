@@ -9,7 +9,7 @@ import { personaFor, Robot } from "./robots";
 import { Select } from "./ui";
 
 export type Autonomy = "autopilot" | "assist" | "off";
-export type ManagerSettings = { autonomy: Autonomy; parallel: number; recoveries: number; perTask: number; perDay: number; stall: number };
+export type ManagerSettings = { autonomy: Autonomy; parallel: number; recoveries: number; perTask: number; perDay: number; stall: number; unmerged: number };
 export type ManagerInfo = { settings: ManagerSettings; spentToday: number; /** The one-time explanation that autopilot is on has not been answered yet. */ notice?: boolean };
 
 export const AUTONOMY_OPTIONS: { value: Autonomy; label: string; hint: string }[] = [
@@ -110,6 +110,7 @@ const FIELDS: { key: keyof Omit<ManagerSettings, "autonomy">; label: string; hin
   { key: "perTask", label: "Spend limit per task ($)", hint: "stops retrying a task that cost this much", step: 0.5 },
   { key: "perDay", label: "Spend limit per day ($)", hint: "no new work after this", step: 1 },
   { key: "stall", label: "Stop a silent task after (minutes)", hint: "5 to 240" },
+  { key: "unmerged", label: "No new work while this many approved tasks are not merged", hint: "1 to 10: each one is another branch on the same main" },
 ];
 
 /** What the manager may do by itself, and its limits, for the Team view. */

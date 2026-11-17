@@ -28,16 +28,18 @@ export type ChatSettings = { suggest?: Record<string, boolean> };
  * What the Technical Manager may do by itself. `autonomy`: autopilot promotes what was agreed in conversation, starts it, and recovers a stuck task;
  * assist only proposes (you press the buttons); off does nothing by itself. `parallel`: tasks at once. `recoveries`: automatic retries per task.
  * `perTask` and `perDay`: spend limits in US dollars. `stall`: minutes without any sign of life before a running task is stopped.
+ * `unmerged`: no new work while this many approved tasks are not merged into main yet (each one is another branch on the same main, and another clash to come).
  */
 export type Autonomy = "autopilot" | "assist" | "off";
-export type ManagerSettings = { autonomy?: Autonomy; parallel?: number; recoveries?: number; perTask?: number; perDay?: number; stall?: number };
+export type ManagerSettings = { autonomy?: Autonomy; parallel?: number; recoveries?: number; perTask?: number; perDay?: number; stall?: number; unmerged?: number };
 export const AUTONOMY: Autonomy[] = ["autopilot", "assist", "off"];
-export const MANAGER_DEFAULTS: Required<ManagerSettings> = { autonomy: "autopilot", parallel: 1, recoveries: 2, perTask: 5, perDay: 25, stall: 20 };
+export const MANAGER_DEFAULTS: Required<ManagerSettings> = { autonomy: "autopilot", parallel: 1, recoveries: 2, perTask: 5, perDay: 25, stall: 20, unmerged: 3 };
 export const managerOf = (c: { manager?: ManagerSettings }): Required<ManagerSettings> => ({ ...MANAGER_DEFAULTS, ...c.manager });
 const MANAGER_RULES: Record<keyof ManagerSettings, (v: unknown) => boolean> = {
   autonomy: (v) => AUTONOMY.includes(v as Autonomy), parallel: (v) => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= 8,
   recoveries: (v) => Number.isInteger(v) && (v as number) >= 0 && (v as number) <= 5, perTask: (v) => typeof v === "number" && v > 0 && v <= 1000,
   perDay: (v) => typeof v === "number" && v > 0 && v <= 10000, stall: (v) => Number.isInteger(v) && (v as number) >= 5 && (v as number) <= 240,
+  unmerged: (v) => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= 10,
 };
 export type Config = { setup?: string[]; gate: string[]; graph?: boolean; security?: SecuritySettings; vcs?: VcsSettings; chat?: ChatSettings; manager?: ManagerSettings; team?: TeamSettings; roles: Record<Role, RoleConfig> };
 
@@ -91,8 +93,8 @@ export function parseConfig(raw: unknown): Config {
   if (c.manager !== undefined) {
     if (typeof c.manager !== "object" || c.manager === null || Array.isArray(c.manager)) errs.push("manager: must be an object");
     else for (const [k, v] of Object.entries(c.manager)) {
-      if (!(k in MANAGER_RULES)) errs.push(`manager.${k}: unknown setting (autonomy, parallel, recoveries, perTask, perDay, stall)`);
-      else if (!MANAGER_RULES[k as keyof ManagerSettings](v)) errs.push(`manager.${k}: ${k === "autonomy" ? `one of ${AUTONOMY.join(", ")}` : "a number in range (parallel 1 to 8, recoveries 0 to 5, perTask and perDay in dollars, stall 5 to 240 minutes)"}`);
+      if (!(k in MANAGER_RULES)) errs.push(`manager.${k}: unknown setting (autonomy, parallel, recoveries, perTask, perDay, stall, unmerged)`);
+      else if (!MANAGER_RULES[k as keyof ManagerSettings](v)) errs.push(`manager.${k}: ${k === "autonomy" ? `one of ${AUTONOMY.join(", ")}` : "a number in range (parallel 1 to 8, recoveries 0 to 5, perTask and perDay in dollars, stall 5 to 240 minutes, unmerged 1 to 10)"}`);
     }
   }
   let roleNames: string[] = [], known: string[] = [];
@@ -131,15 +133,26 @@ export function parseConfig(raw: unknown): Config {
     roles };
 }
 
-/** A config written by an older plugin lacks any role added since: give it that role's default instead of failing. */
-export function loadConfig(dir: string): Config {
-  const raw = JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8"));
-  const roles = { ...(raw?.roles ?? {}) };
+/**
+ * A config written by an older plugin lacks any role added since, and may still hold settings for a role that no longer runs: this gives it the roles its team needs.
+ * Everything that reads or CHANGES the config goes through it (`loadConfig`, and `readConfig` for a change), so an old project never fails on what it was never told about.
+ */
+export function withRoleDefaults<T extends { roles?: Record<string, unknown> }>(raw: T): T & { roles: Record<string, unknown> } {
+  const roles: Record<string, unknown> = { ...(raw?.roles ?? {}) };
   try {
-    const team = teamOf(raw);
+    const team = teamOf(raw as { team?: unknown });
     const active = activeRoles(team);
     for (const name of active) if (!roles[name] && team.roles[name]?.defaults) roles[name] = { runner: "claude", ...team.roles[name]!.defaults };
     for (const name of Object.keys(roles)) if (team.roles[name] && !active.includes(name)) delete roles[name]; // left over from before an update: nothing runs as this role now
-  } catch { /* an invalid team is reported by parseConfig below */ }
-  return parseConfig({ ...raw, roles });
+  } catch { /* an invalid team is reported by parseConfig */ }
+  return { ...raw, roles };
+}
+
+export function loadConfig(dir: string): Config {
+  return parseConfig(withRoleDefaults(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8"))));
+}
+
+/** The project's config as a plain object to change and write back: the roles its team needs are there, and the file's own other settings are kept as written. */
+export function readConfig(dir: string): Record<string, any> {
+  return withRoleDefaults(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")));
 }

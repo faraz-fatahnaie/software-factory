@@ -4,7 +4,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { dependsOn, type Item } from "./backlog";
-import { type Autonomy, managerOf, type ManagerSettings, parseConfig } from "./config";
+import { type Autonomy, managerOf, type ManagerSettings, parseConfig, withRoleDefaults } from "./config";
 import type { Store } from "./events";
 import { checkLimits } from "./authority";
 import { followUps, needsTriage } from "./pipeline";
@@ -90,6 +90,10 @@ export type Ctx = {
   hasSpec: (id: string) => boolean;
   /** Whether this team has someone to triage a loose idea. Without one, an item with no acceptance checks is not started on autopilot. */
   canTriage?: () => boolean;
+  /** The approved tasks that are not in main yet (with a GitHub origin, until their pull requests are merged). */
+  unmerged?: () => string[];
+  /** The tasks (waiting for a decision, or approved) whose branch clashes with main now, and which main that was: an update is tried once for each. */
+  clashing?: () => { head: string; tasks: { id: string; files: string[] }[] };
   /** What the authority rules say is wrong with this project right now (empty when nothing is): while something is, nothing is started. */
   authority?: () => string[];
   /** Whether a finished task's work is in the project's main line, so a task that needs it can be built. */
@@ -240,8 +244,20 @@ export function supervisor(ctx: Ctx) {
     // An item that was only added to the Inbox is never moved by the supervisor: adding is not asking for it to be built, and building spends money.
     const fresh = ctx.items(), awaiting = fresh.filter((i) => i.section === "Awaiting approval").length;
     let room = s.parallel - ctx.running.size;
+    // Keep-up: a finished task whose branch clashes with main now is updated while that is cheap (the Builder resolves one clash in that task's own folder, and it comes
+    // back for the person's yes), instead of when somebody is about to merge it. Once for each state of main: what a round could not resolve is not tried again at the same main.
+    if (room > 0 && dayCost() < s.perDay) {
+      const { head, tasks } = ctx.clashing?.() ?? { head: "", tasks: [] };
+      for (const c of tasks) {
+        if (ctx.running.has(c.id) || !once(`update:${c.id}:${head}`)) continue;
+        if (ctx.launch(c.id, ["update", c.id])) { decide_(c.id, "update", `${c.id} clashes with main in ${c.files.slice(0, 4).join(", ")}${c.files.length > 4 ? " and more" : ""}, so I am updating it: the Builder resolves the clash in its own folder, and it comes back to you for a yes.`, { files: c.files }); room--; break; }
+      }
+    }
     if (room <= 0 || awaiting >= AWAITING_LIMIT) return;
     if (dayCost() >= s.perDay) { if (once(`day:${startOfDay()}`)) decide_("", "budget", `The day's limit (${usd(s.perDay)}) is reached, so nothing more starts today.`); return; }
+    // Branches pile up when approved work is not merged: every new task is built on a main that lacks them, and clashes with them later. So the pile has a limit.
+    const unmerged = ctx.unmerged?.() ?? [];
+    if (unmerged.length >= s.unmerged) { if (once(`unmerged:${unmerged.join(",")}`)) decide_("", "hold", `${unmerged.length} approved tasks are not merged into main yet (${unmerged.join(", ")}). I am not starting more until they are: each new task is another branch on the same main, and another clash to come. Merge them in the order \`factory integrate\` gives (the Release Engineer can explain it), and I go on.`, { unmerged }); return; }
     // A task the person discarded goes back to Ready, but they threw it away: autopilot leaves it until they run it themselves.
     const startable = (i: Item) => i.section === "Ready" && !ctx.running.has(i.id) && ctx.store.lastType(i.id) !== "task.discarded";
     const ready = fresh.filter(startable);
@@ -274,7 +290,7 @@ export function writeManager(root: string, patch: ManagerSettings): Required<Man
   if (!existsSync(file)) throw new Error("this folder has no factory.config.json: run /software-factory:init first");
   const raw = JSON.parse(readFileSync(file, "utf8"));
   raw.manager = { ...raw.manager, ...patch };
-  const next = parseConfig(raw); // throws, in plain words, when a value is out of range
+  const next = parseConfig(withRoleDefaults(raw)); // throws, in plain words, when a value is out of range; a config from before the manager existed is complete for the check, and only the manager's settings are written
   const bad = checkLimits(managerOf(next)).filter((v) => v.rule === "M1");
   if (bad.length) throw new Error(bad.map((v) => v.text).join("; "));
   writeFileSync(file, `${JSON.stringify({ ...raw, manager: next.manager }, null, 2)}\n`);
