@@ -3,7 +3,10 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
-## Unreleased
+## 1.1.1
+
+A patch release: it stops loops that spent money, and fixes what Tess says about autopilot. **Update, restart the
+dashboard, and nothing else is needed in your projects.** (Run `factory team apply` once if you have not since 1.1.0.)
 
 - **Fix: loops that spent money are stopped.** A task that could not be built because another task's code was not merged
   yet used to go round and round: the Builder changed nothing, the Reviewer asked for changes, autopilot sent guidance
