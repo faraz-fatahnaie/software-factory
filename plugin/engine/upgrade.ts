@@ -27,6 +27,18 @@ export function listeners(port: number): number[] {
   try { return Bun.spawnSync(["lsof", "-nP", "-t", `-iTCP:${port}`, "-sTCP:LISTEN"], { stdout: "pipe", stderr: "pipe" }).stdout.toString().split("\n").map(Number).filter((n) => n > 0 && n !== process.pid); } catch { return []; }
 }
 
+/** This project's dashboards that are running, on any port in the range (a project's own port, or one an earlier session chose): there may be more than one. */
+export async function ownDashboards(root: string, from = 4400, to = 4599): Promise<{ port: number; version?: string }[]> {
+  let ports: number[] = [];
+  try {
+    const out = Bun.spawnSync(["lsof", "-nP", `-iTCP:${from}-${to}`, "-sTCP:LISTEN", "-Fn"], { stdout: "pipe", stderr: "pipe" }).stdout.toString();
+    ports = [...new Set([...out.matchAll(/^n.*:(\d+)$/gm)].map((m) => Number(m[1])))];
+  } catch { /* no lsof: the port the project would use is looked at by the caller */ }
+  const found: { port: number; version?: string }[] = [];
+  for (const port of ports) { const w = await who(port); if (w?.root === root) found.push({ port, version: w.version }); }
+  return found;
+}
+
 export type Replaced =
   | { state: "none" }                       // no dashboard of this project on that port
   | { state: "current"; version?: string }  // one is running, and it is this version or newer

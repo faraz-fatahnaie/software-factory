@@ -40,6 +40,39 @@ const field = (md: string, key: string) => new RegExp(`^${key}:[ \\t]*(.*)$`, "i
 export const toolTokens = (text: string) => text.match(/[A-Za-z_]+(?:\([^)]*\))?/g) ?? [];
 const toolName = (token: string) => token.replace(/\(.*$/, "");
 
+// ---------------------------------------------------------------------------------------------------------------- the floor: what no session may do, whatever a settings file allows
+
+/**
+ * Passed as `--disallowedTools` to every session the factory starts (a task stage or a conversation). A deny rule beats any allow rule, from the factory or from the
+ * project's own `.claude/settings.json`, which factory sessions read: so a person who allows `Bash(git *)` for the Release Engineer's sake does not also let every agent
+ * commit, reset, merge or push. It is checked against what the factory itself allows (a test), and against every command only a person may do (another).
+ */
+export const DENY_FLOOR: string[] = [
+  ...["push", "commit", "reset", "checkout", "switch", "merge", "rebase", "cherry-pick", "revert", "stash", "clean", "restore", "tag", "branch", "worktree", "config", "update-ref", "pull", "am", "apply", "remote", "submodule"].map((c) => `Bash(git ${c}:*)`),
+  "Bash(gh:*)",
+  ...["approve", "push", "merge", "discard", "revert", "reject", "deploy", "sync", "release tag", "update", "run", "promote"].map((c) => `Bash(factory ${c}:*)`),
+];
+/** Whether a command is one the floor denies (a prefix match, as the permission system does). */
+export const floorDenies = (command: string) => DENY_FLOOR.some((e) => { const p = e.slice(5, -3); return command === p || command.startsWith(`${p} `); });
+
+/** What the project's own `.claude/settings.json` allows every session to do, which is more than the factory's rules assume. Shown, not refused: it is the person's file. */
+export function checkProjectSettings(dir: string): Violation[] {
+  const out: Violation[] = [];
+  let s: any;
+  try { s = JSON.parse(readFileSync(join(dir, ".claude", "settings.json"), "utf8")); } catch { return out; }
+  const allow: unknown[] = Array.isArray(s?.permissions?.allow) ? s.permissions.allow : [];
+  for (const e of allow) {
+    if (typeof e !== "string") continue;
+    const note = (text: string) => out.push({ rule: "P1", where: ".claude/settings.json", text });
+    if (toolName(e) === "Bash" && (WIDE_SHELL.test(e) || /^Bash\(\s*(git|gh)(\s+\*|:\*)\s*\)$/.test(e)))
+      note(`the project settings allow "${e}" for every session, agents and conversations alike: that lets any of them change history, branches and files with git. The factory still denies git push, commit, reset, merge, checkout and every gh command to its own sessions, but the rest of what "${e}" allows is open. Prefer the factory's own commands (factory integrate, factory update), which give the Builder the job of resolving a clash`);
+    else if (toolName(e) === "Bash" && PERSON_ONLY.test(e)) note(`the project settings allow "${e}", which is something only a person may do (the factory denies it to its own sessions regardless)`);
+    if (EDITS.includes(toolName(e)) && !/\((docs\/\*\*|README\.md|CHANGELOG\.md)\)$/.test(e)) note(`the project settings allow "${e}" for every session, so any of them could edit files, which only the builder may`);
+  }
+  if (["bypassPermissions", "acceptEdits"].includes(s?.permissions?.defaultMode)) out.push({ rule: "P1", where: ".claude/settings.json", text: `the project settings set the permission mode to ${s.permissions.defaultMode}, which is more than the factory's rules assume` });
+  return out;
+}
+
 // ---------------------------------------------------------------------------------------------------------------- G1, G2: what conversations and agents are granted
 
 /** The lists of what each kind of session may run, by name, so the rules can read them. */
@@ -184,6 +217,7 @@ export function checkAuthority(dir: string): Authority {
     try { md = readFileSync(join(dir, ".claude", "agents", `${role}.md`), "utf8"); } catch { continue; } // a missing file is the setup check's to report
     for (const v of checkRoleFile(role, md, team)) put(v, /leaves out/.test(v.text));
   }
+  for (const v of checkProjectSettings(dir)) put(v, true);
   for (const v of checkSkills(dir, team)) put(v, true); // a skill that is already installed is shown, not refused: refusing is for adding one (see skills.ts)
   try { const c = loadConfig(dir); for (const v of checkLimits(managerOf(c), c.gate)) put(v, true); } catch { /* the setup check reports an unreadable config */ }
   const m = (() => { try { return managerOf(loadConfig(dir)); } catch { return undefined; } })();

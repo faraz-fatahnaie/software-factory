@@ -4,6 +4,8 @@ The factory's intake queue. `factory run` takes the top item under Ready.
 Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
+- [ ] F-101 (P1) Run every release against a copy of a real, evolving project (the card game's), read-only, before it is published: config, backlog, branches, every route
+- [ ] F-102 (P2) A Release Engineer that explains and resolves what `factory integrate` finds: a conversation that walks the person through the order and offers each update as a button
 - [ ] F-099 (P3) A "who may do what" panel in the Team view, from the same table as `factory authority`
 - [ ] F-090 (P2) Per-stage budget with --max-budget-usd, so one stage cannot overspend between the supervisor's checks
 - [ ] F-091 (P2) A visible Pause button for autopilot on every screen, and a desktop notification when she pauses or escalates
@@ -185,3 +187,9 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   F3 and K3 no longer declare access no conversation has (the gate is the person's to set, AGENTS.md is proposed under docs/ and applied in Studio); commands named for the person are declared as `proposes`. Known gaps: none.
 - [x] F-100 (P2) An Apply setup button in the design conversation: it shows the gate commands and runs `factory configure` only when the person presses it
   The design conversation ends its reply with one SETUP line; the page shows the commands and an Apply setup button, and /api/configure checks them again and runs factory configure.
+- [x] F-103 (P1) Integration: merge order, conflict forecast, keep-up of clashing branches and a pile-up limit
+  G3 (git only): factory integrate, factory update for approved tasks, autopilot keep-up, manager setting unmerged, push updates an open pull request.
+- [x] F-104 (P1) A deny floor for every session, and the project settings checked
+  git and gh write commands and every person-only factory command are denied to all factory sessions whatever a settings file allows; broad allows in .claude/settings.json are shown.
+- [x] F-105 (P1) Old projects never fail a configuration change
+  withRoleDefaults/readConfig; upgrade tests run every config-changing command and route against configs from each earlier release.

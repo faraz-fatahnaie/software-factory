@@ -3,6 +3,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, toolDetail, type ToolStep, contextOf, type Context } from "./state";
+import { DENY_FLOOR } from "./authority";
 import { reportedBy } from "./commands";
 import { classify, hookSettings } from "./claude";
 import { chatPromptFor, holderOf, lookup, type Preset } from "./team";
@@ -139,7 +140,7 @@ export function chatArgs(r: ChatRequest, team: Preset, only?: { append?: string;
     "--append-system-prompt", system,
     ...(r.session ? ["--resume", r.session] : []),
     "--output-format", "stream-json", "--verbose",
-    "--permission-mode", "dontAsk", ...(topic.guide ? ["--add-dir", productDir] : []), "--allowedTools", ...(topic.guide || only?.readOnly ? GUIDE_ALLOW : topic.manager ? MANAGER_ALLOW : ALLOW),
+    "--permission-mode", "dontAsk", ...(topic.guide ? ["--add-dir", productDir] : []), "--allowedTools", ...(topic.guide || only?.readOnly ? GUIDE_ALLOW : topic.manager ? MANAGER_ALLOW : ALLOW), "--disallowedTools", ...DENY_FLOOR,
     "--setting-sources", "project", "--strict-mcp-config",
     "--settings", hookSettings("chat"),
   ];

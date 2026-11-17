@@ -336,6 +336,13 @@ update never locks you out; installing or attaching one is refused.</p>
 </table>
 <h2 id="7-github-checks-and-undoing">7. GitHub, checks and undoing</h2>
 <p>The factory uses git and GitHub by default. The rules are fixed on purpose:</p>
+<p><strong>Several tasks waiting, and the order to merge them.</strong> Approving keeps a task on its own branch, so finished tasks pile up
+on branches built from the same <code>main</code>, and merging one can make the others clash. The Pull requests tile shows <strong>Order to
+merge</strong> (and <code>factory integrate</code> prints it): what is waiting, which tasks clash with <code>main</code> or with each other, and the
+order, with dependencies first and independent tasks together. A pull request that says &quot;conflicts&quot; has an <strong>Update this
+branch</strong> button: the Builder resolves the clash in the task's own folder (a clean merge needs no new yes), then <strong>Push</strong>
+sends the update to the pull request. On autopilot Tess does the update herself while it is cheap, and starts no new work
+while three approved tasks are not merged (<code>factory manager set unmerged N</code>). Merging stays yours.</p>
 <ul>
 <li>Work always lands through a <strong>pull request that you merge</strong> into <code>main</code>. Auto-merge exists and is <strong>off</strong>.</li>
 <li>A push needs your explicit yes: the <strong>Push</strong> button, or approving it in the Release engineer's chat.</li>

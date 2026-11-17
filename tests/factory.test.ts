@@ -3,9 +3,9 @@ import { chmodSync, existsSync, readdirSync, mkdirSync, readFileSync, realpathSy
 import { join } from "node:path";
 import { add, dependsOn, FROM_CONVERSATION, move, parse, type Item } from "../plugin/engine/backlog";
 import { ensureWorktree, isLanded } from "../plugin/engine/worktree";
-import { newer, replaceOlder, VERSION, who } from "../plugin/engine/upgrade";
+import { newer, ownDashboards, replaceOlder, VERSION, who } from "../plugin/engine/upgrade";
 import { filesOf, formatPlan, order, plan as integrationPlan, trial, waiting as waitingTasks } from "../plugin/engine/integrate";
-import { authorityMatrix, checkAuthority, checkConversations, checkGrants, checkLimits, checkRoleFile, checkSkillFile, commandsNamed, KNOWN_GAPS, PERSON_ONLY } from "../plugin/engine/authority";
+import { authorityMatrix, checkAuthority, checkConversations, checkGrants, checkLimits, checkProjectSettings, checkRoleFile, checkSkillFile, commandsNamed, DENY_FLOOR, floorDenies, KNOWN_GAPS, PERSON_ONLY } from "../plugin/engine/authority";
 import { ALLOW as CHAT_ALLOW, MANAGER_ALLOW, GUIDE_ALLOW } from "../plugin/engine/chat";
 import { ALLOW as TASK_ALLOW } from "../plugin/engine/claude";
 import { agentEvents, claudeArgs, classify } from "../plugin/engine/claude";
@@ -1516,7 +1516,7 @@ test("conversations in the GUI: the topic, the model and the session are checked
   const args = chatArgs({ topic: "brainstorm", message: "hello" }, team);
   expect(args.slice(0, 4)).toEqual(["claude", "-p", "hello", "--model"]);
   expect(args[args.indexOf("--append-system-prompt") + 1]).toContain("Approval before anything is saved");
-  const allowed = args.slice(args.indexOf("--allowedTools") + 1, args.indexOf("--setting-sources"));
+  const allowed = args.slice(args.indexOf("--allowedTools") + 1, args.indexOf("--disallowedTools")); // what is allowed, not what is denied after it
   expect(allowed).toContain("Write(docs/**)");
   expect(allowed.some((a) => /^(Write|Edit)\(src|^Bash\(\*|^Bash$|release|deploy/.test(a))).toBe(false);
   expect(args).toContain("dontAsk");
@@ -1677,7 +1677,7 @@ test("version control over HTTP and in conversation: status is readable, actions
     server.stop(true);
   }
   const args = chatArgs({ topic: "git", message: "x" }, resolveTeam());
-  const allowed = args.slice(args.indexOf("--allowedTools") + 1, args.indexOf("--setting-sources"));
+  const allowed = args.slice(args.indexOf("--allowedTools") + 1, args.indexOf("--disallowedTools")); // what is allowed, not what is denied after it
   expect(allowed).toContain("Bash(factory vcs)");
   expect(allowed.some((a) => /push|merge|gh |auto-merge/.test(a))).toBe(false);
   expect(args[args.indexOf("--append-system-prompt") + 1]).toContain("PROPOSE: push");
@@ -1937,7 +1937,7 @@ test("suggested replies: the lines are split off the reply, capped at three, and
 test("the Guide: read-only permissions, its own prompt, and a topic of its own that the page can list", async () => {
   const team = resolveTeam();
   const argv = chatArgs({ topic: "guide", message: "why did it fail?" }, team);
-  const allowed = argv.slice(argv.indexOf("--allowedTools") + 1);
+  const allowed = argv.slice(argv.indexOf("--allowedTools") + 1, argv.indexOf("--disallowedTools"));
   expect(allowed.some((a) => a.startsWith("Write") || a.startsWith("Edit"))).toBe(false);
   expect(allowed.every((a) => !a.startsWith("Bash") || /^Bash\((factory (doctor|status|vcs)|git (status|log|diff))/.test(a))).toBe(true);
   expect(argv.indexOf("--add-dir")).toBeLessThan(argv.indexOf("--allowedTools")); // the list of tools is open-ended, so other flags come first
@@ -2167,7 +2167,7 @@ test("manager: proposals are parsed by kind, ASK lines only name roles that can 
   const system = args[args.indexOf("--append-system-prompt") + 1]!;
   expect(system).toContain("`ASK <topic>:");
   expect(system).toContain("- `design`: Architect");
-  const allowed = args.slice(args.indexOf("--allowedTools") + 1, args.indexOf("--setting-sources")).join(" ");
+  const allowed = args.slice(args.indexOf("--allowedTools") + 1, args.indexOf("--disallowedTools")).join(" ");
   expect(allowed).not.toMatch(/Write|Edit/); // the manager changes no files
   expect(allowed).toContain("Bash(factory status:*)");
   expect(Object.keys(TOPICS)[0]).toBe("manager");
@@ -4168,6 +4168,15 @@ test("updating: a dashboard says which version it is, and one of this project's 
 
     const stranger = freePort(); // nothing of ours answers
     expect(await replaceOlder(stranger, root, "1.2.0")).toEqual({ state: "none" });
+
+    // A project can have dashboards on several ports (an earlier session chose its own): they are all found, and nothing else is.
+    const one = await start({ root, version: "1.1.0" }), two = await start({ root, version: "1.2.0" }), foreign = await start({ root: "/another/project", version: "1.0.0" });
+    const lo = Math.min(one.port, two.port, foreign.port), hi = Math.max(one.port, two.port, foreign.port);
+    const mine = (await ownDashboards(root, lo, hi)).sort((a, b) => a.port - b.port);
+    expect(mine.map((m) => m.version).sort()).toEqual(["1.1.0", "1.2.0"]);
+    expect(mine.map((m) => m.port).sort()).toEqual([one.port, two.port].sort());
+    expect(await ownDashboards("/nobody", lo, hi)).toEqual([]);
+    one.proc.kill(); two.proc.kill(); foreign.proc.kill();
   } finally { /* the fakes that are still running are killed above; the rest exited */ }
 }, 60_000);
 
@@ -4569,3 +4578,66 @@ for (const [name, old] of Object.entries(OLD_CONFIGS)) {
     } finally { server.stop(true); }
   }, 120_000);
 }
+
+// ======================================================================================================================================
+// The floor: what no session the factory starts may do, whatever a settings file allows. The project's own .claude/settings.json is read by
+// every factory session, so a person who allows `Bash(git *)` for one conversation's sake would otherwise let every agent commit, merge and reset.
+// (Checked against the real Claude Code: a deny rule beats an allow rule from the project's settings, in dontAsk mode.)
+// ======================================================================================================================================
+
+test("floor: every command only a person may do is denied to every session, and nothing the factory itself allows is", () => {
+  for (const c of ["git push origin main", "git push", "git commit -m x", "git reset --hard", "git checkout main", "git checkout -- .", "git switch dev", "git merge main", "git rebase main", "git cherry-pick abc", "git revert abc", "git stash", "git clean -fd", "git restore .", "git tag v1", "git branch -D x", "git worktree remove x", "git config user.name x", "git update-ref -d x", "git pull", "git am x.patch", "git apply x.patch", "git remote add o x",
+    "gh pr create", "gh pr merge 7", "gh release create v1", "gh api repos/o/r", "gh", "factory approve F-001", "factory push F-001", "factory merge F-001", "factory discard F-001", "factory revert F-001", "factory reject F-001", "factory deploy", "factory sync", "factory release tag", "factory update F-001", "factory run F-001", "factory promote F-001"]) expect({ c, denied: floorDenies(c) }).toEqual({ c, denied: true });
+  // What the factory's own lists allow is never denied by the floor: it would be a rule that contradicts another.
+  for (const [who, list] of Object.entries({ task: TASK_ALLOW, conversation: CHAT_ALLOW, manager: MANAGER_ALLOW, guide: GUIDE_ALLOW })) {
+    for (const e of list) if (e.startsWith("Bash(")) { const command = e.slice(5, -1).replace(/:\*$/, ""); expect({ who, command, denied: floorDenies(command) }).toEqual({ who, command, denied: false }); }
+  }
+  for (const c of ["git status", "git diff HEAD", "git log --oneline", "factory status", "factory vcs", "factory integrate", "factory add \"x\"", "factory docs save", "factory gate", "factory scan", "factory manager report", "factory team", "bun test", "npm run lint"]) expect({ c, denied: floorDenies(c) }).toEqual({ c, denied: false });
+  expect(new Set(DENY_FLOOR).size).toBe(DENY_FLOOR.length); // no entry twice
+  for (const e of DENY_FLOOR) expect(e).toMatch(/^Bash\([a-z]+( [a-z-]+)*:\*\)$/);
+});
+
+test("floor: it is passed to every task stage and every conversation, after what they are allowed", () => {
+  const argsOf = (argv: string[]) => { const i = argv.indexOf("--disallowedTools"); expect(i).toBeGreaterThan(argv.indexOf("--allowedTools")); return argv.slice(i + 1, i + 1 + DENY_FLOOR.length); };
+  for (const stage of ["spec", "build", "review", "security", "document"]) {
+    const argv = claudeArgs({ role: "builder", model: "sonnet", effort: "low", stage, prompt: "x", cwd: "/x" } as never, ["bun test"]);
+    expect(argsOf(argv)).toEqual(DENY_FLOOR);
+  }
+  const team = resolveTeam({});
+  for (const topic of Object.keys(TOPICS)) {
+    if (topic !== "guide" && !askable(team).some((a) => a.key === topic) && topic !== "manager") continue;
+    expect(argsOf(chatArgs({ topic, message: "hi" }, team))).toEqual(DENY_FLOOR);
+  }
+});
+
+test("floor: a project that allows git and gh for every session is told what that opens, and nothing is refused", () => {
+  const { dir } = repo();
+  const put = (settings: unknown) => { mkdirSync(join(dir, ".claude"), { recursive: true }); writeFileSync(join(dir, ".claude/settings.json"), JSON.stringify(settings)); };
+  expect(checkProjectSettings(dir)).toEqual([]); // none
+  put({});
+  expect(checkProjectSettings(dir)).toEqual([]);
+  put({ permissions: { allow: ["Bash(git status:*)", "Read", "Bash(bun test:*)", "Write(docs/**)"] } });
+  expect(checkProjectSettings(dir)).toEqual([]); // ordinary, narrow allows
+  put({ permissions: { allow: ["Bash(git *)", "Bash(gh *)"] } });
+  const wide = checkProjectSettings(dir);
+  expect(wide.map((v) => v.rule)).toEqual(["P1", "P1"]);
+  expect(wide[0]!.text).toContain('the project settings allow "Bash(git *)" for every session, agents and conversations alike');
+  expect(wide[0]!.text).toContain("The factory still denies git push, commit, reset, merge, checkout and every gh command to its own sessions");
+  expect(wide[0]!.text).toContain("Prefer the factory's own commands (factory integrate, factory update)");
+  put({ permissions: { allow: ["Bash", "Bash(*)", "Edit", "Write(src/**)", "Bash(git push:*)"], defaultMode: "bypassPermissions" } });
+  const worse = checkProjectSettings(dir).map((v) => v.text);
+  expect(worse.some((t) => t.includes('"Bash"') && t.includes("git"))).toBe(true);
+  expect(worse.some((t) => t.includes('allow "Edit"') && t.includes("could edit files"))).toBe(true);
+  expect(worse.some((t) => t.includes('allow "Write(src/**)"'))).toBe(true);
+  expect(worse.some((t) => t.includes("permission mode to bypassPermissions"))).toBe(true);
+  writeFileSync(join(dir, ".claude/settings.json"), "{ not json");
+  expect(checkProjectSettings(dir)).toEqual([]); // a file that does not parse is Claude Code's to report
+  put({ permissions: { allow: [5, null, "Bash(git *)"] } });
+  expect(checkProjectSettings(dir)).toHaveLength(1);
+  // It is shown, never refused: the person's own file, and the floor holds either way.
+  put({ permissions: { allow: ["Bash(git *)", "Bash(gh *)"] } });
+  const a = checkAuthority(dir);
+  expect(a.errors).toEqual([]);
+  expect(a.warnings.filter((w) => w.rule === "P1")).toHaveLength(2);
+  expect(doctor(dir).lines.some((l) => l.startsWith("–") && l.includes('allow "Bash(git *)"'))).toBe(true);
+});

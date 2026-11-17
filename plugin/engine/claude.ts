@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { track, type Job, type Runner, type RunnerResult } from "./pipeline";
+import { DENY_FLOOR } from "./authority";
 import { roleSkills } from "./skills";
 
 const TIMEOUT_MS = 30 * 60_000;
@@ -26,6 +27,8 @@ export function claudeArgs(job: Job, gate: string[], skills: string[] = []): str
     // inside the project and the allow list below, and denies everything else.
     "--permission-mode", job.stage === "build" ? "acceptEdits" : "dontAsk",
     "--allowedTools", ...ALLOW, ...gate.map((cmd) => `Bash(${cmd}:*)`), ...skills.map((s) => `Skill(${s})`),
+    // Whatever a settings file allows, these are denied (see authority.ts): a deny beats an allow.
+    "--disallowedTools", ...DENY_FLOOR,
     // Project settings only. User-level plugins and hooks inject text into agent output
     // (which breaks the reviewer's first-line verdict) and cost about six times the startup tokens.
     "--setting-sources", "project",

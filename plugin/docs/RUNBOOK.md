@@ -318,6 +318,14 @@ update never locks you out; installing or attaching one is refused.
 
 The factory uses git and GitHub by default. The rules are fixed on purpose:
 
+**Several tasks waiting, and the order to merge them.** Approving keeps a task on its own branch, so finished tasks pile up
+on branches built from the same `main`, and merging one can make the others clash. The Pull requests tile shows **Order to
+merge** (and `factory integrate` prints it): what is waiting, which tasks clash with `main` or with each other, and the
+order, with dependencies first and independent tasks together. A pull request that says "conflicts" has an **Update this
+branch** button: the Builder resolves the clash in the task's own folder (a clean merge needs no new yes), then **Push**
+sends the update to the pull request. On autopilot Tess does the update herself while it is cheap, and starts no new work
+while three approved tasks are not merged (`factory manager set unmerged N`). Merging stays yours.
+
 - Work always lands through a **pull request that you merge** into `main`. Auto-merge exists and is **off**.
 - A push needs your explicit yes: the **Push** button, or approving it in the Release engineer's chat.
 

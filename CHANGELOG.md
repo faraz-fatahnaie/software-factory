@@ -3,7 +3,40 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
-## Unreleased
+## 1.2.1
+
+A fix release. **Update, then run `/software-factory:open`: it now stops this project's older dashboard (on any
+port) and starts this one, and the left rail shows the version it runs.** Update the plugin once, restart any Claude
+session that was started before the update, and nothing else is needed in your project.
+
+- **Fix: Push on approval, Auto-merge and the manager's settings failed on a project made before the Technical Manager
+  existed** ("Invalid factory.config.json: roles.technical-manager: missing"). Everything that reads or changes the
+  configuration now gives an older config the roles it lacks, and the tests run every such action against configs shaped
+  like each earlier release.
+- **Merge order and conflicts have an owner.** Approving a task with a GitHub `origin` keeps its branch, so finished tasks
+  pile up on branches built from the same main, and merging one made the others clash. Now (the Release Engineer's new
+  G3, with git alone and no model):
+  - `factory integrate` (and the Pull requests tile) lists what is waiting to reach main, which tasks clash with main or
+    with each other, and the order to merge them in: dependencies first, independent tasks together, the smallest
+    clashing change first, and which tasks to update after each step.
+  - `factory update <F-id>` now also works on an **approved** task waiting on GitHub: a clean merge needs no new yes; a
+    clash goes to the Builder in the task's own folder and comes back for your yes. A pull request that says "conflicts"
+    has an **Update this branch** button (and Tess can propose it), and **factory push** sends the update to the open pull
+    request.
+  - On autopilot, a finished task that clashes with main is updated once for each state of main, while that is cheap.
+  - **No new work while three approved tasks are not merged yet** (a setting: `factory manager set unmerged N`, 1 to 10),
+    so branches stop piling up.
+- **What agents may never do, whatever a settings file allows.** A deny floor is passed to every session the factory
+  starts: no `git push`, `commit`, `reset`, `checkout`, `merge`, `rebase` and the other git commands that change things,
+  no `gh`, and none of the commands only you may run. A deny beats an allow, including one in your project's own
+  `.claude/settings.json`, which factory sessions read. So allowing `Bash(git *)` and `Bash(gh *)` for the Release
+  Engineer's sake no longer lets every agent change history; `factory authority`, `doctor` and the Health strip also say
+  when the project settings allow more than the factory's rules assume, and point to `factory integrate` and
+  `factory update`, which let the Builder resolve a clash.
+- **Updating replaces an older dashboard.** `/software-factory:open` finds this project's dashboards on any port, stops
+  one that runs an older version, and the rail shows which version a dashboard runs.
+
+## Also new since 1.2.0
 
 - **Fix: a task that waited for another to land is built on it.** A task that had built nothing yet kept the old main it was
   first branched from, so running it again after the task it needed had landed failed the same way. It is now brought up to

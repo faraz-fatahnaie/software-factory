@@ -200,7 +200,14 @@ async function main([cmd, ...args]: string[]) {
     const { serve } = await import("./server");
     // One dashboard per project: each project prefers its own port (4400-4499, from its path) and moves on if another project holds it.
     repairRoleFiles();
-    const { replaceOlder, VERSION } = await import("./upgrade");
+    const { replaceOlder, ownDashboards, VERSION } = await import("./upgrade");
+    // This project may already have a dashboard on any port (an earlier session chose its own): an older one is stopped, and a current one is the one to use, not a second.
+    for (const d of await ownDashboards(root)) {
+      const r = await replaceOlder(d.port, root);
+      if (r.state === "current") return console.log(`this project's control plane is already running: http://127.0.0.1:${d.port}${r.version ? ` (version ${r.version})` : ""}`);
+      if (r.state === "replaced") console.log(`stopped this project's dashboard on port ${d.port}, which was running ${r.was ? `version ${r.was}` : "an older version"}, to start version ${VERSION}`);
+      if (r.state === "failed") console.log(`this project's dashboard on port ${d.port} runs ${r.was ? `version ${r.was}` : "an older version"} and could not be stopped: stop it (${r.pids.length ? `kill ${r.pids.join(" ")}` : `find it with: lsof -nP -iTCP:${d.port} -sTCP:LISTEN`}), then open again`);
+    }
     const auto = args[0] === undefined, start = Number(Bun.hash(root) % 100n);
     for (let i = 0; i < (auto ? 100 : 1); i++) {
       const port = auto ? 4400 + ((start + i) % 100) : Number(args[0]);
