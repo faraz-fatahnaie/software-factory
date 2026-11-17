@@ -80,6 +80,15 @@ export function removeWorktree(root: string, id: string, keepBranch = false) {
 export const APPROVED = "approved; not pushed yet";
 
 /**
+ * Whether a finished task's work is in the project's main line, so that a task built from it now can see it. With an `origin`, approving keeps the branch
+ * and a person pushes and merges it later: until then the work exists only on its own branch. No branch left means it was merged and tidied away.
+ */
+export function isLanded(root: string, id: string): boolean {
+  if (Bun.spawnSync(["git", "rev-parse", "--verify", "--quiet", `refs/heads/${branchOf(id)}`], { cwd: root }).exitCode !== 0) return true;
+  return Bun.spawnSync(["git", "merge-base", "--is-ancestor", branchOf(id), "HEAD"], { cwd: root }).exitCode === 0;
+}
+
+/**
  * Lands an approved task. With an `origin` nothing leaves this machine: the branch is kept and a person pushes it (`factory push`),
  * which opens a pull request they merge. Without one, it merges locally.
  */

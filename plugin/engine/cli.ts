@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { add, FROM_CONVERSATION, move, parse, type Item, type Section } from "./backlog";
+import { add, dependsOn, FROM_CONVERSATION, move, parse, type Item, type Section } from "./backlog";
 import { claudeRunner } from "./claude";
 import { loadConfig, managerOf, parseConfig, projectTeam } from "./config";
 import { openStore } from "./events";
@@ -16,7 +16,7 @@ import { runTask, shellGate, stopAll, stubRunner, type Resume, type Runner } fro
 import { addSkill, searchSkills, setSkill } from "./skills";
 import { armAutoMerge, ciWorkflow, failingChecksItem, formatStatus, hasChecks, listPrs, mergeTask, pushTask, revertTask, runTexts, syncGithub, vcsStatus, BATCH, pushBatch } from "./vcs";
 import { baseBranch } from "./vcs";
-import { abortUpdate, APPROVED, behindBy, commitAll, ensureWorktree, land, mergeBase, removeWorktree, unresolved, worktreeOf } from "./worktree";
+import { abortUpdate, APPROVED, behindBy, commitAll, ensureWorktree, land, mergeBase, removeWorktree, unresolved, worktreeOf, isLanded } from "./worktree";
 
 const root = process.cwd();
 const backlogPath = join(root, "BACKLOG.md");
@@ -147,7 +147,7 @@ async function runItems(config: ReturnType<typeof loadConfig>, runner: Runner, c
     // An update that could not be finished puts the branch back as it was: nothing is lost.
     if (error && resume?.update) try { abortUpdate(worktreeOf(root, item.id)); } catch { /* already restored */ }
     const to: Section = error ? "Blocked" : "Awaiting approval";
-    editBacklog(`${item.id} → ${to}`, (t) => followUps.reduce((text, f) => add(text, f).text, move(t, item.id, to)));
+    editBacklog(`${item.id} → ${to}`, (t) => followUps.reduce((text, f) => add(text, f, "Inbox", { detail: `Depends on: ${item.id}\nFound while building ${item.id}.` }).text, move(t, item.id, to)));
     console.log(error
       ? `${item.id} → Blocked: ${error} (run ${run})`
       : `${item.id} → Awaiting approval (run ${run}). Review: git diff HEAD...factory/${item.id}  then: factory approve ${item.id} | factory reject ${item.id} --feedback "..." | factory discard ${item.id}`);
@@ -548,13 +548,21 @@ async function main([cmd, ...args]: string[]) {
     const p = args.indexOf("--parallel");
     const count = p < 0 ? 1 : Number(args[p + 1]);
     // A mistyped id must not silently fall through to "run the top Ready item".
-    const unknown = args.filter((a, i) => !/^F-\d+$/.test(a) && a !== "--stub" && a !== "--parallel" && (p < 0 || i !== p + 1));
+    const unknown = args.filter((a, i) => !/^F-\d+$/.test(a) && a !== "--stub" && a !== "--anyway" && a !== "--parallel" && (p < 0 || i !== p + 1));
     if (unknown.length) throw new Error(`unknown argument: ${unknown.join(" ")}`);
     if (!Number.isInteger(count) || count < 1 || count > 8) throw new Error("--parallel takes a number from 1 to 8");
+    // A task that needs another task's work is not built before that work is in main: it would be built without it, and fail the same way every time.
+    const waiting = (i: Item) => dependsOn(i).flatMap((id) => {
+      const dep = readItems().find((x) => x.id === id);
+      if (!dep) return [];
+      return dep.section !== "Done" ? [`${id} (still ${dep.section})`] : isLanded(root, id) ? [] : [`${id} (approved, but not merged into main yet)`];
+    });
+    const anyway = args.includes("--anyway");
     const chosen = ids.length
       ? ids.map((id) => find(id, "Inbox", "Ready", "Blocked"))
-      : readItems().filter((i) => i.section === "Ready").slice(0, count);
-    if (!chosen.length) throw new Error("nothing under Ready");
+      : readItems().filter((i) => i.section === "Ready" && (anyway || !waiting(i).length)).slice(0, count);
+    if (!chosen.length) throw new Error(readItems().some((i) => i.section === "Ready") ? "every item under Ready is waiting for another task to land first (see `factory status`), or run one with --anyway" : "nothing under Ready");
+    if (!anyway) for (const i of chosen) if (waiting(i).length) throw new Error(`${i.id} needs ${waiting(i).join(", ")} first. Land it (push and merge it, or \`factory sync\`), or build ${i.id} without it with --anyway`);
 
     return runItems(config, runner, chosen);
   }

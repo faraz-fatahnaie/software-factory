@@ -4,6 +4,13 @@ The factory's intake queue. `factory run` takes the top item under Ready.
 Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
+- [ ] F-090 (P2) Per-stage budget with --max-budget-usd, so one stage cannot overspend between the supervisor's checks
+- [ ] F-091 (P2) A visible Pause button for autopilot on every screen, and a desktop notification when she pauses or escalates
+- [ ] F-092 (P2) Person-intent proof: autopilot carries out a proposal only for ids the person named or just had added
+- [ ] F-093 (P2) Build M7 (settle a deadlock between roles after two rounds), M6 (split or re-scope a task) and M1 (Inbox duplicates)
+- [ ] F-094 (P3) Stack a task on its dependency's branch instead of waiting for it to be merged
+- [ ] F-095 (P3) A per-hour spending limit as a setting (today it is derived: about 40% of the day's limit)
+- [ ] F-096 (P3) Follow-ups that duplicate an existing item (F-054 and F-056 were the same) are skipped
 - [ ] F-088 (P3) Skills grid in Studio
   One table with the skills down the side and the roles across, a tick per cell, instead of attaching and detaching per role.
 - [ ] F-089 (P2) Attach skills to roles that only talk

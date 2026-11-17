@@ -5,6 +5,21 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **Fix: loops that spent money are stopped.** A task that could not be built because another task's code was not merged
+  yet used to go round and round: the Builder changed nothing, the Reviewer asked for changes, autopilot sent guidance
+  and started again. Now:
+  - **A stage can say `BLOCKED: <reason>`** (the Architect, the Builder, security or the Reviewer) when something
+    outside the task is missing. The run stops there, is never retried, and the manager tells you the reason.
+  - **Two attempts in a row that change nothing end the run**, so the third build is not paid for. The manager tries
+    guidance once, and if she has nothing a Builder could act on, it is yours.
+  - **Guidance goes out once** per task, and is made from the log (the spec, the Builder's summary, the reviewer's
+    findings), so it is never an apology like "I couldn't read the files".
+  - **`Depends on:` is now read.** A task waits until the tasks it needs are merged into main (with a GitHub `origin`,
+    approved is not enough); follow-ups depend on the task they were found in. `factory run --anyway` is the way past it.
+  - **Autopilot pauses itself** (switches to assist and says why) after two failed runs in a row, when you stop a task,
+    when money is spent faster than the day's limit allows, or after four automatic recoveries in an hour. A run that
+    reaches the limit for one task is stopped while it runs, not after. What a conversation costs now counts toward
+    the day's limit.
 - **Fix: adding to the Inbox no longer builds anything.** Autopilot used to move every item added in conversation to Ready and build it, so asking Tess to "add these to the Inbox" started builds (and spent money) you had not asked for. Now an item only added to the Inbox stays there; autopilot starts what is under Ready, which is what you promote or tell her to build. Tess also knows this now, can say why something started (`factory manager report` lists her latest decisions), and no longer says she does not know why the factory ran something.
 - **Approve from the manager's chat.** After she reviews a task you can ask her to approve it: her reply ends with an **Approve and land** button, and only your press approves, even on autopilot. Before, she could only tell you to run a slash command. She still never approves, pushes, merges or deploys on her own.
 - **Fix: the manager no longer says she cannot do what she just did.** On autopilot she was still told her proposals show as buttons, so after moving a task to Ready and starting it she could tell you to "press the button" and that she "can't move it myself". She is now told how her proposals are handled (autopilot: promote, run and retry happen at once, in the present tense; assist: buttons), and to check where a task is with `factory status` before proposing. A second proposal for a task that has already moved is no longer shown as Failed: it says where the task is.

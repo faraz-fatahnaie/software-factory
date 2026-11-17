@@ -41,6 +41,7 @@
 <a class="l2" href="#7-github-checks-and-undoing">7. GitHub, checks and undoing</a>
 <a class="l2" href="#8-release-and-deploy">8. Release and deploy</a>
 <a class="l2" href="#autopilot">Autopilot</a>
+<a class="l3" href="#when-autopilot-stops-itself">When autopilot stops itself</a>
 <a class="l2" href="#updating-the-plugin">Updating the plugin</a>
 <a class="l2" href="#9-cheat-sheet">9. Cheat sheet</a>
   </nav></aside>
@@ -268,14 +269,17 @@ Builder. That is the next chapter.</p>
 </table>
 <h3 id="it-stops-and-needs-you">It stops and needs you</h3>
 <p>The card moves to the red strip at the top of the board: <strong>Blocked</strong>. On autopilot Tess has already looked: a
-rate limit or a passing error she tries again herself, and after three builds that did not pass she sends Kofi
-guidance and starts a new round. What is left is yours. Open it (<em>Look into it</em>) and the Summary says what
+rate limit or a passing error she tries again herself, and after builds that did not pass (or two attempts in a row
+that changed nothing) she sends Kofi guidance once. What is left is yours. She never goes round again and again:
+see <em>When autopilot stops itself</em> below. Open it (<em>Look into it</em>) and the Summary says what
 failed, with the output, and under <em>The manager</em> what Tess decided and why, in plain words. Then:</p>
 <table tabindex="0">
 <thead>
 <tr><th>Why it is blocked</th><th>What it means</th><th>What to do</th></tr>
 </thead>
 <tbody>
+<tr><td><strong>Blocked from outside</strong> (&quot;It cannot go on until something outside it changes: …&quot;)</td><td>The Architect, Kofi, Zane or Sade said <code>BLOCKED:</code> because something outside the task is missing, most often another task's code that is not merged into main yet, or a decision only you can make. Nothing was retried, because no change by Kofi can fix it</td><td>Do what the reason says (merge the other task, decide), then <strong>Retry</strong></td></tr>
+<tr><td><strong>Stuck</strong> (&quot;Another attempt would end the same way&quot;)</td><td>Two attempts in a row changed nothing</td><td>Open <strong>Activity</strong> and <strong>Review</strong>: usually the spec asks for something that cannot be done. <strong>Send guidance</strong>, or discard and split the item</td></tr>
 <tr><td><strong>No approved build after 3 attempts</strong></td><td>Kofi and the checks or Sade could not agree</td><td>Open <strong>Activity</strong>: read the last findings. Often the spec was too big. Press <strong>Send guidance</strong> and say what Kofi should do differently, or discard and split the item, or edit the item's description, then <strong>Retry</strong>.</td></tr>
 <tr><td><strong>Not ready</strong></td><td>Triage found the idea too large for one task, or could not say how to check it. Nothing was built</td><td>Split it, or add an <code>Acceptance:</code> line that says what done looks like, then <strong>Retry</strong>.</td></tr>
 <tr><td><strong>Every model in the chain is rate limited</strong></td><td>You have used your Claude allowance for now</td><td>Wait for the window to reset (the Overview meter shows when), then <strong>Retry</strong>. Or give the role a longer fallback chain in Agents.</td></tr>
@@ -387,6 +391,21 @@ decision is in <strong>Logs</strong>.</p>
 audit, a release check) and looks back at what kept going wrong; anything she proposes lands in the Inbox for
 Dina to promote. <code>factory manager report</code> prints the facts she works from: milestones, what stopped tasks, and
 what each role ran, failed and cost.</p>
+<h3 id="when-autopilot-stops-itself">When autopilot stops itself</h3>
+<p>A task that needs another task's work (a <code>Depends on: F-005</code> line, which the Planner writes, and which a follow-up gets
+automatically from the task it was found in) waits in Ready until that work is <strong>merged into main</strong>, not only
+approved: with a GitHub <code>origin</code> an approved task stays on its own branch until you push and merge it. Tess says
+&quot;F-050 waits for F-005 (approved, but not merged into main yet)&quot;. <code>factory run F-050 --anyway</code> builds it without.</p>
+<p>Autopilot <strong>pauses itself</strong>, switches to assist (she only proposes) and says why, when:</p>
+<ul>
+<li>two runs in a row failed (a run you stopped does not count);</li>
+<li>you stopped a task, so the next one does not start behind your back;</li>
+<li>more money went out in the last hour than the day's limit allows (about 40% of it);</li>
+<li>she tried to recover tasks four times in the last hour;</li>
+</ul>
+<p>and a run that has spent the limit for one task is stopped while it runs. Switch autopilot on again from the Manager
+menu; the count starts afresh. Every one of these is in the decision log, and what a conversation costs now counts
+toward the day's limit.</p>
 <h2 id="updating-the-plugin">Updating the plugin</h2>
 <p>When a new version is released, Dina updates from a terminal (not inside the project's chat):</p>
 <ol>

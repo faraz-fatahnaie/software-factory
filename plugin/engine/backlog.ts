@@ -5,6 +5,9 @@ export type Section = (typeof SECTIONS)[number];
 export const FROM_CONVERSATION = "Added in conversation.";
 export type Item = { id: string; prio?: string; title: string; section: string; detail: string };
 
+/** The tasks an item says it needs first: a `Depends on: F-005, F-006` line, as the Planner writes it. Anything that is not an id (none, a name) is ignored. */
+export const dependsOn = (i: Pick<Item, "detail">): string[] => [...new Set([...(/^\s*Depends on:\s*(.+)$/im.exec(i.detail)?.[1] ?? "").matchAll(/\bF-\d+\b/g)].map((m) => m[0]))];
+
 const ITEM = /^- \[[ x]\] (F-\d+) (?:\((P\d)\) )?(.+)$/;
 
 export function parse(text: string): Item[] {

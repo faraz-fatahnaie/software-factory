@@ -31,6 +31,7 @@ const CAUSE: Record<Kind, string> = {
   builds: "three builds did not pass the checks or the review", rate_limit: "every model was rate limited", auth: "the Claude command line was not logged in",
   setup: "the project's setup or check command failed", clash: "it clashed with changes on main", unready: "triage found it not ready (too large, or no way to check it)",
   stalled: "it stopped giving any sign of life", stopped: "it was stopped on purpose", other: "another error",
+  blocked: "something outside the task had to change first", stuck: "another attempt would have changed nothing", budget: "it reached the limit for one task",
 };
 
 export type Health = {

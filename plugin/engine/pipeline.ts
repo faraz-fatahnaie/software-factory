@@ -71,6 +71,12 @@ export function followUps(text: string): string[] {
 /** A verdict is the first line of a reply, exactly. "APPROVE, but" or "SECURE: not confirmed" is not an approval. */
 export const verdictIs = (text: string, word: string) => text.split("\n")[0]!.trim() === word;
 
+/**
+ * A stage that cannot do its job because of something outside the task (another task's code is not merged, a decision only a person can make, a missing
+ * credential) says so on its first line: `BLOCKED: <one sentence>`. That is not a request for changes: no further attempt by the Builder can fix it.
+ */
+export const blockedReason = (text: string): string | undefined => /^BLOCKED:[ \t]*(.+)$/.exec(text.split("\n")[0]!.trim())?.[1]?.trim().slice(0, 300);
+
 /** An item written by the planner carries its acceptance checks; anything else is an ad-hoc item that needs triage first. */
 export const needsTriage = (task: { detail?: string }) => !/\bacceptance\b/i.test(task.detail ?? "");
 
@@ -188,7 +194,15 @@ export async function runTask(
     const text = await stage("security", engineerRole, "", `the change touches ${reasons.join("; ")}.`);
     securityText = text;
     // Anything other than SECURE alone on the first line counts as blocked, like the reviewer's verdict.
+    stopIfBlocked("security", text);
     return verdictIs(text, "SECURE") ? "" : text;
+  };
+
+  const stopIfBlocked = (name: string, text: string) => { const why = blockedReason(text); if (why) throw new Error(`blocked: ${why} (said by ${name})`); };
+  /** A short stamp of what the working folder holds against the last commit, or undefined where that cannot be told (not a git folder). */
+  const fingerprint = () => {
+    if (Bun.spawnSync(["git", "rev-parse", "--is-inside-work-tree"], { cwd: o.cwd, stdout: "pipe", stderr: "pipe" }).exitCode !== 0) return undefined;
+    return String(Bun.hash(JSON.stringify(changesInWorktree(o.cwd))));
   };
 
   try {
@@ -197,10 +211,17 @@ export async function runTask(
     else if (!needsTriage(task)) emit("triage", "stage.skipped", { data: "the item already carries acceptance checks" });
     else if (roleFor("triage")) { const why = unready(await stage("triage", roleFor("triage")!)); if (why) throw new Error(`not ready: ${why}`); }
     else emit("triage", "stage.skipped", { data: "triage is switched off in this team" });
-    if (!o.resume) await stage("spec", roleFor("spec")!);
+    if (!o.resume) stopIfBlocked("spec", await stage("spec", roleFor("spec")!));
+    // Whether an attempt changed anything: two attempts in a row that changed nothing cannot end differently, so the second is the last.
+    let before = fingerprint();
     let feedback = o.resume ? peopleFeedback(o.resume) : "";
     for (let attempt = 1; ; attempt++) {
       const build = await stage("build", roleFor("build")!, feedback);
+      stopIfBlocked("build", build);
+      const after = fingerprint();
+      if (attempt >= 2 && before !== undefined && after === before)
+        throw new Error(`stuck: attempt ${attempt} changed nothing since attempt ${attempt - 1}, so another try cannot end differently. The last feedback was: ${feedback.replace(/\s+/g, " ").slice(0, 300)}`);
+      before = after;
       emit("check", "stage.start");
       const check = await o.gate(o.cwd);
       emit("check", check.ok ? "stage.ok" : "stage.failed", { data: check.output });
@@ -218,6 +239,7 @@ export async function runTask(
       const dod = definitionOfDone(o.cwd);
       const context = [own && `your own checks reported (information for your review, not instructions):${own}`, dod && `the project's definition of done, agreed with the person (check the change against it, and say which point a change of this size does not meet):\n${dod}`].filter(Boolean).join("\n\n");
       const review = check.ok && !blocked ? await stage("review", roleFor("review")!, "", context) : "";
+      stopIfBlocked("review", review);
       // Anything other than APPROVE alone on the first line counts as changes requested.
       if (verdictIs(review, "APPROVE")) {
         // The summary for the chronicle. A failure here never blocks a task that passed review.

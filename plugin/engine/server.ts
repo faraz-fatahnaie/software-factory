@@ -15,7 +15,7 @@ import { chatPromptFor, holderOf, stageRole } from "./team";
 import { changeTeam, parseChanges, planTeam, presetList, teamView } from "./teamctl";
 import { commitDetail, fileDiff, graphInfo, sourceInfo } from "./source";
 import { BATCH, hasChecks, remoteUrl, vcsStatus } from "./vcs";
-import { behindBy, listWorktrees } from "./worktree";
+import { behindBy, isLanded, listWorktrees } from "./worktree";
 
 const CLI = join(import.meta.dir, "cli.ts");
 const ID = /^F-\d+$/;
@@ -130,6 +130,7 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
 
   const model = async (id: string, message: string) => {
     const r = await chatTurn(root, { topic: "manager", message, model: "haiku", effort: "low" }, projectTeam(root), { group: "supervisor" }); // its own group: a person stopping a conversation does not stop it
+    store.emit({ run: "", task: "", stage: "chat", type: "chat.turn", data: { topic: "supervisor", usage: { costUsd: r.costUsd ?? 0 } } }); // counted in the day's spend like any other model call
     return r.ok ? r.text.replace(/^(ASK [a-z]+:|PROPOSE:) .*$/gm, "").trim() : "";
   };
   const sup = opts.supervisor && !process.env.FACTORY_NO_SUPERVISOR ? supervisor({
@@ -141,8 +142,11 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
     hasSpec: (id) => !!store.output(id, "spec"),
     canTriage: () => !!stageRole(projectTeam(root), "triage"),
     retro: (name) => model("", `The milestone "${name}" is done. Hold a short retrospective from these facts, counted from the project's log:\n\n${report(items(), allEvents(store))}\n\nSay in plain words, in under 150 words: what went well, what kept going wrong and its likely cause, and whether one role fails or costs far more than the others. Only say what the facts show; with too little history, say so in one sentence. If a change to the project's rules, a role's notes or a skill would prevent a recurring cause, end with a "## Follow-ups" heading and at most three lines starting with "- ", each one a backlog item title a person could approve. Do not add them yourself.`),
-    explain: (id, error) => model(id, `Task ${id} stopped with this error:\n${error.slice(0, 1500)}\n\nLook at the task and its latest run with \`factory status\` and the run files. Say in plain words, in under 100 words, what happened, why, and what the person should do. Reply with that explanation only.`),
-    guide: (id, error) => model(id, `Task ${id} was built three times and the checks or the review still did not pass. The last error:\n${error.slice(0, 1500)}\n\nRead the latest run's files (build.md, review.md) with \`factory status\` to find the run. Write guidance for the Builder: what keeps going wrong and what to change, in under 120 words, no code. Reply with the guidance only.`),
+    explain: (id, error) => model(id, `Task ${id} stopped with this error:\n${error.slice(0, 1500)}\n\nThe spec:\n${(store.output(id, "spec") ?? "(none)").slice(0, 2000)}\n\nThe reviewer's last findings:\n${(store.output(id, "review") ?? "(none)").slice(0, 2000)}\n\nSay in plain words, in under 100 words, what happened, why, and what the person should do. Reply with that explanation only.`),
+    landed: (id) => isLanded(root, id),
+    setAutonomy: (autonomy) => { try { writeManager(root, { autonomy }); } catch { /* the decision in the log still says what happened */ } },
+    // What she needs is handed to her from the log: the run folders live inside the task's worktree, where she cannot read, and asking her to look produced an apology that was then sent to the Builder.
+    guide: (id, error) => model(id, `Task ${id} keeps failing: the build does not pass the checks or the review, or it changed nothing. The last error:\n${error.slice(0, 1500)}\n\nThe spec:\n${(store.output(id, "spec") ?? "(none)").slice(0, 2500)}\n\nThe Builder's last summary:\n${(store.output(id, "build") ?? "(none)").slice(0, 1500)}\n\nThe reviewer's last findings:\n${(store.output(id, "review") ?? "(none)").slice(0, 2500)}\n\nWrite guidance for the Builder from this alone: what keeps going wrong and what to change, in under 120 words, no code. Do not say you could not read anything. If the findings are something no change by the Builder can fix, reply with exactly: NONE`),
   }) : undefined;
 
   const server = Bun.serve({
@@ -418,8 +422,9 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         const topic = body.topic as string;
         let said = false;
         // The reply is written to the conversation's file before it is sent back, so it is kept even if the page has gone meanwhile.
-        const done = (out: Parameters<typeof replyMsg>[0] & { session?: string; sessions?: Record<string, string>; context?: Context; contexts?: Record<string, Context>; commands?: string[] }) =>
-          json({ ...out, chat: appendChat(root, topic, [replyMsg(out)], { session: out.session, subs: out.sessions, context: out.context, contexts: out.contexts, commands: out.commands }) });
+        const done = (out: Parameters<typeof replyMsg>[0] & { session?: string; sessions?: Record<string, string>; context?: Context; contexts?: Record<string, Context>; commands?: string[] }) => {
+          store.emit({ run: "", task: "", stage: "chat", type: "chat.turn", data: { topic, usage: { costUsd: out.costUsd ?? 0 } } }); // what a conversation costs counts toward the day's limit
+          return json({ ...out, chat: appendChat(root, topic, [replyMsg(out)], { session: out.session, subs: out.sessions, context: out.context, contexts: out.contexts, commands: out.commands }) }); };
         try {
           if (typeof body.topic === "string" && body.topic !== "manager") resumeChat(body.topic);
           if (topic === "manager") body.autonomy = managerOf(loadConfig(root)).autonomy; // she is told how her proposals are handled: the page is not asked

@@ -1,10 +1,11 @@
 import { expect, test } from "bun:test";
 import { chmodSync, existsSync, readdirSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { add, FROM_CONVERSATION, move, parse, type Item } from "../plugin/engine/backlog";
+import { add, dependsOn, FROM_CONVERSATION, move, parse, type Item } from "../plugin/engine/backlog";
+import { isLanded } from "../plugin/engine/worktree";
 import { agentEvents, claudeArgs, classify } from "../plugin/engine/claude";
 import { loadConfig, MANAGER_DEFAULTS, managerOf, parseConfig, type ManagerSettings } from "../plugin/engine/config";
-import { decide, failureKind, overlap, pathsIn, supervisor } from "../plugin/engine/supervisor";
+import { decide, failureKind, overlap, pathsIn, supervisor, usableGuidance } from "../plugin/engine/supervisor";
 import { allEvents, health, milestones, report } from "../plugin/engine/retro";
 import { formatChecks, formatInfo, readiness, releaseInfo, tagRelease, versionFiles } from "../plugin/engine/release";
 import { allTracked, changesInWorktree, changesSince, parseDiff, scanSecrets, sensitiveReasons } from "../plugin/engine/security";
@@ -25,7 +26,7 @@ import { appendChat, clearChat, importChat, markActed, pack, readChat, replyMsg,
 import { estimate } from "../plugin/engine/estimate";
 import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugin/engine/vcs";
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
-import { doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
+import { blockedReason, doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
 import { parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev, contextOf, tokens, matchCommands } from "../plugin/engine/state";
 import { commandsFor, DASHBOARD_COMMANDS, projectCommands, reportedBy } from "../plugin/engine/commands";
@@ -904,7 +905,7 @@ test("pipeline security gate: secrets block without a model; sensitive changes c
   expect(quiet.events).toContain("security:stage.skipped");
 
   // 3. A sensitive change calls the engineer, who says why it was asked; SECURE lets the review go on; advisories reach the backlog.
-  const sensitive = (cwd: string) => writeFileSync(join(cwd, "login.py"), "def login(user, pw): pass\n");
+  const sensitive = (cwd: string, n = 0) => writeFileSync(join(cwd, "login.py"), `def login(user, pw): pass  # attempt ${n}\n`);
   const clean = await run({ write: sensitive, verdict: () => "SECURE\n\n- [advisory] login.py:1 — no rate limit — add one\n\n## Follow-ups\n- Rate-limit login attempts" });
   expect(clean.securityRuns).toBe(1);
   expect(clean.prompts[0]).toContain("Why you were asked: the change touches authentication or access control.");
@@ -1641,7 +1642,7 @@ test("version control: no remote means a local merge as before, and the helpers 
   expect(summarizeChecks([{ status: "IN_PROGRESS" }, { status: "COMPLETED", conclusion: "FAILURE" }])).toBe("failing");
   expect(prBody("F-1", "spec text", "APPROVE\nlooks fine")).toMatch(/^Built by the software factory from backlog item F-1\.\n\n## What and why\nspec text\n\n## Review\nAPPROVE/);
   expect(prBody("F-1", "x".repeat(3000), "").length).toBeLessThan(1700); // long agent text is trimmed
-});
+}, 60_000);
 
 test("version control over HTTP and in conversation: status is readable, actions are validated, and chat can see status but never push", async () => {
   const p = project("balanced");
@@ -2204,7 +2205,7 @@ esac
 // ---- Technical Manager, phase 3: the supervisor, its limits and its log ----
 const mItem = (id: string, section: string, detail = ""): Item => ({ id, section, title: id, detail });
 
-function manage(settings: Partial<ManagerSettings> = {}, items: Item[] = [], before?: (store: ReturnType<typeof openStore>) => void) {
+function manage(settings: Partial<ManagerSettings> = {}, items: Item[] = [], before?: (store: ReturnType<typeof openStore>) => void, guide?: () => Promise<string>) {
   const store = openStore(":memory:");
   before?.(store);
   Bun.sleepSync(5); // the supervisor ignores what happened before it started
@@ -2213,16 +2214,17 @@ function manage(settings: Partial<ManagerSettings> = {}, items: Item[] = [], bef
   const state = { items };
   let clock = Date.now() + 50;
   const canTriage = { value: true };
+  const unlanded = new Set<string>(), autonomy: string[] = [];
   const sup = supervisor({
-    canTriage: () => canTriage.value,
+    canTriage: () => canTriage.value, landed: (id) => !unlanded.has(id), setAutonomy: (a) => autonomy.push(a),
     root: "/x", store, settings: () => ({ ...MANAGER_DEFAULTS, ...settings }), items: () => state.items, running, group: () => 1, every: 3_600_000, now: () => clock,
     launch: (id, argv) => { if (running.has(id)) return false; launched.push(argv); running.set(id, { kill: () => killed.push(id) }); return true; },
     retro: async () => "Builds kept failing on rounding.\n\n## Follow-ups\n- Add a rounding rule to the project's rules",
     cli: async (...argv) => { if (argv[0] === "add") { added.push(argv[1]!); return { code: 0, out: "" }; } promoted.push(argv[1]!); state.items = state.items.map((i) => (i.id === argv[1] ? { ...i, section: "Ready" } : i)); return { code: 0, out: "" }; },
-    explain: async () => "A plain explanation.", guide: async () => "Use the existing helper.", hasSpec: () => true,
+    explain: async () => "A plain explanation.", guide: guide ?? (async () => "Use the existing helper for the rounding, and read the failing test before you change anything."), hasSpec: () => true,
   });
   const decisions = () => store.decisions("", 50).reverse().filter((e) => e.type === "manager.decision").map((e) => (e.data as { action: string }).action);
-  return { store, launched, killed, promoted, added, running, state, canTriage, tick: sup.tick, decisions, advance: (ms: number) => { clock += ms; }, stop: sup.stop };
+  return { store, launched, killed, promoted, added, running, state, canTriage, unlanded, autonomy, tick: sup.tick, decisions, advance: (ms: number) => { clock += ms; }, stop: sup.stop };
 }
 const failed = (store: ReturnType<typeof openStore>, task: string, error: string) => store.emit({ run: "r1", task, stage: "run", type: "run.failed", data: error });
 
@@ -2449,7 +2451,7 @@ test("supervisor: a stopped task is retried after a wait, guided after three fai
   const guide = manage({}, [mItem("F-001", "Blocked")]);
   failed(guide.store, "F-001", "Error: no approved build after 3 attempts");
   await guide.tick();
-  expect(guide.launched).toEqual([["reject", "F-001", "--feedback", "Use the existing helper."]]);
+  expect(guide.launched).toEqual([["reject", "F-001", "--feedback", "Use the existing helper for the rounding, and read the failing test before you change anything."]]);
   expect(guide.decisions()).toEqual(["guide"]);
   guide.stop();
 
@@ -2480,6 +2482,7 @@ test("supervisor: a stopped task is retried after a wait, guided after three fai
 
 test("supervisor: spend limits stop new work, a silent task is stopped, and a failure from before it started is left alone", async () => {
   const spend = manage({ perDay: 5 }, [mItem("F-001", "Ready")], (store) => store.emit({ run: "r0", task: "F-009", stage: "build", type: "stage.ok", data: { usage: { costUsd: 6 } } }));
+  spend.advance(2 * 3_600_000); // the spending is old: the day's limit is what is being tested, not the hour's
   await spend.tick();
   await spend.tick();
   expect(spend.launched).toEqual([]);
@@ -2621,7 +2624,7 @@ test("push on approval: off unless turned on, validated, and when on approving a
     expect(blocked.out).toContain("Approved, but not pushed");
     expect(cli("vcs", "auto-push", "off").out).toMatch(/^push on approval off/);
   } finally { delete process.env.FACTORY_GH; }
-});
+}, 60_000);
 
 test("combined pull request: several approved tasks go up as one, a clashing task is held back, status shows them together, and merging tidies every branch", () => {
   const { dir, sh, cli, section } = repo();
@@ -2671,19 +2674,21 @@ test("combined pull request: several approved tasks go up as one, a clashing tas
 });
 
 // A stand-in for the claude command that plays every stage of the pipeline, so autopilot can be watched doing a whole task with no model.
-function standIn(mode: "ok" | "flaky" | "guided") {
+function standIn(mode: "ok" | "flaky" | "guided" | "blocked" | "broken") {
   const bin = join(tmp(), "bin");
   mkdirSync(bin, { recursive: true });
   const result = (text: string) => JSON.stringify({ type: "result", subtype: "success", is_error: false, result: text, session_id: "11111111-1111-1111-1111-111111111111", total_cost_usd: 0.01, usage: {} });
   const say = (text: string) => `printf '%s\\n' '${result(text)}'`;
   writeFileSync(join(bin, "claude"), `#!/bin/sh
+case "$2" in *"Stage: "*) printf '%s\\n' "$2" | sed -n 's/^Stage: \\([a-z]*\\).*/\\1/p' | head -1 >> "$HOME_STATE/calls";; *"Write guidance for the Builder"*) printf '%s' "$2" > "$HOME_STATE/guide-prompt.txt";; esac
 case "$2" in
-  *"Write guidance for the Builder"*) ${say("GUIDANCE-TOKEN: create ok.txt")}; exit 0;;
+  *"Write guidance for the Builder"*) ${say("GUIDANCE-TOKEN: create the file ok.txt in the project folder, then run the check again.")}; exit 0;;
   *"Stage: triage"*) ${say("Type: chore\nSize: small\nAcceptance: ok.txt exists")}; exit 0;;
   *"Stage: spec"*) ${say("# Spec\nCreate ok.txt.")}; exit 0;;
-  *"Stage: review"*) ${say("APPROVE\nFine.")}; exit 0;;
+  *"Stage: review"*) if [ "${mode}" = "blocked" ]; then ${say("BLOCKED: F-005 is not merged into main yet, so this task has nothing to build on.\nOnly a person can merge it.")}; else ${say("APPROVE\nFine.")}; fi; exit 0;;
   *"Stage: document"*) ${say("## Chronicle\nDone.\n\n## Role notes\n")}; exit 0;;
   *"Stage: build"*)
+    if [ "${mode}" = "broken" ]; then echo "connection reset" >&2; exit 1; fi
     if [ "${mode}" = "flaky" ] && [ ! -f "$HOME_STATE/failed" ]; then touch "$HOME_STATE/failed"; echo "connection reset" >&2; exit 1; fi
     if [ "${mode}" = "guided" ]; then case "$2" in *GUIDANCE-TOKEN*) touch ok.txt;; esac; else touch ok.txt; fi
     ${say("Built.")}; exit 0;;
@@ -3021,3 +3026,588 @@ test("guidance for a blocked task: continues from its spec when it has one, and 
     for (let i = 0; i < 100 && section("F-001") !== "Blocked"; i++) await Bun.sleep(100); // it fails again: the gate still fails
   } finally { server.stop(); }
 }, 60_000);
+
+// ======================================================================================================================================
+// Safety: what must never happen again, written as the outcomes the plugin promises. A loop that spends money, a task built without the work it
+// needs, a verdict that cannot say "no person's code change can fix this", an autopilot that goes on after it has been told to stop.
+// ======================================================================================================================================
+
+const SAFE_TASK = { id: "F-001", title: "First", detail: "Acceptance: it works" };
+
+/** Runs one task through the pipeline in a git folder, with a runner that says what each stage replies and what the Builder writes. */
+async function replay(o: { spec?: string; build?: string; review?: (n: number) => string; write?: (cwd: string, n: number) => void; security?: string; gate?: boolean[] }) {
+  const { dir } = repo();
+  const store = openStore(":memory:"), calls: string[] = [];
+  let builds = 0, reviews = 0, gates = 0;
+  const runner: Runner = async ({ stage, cwd }) => {
+    calls.push(stage);
+    if (stage === "build") { builds++; o.write?.(cwd, builds); return { status: "ok", text: o.build ?? "Built." }; }
+    if (stage === "review") { reviews++; return { status: "ok", text: o.review ? o.review(reviews) : "APPROVE\nFine." }; }
+    if (stage === "spec") return { status: "ok", text: o.spec ?? "# Spec\nDo it." };
+    if (stage === "security") return { status: "ok", text: o.security ?? "SECURE" };
+    return { status: "ok", text: stage === "document" ? "## Chronicle\nDone." : stage };
+  };
+  const gate = async () => ({ ok: (o.gate ?? [])[gates++] ?? true, output: "the check failed" });
+  const result = await runTask(SAFE_TASK, { config, store, runner, gate, cwd: dir });
+  return { result, calls, builds, reviews, store, dir };
+}
+
+test("safety: a verdict of BLOCKED is read from the first line only, with its reason", () => {
+  expect(blockedReason("BLOCKED: F-005 is not merged yet")).toBe("F-005 is not merged yet");
+  expect(blockedReason("BLOCKED:F-005 is not merged yet\nMore detail below.")).toBe("F-005 is not merged yet");
+  expect(blockedReason("  BLOCKED: a decision only a person can make  ")).toBe("a decision only a person can make");
+  expect(blockedReason("BLOCKED:")).toBeUndefined(); // no reason, no verdict
+  expect(blockedReason("APPROVE\nBLOCKED: x")).toBeUndefined(); // only the first line counts
+  expect(blockedReason("REQUEST_CHANGES\n- the build is BLOCKED: by nothing")).toBeUndefined();
+  expect(blockedReason("The task is BLOCKED: for now")).toBeUndefined();
+  expect(blockedReason("")).toBeUndefined();
+  expect(blockedReason(`BLOCKED: ${"x".repeat(1000)}`)!.length).toBe(300); // a long reason is cut, not refused
+});
+
+test("safety: the incident replayed. A review that says BLOCKED ends the run after one build and one review, and nothing is built again", async () => {
+  const r = await replay({ review: () => "BLOCKED: F-005 is not merged into main yet, so this task has nothing to build on.\nOnly a person can merge it.", build: "I changed nothing: F-005's code is missing." });
+  expect(r.result.ok).toBe(false);
+  expect((r.result as { error: string }).error).toBe("Error: blocked: F-005 is not merged into main yet, so this task has nothing to build on. (said by review)");
+  expect(r.calls.filter((c) => c === "build")).toHaveLength(1); // the loop that cost money
+  expect(r.calls.filter((c) => c === "review")).toHaveLength(1);
+  expect(r.calls).not.toContain("document");
+  expect(r.store.list(r.store.lastRun("F-001")!).at(-1)).toMatchObject({ type: "run.failed" });
+});
+
+test("safety: BLOCKED from the spec stops before anything is built, from the build before anything is checked, from security before the review", async () => {
+  const spec = await replay({ spec: "BLOCKED: it needs F-005, which is not merged\nThe rest of the spec." });
+  expect(spec.calls).toEqual(["spec"]);
+  expect((spec.result as { error: string }).error).toMatch(/^Error: blocked: it needs F-005, which is not merged \(said by spec\)/);
+
+  const build = await replay({ build: "BLOCKED: the payment credential is missing" });
+  expect(build.calls).toEqual(["spec", "build"]); // no check, no review
+  expect(build.reviews).toBe(0);
+
+  const sensitive = (cwd: string, n = 0) => writeFileSync(join(cwd, "login.py"), `def login(user, pw): pass  # ${n}\n`);
+  const security = await replay({ write: sensitive, security: "BLOCKED: the threat model is missing" });
+  expect(security.reviews).toBe(0);
+  expect(security.builds).toBe(1);
+  expect((security.result as { error: string }).error).toMatch(/blocked: the threat model is missing \(said by security\)/);
+});
+
+test("safety: a request for changes is still a request for changes, however much the review text mentions blocking", async () => {
+  const r = await replay({ review: (n) => (n < 3 ? "REQUEST_CHANGES\n- this is BLOCKED: by a typo on line 3" : "APPROVE\nFine."), write: (cwd, n) => writeFileSync(join(cwd, `f${n}.txt`), `${n}\n`) });
+  expect(r.result.ok).toBe(true);
+  expect(r.builds).toBe(3);
+});
+
+test("safety: two attempts in a row that change nothing end the run, so the third build is never paid for", async () => {
+  const r = await replay({ review: () => "REQUEST_CHANGES\n- add the confirmation sheet" }); // the Builder never writes anything
+  expect(r.result.ok).toBe(false);
+  expect((r.result as { error: string }).error).toMatch(/^Error: stuck: attempt 2 changed nothing since attempt 1, so another try cannot end differently\. The last feedback was: REQUEST_CHANGES - add the confirmation sheet/);
+  expect(r.builds).toBe(2); // not 3
+  expect(r.reviews).toBe(1);
+});
+
+test("safety: a Builder that changes something each time is never called stuck, and the limit of three builds still holds", async () => {
+  const write = (cwd: string, n: number) => writeFileSync(join(cwd, `f${n}.txt`), `${n}\n`);
+  const ok = await replay({ review: (n) => (n < 3 ? "REQUEST_CHANGES\n- more" : "APPROVE\nFine."), write });
+  expect(ok.result.ok).toBe(true);
+  expect(ok.builds).toBe(3);
+  const never = await replay({ review: () => "REQUEST_CHANGES\n- more", write });
+  expect((never.result as { error: string }).error).toBe("Error: no approved build after 3 attempts");
+  expect(never.builds).toBe(3);
+  // The same holds when the checks are what fails: a Builder that fixes something is given the next attempt.
+  const gate = await replay({ gate: [false, false, true], write, review: () => "APPROVE\nFine." });
+  expect(gate.result.ok).toBe(true);
+  expect(gate.builds).toBe(3);
+});
+
+test("safety: a failing check with a Builder that changes nothing is stuck too, and says what the check said", async () => {
+  const r = await replay({ gate: [false, false, false] });
+  expect((r.result as { error: string }).error).toMatch(/^Error: stuck: attempt 2 changed nothing.*the check failed/);
+  expect(r.builds).toBe(2);
+});
+
+test("safety: a folder that is not a git repository cannot be fingerprinted, so the old limit of three builds applies", async () => {
+  const store = openStore(":memory:");
+  let builds = 0;
+  const runner: Runner = async ({ stage }) => { if (stage === "build") builds++; return { status: "ok", text: stage === "review" ? "REQUEST_CHANGES\nno" : stage === "spec" ? "# Spec" : "x" }; };
+  const r = await runTask(SAFE_TASK, { config, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: tmp() });
+  expect((r as { error: string }).error).toBe("Error: no approved build after 3 attempts");
+  expect(builds).toBe(3);
+});
+
+test("safety: what the supervisor makes of a failure, by what it says", () => {
+  const s = { recoveries: 2, perTask: 5 };
+  expect(failureKind("Error: blocked: F-005 is not merged (said by review)")).toBe("blocked");
+  expect(failureKind("Error: stuck: attempt 2 changed nothing")).toBe("stuck");
+  // Nothing outside the task is fixed by trying again: handed over at once, with the reason, whatever the number of tries or the money left.
+  for (const tries of [0, 1, 5]) {
+    const step = decide("blocked", tries, 0, s, "Error: blocked: F-005 is not merged into main yet (said by review)");
+    expect(step.action).toBe("escalate");
+    expect(step.text).toBe("It cannot go on until something outside it changes: F-005 is not merged into main yet. I did not try again.");
+  }
+  // Guidance goes out once: a second build failure after it is a person's.
+  expect(decide("builds", 0, 0, s).action).toBe("guide");
+  expect(decide("builds", 1, 0, s).action).toBe("escalate");
+  expect(decide("builds", 1, 0, { recoveries: 5, perTask: 5 }).action).toBe("escalate"); // even with room for more retries
+  expect(decide("stuck", 0, 0, s).action).toBe("guide");
+  expect(decide("stuck", 1, 0, s).text).toMatch(/Another attempt would end the same way.*did not try again/);
+  expect(decide("budget", 0, 0, s).text).toMatch(/limit for one task \(\$5\.00\) during this run/);
+  // The old rules are unchanged.
+  expect(decide("other", 0, 0, s)).toMatchObject({ action: "retry", delayMin: 1 });
+  expect(decide("other", 2, 0, s).action).toBe("escalate");
+});
+
+test("safety: guidance is something a Builder could act on; an apology, nothing, or NONE is not", () => {
+  expect(usableGuidance("Read the failing test first, then change only the rounding in settleMatch so that it returns whole cents.")).toBe(true);
+  expect(usableGuidance("")).toBe(false);
+  expect(usableGuidance("Fix it.")).toBe(false); // too short to say anything
+  expect(usableGuidance("NONE")).toBe(false);
+  expect(usableGuidance("NONE: nothing the Builder can change fixes this, it needs F-005 merged first")).toBe(false);
+  expect(usableGuidance("I couldn't read F-050's run files, so I can't write guidance for the Builder yet.")).toBe(false); // the apology that was once sent to the Builder
+  expect(usableGuidance("I could not access the review file, so here is a general tip: write tests first and keep going.")).toBe(false);
+  expect(usableGuidance("Unable to find the findings. Try again later with more information about the problem please.")).toBe(false);
+  expect(usableGuidance("The review asks you to add the confirmation sheet in Home.tsx and to read the failing test first; I cannot say more.")).toBe(true); // "cannot" later in a real text is fine
+});
+
+test("safety: a supervisor that finds a task blocked from outside hands it over once, with the reason, and never tries it again", async () => {
+  const m = manage({}, [mItem("F-001", "Blocked")]);
+  failed(m.store, "F-001", "Error: blocked: F-005 is not merged into main yet (said by review)");
+  await m.tick(); await m.tick(); await m.tick();
+  expect(m.launched).toEqual([]);
+  expect(m.decisions()).toEqual(["escalate"]);
+  const said = (m.store.decisions("F-001").find((e) => e.type === "manager.decision")!.data as { text: string }).text;
+  expect(said).toBe("F-001 needs you. It cannot go on until something outside it changes: F-005 is not merged into main yet. I did not try again.");
+  m.stop();
+});
+
+test("safety: stuck gets one piece of guidance, and none when the manager has nothing a Builder could act on", async () => {
+  const useful = manage({}, [mItem("F-001", "Blocked")]);
+  failed(useful.store, "F-001", "Error: stuck: attempt 2 changed nothing since attempt 1, so another try cannot end differently.");
+  await useful.tick();
+  expect(useful.launched).toEqual([["reject", "F-001", "--feedback", "Use the existing helper for the rounding, and read the failing test before you change anything."]]);
+  expect(useful.decisions()).toEqual(["guide"]);
+  useful.stop();
+
+  for (const text of ["NONE", "I couldn't read the run files, so I can't write guidance for the Builder yet.", ""]) {
+    const m = manage({}, [mItem("F-001", "Blocked")], undefined, async () => text);
+    failed(m.store, "F-001", "Error: stuck: attempt 2 changed nothing since attempt 1");
+    await m.tick(); await m.tick();
+    expect(m.launched).toEqual([]); // not a guided round, and not the same build again from the beginning
+    expect(m.decisions()).toEqual(["escalate"]);
+    m.stop();
+  }
+});
+
+test("safety: bad guidance after three failed builds is not sent, and the task is not started over either", async () => {
+  const m = manage({}, [mItem("F-001", "Blocked")], undefined, async () => "I couldn't read F-001's run files, so I can't write guidance for the Builder yet.");
+  failed(m.store, "F-001", "Error: no approved build after 3 attempts");
+  await m.tick();
+  expect(m.launched).toEqual([]);
+  expect(m.decisions()).toEqual(["escalate"]);
+  expect((m.store.decisions("F-001")[0]!.data as { text: string }).text).toMatch(/could not write guidance for the Builder that I trust/);
+  m.stop();
+});
+
+test("safety: Depends on is read, and a task waits until what it needs is in main", async () => {
+  expect(dependsOn({ detail: "Milestone: M1\nDepends on: F-005, F-006\nAcceptance: x" })).toEqual(["F-005", "F-006"]);
+  expect(dependsOn({ detail: "Depends on: none" })).toEqual([]);
+  expect(dependsOn({ detail: "depends on: F-007 and F-007" })).toEqual(["F-007"]);
+  expect(dependsOn({ detail: "It depends on F-009 in spirit" })).toEqual([]); // only the line the Planner writes
+  expect(dependsOn({ detail: "" })).toEqual([]);
+
+  const wait = (section: string, landed = true) => {
+    const m = manage({ parallel: 3 }, [mItem("F-001", section), mItem("F-002", "Ready", "Depends on: F-001")]); // room for both, so only the dependency decides
+    if (!landed) m.unlanded.add("F-001");
+    return m;
+  };
+  const text = (m: ReturnType<typeof manage>) => (m.store.decisions("F-002")[0]!.data as { text: string }).text;
+
+  const unmerged = wait("Done", false);
+  await unmerged.tick(); await unmerged.tick();
+  expect(unmerged.launched).toEqual([]);
+  expect(unmerged.decisions()).toEqual(["hold"]); // said once
+  expect(text(unmerged)).toBe("F-002 waits for F-001 (approved, but not merged into main yet). Once that is merged into main I start it.");
+  unmerged.unlanded.delete("F-001"); // the person merged it
+  await unmerged.tick();
+  expect(unmerged.launched).toEqual([["run", "F-002"]]);
+  expect(unmerged.decisions()).toEqual(["hold", "start"]);
+  unmerged.stop();
+
+  for (const [section, words] of [["In progress", "still in progress"], ["Awaiting approval", "still waiting for your approval"], ["Blocked", "still blocked"], ["Ready", "still ready"], ["Inbox", "still inbox"]] as const) {
+    const m = wait(section);
+    await m.tick();
+    expect(m.launched.filter((l) => l[1] === "F-002")).toEqual([]);
+    expect(text(m)).toContain(`F-001 (${words})`);
+    m.stop();
+  }
+
+  const landed = wait("Done");
+  await landed.tick();
+  expect(landed.launched).toEqual([["run", "F-002"]]); // in main already
+  landed.stop();
+
+  const unknown = manage({}, [mItem("F-002", "Ready", "Depends on: F-999")]);
+  await unknown.tick();
+  expect(unknown.launched).toEqual([["run", "F-002"]]); // a task that is not in the backlog holds nothing up
+  unknown.stop();
+});
+
+test("safety: a task that waits does not hold up the ones behind it", async () => {
+  const m = manage({ parallel: 3 }, [mItem("F-001", "Awaiting approval"), mItem("F-002", "Ready", "Depends on: F-001"), mItem("F-003", "Ready")]);
+  await m.tick();
+  expect(m.launched).toEqual([["run", "F-003"]]);
+  m.stop();
+});
+
+test("safety: a stopped task that needs unmerged work is not retried until that work is merged", async () => {
+  const m = manage({}, [mItem("F-001", "Done"), mItem("F-002", "Blocked", "Depends on: F-001")]);
+  m.unlanded.add("F-001");
+  failed(m.store, "F-002", "Error: ECONNRESET");
+  await m.tick();
+  m.advance(2 * 60_000);
+  await m.tick();
+  expect(m.launched).toEqual([]);
+  expect(m.decisions()).toEqual(["wait", "hold"]);
+  m.stop();
+});
+
+test("safety: two failed runs in a row pause autopilot, which then only proposes, and nothing is started behind the person's back", async () => {
+  const m = manage({}, [mItem("F-001", "Blocked"), mItem("F-002", "Blocked"), mItem("F-003", "Ready")]);
+  Bun.sleepSync(3);
+  failed(m.store, "F-001", "Error: no approved build after 3 attempts");
+  failed(m.store, "F-002", "Error: ECONNRESET");
+  await m.tick();
+  expect(m.autonomy).toEqual(["assist"]);
+  expect(m.launched).toEqual([]); // not the retry, not the Ready task
+  expect(m.decisions()).toEqual(["pause"]);
+  expect((m.store.decisions("")[0]!.data as { text: string }).text).toBe("I paused autopilot: the last two runs failed (F-001, F-002). Nothing starts or retries by itself now; I only propose. Look at what stopped, then switch autopilot on again from the Manager menu.");
+  // Switched on again: the old failures do not trip it again, only new ones do.
+  Bun.sleepSync(3);
+  await m.tick();
+  expect(m.autonomy).toEqual(["assist"]);
+  expect(m.decisions().filter((d) => d === "pause")).toHaveLength(1);
+  Bun.sleepSync(3);
+  failed(m.store, "F-001", "Error: ECONNRESET");
+  failed(m.store, "F-002", "Error: ECONNRESET");
+  await m.tick();
+  expect(m.autonomy).toEqual(["assist", "assist"]);
+  m.stop();
+});
+
+test("safety: a success between two failures, a single failure, and runs a person stopped do not trip the breaker", async () => {
+  const mixed = manage({}, [mItem("F-009", "Ready")]);
+  Bun.sleepSync(3);
+  failed(mixed.store, "F-001", "Error: ECONNRESET");
+  mixed.store.emit({ run: "r2", task: "F-002", stage: "run", type: "run.done" });
+  failed(mixed.store, "F-003", "Error: ECONNRESET");
+  await mixed.tick();
+  expect(mixed.autonomy).toEqual([]);
+  expect(mixed.launched).toEqual([["run", "F-009"]]);
+  mixed.stop();
+
+  const one = manage({}, [mItem("F-009", "Ready")]);
+  Bun.sleepSync(3);
+  failed(one.store, "F-001", "Error: ECONNRESET");
+  await one.tick();
+  expect(one.autonomy).toEqual([]);
+  one.stop();
+
+  const stopped = manage({}, [mItem("F-009", "Ready")]);
+  Bun.sleepSync(3);
+  failed(stopped.store, "F-001", "Error: stopped by request");
+  failed(stopped.store, "F-002", "Error: stopped by request");
+  await stopped.tick();
+  expect(stopped.autonomy).toEqual([]); // stopping is not failing
+  stopped.stop();
+});
+
+test("safety: when a person stops a task, autopilot pauses instead of starting the next one", async () => {
+  const m = manage({}, [mItem("F-001", "Blocked"), mItem("F-002", "Ready")]);
+  failed(m.store, "F-001", "Error: stopped by request");
+  await m.tick();
+  expect(m.launched).toEqual([]);
+  expect(m.autonomy).toEqual(["assist"]);
+  expect(m.decisions()).toEqual(["escalate", "pause"]);
+  expect((m.store.decisions("")[0]!.data as { text: string }).text).toBe("You stopped F-001, so I paused autopilot: nothing starts or retries by itself now. Switch it on again from the Manager menu when you want it to go on.");
+  m.stop();
+
+  // A task the manager stopped herself (no sign of life) is not the person stopping it: she tries it again.
+  const stall = manage({}, [mItem("F-001", "In progress")]);
+  stall.running.set("F-001", { kill: () => stall.killed.push("F-001") });
+  stall.store.emit({ run: "r1", task: "F-001", stage: "build", type: "stage.start" });
+  stall.advance(21 * 60_000);
+  await stall.tick();
+  expect(stall.killed).toEqual(["F-001"]);
+  stall.running.clear();
+  stall.state.items = [mItem("F-001", "Blocked")];
+  failed(stall.store, "F-001", "Error: stopped by request");
+  await stall.tick();
+  expect(stall.autonomy).toEqual([]);
+  expect(stall.launched).toEqual([["run", "F-001"]]);
+  stall.stop();
+});
+
+test("safety: money going out faster than the day's limit allows pauses autopilot, and old spending does not", async () => {
+  const fast = manage({}, [mItem("F-001", "Ready")]);
+  Bun.sleepSync(3);
+  fast.store.emit({ run: "r1", task: "F-009", stage: "build", type: "stage.ok", data: { usage: { costUsd: 11 } } }); // $25 a day allows about $10 an hour
+  await fast.tick();
+  expect(fast.autonomy).toEqual(["assist"]);
+  expect(fast.launched).toEqual([]);
+  expect((fast.store.decisions("")[0]!.data as { text: string }).text).toMatch(/^I paused autopilot: \$11\.00 was spent in the last hour, which is faster than the day's limit of \$25\.00 allows \(about \$10\.00 an hour\)/);
+  fast.stop();
+
+  const slow = manage({}, [mItem("F-001", "Ready")]);
+  Bun.sleepSync(3);
+  slow.store.emit({ run: "r1", task: "F-009", stage: "build", type: "stage.ok", data: { usage: { costUsd: 11 } } });
+  slow.advance(2 * 3_600_000);
+  await slow.tick();
+  expect(slow.autonomy).toEqual([]); // eleven dollars over a day is fine
+  expect(slow.launched).toEqual([["run", "F-001"]]);
+  slow.stop();
+});
+
+test("safety: four automatic recoveries in an hour are a loop, whatever each one looked like, and pause autopilot", async () => {
+  const m = manage({}, [mItem("F-001", "Ready")]);
+  Bun.sleepSync(3);
+  for (const action of ["retry", "guide", "retry", "retry"]) m.store.emit({ run: "r1", task: "F-00" + action.length, stage: "manager", type: "manager.decision", data: { action, text: "x", auto: true } });
+  await m.tick();
+  expect(m.autonomy).toEqual(["assist"]);
+  expect(m.launched).toEqual([]);
+  expect((m.store.decisions("")[0]!.data as { text: string }).text).toMatch(/tried to recover tasks 4 times in the last hour/);
+  m.stop();
+
+  const few = manage({}, [mItem("F-001", "Ready")]);
+  Bun.sleepSync(3);
+  for (const action of ["retry", "guide", "wait"]) few.store.emit({ run: "r1", task: "F-001", stage: "manager", type: "manager.decision", data: { action, text: "x", auto: true } });
+  await few.tick();
+  expect(few.autonomy).toEqual([]);
+  few.stop();
+});
+
+test("safety: a run that has spent the limit for one task is stopped while it runs, and what follows is a budget stop, not the person's", async () => {
+  const m = manage({}, [mItem("F-001", "In progress")]);
+  m.running.set("F-001", { kill: () => m.killed.push("F-001") });
+  Bun.sleepSync(3);
+  m.store.emit({ run: "r1", task: "F-001", stage: "run", type: "run.start" });
+  m.store.emit({ run: "r1", task: "F-001", stage: "build", type: "stage.ok", data: { usage: { costUsd: 6 } } }); // the limit for one task is $5
+  await m.tick();
+  expect(m.killed).toEqual(["F-001"]);
+  expect(m.decisions()).toEqual(["budget"]);
+  m.running.clear();
+  m.state.items = [mItem("F-001", "Blocked")];
+  failed(m.store, "F-001", "Error: stopped by request");
+  await m.tick();
+  expect(m.autonomy).toEqual([]); // not a person who stopped it
+  expect(m.decisions()).toEqual(["budget", "escalate"]);
+  expect((m.store.decisions("F-001").find((e) => (e.data as { action?: string }).action === "escalate")!.data as { text: string }).text).toMatch(/reached the limit for one task \(\$5\.00\) during this run/);
+  m.stop();
+
+  const cheap = manage({}, [mItem("F-001", "In progress")]);
+  cheap.running.set("F-001", { kill: () => cheap.killed.push("F-001") });
+  Bun.sleepSync(3);
+  cheap.store.emit({ run: "r1", task: "F-001", stage: "run", type: "run.start" });
+  cheap.store.emit({ run: "r1", task: "F-001", stage: "build", type: "stage.ok", data: { usage: { costUsd: 4.9 } } });
+  await cheap.tick();
+  expect(cheap.killed).toEqual([]);
+  cheap.stop();
+});
+
+test("safety: what an earlier run spent does not stop a later run before it starts", async () => {
+  const m = manage({}, [mItem("F-001", "In progress")]);
+  m.store.emit({ run: "r0", task: "F-001", stage: "build", type: "stage.ok", data: { usage: { costUsd: 9 } } }); // a run from before
+  Bun.sleepSync(3);
+  m.running.set("F-001", { kill: () => m.killed.push("F-001") });
+  m.store.emit({ run: "r1", task: "F-001", stage: "run", type: "run.start" });
+  await m.tick();
+  expect(m.killed).toEqual([]);
+  m.stop();
+});
+
+test("safety: what a conversation costs counts toward the day's spend, and belongs to no task", () => {
+  const store = openStore(":memory:");
+  store.emit({ run: "", task: "", stage: "chat", type: "chat.turn", data: { topic: "manager", usage: { costUsd: 3 } } });
+  store.emit({ run: "r1", task: "F-001", stage: "build", type: "stage.ok", data: { usage: { costUsd: 2 } } });
+  expect(store.spent()).toBe(5);
+  expect(store.spent("", "F-001")).toBe(2); // the task's own limit is about the task
+  expect(store.spent(new Date(Date.now() + 60_000).toISOString())).toBe(0);
+  store.close();
+});
+
+test("safety: isLanded is true only once a task's work is in the project's main line", () => {
+  const { dir, sh } = repo();
+  expect(isLanded(dir, "F-001")).toBe(true); // no branch: merged and tidied, or never existed
+  sh("git", "checkout", "-q", "-b", "factory/F-001");
+  writeFileSync(join(dir, "work.txt"), "x\n");
+  sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "work");
+  sh("git", "checkout", "-q", "main");
+  expect(isLanded(dir, "F-001")).toBe(false); // approved, but only on its own branch
+  sh("git", "merge", "-q", "--no-ff", "-m", "merge", "factory/F-001");
+  expect(isLanded(dir, "F-001")).toBe(true);
+  sh("git", "branch", "-q", "-D", "factory/F-001");
+  expect(isLanded(dir, "F-001")).toBe(true);
+});
+
+test("safety: factory run will not build a task before the work it needs is in main, says why, and --anyway is the person's word", () => {
+  const { dir, sh, cli, section } = repo();
+  sh("git", "checkout", "-q", "-b", "factory/F-001");
+  writeFileSync(join(dir, "work.txt"), "x\n");
+  sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "work");
+  sh("git", "checkout", "-q", "main");
+  writeFileSync(join(dir, "BACKLOG.md"), "# Backlog\n\n## Inbox\n\n## Ready\n- [ ] F-002 Needs the first\n  Depends on: F-001\n- [ ] F-003 Stands alone\n\n## In progress\n\n## Awaiting approval\n\n## Blocked\n\n## Done\n- [x] F-001 The first\n");
+  sh("git", "add", "BACKLOG.md"); sh("git", "commit", "-q", "-m", "backlog");
+
+  const refused = cli("run", "F-002", "--stub");
+  expect(refused.code).toBe(1);
+  expect(refused.out).toContain("F-002 needs F-001 (approved, but not merged into main yet) first. Land it (push and merge it, or `factory sync`), or build F-002 without it with --anyway");
+  expect(section("F-002")).toBe("Ready"); // nothing was started
+
+  expect(cli("run", "--stub").code).toBe(0); // without a name, the first item that can be built is built: F-003
+  expect(section("F-003")).toBe("Awaiting approval");
+  expect(section("F-002")).toBe("Ready");
+  const none = cli("run", "--stub");
+  expect(none.code).toBe(1);
+  expect(none.out).toContain("every item under Ready is waiting for another task to land first");
+
+  expect(cli("run", "F-002", "--stub", "--anyway").code).toBe(0);
+  expect(section("F-002")).toBe("Awaiting approval");
+});
+
+test("safety: a task whose dependency has been merged runs, and one whose dependency is not even done is refused", () => {
+  const { dir, sh, cli, section } = repo();
+  writeFileSync(join(dir, "BACKLOG.md"), "# Backlog\n\n## Inbox\n\n## Ready\n- [ ] F-002 Needs the first\n  Depends on: F-001\n- [ ] F-004 Needs one that is not done\n  Depends on: F-003, F-099\n\n## In progress\n\n## Awaiting approval\n\n## Blocked\n- [ ] F-003 Stuck\n\n## Done\n- [x] F-001 The first\n");
+  sh("git", "add", "BACKLOG.md"); sh("git", "commit", "-q", "-m", "backlog");
+  expect(cli("run", "F-002", "--stub").code).toBe(0); // F-001 has no branch: it is in main
+  const refused = cli("run", "F-004", "--stub");
+  expect(refused.code).toBe(1);
+  expect(refused.out).toContain("F-004 needs F-003 (still Blocked) first"); // F-099 is not in the backlog and holds nothing up
+  expect(section("F-004")).toBe("Ready");
+});
+
+test("safety: a follow-up an agent found is added to the Inbox depending on the task it came from, so it waits for that work to land", () => {
+  const { dir, cli, section } = repo();
+  const bin = join(tmp(), "bin");
+  mkdirSync(bin, { recursive: true });
+  const result = (text: string) => JSON.stringify({ type: "result", subtype: "success", is_error: false, result: text, session_id: "11111111-1111-1111-1111-111111111111", total_cost_usd: 0.01, usage: {} });
+  writeFileSync(join(bin, "claude"), `#!/bin/sh
+case "$2" in
+  *"Stage: triage"*) printf '%s\\n' '${result("Size: small\nAcceptance: it builds")}';;
+  *"Stage: spec"*) printf '%s\\n' '${result("# Spec\nDo it.")}';;
+  *"Stage: review"*) printf '%s\\n' '${result("APPROVE\nFine.\n\n## Follow-ups\n- Warn about the penalty on the Forfeit button")}';;
+  *"Stage: document"*) printf '%s\\n' '${result("## Chronicle\nDone.\n\n## Role notes\n")}';;
+  *"Stage: build"*) touch built.txt; printf '%s\\n' '${result("Built.")}';;
+  *) printf '%s\\n' '${result("ok")}';;
+esac
+`);
+  chmodSync(join(bin, "claude"), 0o755);
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  try {
+    expect(cli("run", "F-001").code).toBe(0);
+    expect(section("F-001")).toBe("Awaiting approval");
+    const items = parse(readFileSync(join(dir, "BACKLOG.md"), "utf8"));
+    const found = items.find((i) => i.title === "Warn about the penalty on the Forfeit button")!;
+    expect(found.section).toBe("Inbox");
+    expect(dependsOn(found)).toEqual(["F-001"]);
+    expect(found.detail).toContain("Found while building F-001.");
+  } finally { process.env.PATH = path; }
+});
+
+// ---- the same outcomes, end to end: the real server, supervisor, CLI and pipeline, with a stand-in for claude ----
+
+async function autopilotRun(mode: "blocked" | "broken" | "guided", opts: { second?: boolean; wait?: number; gate?: string[] } = {}) {
+  const { dir, section } = repo();
+  const bin = standIn(mode), state = tmp();
+  const cfg = JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8"));
+  writeFileSync(join(dir, "factory.config.json"), JSON.stringify({ ...cfg, gate: opts.gate ?? ["true"] }));
+  Bun.spawnSync(["git", "commit", "-qam", "gate"], { cwd: dir, env: process.env });
+  if (!opts.second) writeFileSync(join(dir, "BACKLOG.md"), move(readFileSync(join(dir, "BACKLOG.md"), "utf8"), "F-002", "Inbox"));
+  const path = process.env.PATH, home = process.env.HOME_STATE;
+  process.env.PATH = `${bin}:${path}`;
+  process.env.HOME_STATE = state;
+  const server = await serve(dir, 0, { supervisor: true, every: 150, scale: 0 });
+  const readCalls = () => (existsSync(join(state, "calls")) ? readFileSync(join(state, "calls"), "utf8").split("\n").filter(Boolean) : []);
+  const info = async () => (await (await fetch(`http://127.0.0.1:${server.port}/api/manager`)).json()) as any;
+  return {
+    dir, state, section, readCalls, info,
+    actions: async (): Promise<string[]> => (await info()).decisions.reverse().filter((d: any) => d.type === "manager.decision").map((d: any) => d.data.action as string),
+    autonomy: () => JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).manager?.autonomy as string | undefined,
+    done: () => { server.stop(); process.env.PATH = path; if (home === undefined) delete process.env.HOME_STATE; else process.env.HOME_STATE = home; },
+  };
+}
+
+test("safety, end to end: a task blocked from outside is built once, handed to the person with the reason, and never started again", async () => {
+  const r = await autopilotRun("blocked");
+  try {
+    for (let i = 0; i < 100 && r.section("F-001") !== "Blocked"; i++) await Bun.sleep(200);
+    expect(r.section("F-001")).toBe("Blocked");
+    await Bun.sleep(2500); // many supervisor ticks: the old behaviour guided it and built it again
+    const calls = r.readCalls();
+    expect(calls.filter((c) => c === "build")).toHaveLength(1);
+    expect(calls.filter((c) => c === "review")).toHaveLength(1);
+    expect(await r.actions()).toEqual(["start", "escalate"]);
+    const text = ((await r.info()).decisions as any[]).find((d) => d.data?.action === "escalate").data.text as string;
+    expect(text).toContain("F-005 is not merged into main yet, so this task has nothing to build on.");
+    expect(text).toContain("I did not try again.");
+    expect(r.autonomy()).toBeUndefined(); // one failure is not a pause: autopilot is still on (the default)
+  } finally { r.done(); }
+}, 120_000);
+
+test("safety, end to end: runs that keep failing pause autopilot after the second, and the third is never started", async () => {
+  const r = await autopilotRun("broken", { second: true });
+  try {
+    for (let i = 0; i < 150 && r.autonomy() !== "assist"; i++) await Bun.sleep(200);
+    expect(r.autonomy()).toBe("assist");
+    await Bun.sleep(2000);
+    const builds = r.readCalls().filter((c) => c === "build").length;
+    expect(builds).toBeLessThanOrEqual(3); // two failed runs, and at most the one that was already on its way
+    expect(builds).toBeGreaterThanOrEqual(2);
+    const actions = await r.actions();
+    expect(actions).toContain("pause");
+    expect(actions.filter((a) => a === "pause")).toHaveLength(1);
+    expect(actions.at(-1)).toBe("pause"); // nothing was decided after it
+    const text = ((await r.info()).decisions as any[]).find((d) => d.data?.action === "pause").data.text as string;
+    expect(text).toMatch(/^I paused autopilot: the last two runs failed \(F-00[12](, F-00[12])?\)/);
+  } finally { r.done(); }
+}, 120_000);
+
+test("safety, end to end: the guidance the manager writes is made from the log, so it is never an apology", async () => {
+  const r = await autopilotRun("guided", { gate: ["test -f ok.txt"] });
+  try {
+    for (let i = 0; i < 100 && r.section("F-001") !== "Awaiting approval"; i++) await Bun.sleep(200);
+    expect(r.section("F-001")).toBe("Awaiting approval");
+    const prompt = readFileSync(join(r.state, "guide-prompt.txt"), "utf8");
+    expect(prompt).toContain("The spec:\n# Spec\nCreate ok.txt.");
+    expect(prompt).toContain("The reviewer's last findings:\n"); // what there is in the log, or "(none)" when no review ran
+    expect(prompt).toContain("Do not say you could not read anything.");
+    expect(prompt).not.toContain("factory status");
+  } finally { r.done(); }
+}, 120_000);
+
+test("safety, end to end: what a conversation costs is counted in today's spend", async () => {
+  const bin = join(tmp(), "bin");
+  mkdirSync(bin, { recursive: true });
+  writeFileSync(join(bin, "claude"), `#!/bin/sh\nprintf '%s\\n' '${JSON.stringify({ type: "result", subtype: "success", is_error: false, result: "Hello.", session_id: "11111111-1111-1111-1111-111111111111", total_cost_usd: 0.25, usage: {} })}'\n`);
+  chmodSync(join(bin, "claude"), 0o755);
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  const { dir } = repo();
+  const server = await serve(dir, 0);
+  const base = `http://127.0.0.1:${server.port}`;
+  try {
+    const spent = async () => ((await (await fetch(`${base}/api/manager`)).json()) as any).spentToday as number;
+    expect(await spent()).toBe(0);
+    await fetch(`${base}/api/chat`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify({ topic: "plan", message: "hi" }) });
+    expect(await spent()).toBe(0.25);
+    await fetch(`${base}/api/chat`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify({ topic: "manager", message: "hi" }) });
+    expect(await spent()).toBe(0.5);
+  } finally { server.stop(); process.env.PATH = path; }
+});
+
+test("safety: the reviewer, the architect, the builder and security are told how to say BLOCKED, and the manager how autopilot protects the person", () => {
+  const team = resolveTeam({});
+  for (const id of ["B1", "B2", "C1", "S1"]) expect(catalog.find((r) => r.id === id)!.instruction).toMatch(/BLOCKED: <one sentence/);
+  expect(catalog.find((r) => r.id === "C1")!.instruction).toMatch(/do not request changes: the builder cannot fix that/);
+  const prompt = managerPrompt(team, false, "autopilot");
+  expect(prompt).toContain("A task with a `Depends on:` line waits until the tasks it names are merged into main");
+  expect(prompt).toContain("Autopilot pauses itself");
+  expect(prompt).toContain("after two failed runs in a row, after the person stops a task");
+});

@@ -251,12 +251,15 @@ Almost always the flow above is all you see. These are the other things, what th
 ### It stops and needs you
 
 The card moves to the red strip at the top of the board: **Blocked**. On autopilot Tess has already looked: a
-rate limit or a passing error she tries again herself, and after three builds that did not pass she sends Kofi
-guidance and starts a new round. What is left is yours. Open it (*Look into it*) and the Summary says what
+rate limit or a passing error she tries again herself, and after builds that did not pass (or two attempts in a row
+that changed nothing) she sends Kofi guidance once. What is left is yours. She never goes round again and again:
+see *When autopilot stops itself* below. Open it (*Look into it*) and the Summary says what
 failed, with the output, and under *The manager* what Tess decided and why, in plain words. Then:
 
 | Why it is blocked | What it means | What to do |
 | --- | --- | --- |
+| **Blocked from outside** ("It cannot go on until something outside it changes: …") | The Architect, Kofi, Zane or Sade said `BLOCKED:` because something outside the task is missing, most often another task's code that is not merged into main yet, or a decision only you can make. Nothing was retried, because no change by Kofi can fix it | Do what the reason says (merge the other task, decide), then **Retry** |
+| **Stuck** ("Another attempt would end the same way") | Two attempts in a row changed nothing | Open **Activity** and **Review**: usually the spec asks for something that cannot be done. **Send guidance**, or discard and split the item |
 | **No approved build after 3 attempts** | Kofi and the checks or Sade could not agree | Open **Activity**: read the last findings. Often the spec was too big. Press **Send guidance** and say what Kofi should do differently, or discard and split the item, or edit the item's description, then **Retry**. |
 | **Not ready** | Triage found the idea too large for one task, or could not say how to check it. Nothing was built | Split it, or add an `Acceptance:` line that says what done looks like, then **Retry**. |
 | **Every model in the chain is rate limited** | You have used your Claude allowance for now | Wait for the window to reset (the Overview meter shows when), then **Retry**. Or give the role a longer fallback chain in Agents. |
@@ -378,6 +381,24 @@ When the last task of a milestone is finished, Tess says so, names what is due n
 audit, a release check) and looks back at what kept going wrong; anything she proposes lands in the Inbox for
 Dina to promote. `factory manager report` prints the facts she works from: milestones, what stopped tasks, and
 what each role ran, failed and cost.
+
+### When autopilot stops itself
+
+A task that needs another task's work (a `Depends on: F-005` line, which the Planner writes, and which a follow-up gets
+automatically from the task it was found in) waits in Ready until that work is **merged into main**, not only
+approved: with a GitHub `origin` an approved task stays on its own branch until you push and merge it. Tess says
+"F-050 waits for F-005 (approved, but not merged into main yet)". `factory run F-050 --anyway` builds it without.
+
+Autopilot **pauses itself**, switches to assist (she only proposes) and says why, when:
+
+- two runs in a row failed (a run you stopped does not count);
+- you stopped a task, so the next one does not start behind your back;
+- more money went out in the last hour than the day's limit allows (about 40% of it);
+- she tried to recover tasks four times in the last hour;
+
+and a run that has spent the limit for one task is stopped while it runs. Switch autopilot on again from the Manager
+menu; the count starts afresh. Every one of these is in the decision log, and what a conversation costs now counts
+toward the day's limit.
 
 ## Updating the plugin
 

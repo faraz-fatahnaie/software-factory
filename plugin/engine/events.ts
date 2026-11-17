@@ -40,9 +40,12 @@ export function openStore(path: string) {
     },
     lastRun: (task: string) =>
       (db.query("SELECT run FROM events WHERE task = ? AND stage != 'manager' ORDER BY seq DESC LIMIT 1").get(task) as { run: string } | null)?.run,
-    /** US dollars spent by model stages since a time (ISO), for one task or for all of them. */
+    /** US dollars spent since a time (ISO), for one task or for all of them: model stages, and (for the day's total) the conversations and the manager's own model calls, which belong to no task. */
     spent: (since = "", task = "") =>
-      (db.query("SELECT COALESCE(SUM(json_extract(data, '$.usage.costUsd')), 0) AS n FROM events WHERE type LIKE 'stage.%' AND ts >= ? AND (? = '' OR task = ?)").get(since, task, task) as { n: number }).n,
+      (db.query("SELECT COALESCE(SUM(json_extract(data, '$.usage.costUsd')), 0) AS n FROM events WHERE (type LIKE 'stage.%' OR type = 'chat.turn') AND ts >= ? AND (? = '' OR task = ?)").get(since, task, task) as { n: number }).n,
+    /** How runs ended, newest first: a finished run, or a failed one that was not stopped on purpose. */
+    outcomes: (since = "", limit = 10) =>
+      (db.query("SELECT seq, ts, task, type FROM events WHERE (type = 'run.done' OR (type = 'run.failed' AND COALESCE(json_extract(data, '$'), '') NOT LIKE '%stopped%')) AND ts > ? ORDER BY seq DESC LIMIT ?").all(since, limit) as { seq: number; ts: string; task: string; type: string }[]),
     /** What the newest finished run of a stage wrote for a task (its spec, its review). Task runs live in the task's own worktree, which is gone once it is approved; the log keeps the text. */
     output: (task: string, stage: string) =>
       (db.query("SELECT json_extract(data, '$.output') AS text FROM events WHERE task = ? AND stage = ? AND type = 'stage.ok' AND json_extract(data, '$.output') IS NOT NULL ORDER BY seq DESC LIMIT 1").get(task, stage) as { text: string } | null)?.text,
