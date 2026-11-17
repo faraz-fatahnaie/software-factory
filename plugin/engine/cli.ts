@@ -200,11 +200,15 @@ async function main([cmd, ...args]: string[]) {
     const { serve } = await import("./server");
     // One dashboard per project: each project prefers its own port (4400-4499, from its path) and moves on if another project holds it.
     repairRoleFiles();
-    const mine = async (port: number) => { try { return (await (await fetch(`http://127.0.0.1:${port}/api/project`, { signal: AbortSignal.timeout(1000) })).json() as { root?: string }).root === root; } catch { return false; } };
+    const { replaceOlder, VERSION } = await import("./upgrade");
     const auto = args[0] === undefined, start = Number(Bun.hash(root) % 100n);
     for (let i = 0; i < (auto ? 100 : 1); i++) {
       const port = auto ? 4400 + ((start + i) % 100) : Number(args[0]);
-      if (await mine(port)) return console.log(`this project's control plane is already running: http://127.0.0.1:${port}`);
+      // An update does not stop a dashboard that is already running: one of this project's that runs an older version is replaced, so opening it gives the new version.
+      const old = await replaceOlder(port, root);
+      if (old.state === "current") return console.log(`this project's control plane is already running: http://127.0.0.1:${port}${old.version ? ` (version ${old.version})` : ""}`);
+      if (old.state === "replaced") console.log(`stopped this project's dashboard on port ${port}, which was running ${old.was ? `version ${old.was}` : "an older version"}, to start version ${VERSION}`);
+      if (old.state === "failed") console.log(`this project's dashboard on port ${port} runs ${old.was ? `version ${old.was}` : "an older version"} and could not be stopped: stop it (${old.pids.length ? `kill ${old.pids.join(" ")}` : `find it with: lsof -nP -iTCP:${port} -sTCP:LISTEN`}), then open again`);
       try { const server = await serve(root, port, { supervisor: true }); return console.log(`factory control plane: http://127.0.0.1:${server.port}`); }
       catch (e) { if ((e as { code?: string }).code !== "EADDRINUSE") throw e; }
     }

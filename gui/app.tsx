@@ -335,6 +335,8 @@ function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any
 
 function App() {
   const { events, link } = useEvents();
+  const [version, setVersion] = useState("");
+  useEffect(() => { fetch("/api/project").then((r) => r.json()).then((p) => setVersion(typeof p?.version === "string" ? `v${p.version}` : "")).catch(() => {}); }, []);
   const { tasks, rateLimit, notice } = useMemo(() => summarize(events), [events]);
   const { backlog, loaded, reload } = useBacklog();
   const [view, setView] = useHash(VIEWS);
@@ -423,6 +425,7 @@ function App() {
           <button className="quiet theme pal-btn" onClick={() => setPalette(true)} aria-keyshortcuts="Control+K Meta+K"><Icon name="search" /><span>Search or run…</span><kbd>⌘K</kbd></button>
           <a className={`link vcs ${pulse.tone}`} href="#overview" title={pulse.title}><span>{pulse.text}</span></a>
           <NotifyToggle notify={notify} />
+          {version && <span className="note version" title="The version of Software Factory this dashboard is running. After an update, /software-factory:open replaces an older dashboard.">Software Factory {version}</span>}
           <button className="quiet theme" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
             <Icon name={theme === "dark" ? "sun" : "moon"} /><span>{theme === "dark" ? "Light theme" : "Dark theme"}</span>
           </button>

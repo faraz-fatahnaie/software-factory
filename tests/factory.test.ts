@@ -3,6 +3,7 @@ import { chmodSync, existsSync, readdirSync, mkdirSync, readFileSync, realpathSy
 import { join } from "node:path";
 import { add, dependsOn, FROM_CONVERSATION, move, parse, type Item } from "../plugin/engine/backlog";
 import { ensureWorktree, isLanded } from "../plugin/engine/worktree";
+import { newer, replaceOlder, VERSION, who } from "../plugin/engine/upgrade";
 import { authorityMatrix, checkAuthority, checkConversations, checkGrants, checkLimits, checkRoleFile, checkSkillFile, commandsNamed, KNOWN_GAPS, PERSON_ONLY } from "../plugin/engine/authority";
 import { ALLOW as CHAT_ALLOW, MANAGER_ALLOW, GUIDE_ALLOW } from "../plugin/engine/chat";
 import { ALLOW as TASK_ALLOW } from "../plugin/engine/claude";
@@ -4106,4 +4107,64 @@ test("a task that was blocked from outside is run again on the main that now has
     cli("run", "F-001"); // run again
     expect(readFileSync(join(dir, ".worktrees/F-001/landed.txt"), "utf8")).toBe("F-005's work\n");
   } finally { process.env.PATH = path; if (home === undefined) delete process.env.HOME_STATE; else process.env.HOME_STATE = home; }
+}, 60_000);
+
+test("updating: versions are compared as numbers, and this program knows its own", () => {
+  expect(VERSION).toBe(JSON.parse(readFileSync(join(import.meta.dir, "../plugin/.claude-plugin/plugin.json"), "utf8")).version);
+  expect(VERSION).toMatch(/^\d+\.\d+\.\d+$/);
+  expect(newer("1.2.0", "1.1.1")).toBe(true);
+  expect(newer("1.10.0", "1.9.9")).toBe(true); // numbers, not text
+  expect(newer("1.2.0", "1.2.0")).toBe(false);
+  expect(newer("1.1.1", "1.2.0")).toBe(false);
+  expect(newer("1.2", "1.1.9")).toBe(true);
+  expect(newer("1.2.0", undefined)).toBe(true); // a dashboard that does not say its version is from before it did
+  expect(newer("1.2.0", "unknown")).toBe(true);
+  expect(newer("unknown", "1.0.0")).toBe(false); // when this program does not know its own, it replaces nothing
+  expect(newer(undefined, undefined)).toBe(false);
+});
+
+test("updating: a dashboard says which version it is, and one of this project's that runs an older version is replaced, and nothing else is touched", async () => {
+  const { dir } = repo();
+  const server = await serve(dir, 0);
+  try { expect(((await (await fetch(`http://127.0.0.1:${server.port}/api/project`)).json()) as { version: string }).version).toBe(VERSION); } finally { server.stop(); }
+
+  const script = join(tmp(), "fake.ts");
+  writeFileSync(script, `Bun.serve({ port: Number(process.argv[2]), hostname: "127.0.0.1", fetch: () => Response.json(JSON.parse(process.argv[3]!)) });\nsetInterval(() => {}, 1000);\n`);
+  const freePort = () => { const s = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: () => new Response("") }); const p = s.port as number; s.stop(true); return p; };
+  const start = async (body: object) => {
+    const port = freePort();
+    const proc = Bun.spawn(["bun", script, String(port), JSON.stringify(body)], { stdout: "ignore", stderr: "ignore" });
+    for (let i = 0; i < 50 && !(await who(port)); i++) await Bun.sleep(100);
+    return { port, proc, alive: () => proc.exitCode === null && proc.signalCode === null };
+  };
+  const root = "/some/project";
+  try {
+    const old = await start({ root, version: "1.1.0" });
+    expect(await replaceOlder(old.port, root, "1.2.0")).toEqual({ state: "replaced", was: "1.1.0" });
+    await old.proc.exited;
+    expect(old.alive()).toBe(false);
+    expect(await who(old.port)).toBeUndefined(); // the port is free for the new one
+
+    const before = await start({ root }); // from before a dashboard said its version at all
+    expect(await replaceOlder(before.port, root, "1.2.0")).toEqual({ state: "replaced", was: undefined });
+    await before.proc.exited;
+
+    const same = await start({ root, version: "1.2.0" });
+    expect(await replaceOlder(same.port, root, "1.2.0")).toEqual({ state: "current", version: "1.2.0" });
+    expect(same.alive()).toBe(true); // already the new version: left alone
+    same.proc.kill();
+
+    const ahead = await start({ root, version: "9.0.0" });
+    expect(await replaceOlder(ahead.port, root, "1.2.0")).toEqual({ state: "current", version: "9.0.0" });
+    expect(ahead.alive()).toBe(true); // never replaced by something older
+    ahead.proc.kill();
+
+    const other = await start({ root: "/another/project", version: "1.0.0" });
+    expect(await replaceOlder(other.port, root, "1.2.0")).toEqual({ state: "none" });
+    expect(other.alive()).toBe(true); // another project's dashboard is not ours to stop
+    other.proc.kill();
+
+    const stranger = freePort(); // nothing of ours answers
+    expect(await replaceOlder(stranger, root, "1.2.0")).toEqual({ state: "none" });
+  } finally { /* the fakes that are still running are killed above; the rest exited */ }
 }, 60_000);
