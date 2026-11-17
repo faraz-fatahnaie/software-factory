@@ -5,6 +5,9 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **Fix: a task that waited for another to land is built on it.** A task that had built nothing yet kept the old main it was
+  first branched from, so running it again after the task it needed had landed failed the same way. It is now brought up to
+  the latest main first (a task that has changed files or committed keeps its work: use Update this task).
 - **Apply setup button.** When the design conversation proposes the install command and the checks every build must pass, the
   page shows them as a card with an **Apply setup** button. Nothing changes until you press it; pressing it records them
   (`factory configure`, committed) and the message says it is done. The commands are checked again before they are

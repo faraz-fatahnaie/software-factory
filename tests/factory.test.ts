@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { chmodSync, existsSync, readdirSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { add, dependsOn, FROM_CONVERSATION, move, parse, type Item } from "../plugin/engine/backlog";
-import { isLanded } from "../plugin/engine/worktree";
+import { ensureWorktree, isLanded } from "../plugin/engine/worktree";
 import { authorityMatrix, checkAuthority, checkConversations, checkGrants, checkLimits, checkRoleFile, checkSkillFile, commandsNamed, KNOWN_GAPS, PERSON_ONLY } from "../plugin/engine/authority";
 import { ALLOW as CHAT_ALLOW, MANAGER_ALLOW, GUIDE_ALLOW } from "../plugin/engine/chat";
 import { ALLOW as TASK_ALLOW } from "../plugin/engine/claude";
@@ -2693,7 +2693,7 @@ case "$2" in
   *"Stage: build"*)
     if [ "${mode}" = "broken" ]; then echo "connection reset" >&2; exit 1; fi
     if [ "${mode}" = "flaky" ] && [ ! -f "$HOME_STATE/failed" ]; then touch "$HOME_STATE/failed"; echo "connection reset" >&2; exit 1; fi
-    if [ "${mode}" = "guided" ]; then case "$2" in *GUIDANCE-TOKEN*) touch ok.txt;; esac; else touch ok.txt; fi
+    if [ "${mode}" = "guided" ]; then case "$2" in *GUIDANCE-TOKEN*) touch ok.txt;; esac; elif [ "${mode}" != "blocked" ]; then touch ok.txt; fi
     ${say("Built.")}; exit 0;;
 esac
 ${say("ok")}
@@ -4057,4 +4057,53 @@ test("F-100: Apply setup records the gate with factory configure, commits it, re
     expect(acted.data.messages.at(-1)).toMatchObject({ who: "team", text: expect.stringContaining("Setup applied.") });
     expect(acted.data.messages.at(-2).setup).toEqual(msg.setup); // the card stays, now marked done
   } finally { server.stop(); process.env.PATH = path; }
+}, 60_000);
+
+test("a task that has built nothing is brought up to the latest main when it is run again, so one that waited for another to land has what it needs", () => {
+  const { dir, sh } = repo();
+  const wt = ensureWorktree(dir, "F-001");
+  writeFileSync(join(dir, "landed.txt"), "the other task's work\n");
+  sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "the other task landed");
+  expect(existsSync(join(wt, "landed.txt"))).toBe(false); // branched before it landed
+  expect(ensureWorktree(dir, "F-001")).toBe(wt);
+  expect(readFileSync(join(wt, "landed.txt"), "utf8")).toBe("the other task's work\n"); // run again: built on it
+
+  // A task that has changed a file, or committed, keeps what it has: updating it is the person's Update this task (a merge, with the Builder for a clash).
+  const dirty = ensureWorktree(dir, "F-002");
+  writeFileSync(join(dirty, "mine.txt"), "work in progress\n");
+  writeFileSync(join(dir, "second.txt"), "more\n");
+  sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "more landed");
+  ensureWorktree(dir, "F-002");
+  expect(existsSync(join(dirty, "second.txt"))).toBe(false);
+  expect(readFileSync(join(dirty, "mine.txt"), "utf8")).toBe("work in progress\n");
+
+  const committed = ensureWorktree(dir, "F-003");
+  writeFileSync(join(committed, "built.txt"), "built\n");
+  sh("git", "-C", committed, "add", "-A"); sh("git", "-C", committed, "commit", "-q", "-m", "built");
+  writeFileSync(join(dir, "third.txt"), "even more\n");
+  sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "even more landed");
+  ensureWorktree(dir, "F-003");
+  expect(existsSync(join(committed, "third.txt"))).toBe(false);
+
+  // Nothing moved: nothing is done.
+  const same = ensureWorktree(dir, "F-004");
+  ensureWorktree(dir, "F-004");
+  expect(readdirSync(same).includes("third.txt")).toBe(true);
+});
+
+test("a task that was blocked from outside is run again on the main that now has what it waited for", () => {
+  const { dir, sh, cli, section } = repo();
+  const state = tmp(), bin = standIn("blocked");
+  const path = process.env.PATH, home = process.env.HOME_STATE;
+  process.env.PATH = `${bin}:${path}`;
+  process.env.HOME_STATE = state;
+  try {
+    expect(cli("run", "F-001").code).toBe(1); // the review says BLOCKED: F-005 is not merged yet
+    expect(section("F-001")).toBe("Blocked");
+    expect(existsSync(join(dir, ".worktrees/F-001/landed.txt"))).toBe(false);
+    writeFileSync(join(dir, "landed.txt"), "F-005's work\n"); // F-005 lands
+    sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "F-005 landed");
+    cli("run", "F-001"); // run again
+    expect(readFileSync(join(dir, ".worktrees/F-001/landed.txt"), "utf8")).toBe("F-005's work\n");
+  } finally { process.env.PATH = path; if (home === undefined) delete process.env.HOME_STATE; else process.env.HOME_STATE = home; }
 }, 60_000);

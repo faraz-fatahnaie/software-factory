@@ -12,10 +12,17 @@ export function git(cwd: string, ...args: string[]): string {
   return p.stdout.toString().trim();
 }
 
-/** One isolated checkout per task, branched from HEAD. Reused if it exists (re-run of a Blocked item). */
+/**
+ * One isolated checkout per task, branched from HEAD. Reused if it exists (re-run of a Blocked item). A task that has built nothing yet (no commit, no changed file)
+ * is brought up to the project's latest main first: a task that waited for another to land must be built on it, not on the main it was first branched from.
+ */
 export function ensureWorktree(root: string, id: string): string {
   const dir = worktreeOf(root, id);
-  if (!existsSync(dir)) git(root, "worktree", "add", "-q", "-b", branchOf(id), dir, "HEAD");
+  if (!existsSync(dir)) { git(root, "worktree", "add", "-q", "-b", branchOf(id), dir, "HEAD"); return dir; }
+  try {
+    const untouched = git(dir, "status", "--porcelain") === "" && git(root, "rev-list", "--count", `HEAD..${branchOf(id)}`) === "0";
+    if (untouched && behindBy(root, id) > 0) git(dir, "merge", "--ff-only", "-q", git(root, "rev-parse", "HEAD"));
+  } catch { /* what cannot be refreshed is used as it is: the person's Update this task is for it */ }
   return dir;
 }
 
