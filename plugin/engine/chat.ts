@@ -24,14 +24,14 @@ export const TOPICS: Record<string, { title: string; summary: string; ids: strin
 
 const MODELS = ["fable", "opus", "sonnet", "haiku"], EFFORTS = ["low", "medium", "high", "xhigh", "max"];
 // Documents only. Governance files stay out of reach (the guard hook enforces it too), and code is the builder's.
-const ALLOW = ["Read", "Grep", "Glob", "WebSearch", "WebFetch", "Write(docs/**)", "Edit(docs/**)", "Write(README.md)", "Edit(README.md)", "Write(CHANGELOG.md)", "Edit(CHANGELOG.md)",
-  "Bash(factory docs save:*)", "Bash(factory add:*)", "Bash(factory vcs)", // read-only: pushing and merging are buttons the person presses, never commands this session may run
+export const ALLOW = ["Read", "Grep", "Glob", "WebSearch", "WebFetch", "Write(docs/**)", "Edit(docs/**)", "Write(README.md)", "Edit(README.md)", "Write(CHANGELOG.md)", "Edit(CHANGELOG.md)",
+  "Bash(factory docs save:*)", "Bash(factory add:*)", "Bash(factory vcs)", "Bash(factory gate:*)", "Bash(factory scan:*)", "Bash(factory skill search:*)", // read-only: pushing and merging are buttons the person presses, never commands this session may run
   "Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)", "Bash(graphify query:*)"];
 
 // The Guide only answers questions: it can look at the project and run the read-only commands, and nothing else.
 // The manager reads the project and the runs, and may add a backlog item. It cannot write documents: the roles it asks may, one at a time, in their own conversations.
-const MANAGER_ALLOW = ["Read", "Grep", "Glob", "Bash(factory status:*)", "Bash(factory doctor:*)", "Bash(factory vcs)", "Bash(factory manager report)", "Bash(factory add:*)", "Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)"];
-const GUIDE_ALLOW = ["Read", "Grep", "Glob", "Bash(factory doctor:*)", "Bash(factory status:*)", "Bash(factory vcs)", "Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)"];
+export const MANAGER_ALLOW = ["Read", "Grep", "Glob", "Bash(factory status:*)", "Bash(factory doctor:*)", "Bash(factory vcs)", "Bash(factory manager report)", "Bash(factory add:*)", "Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)"];
+export const GUIDE_ALLOW = ["Read", "Grep", "Glob", "Bash(factory doctor:*)", "Bash(factory status:*)", "Bash(factory vcs)", "Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)"];
 const guidePrompt = (productDir: string) => `You are Bix, the Guide of this project's software factory: a read-only helper who explains what the tool is doing and how to control it. You change nothing: you have no way to edit files, and you must not ask to be allowed to.
 
 What you can look at: factory.config.json (models per role, the gate, the team, GitHub and chat settings), BACKLOG.md, AGENTS.md and the role files in .claude/agents/, the run folders under .factory/runs/, the product's own files in ${productDir} (its README, catalog.json and presets.json), and git history. You may run \`factory doctor\`, \`factory status\` and \`factory vcs\`. Look before you answer; do not guess.

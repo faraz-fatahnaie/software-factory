@@ -290,6 +290,14 @@ the branch and folder. Neither affects `main`.
 
 ## 6. Keeping control
 
+**Who may do what is checked, not hoped for.** Only you approve, push, merge or deploy; only Kofi edits code; Tess
+starts, retries and guides work but never builds or judges it; no unattended role reaches outside the project.
+`factory authority` prints who may do what and whether those rules hold; `/software-factory:doctor` and the Health
+strip show the same. A change that would break one is refused before anything is written: moving a responsibility
+in Team, giving a skill to a role, saving a role file or a skill in Studio. A skill that is already installed and
+asks for more than a role should have (for example the shell wholesale) is shown as worth a look, not refused, so an
+update never locks you out; installing or attaching one is refused.
+
 | You want to... | Do this |
 | --- | --- |
 | Change who does what, or the team size | **Team** → pick a preset or size, move a responsibility, switch one off, fold two roles together. Read the preview, then save. |

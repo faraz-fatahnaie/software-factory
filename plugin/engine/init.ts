@@ -1,4 +1,5 @@
 // Setting a project up for the factory, and checking that setup. Works on any stack.
+import { checkAuthority } from "./authority";
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { SECTIONS } from "./backlog";
@@ -127,6 +128,12 @@ export function doctor(dir: string) {
       check(existsSync(join(dir, ".claude", "skills", skill, "SKILL.md")), `skill ${skill} (attached to ${role}) is installed`, `factory skill detach ${skill} --role ${role}, or install it`);
   }
   if (config?.graph !== false) check(graphifyInstalled(), "graphify (the knowledge graph that saves tokens)", "install it: uv tool install graphifyy; or set \"graph\": false in factory.config.json", false);
+  // Who may do what: the authority rules (see authority.ts). An error stops work; what is only worth a look is shown without failing the setup.
+  try {
+    const auth = checkAuthority(dir);
+    check(!auth.errors.length, auth.errors.length ? `a role has more authority than it is meant to: ${auth.errors[0]!.text}${auth.errors.length > 1 ? ` (and ${auth.errors.length - 1} more)` : ""}` : "the authority rules hold (who may do what)", "run: factory authority");
+    for (const w of auth.warnings.slice(0, 3)) check(false, w.text, "run: factory authority", false);
+  } catch { /* a project with no readable config is reported above */ }
   check(read(dir, "AGENTS.md").includes(RULES_HEADING), "factory rules in AGENTS.md", "run: factory init");
   check(read(dir, "CLAUDE.md").includes("@AGENTS.md"), "CLAUDE.md imports AGENTS.md", "run: factory init");
   check(IGNORED.every((l) => read(dir, ".gitignore").split("\n").includes(l)), ".gitignore covers .factory/ and .worktrees/", "run: factory init");

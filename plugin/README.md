@@ -85,7 +85,7 @@ on your computer, run `git pull` in that folder first.
 background task in Claude Code, or press `Ctrl+C` where `factory serve` runs), run `/software-factory:open`
 again and refresh the page.
 
-**4. Check.** Run `/software-factory:doctor`. It says if anything in your project needs attention after the update.
+**4. Check.** Run `/software-factory:doctor`. It says if anything in your project needs attention after the update. `factory authority` shows who may do what and whether the rules about it hold.
 
 **What an update changes, and what it does not.** It replaces the factory's own code: the engine, the dashboard,
 the slash commands and the built-in catalog. It does not touch `BACKLOG.md`, `factory.config.json`, `AGENTS.md`,

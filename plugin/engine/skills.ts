@@ -1,6 +1,7 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { projectRoles } from "./config";
+import { checkSkillFile } from "./authority";
+import { projectRoles, projectTeam } from "./config";
 
 // Pinned: `npx -y` would otherwise run whatever version was published most recently.
 export const SKILLS_CLI = "skills@1.8.1";
@@ -52,19 +53,33 @@ export function parseRoles(cwd: string, text: string): string[] {
   return roles;
 }
 
-/** Installs a skills.sh package at project level (once) and attaches it to each of the chosen roles. */
+/** Why a skill may not be given to these roles (and be offered to the conversations that have no role file), in plain words. Empty when it widens nothing. */
+export function skillProblems(cwd: string, skill: string, roles: string[], md?: string): string[] {
+  const text = md ?? (() => { try { return readFileSync(join(cwd, ".claude", "skills", skill, "SKILL.md"), "utf8"); } catch { return ""; } })();
+  const team = projectTeam(cwd);
+  const found = [...roles.flatMap((r) => checkSkillFile(skill, text, r, team)), ...checkSkillFile(skill, text, undefined, team)];
+  return [...new Set(found.map((v) => v.text))];
+}
+
+/** Installs a skills.sh package at project level (once) and attaches it to each of the chosen roles. A skill that would give a role more than it is meant to have is not left behind. */
 export function addSkill(cwd: string, pkg: string, roles: string | string[]) {
   if (!PKG.test(pkg)) throw new Error(`skill must look like owner/repo@skill, got "${pkg}"`);
   const chosen = parseRoles(cwd, Array.isArray(roles) ? roles.join(",") : roles);
+  const name = pkg.split("@")[1]!, had = existsSync(join(cwd, ".claude", "skills", name, "SKILL.md"));
   // argv array, no shell: the package string is never interpreted.
   const p = Bun.spawnSync(["npx", "-y", SKILLS_CLI, "add", pkg, "-a", "claude-code", "-y"], {
-    cwd,
+    cwd, env: process.env,
     stdio: ["ignore", "inherit", "inherit"],
   });
   if (p.exitCode !== 0) throw new Error(`skills add failed for ${pkg}`);
+  const problems = skillProblems(cwd, name, chosen);
+  if (problems.length) {
+    if (!had) rmSync(join(cwd, ".claude", "skills", name), { recursive: true, force: true });
+    throw new Error(`${name} was not added, because it would give more than the roles are meant to have:\n  - ${problems.join("\n  - ")}`);
+  }
   for (const role of chosen) {
     const file = join(cwd, ".claude", "agents", `${role}.md`);
-    writeFileSync(file, attachSkill(readFileSync(file, "utf8"), pkg.split("@")[1]!));
+    writeFileSync(file, attachSkill(readFileSync(file, "utf8"), name));
   }
 }
 
@@ -74,6 +89,10 @@ export function setSkill(cwd: string, action: "attach" | "detach", skill: string
   const chosen = parseRoles(cwd, Array.isArray(roles) ? roles.join(",") : roles);
   if (action === "attach" && !existsSync(join(cwd, ".claude", "skills", skill, "SKILL.md")))
     throw new Error(`${skill} is not installed here; use: factory skill add <owner/repo@${skill}> --role ${chosen[0]}`);
+  if (action === "attach") {
+    const problems = skillProblems(cwd, skill, chosen);
+    if (problems.length) throw new Error(`${skill} was not attached, because it would give more than the roles are meant to have:\n  - ${problems.join("\n  - ")}`);
+  }
   for (const role of chosen) {
     const file = join(cwd, ".claude", "agents", `${role}.md`);
     writeFileSync(file, (action === "attach" ? attachSkill : detachSkill)(readFileSync(file, "utf8"), skill));

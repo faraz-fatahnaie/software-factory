@@ -3,6 +3,9 @@ import { chmodSync, existsSync, readdirSync, mkdirSync, readFileSync, realpathSy
 import { join } from "node:path";
 import { add, dependsOn, FROM_CONVERSATION, move, parse, type Item } from "../plugin/engine/backlog";
 import { isLanded } from "../plugin/engine/worktree";
+import { authorityMatrix, checkAuthority, checkConversations, checkGrants, checkLimits, checkRoleFile, checkSkillFile, commandsNamed, KNOWN_GAPS, PERSON_ONLY } from "../plugin/engine/authority";
+import { ALLOW as CHAT_ALLOW, MANAGER_ALLOW, GUIDE_ALLOW } from "../plugin/engine/chat";
+import { ALLOW as TASK_ALLOW } from "../plugin/engine/claude";
 import { agentEvents, claudeArgs, classify } from "../plugin/engine/claude";
 import { loadConfig, MANAGER_DEFAULTS, managerOf, parseConfig, type ManagerSettings } from "../plugin/engine/config";
 import { decide, failureKind, overlap, pathsIn, supervisor, usableGuidance } from "../plugin/engine/supervisor";
@@ -30,7 +33,7 @@ import { blockedReason, doneNotes, followUps, needsTriage, unready, peopleFeedba
 import { serve } from "../plugin/engine/server";
 import { parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev, contextOf, tokens, matchCommands } from "../plugin/engine/state";
 import { commandsFor, DASHBOARD_COMMANDS, projectCommands, reportedBy } from "../plugin/engine/commands";
-import { attachSkill, detachSkill, parseFind, roleSkills } from "../plugin/engine/skills";
+import { addSkill, attachSkill, detachSkill, parseFind, roleSkills, setSkill, skillProblems } from "../plugin/engine/skills";
 import { counts, lineDiff, marks, splitDiff, withGaps } from "../gui/linediff";
 import { gateIsPlaceholder, healthChecks, waitedLong } from "../plugin/engine/health";
 
@@ -2205,7 +2208,7 @@ esac
 // ---- Technical Manager, phase 3: the supervisor, its limits and its log ----
 const mItem = (id: string, section: string, detail = ""): Item => ({ id, section, title: id, detail });
 
-function manage(settings: Partial<ManagerSettings> = {}, items: Item[] = [], before?: (store: ReturnType<typeof openStore>) => void, guide?: () => Promise<string>) {
+function manage(settings: Partial<ManagerSettings> = {}, items: Item[] = [], before?: (store: ReturnType<typeof openStore>) => void, guide?: () => Promise<string>, authority?: () => string[]) {
   const store = openStore(":memory:");
   before?.(store);
   Bun.sleepSync(5); // the supervisor ignores what happened before it started
@@ -2216,7 +2219,7 @@ function manage(settings: Partial<ManagerSettings> = {}, items: Item[] = [], bef
   const canTriage = { value: true };
   const unlanded = new Set<string>(), autonomy: string[] = [];
   const sup = supervisor({
-    canTriage: () => canTriage.value, landed: (id) => !unlanded.has(id), setAutonomy: (a) => autonomy.push(a),
+    canTriage: () => canTriage.value, landed: (id) => !unlanded.has(id), setAutonomy: (a) => autonomy.push(a), authority,
     root: "/x", store, settings: () => ({ ...MANAGER_DEFAULTS, ...settings }), items: () => state.items, running, group: () => 1, every: 3_600_000, now: () => clock,
     launch: (id, argv) => { if (running.has(id)) return false; launched.push(argv); running.set(id, { kill: () => killed.push(id) }); return true; },
     retro: async () => "Builds kept failing on rounding.\n\n## Follow-ups\n- Add a rounding rule to the project's rules",
@@ -3610,4 +3613,352 @@ test("safety: the reviewer, the architect, the builder and security are told how
   expect(prompt).toContain("A task with a `Depends on:` line waits until the tasks it names are merged into main");
   expect(prompt).toContain("Autopilot pauses itself");
   expect(prompt).toContain("after two failed runs in a row, after the person stops a task");
+});
+
+// ======================================================================================================================================
+// Authority: who may do what, as rules that are checked. Every way of changing what a role can do (the team, a role file, a skill, a grant,
+// a limit) goes through a check that refuses a contradiction, and the checks themselves are tested against the whole catalog.
+// ======================================================================================================================================
+
+const reviewerFile = (extra = "") => `---\nname: reviewer\ndescription: Reviews.\ntools: Read, Grep, Glob, Bash, Skill\n${extra}---\nReview it.\n`;
+const skillFile = (front: string) => `---\nname: demo\ndescription: A demo skill.\n${front}${front && !front.endsWith("\n") ? "\n" : ""}---\nDo the thing.\n`;
+const lean = () => resolveTeam({ preset: "lean" }), balanced = () => resolveTeam(), full = () => resolveTeam({ preset: "full" });
+
+test("authority: every shipped preset obeys every rule, and every role file generated for it grants no more than its responsibilities need", () => {
+  for (const name of Object.keys(presets)) {
+    const team = resolveTeam({ preset: name });
+    expect(validateTeam(team)).toEqual([]);
+    expect(checkConversations(team).filter((v) => !v.known)).toEqual([]);
+    for (const role of activeRoles(team)) expect(checkRoleFile(role, renderRole(role, team), team)).toEqual([]); // generated files never over-grant, and never under-grant
+  }
+});
+
+test("authority: only the builder can edit source, in every preset", () => {
+  for (const name of Object.keys(presets)) {
+    const team = resolveTeam({ preset: name });
+    const writers = activeRoles(team).filter((r) => toolsFor(team.roles[r]!.holds, team).some((t) => t === "Edit" || t === "Write"));
+    expect(writers).toEqual([holderOf(team, "B2")!]);
+  }
+});
+
+test("authority T1: giving write access to someone who is not the builder is refused, with the reason", () => {
+  const moved = validateTeam(resolveTeam(moveSettings({ preset: "balanced" }, ["V1"], "reviewer")));
+  expect(moved.some((e) => /^reviewer would be able to edit files, but only the role that holds B2 \(the builder\) may/.test(e))).toBe(true);
+});
+
+test("authority T2: the manager cannot build or judge what she starts, retries and guides, wherever the responsibility is moved from or to", () => {
+  const builds = validateTeam(resolveTeam(moveSettings({ preset: "balanced" }, ["B2"], "technical-manager")));
+  expect(builds.some((e) => /technical-manager holds M18 \(the manager\) and also B2: whoever starts, retries and guides work cannot also build or judge it/.test(e))).toBe(true);
+  for (const id of ["C1", "S1", "S5", "Q2"]) {
+    const team = resolveTeam(moveSettings({ preset: "full" }, [id], "technical-manager"));
+    expect(validateTeam(team).some((e) => e.includes(`technical-manager holds M18 (the manager) and also ${id}`))).toBe(true);
+  }
+  const manager = validateTeam(resolveTeam(moveSettings({ preset: "balanced" }, ["M18"], "reviewer")));
+  expect(manager.some((e) => /reviewer holds M18 \(the manager\) and also C1/.test(e))).toBe(true);
+  // What the manager may hold is untouched: the audit is not a task's judge.
+  expect(validateTeam(resolveTeam(moveSettings({ preset: "lean" }, ["M18"], "architect")))).toEqual([]);
+});
+
+test("authority T3: nothing unattended reaches outside the project, touches governance files or changes configuration", () => {
+  const entry = catalog.find((r) => r.id === "S6")!; // dynamic probes against a running environment: unattended and outward, and not built yet
+  const was = entry.instruction;
+  try {
+    expect(validateTeam(full())).toEqual([]); // not built: nothing to refuse
+    entry.instruction = "Probe it."; // someone builds it as an unattended responsibility
+    const errs = validateTeam(full());
+    expect(errs.some((e) => /^S6 would run unattended in .+ with outward access: only a conversation with the person in it may$/.test(e))).toBe(true);
+  } finally { entry.instruction = was; }
+  expect(validateTeam(full())).toEqual([]);
+  // The same for what is built today: no unattended responsibility has such access.
+  for (const r of catalog) if (isHeadlessBuilt(r)) expect(r.access.filter((a) => ["outward", "governance", "config"].includes(a))).toEqual([]);
+});
+const isHeadlessBuilt = (r: { how: string; instruction?: string }) => r.how.startsWith("headless") && !!r.instruction;
+
+test("authority: any move of any responsibility to any role is either refused or leaves a team that keeps every rule", () => {
+  let accepted = 0, refused = 0;
+  const restricted = ["outward", "governance", "config"];
+  for (const name of Object.keys(presets)) {
+    const base = resolveTeam({ preset: name });
+    for (const r of catalog) for (const to of Object.keys(base.roles)) {
+      let team;
+      try { team = resolveTeam(moveSettings({ preset: name }, [r.id], to)); } catch { refused++; continue; }
+      if (validateTeam(team).length) { refused++; continue; }
+      accepted++;
+      // Written independently of the rules that were just applied: what must hold of any team that was accepted.
+      const writers = activeRoles(team).filter((x) => toolsFor(team.roles[x]!.holds, team).some((t) => t === "Edit" || t === "Write"));
+      expect(writers.length).toBe(1);
+      expect(team.roles[writers[0]!]!.holds).toContain("B2");
+      const builder = holderOf(team, "B2")!;
+      expect(team.roles[builder]!.holds.some((id) => ["C1", "S1", "S4", "S5", "Q2"].includes(id))).toBe(false); // the author does not review
+      const manager = holderOf(team, "M18");
+      if (manager) expect(team.roles[manager]!.holds.some((id) => ["B2", "C1", "S1", "S5", "Q2"].includes(id))).toBe(false);
+      for (const x of Object.values(team.roles)) for (const id of x.holds) {
+        const e = catalog.find((c) => c.id === id)!;
+        if (e.how.startsWith("headless") && e.instruction) expect(e.access.some((a) => restricted.includes(a))).toBe(false);
+      }
+    }
+  }
+  expect(accepted).toBeGreaterThan(100); // the search was real: it found valid moves as well as refusing invalid ones
+  expect(refused).toBeGreaterThan(100);
+});
+
+test("authority: a team change that breaks a rule is refused on the command line, and nothing is written", () => {
+  const { dir, cli } = repo();
+  const before = readFileSync(join(dir, "factory.config.json"), "utf8");
+  const r = cli("team", "move", "B2", "--to", "technical-manager");
+  expect(r.code).toBe(1);
+  expect(r.out).toContain("that change breaks a rule every team must obey, so nothing was changed");
+  expect(r.out).toMatch(/technical-manager holds M18 \(the manager\) and also B2/);
+  expect(readFileSync(join(dir, "factory.config.json"), "utf8")).toBe(before);
+});
+
+test("authority G1, G2: nobody is granted what only a person may do, and only the builder and documents are writable", () => {
+  expect(checkGrants()).toEqual([]);
+  for (const [name, list] of Object.entries({ task: TASK_ALLOW, conversation: CHAT_ALLOW, manager: MANAGER_ALLOW, guide: GUIDE_ALLOW })) {
+    for (const entry of list) expect(`${name}: ${entry}`).not.toMatch(PERSON_ONLY);
+  }
+  const probe = (list: string[], entry: string) => { list.push(entry); try { return checkGrants(); } finally { list.pop(); } };
+  expect(probe(CHAT_ALLOW, "Bash(git push:*)").map((v) => v.rule)).toEqual(["G1"]);
+  expect(probe(CHAT_ALLOW, "Bash(factory approve:*)").map((v) => v.rule)).toEqual(["G1"]);
+  expect(probe(MANAGER_ALLOW, "Bash(gh pr merge:*)").map((v) => v.rule)).toEqual(["G1"]);
+  expect(probe(TASK_ALLOW, "Bash(factory deploy:*)").map((v) => v.rule)).toEqual(["G1"]);
+  expect(probe(CHAT_ALLOW, "Bash").map((v) => v.rule)).toEqual(["G1"]); // the shell wholesale
+  expect(probe(CHAT_ALLOW, "Bash(*)").map((v) => v.rule)).toEqual(["G1"]);
+  expect(probe(CHAT_ALLOW, "Bash(factory *)").map((v) => v.rule)).toEqual(["G1"]); // includes approve and push
+  expect(probe(CHAT_ALLOW, "Write(src/**)").map((v) => v.rule)).toEqual(["G2"]); // a conversation writes documents only
+  expect(probe(CHAT_ALLOW, "Edit").map((v) => v.rule)).toEqual(["G2"]);
+  expect(probe(MANAGER_ALLOW, "Write(docs/**)").map((v) => v.rule)).toEqual(["G2"]); // the manager writes nothing
+  expect(probe(GUIDE_ALLOW, "Edit(docs/**)").map((v) => v.rule)).toEqual(["G2"]);
+  expect(probe(TASK_ALLOW, "Write").map((v) => v.rule)).toEqual(["G2"]); // task agents get editing from the build stage's permission mode, not from the list
+  expect(probe(CHAT_ALLOW, "Write(docs/**)")).toEqual([]); // what is allowed today stays allowed
+  expect(probe(CHAT_ALLOW, "Bash(factory gate:*)")).toEqual([]);
+  expect(checkGrants()).toEqual([]); // and every probe cleaned up after itself
+});
+
+test("authority G1: what counts as only a person's to do", () => {
+  for (const text of ["git push origin main", "gh pr create", "gh pr merge 7", "gh release create v1", "factory approve F-001", "factory push F-001", "factory merge F-001", "factory discard F-001", "factory revert F-001", "factory reject F-001", "factory deploy", "factory sync", "factory release tag"]) expect(text).toMatch(PERSON_ONLY);
+  for (const text of ["git status", "git diff HEAD", "factory add \"x\"", "factory status", "factory vcs", "factory gate", "factory scan", "factory docs save", "factory manager report", "npm test"]) expect(text).not.toMatch(PERSON_ONLY);
+});
+
+test("authority C1: what a conversation is told to run, it is allowed to run, or the gap is written down with a reason", () => {
+  expect(commandsNamed("Run `factory status` and `factory docs save`, then `factory add \"x\"` and `factory skill search ui`, `factory release check`.")).toEqual(["factory status", "factory docs save", "factory add", "factory skill search", "factory release check"]);
+  for (const name of Object.keys(presets)) {
+    const unknown = checkConversations(resolveTeam({ preset: name })).filter((v) => !v.known);
+    expect(unknown.map((v) => `${v.where}: ${v.text}`)).toEqual([]); // a NEW gap: grant the command, change the instruction, or write it down in KNOWN_GAPS
+  }
+  // The list of known gaps is exact: an entry that no longer exists is removed, so the list cannot rot.
+  const present = new Set<string>();
+  for (const name of Object.keys(presets)) for (const v of checkConversations(resolveTeam({ preset: name }))) if (v.known) present.add(v.text);
+  expect(present.size).toBe(Object.keys(KNOWN_GAPS).length);
+  for (const [key, why] of Object.entries(KNOWN_GAPS)) {
+    expect(key).toMatch(/^[A-Z]\d+: /);
+    expect(why.length).toBeGreaterThan(40); // every gap says why it is acceptable for now
+  }
+});
+
+test("authority C1: a new instruction that tells a conversation to run something it may not is caught the moment it is added", () => {
+  const entry = catalog.find((r) => r.id === "G2")!, was = entry.instruction!;
+  try {
+    entry.instruction = `${was}\n\nWhen the person agrees, run \`factory approve F-014\`.`;
+    const found = checkConversations(balanced()).filter((v) => !v.known);
+    expect(found.map((v) => v.text)).toEqual(["G2 tells the conversation to run `factory approve`, which it is not allowed to run"]);
+    entry.instruction = `${was}\n\nRun \`factory gate\` first.`; // granted: no violation
+    expect(checkConversations(balanced()).filter((v) => !v.known)).toEqual([]);
+  } finally { entry.instruction = was; }
+  const k3 = catalog.find((r) => r.id === "F3")!, access = k3.access;
+  try {
+    (k3 as { access: string[] }).access = ["read"]; // the declared access goes: the known gap for F3's configuration access is gone, and a stale entry is noticed by the test above
+    expect(checkConversations(balanced()).some((v) => v.where === "design (F3)" && /declares config access/.test(v.text))).toBe(false);
+  } finally { (k3 as { access: string[] }).access = access; }
+});
+
+test("authority R1, R2: a role file never grants more than its responsibilities need, and never sets its own permissions", () => {
+  const team = balanced();
+  expect(checkRoleFile("reviewer", reviewerFile(), team)).toEqual([]);
+  const wide = checkRoleFile("reviewer", reviewerFile().replace("tools: Read, Grep, Glob, Bash, Skill", "tools: Read, Grep, Glob, Bash, Edit, Write, WebFetch, Skill"), team);
+  expect(wide.map((v) => `${v.rule} ${v.text}`)).toEqual(["R1 reviewer's role file gives it Edit, Write, WebFetch, which none of its responsibilities need: that would let it do more than it is meant to"]);
+  for (const key of ["permissionMode: bypassPermissions", "hooks:\n  PreToolUse: []", "mcpServers: {}", "disallowedTools: Bash"]) {
+    expect(checkRoleFile("reviewer", reviewerFile(`${key}\n`), team).map((v) => v.rule)).toEqual(["R2"]);
+  }
+  // Fewer tools than needed is not an over-grant: it is a capability that cannot work, and is said so.
+  const narrow = checkRoleFile("reviewer", reviewerFile().replace("Read, Grep, Glob, Bash, Skill", "Read, Skill"), team);
+  expect(narrow.map((v) => v.text)).toEqual(["reviewer's role file leaves out Grep, Glob, Bash, which its responsibilities need, so some of its work cannot be done"]);
+  expect(checkRoleFile("builder", renderRole("builder", team), team)).toEqual([]); // the builder's editing is its own
+  expect(checkRoleFile("nobody", reviewerFile(), team)).toEqual([]); // not a role of this team: not this check's to report
+});
+
+test("authority S1: a skill never widens a role", () => {
+  const team = balanced();
+  const check = (front: string, role?: string) => checkSkillFile("demo", skillFile(front), role, team).map((v) => v.text);
+  expect(check("")).toEqual([]);
+  expect(check("allowed-tools: Read Grep Bash(npm test:*) Bash(bun test:*)", "reviewer")).toEqual([]);
+  expect(check("allowed-tools: Write", "reviewer")).toEqual(["the skill demo grants Write, so reviewer could edit files, which only the builder may"]);
+  expect(check("allowed-tools: Edit(src/**) Read", "architect")).toEqual(["the skill demo grants Edit(src/**), so architect could edit files, which only the builder may"]);
+  expect(check("allowed-tools: Write Edit", "builder")).toEqual([]); // the builder edits
+  expect(check("allowed-tools: Write")).toEqual(["the skill demo grants Write, so a conversation could edit files, which only the builder may"]); // a conversation with no role file
+  expect(check("allowed-tools: Bash(git push:*)", "builder")).toEqual(["the skill demo grants Bash(git push:*), which is something only a person may do"]);
+  expect(check("allowed-tools: Bash(gh pr merge:*)", "reviewer")).toHaveLength(1);
+  expect(check("allowed-tools: Bash", "reviewer")).toEqual(["the skill demo grants Bash, which is the shell wholesale"]);
+  expect(check("allowed-tools: Bash(*)", "reviewer")).toHaveLength(1);
+  expect(check("allowed-tools: Bash(factory *)", "reviewer")).toHaveLength(1); // includes approve and push
+  expect(check("allowed-tools: WebFetch", "reviewer")).toEqual(["the skill demo grants WebFetch, but reviewer has no web access"]);
+  expect(check("allowed-tools: WebFetch", "architect")).toEqual([]);
+  expect(check("hooks:\n  PreToolUse: []\n", "reviewer")).toEqual(["the skill demo brings its own hooks, which would run commands outside the factory's guard"]);
+  expect(check("permissionMode: acceptEdits\n", "reviewer")).toEqual(["the skill demo sets its own permissions or connections"]);
+});
+
+test("authority S1: a skill that would widen a role is refused when it is attached, and is not left installed when it was just added", () => {
+  const { dir, cli } = repo();
+  cli("team", "apply");
+  const put = (name: string, front: string) => { mkdirSync(join(dir, ".claude/skills", name), { recursive: true }); writeFileSync(join(dir, ".claude/skills", name, "SKILL.md"), skillFile(front).replace("name: demo", `name: ${name}`)); };
+  put("writer", "allowed-tools: Write\n");
+  put("shell", "allowed-tools: Bash\n");
+  put("quiet", "");
+
+  const reviewerBefore = readFileSync(join(dir, ".claude/agents/reviewer.md"), "utf8");
+  expect(() => setSkill(dir, "attach", "writer", "reviewer")).toThrow(/writer was not attached, because it would give more than the roles are meant to have:\n  - the skill writer grants Write, so reviewer could edit files/);
+  expect(readFileSync(join(dir, ".claude/agents/reviewer.md"), "utf8")).toBe(reviewerBefore); // nothing was written
+  expect(() => setSkill(dir, "attach", "writer", "builder,reviewer")).toThrow(/reviewer could edit files/); // all or nothing
+  expect(readFileSync(join(dir, ".claude/agents/builder.md"), "utf8")).not.toContain("writer");
+  expect(skillProblems(dir, "shell", ["reviewer"])).toEqual(["the skill shell grants Bash, which is the shell wholesale"]);
+  const cmd = cli("skill", "attach", "shell", "--role", "reviewer");
+  expect(cmd.code).toBe(1);
+  expect(cmd.out).toContain("shell was not attached");
+
+  setSkill(dir, "attach", "quiet", "reviewer,builder"); // a skill that widens nothing attaches
+  expect(roleSkills(readFileSync(join(dir, ".claude/agents/reviewer.md"), "utf8"))).toContain("quiet");
+
+  // Added from skills.sh (stood in for by a fake npx): refused, and the folder it brought is removed again.
+  const bin = join(tmp(), "bin");
+  mkdirSync(bin, { recursive: true });
+  writeFileSync(join(bin, "npx"), `#!/bin/sh\nmkdir -p .claude/skills/wide\nprintf -- '---\\nname: wide\\ndescription: Wide.\\nallowed-tools: Bash\\n---\\nx\\n' > .claude/skills/wide/SKILL.md\n`);
+  chmodSync(join(bin, "npx"), 0o755);
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  try {
+    expect(() => addSkill(dir, "owner/repo@wide", "reviewer")).toThrow(/wide was not added, because it would give more than the roles are meant to have/);
+    expect(existsSync(join(dir, ".claude/skills/wide"))).toBe(false);
+    expect(readFileSync(join(dir, ".claude/agents/reviewer.md"), "utf8")).not.toContain("wide");
+    // A skill that was already there is not removed by a refused re-add.
+    put("wide", "allowed-tools: Bash\n");
+    expect(() => addSkill(dir, "owner/repo@wide", "reviewer")).toThrow(/was not added/);
+    expect(existsSync(join(dir, ".claude/skills/wide/SKILL.md"))).toBe(true);
+  } finally { process.env.PATH = path; }
+});
+
+test("authority S1: skills that are already installed are shown as worth a look, not refused, so an update never locks a project out", () => {
+  const { dir, cli } = repo();
+  cli("team", "apply");
+  mkdirSync(join(dir, ".claude/skills/wide"), { recursive: true });
+  writeFileSync(join(dir, ".claude/skills/wide/SKILL.md"), skillFile("allowed-tools: Bash\n").replace("name: demo", "name: wide"));
+  const a = checkAuthority(dir);
+  expect(a.errors).toEqual([]);
+  expect(a.warnings.map((v) => v.text)).toContain("the skill wide grants Bash, which is the shell wholesale");
+  expect(cli("run", "F-001", "--stub").code).toBe(0); // work goes on
+  expect(doctor(dir).lines.some((l) => l.startsWith("–") && l.includes("the skill wide grants Bash"))).toBe(true);
+});
+
+test("authority M1: the manager's limits agree with each other, and a gate never does what only a person may", () => {
+  const limits = (o: Partial<ManagerSettings>) => ({ ...MANAGER_DEFAULTS, ...o });
+  expect(checkLimits(limits({}))).toEqual([]);
+  expect(checkLimits(limits({ perTask: 30, perDay: 25 })).map((v) => v.text)).toEqual(["the limit for one task ($30) is above the day's limit ($25), so the day's limit would never hold"]);
+  expect(checkLimits(limits({}), ["bun test", "git push origin main"]).map((v) => v.text)).toEqual(['the gate runs "git push origin main" after every build, which is something only a person may do']);
+  const { dir, cli } = repo();
+  expect(cli("manager", "set", "perTask", "30").code).toBe(1);
+  expect(cli("manager", "set", "perTask", "30").out).toContain("the limit for one task ($30) is above the day's limit ($25)");
+  expect(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).manager).toBeUndefined(); // nothing was written
+  expect(cli("manager", "set", "perDay", "100").code).toBe(0);
+  expect(cli("manager", "set", "perTask", "30").code).toBe(0);
+  const limitsOf = () => checkAuthority(dir).warnings.filter((v) => v.rule === "M1").map((v) => v.text);
+  expect(limitsOf()).toEqual([]);
+  cli("manager", "set", "parallel", "8");
+  expect(limitsOf()).toEqual(["8 tasks at once at $30 each could spend $240, more than the day's limit of $100"]);
+});
+
+test("authority: a role file edited in Studio, or a skill file, is checked before it is saved", async () => {
+  const { dir, cli } = repo();
+  cli("team", "apply");
+  cli("skill", "attach", "tdd", "--role", "reviewer");
+  const server = await serve(dir, 0);
+  const base = `http://127.0.0.1:${server.port}`;
+  const save = async (path: string, content: string) => { const r = await fetch(`${base}/api/file`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify({ path, content, message: "edit" }) }); return { status: r.status, body: (await r.json()) as { error?: string } }; };
+  try {
+    const reviewer = readFileSync(join(dir, ".claude/agents/reviewer.md"), "utf8");
+    const wide = await save(".claude/agents/reviewer.md", reviewer.replace(/^tools: .*$/m, "tools: Read, Grep, Glob, Bash, Edit, Write, Skill"));
+    expect(wide.status).toBe(400);
+    expect(wide.body.error).toBe("not saved, because it would give the role more than it is meant to have:\n- reviewer's role file gives it Edit, Write, which none of its responsibilities need: that would let it do more than it is meant to");
+    const mode = await save(".claude/agents/reviewer.md", reviewer.replace("---\n", "---\npermissionMode: bypassPermissions\n"));
+    expect(mode.status).toBe(400);
+    expect(mode.body.error).toContain("sets permissionMode");
+    expect(readFileSync(join(dir, ".claude/agents/reviewer.md"), "utf8")).toBe(reviewer); // not saved
+    expect((await save(".claude/agents/reviewer.md", `${reviewer}\nAlso be kind.\n`)).status).toBe(200); // an ordinary edit is saved
+
+    const tdd = readFileSync(join(dir, ".claude/skills/tdd/SKILL.md"), "utf8");
+    const hooks = await save(".claude/skills/tdd/SKILL.md", tdd.replace("---\n", "---\nhooks:\n  PreToolUse: []\n"));
+    expect(hooks.status).toBe(400);
+    expect(hooks.body.error).toBe("not saved, because the skill would give more than the roles are meant to have:\n- the skill tdd brings its own hooks, which would run commands outside the factory's guard");
+    expect((await save(".claude/skills/tdd/SKILL.md", `${tdd}\nMore steps.\n`)).status).toBe(200);
+  } finally { server.stop(); }
+}, 60_000);
+
+test("authority: the project is checked by doctor and the health strip, and nothing is started while a rule is broken", async () => {
+  const { dir, cli, section } = repo();
+  cli("team", "apply");
+  expect(doctor(dir).lines).toContain("✓ the authority rules hold (who may do what)");
+  const file = join(dir, ".claude/agents/reviewer.md");
+  writeFileSync(file, readFileSync(file, "utf8").replace("---\n", "---\npermissionMode: bypassPermissions\n")); // a hand edit outside Studio
+  const lines = doctor(dir).lines;
+  expect(lines.some((l) => l.startsWith("✗ a role has more authority than it is meant to: reviewer's role file sets permissionMode"))).toBe(true);
+  expect(healthChecks(dir, { items: [], last: () => undefined }).find((h) => h.id === "setup")).toMatchObject({ state: "bad" });
+
+  // A run is refused before anything moves, and says what is wrong.
+  const refused = cli("run", "F-001", "--stub");
+  expect(refused.code).toBe(1);
+  expect(refused.out).toContain("not started: the project breaks a rule about who may do what:\n  - reviewer's role file sets permissionMode");
+  expect(section("F-001")).toBe("Ready");
+
+  // The supervisor does not start it either, and says so once.
+  const m = manage({}, [mItem("F-001", "Ready")], undefined, undefined, () => ["reviewer's role file sets permissionMode: a role cannot change its own permissions, hooks or connections"]);
+  await m.tick(); await m.tick();
+  expect(m.launched).toEqual([]);
+  expect(m.decisions()).toEqual(["hold"]);
+  expect((m.store.decisions("")[0]!.data as { text: string }).text).toBe("I did not start anything: the project breaks a rule about who may do what (reviewer's role file sets permissionMode: a role cannot change its own permissions, hooks or connections). Run `factory authority` to see it.");
+  m.stop();
+
+  // Put right, it runs.
+  writeFileSync(file, readFileSync(file, "utf8").replace("permissionMode: bypassPermissions\n", ""));
+  expect(cli("run", "F-001", "--stub").code).toBe(0);
+});
+
+test("authority: factory authority says who may do what, what is wrong, and what is written down", () => {
+  const { dir, cli } = repo();
+  cli("team", "apply");
+  const ok = cli("authority");
+  expect(ok.code).toBe(0);
+  expect(ok.out).toContain("Who may do what");
+  expect(ok.out).toMatch(/Builder \(builder\): edits code in its own task folder/);
+  expect(ok.out).toMatch(/Technical Manager \(technical-manager\): .*starts, retries, guides and stops tasks \(within the limits\), and proposes; never approves, pushes, merges or deploys/);
+  expect(ok.out).toContain("Only a person: approve, push, merge, deploy, discard, revert, and change the configuration.");
+  expect(ok.out).toMatch(/Known gaps \(6\): written down, to be closed \(F-098\)/);
+  expect(ok.out).toContain("The rules hold.");
+  expect(ok.out).not.toMatch(/Reviewer \(reviewer\): .*edits code/); // only the builder edits
+  const file = join(dir, ".claude/agents/builder.md");
+  writeFileSync(file, readFileSync(file, "utf8").replace("---\n", "---\nhooks: {}\n"));
+  const bad = cli("authority");
+  expect(bad.code).toBe(1);
+  expect(bad.out).toMatch(/Problems \(1\): these stop work\n  \[R2\] builder's role file sets hooks/);
+  expect(bad.out).not.toContain("The rules hold.");
+});
+
+test("authority: who may do what is the same table for every preset, down to the roles", () => {
+  const { dir, cli } = repo();
+  for (const preset of Object.keys(presets)) {
+    expect(cli("team", "use", preset).code).toBe(0);
+    cli("team", "apply", "--force");
+    const a = checkAuthority(dir);
+    expect(a.errors.map((v) => v.text)).toEqual([]);
+    const rows = authorityMatrix(dir);
+    expect(rows.filter((r) => r.can.some((c) => c.startsWith("edits code"))).map((r) => r.role)).toEqual([holderOf(resolveTeam({ preset }), "B2")!]);
+    expect(rows.filter((r) => r.can.some((c) => c.includes("never approves"))).map((r) => r.role)).toEqual([holderOf(resolveTeam({ preset }), "M18")!]);
+  }
 });

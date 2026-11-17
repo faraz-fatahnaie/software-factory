@@ -7,7 +7,7 @@ const TIMEOUT_MS = 30 * 60_000;
 
 // Read-only commands any role may run without a prompt. Whether a role has Bash or web
 // tools at all is decided by `tools` in its agent file; this list cannot widen that.
-const ALLOW = ["Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(graphify query:*)", "WebSearch", "WebFetch"];
+export const ALLOW = ["Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(graphify query:*)", "WebSearch", "WebFetch"];
 
 export function claudeArgs(job: Job, gate: string[], skills: string[] = []): string[] {
   // `skills:` in an agent file is not preloaded when the agent runs as the main session

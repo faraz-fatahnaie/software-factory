@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { checkAuthority } from "./authority";
 import { add, dependsOn, FROM_CONVERSATION, move, parse, type Item, type Section } from "./backlog";
 import { claudeRunner } from "./claude";
 import { loadConfig, managerOf, parseConfig, projectTeam } from "./config";
@@ -124,6 +125,9 @@ function repairRoleFiles(): string[] {
 
 async function runItems(config: ReturnType<typeof loadConfig>, runner: Runner, chosen: Item[], resume?: Resume) {
   repairRoleFiles();
+  // Nothing runs in a project that gives a role more than it is meant to have.
+  const { errors } = checkAuthority(root);
+  if (errors.length) throw new Error(`not started: the project breaks a rule about who may do what:\n  - ${errors.map((v) => v.text).join("\n  - ")}\nRun \`factory authority\` for the whole picture.`);
   const store = openEvents();
   // Ctrl-C or a stop from the GUI: end the stages, then let each task settle into Blocked below.
   process.on("SIGINT", stopAll);
@@ -225,6 +229,21 @@ async function main([cmd, ...args]: string[]) {
     } else if (sub) throw new Error("usage: factory manager [autopilot|assist|off | report | set <setting> <value>]");
     if (sub) commitPaths(`manager: ${sub === "set" ? `${key} ${value}` : sub}`, "factory.config.json");
     return console.log(`${AUTONOMY_TEXT[m.autonomy]}.\nAt most ${m.parallel} task${m.parallel === 1 ? "" : "s"} at once · ${m.recoveries} automatic retries per task · up to $${m.perTask} per task and $${m.perDay} per day · a task with no sign of life for ${m.stall} minutes is stopped.`);
+  }
+
+  if (cmd === "authority") {
+    // Who may do what, and whether the rules about it hold.
+    const { authorityMatrix, checkAuthority: check } = await import("./authority");
+    const a = check(root);
+    console.log("Who may do what");
+    for (const r of authorityMatrix(root)) console.log(`  ${r.title} (${r.role}): ${r.can.join("; ") || "talks and advises"}${r.conversations.length ? `  [talks: ${r.conversations.join(", ")}]` : ""}${r.skills.length ? `  [skills: ${r.skills.join(", ")}]` : ""}`);
+    console.log("  Only a person: approve, push, merge, deploy, discard, revert, and change the configuration.");
+    const list = (title: string, vs: { rule: string; where: string; text: string }[]) => { if (vs.length) console.log(`\n${title}\n${vs.map((v) => `  [${v.rule}] ${v.text}`).join("\n")}`); };
+    list(`Problems (${a.errors.length}): these stop work`, a.errors);
+    list(`Worth a look (${a.warnings.length})`, a.warnings);
+    list(`Known gaps (${a.known.length}): written down, to be closed (F-098)`, a.known);
+    if (!a.errors.length) console.log("\nThe rules hold.");
+    return process.exit(a.errors.length ? 1 : 0);
   }
 
   if (cmd === "team") {

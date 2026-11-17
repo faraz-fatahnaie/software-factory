@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { dependsOn, type Item } from "./backlog";
 import { type Autonomy, managerOf, type ManagerSettings, parseConfig } from "./config";
 import type { Store } from "./events";
+import { checkLimits } from "./authority";
 import { followUps, needsTriage } from "./pipeline";
 import { milestones } from "./retro";
 
@@ -89,6 +90,8 @@ export type Ctx = {
   hasSpec: (id: string) => boolean;
   /** Whether this team has someone to triage a loose idea. Without one, an item with no acceptance checks is not started on autopilot. */
   canTriage?: () => boolean;
+  /** What the authority rules say is wrong with this project right now (empty when nothing is): while something is, nothing is started. */
+  authority?: () => string[];
   /** Whether a finished task's work is in the project's main line, so a task that needs it can be built. */
   landed?: (id: string) => boolean;
   /** Changes what the manager may do by itself (the breaker switches autopilot to assist). */
@@ -154,6 +157,10 @@ export function supervisor(ctx: Ctx) {
       decide_("", "pause", `I paused autopilot: the last two runs failed (${[...new Set(recent.map((o) => o.task))].reverse().join(", ")}). Nothing starts or retries by itself now; I only propose. Look at what stopped, then switch autopilot on again from the Manager menu.`);
       return;
     }
+
+    // The authority rules: a project that gives a role more than it is meant to have does not get work started in it, whoever made it so.
+    const broken = ctx.authority?.() ?? [];
+    if (broken.length) { if (once(`authority:${broken.join("|")}`)) decide_("", "hold", `I did not start anything: the project breaks a rule about who may do what (${broken[0]}${broken.length > 1 ? `, and ${broken.length - 1} more` : ""}). Run \`factory authority\` to see it.`); return; }
 
     // Spend and churn: money going out faster than the day's limit allows, or too many automatic recoveries in an hour, mean it is looping even if no single run looks wrong.
     const hourAgo = new Date(now - 3_600_000).toISOString(), window = pausedAt > hourAgo ? pausedAt : hourAgo;
@@ -268,6 +275,8 @@ export function writeManager(root: string, patch: ManagerSettings): Required<Man
   const raw = JSON.parse(readFileSync(file, "utf8"));
   raw.manager = { ...raw.manager, ...patch };
   const next = parseConfig(raw); // throws, in plain words, when a value is out of range
+  const bad = checkLimits(managerOf(next)).filter((v) => v.rule === "M1");
+  if (bad.length) throw new Error(bad.map((v) => v.text).join("; "));
   writeFileSync(file, `${JSON.stringify({ ...raw, manager: next.manager }, null, 2)}\n`);
   return managerOf(next);
 }

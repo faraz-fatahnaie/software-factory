@@ -99,6 +99,8 @@ export const DEFAULT_TEAM: Preset = resolveTeam();
 
 // Responsibilities that may not share a role with the builder's: whoever reviews must not be the author.
 const REVIEWING = ["C1", "S1", "S4", "S5", "Q2"];
+// What judges a task as it is built (the review and the security gate): the manager, who starts, retries and guides tasks, must not be the one who judges them.
+const JUDGING = ["C1", "S1", "S5", "Q2"];
 // The pipeline cannot run without these.
 const REQUIRED = ["B1", "B2", "C1"];
 // Parts of one pass of work: they run in one stage, so one role holds all of the ones that are switched on.
@@ -126,6 +128,25 @@ export function validateTeam(team: Preset): string[] {
     if (role.holds.includes("B2") && role.holds.some((id) => REVIEWING.includes(id)))
       errs.push(`${name} holds B2 and also ${role.holds.filter((id) => REVIEWING.includes(id)).join(", ")}: the author cannot review their own work`);
   for (const id of team.scripts) if (index.get(id) && !index.get(id)!.how.startsWith("script")) errs.push(`${id} is not a script responsibility`);
+  // The authority rules that follow from who holds what (the others are in authority.ts, which also reads files and allow lists).
+  for (const [name, role] of Object.entries(team.roles)) {
+    // T1: only the builder edits source.
+    if (toolsFor(role.holds, team).some((t) => t === "Edit" || t === "Write") && !role.holds.includes("B2"))
+      errs.push(`${name} would be able to edit files, but only the role that holds B2 (the builder) may: ${role.holds.filter((id) => isHeadless(id, team) && index.get(id)?.access.includes("write")).join(", ")} gives it write access`);
+    // T2: the manager starts, retries and guides work, so she cannot also build or judge it.
+    if (role.holds.includes("M18") && role.holds.some((id) => id === "B2" || JUDGING.includes(id)))
+      errs.push(`${name} holds M18 (the manager) and also ${role.holds.filter((id) => id === "B2" || JUDGING.includes(id)).join(", ")}: whoever starts, retries and guides work cannot also build or judge it`);
+    // T3: nothing unattended reaches outside the project, changes governance files or changes configuration.
+    for (const id of role.holds) {
+      const r = index.get(id);
+      if (r && isHeadless(id, team) && r.access.some((a) => ["outward", "governance", "config"].includes(a)))
+        errs.push(`${id} would run unattended in ${name} with ${r.access.filter((a) => ["outward", "governance", "config"].includes(a)).join(" and ")} access: only a conversation with the person in it may`);
+    }
+  }
+  for (const id of team.scripts) {
+    const r = index.get(id);
+    if (r && r.access.some((a) => ["outward", "governance", "config"].includes(a))) errs.push(`${id} is a script with ${r.access.join(" and ")} access: nothing that runs by itself may`);
+  }
   for (const group of TOGETHER) {
     const holders = new Set(group.map((id) => holderOf(team, id)).filter(Boolean));
     if (holders.size > 1) errs.push(`${group.join(", ")} must be held by one role, because they run as one stage; they are split across ${[...holders].join(" and ")}`);

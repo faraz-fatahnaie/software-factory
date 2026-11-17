@@ -4,13 +4,14 @@ import { parse } from "./backlog";
 import { chatArgs, chatTurn, managerTurn, resumeChat, stopChat, TOPICS, compactTurn, managerPrompt } from "./chat";
 import { loadConfig, managerOf, parseConfig, projectRoles, projectTeam } from "./config";
 import { parseProposal, type Context } from "./state";
+import { checkAuthority, checkRoleFile } from "./authority";
 import { commandsFor, projectCommands } from "./commands";
 import { appendChat, clearChat, importChat, markActed, markCompacted, readChat, replyMsg } from "./chatlog";
 import { allEvents, report } from "./retro";
 import { supervisor, writeManager } from "./supervisor";
 import { openStore } from "./events";
 import { healthChecks, type Health } from "./health";
-import { parseFind, roleSkills, SKILLS_CLI } from "./skills";
+import { parseFind, roleSkills, SKILLS_CLI, skillProblems } from "./skills";
 import { chatPromptFor, holderOf, stageRole } from "./team";
 import { changeTeam, parseChanges, planTeam, presetList, teamView } from "./teamctl";
 import { commitDetail, fileDiff, graphInfo, sourceInfo } from "./source";
@@ -144,6 +145,7 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
     retro: (name) => model("", `The milestone "${name}" is done. Hold a short retrospective from these facts, counted from the project's log:\n\n${report(items(), allEvents(store))}\n\nSay in plain words, in under 150 words: what went well, what kept going wrong and its likely cause, and whether one role fails or costs far more than the others. Only say what the facts show; with too little history, say so in one sentence. If a change to the project's rules, a role's notes or a skill would prevent a recurring cause, end with a "## Follow-ups" heading and at most three lines starting with "- ", each one a backlog item title a person could approve. Do not add them yourself.`),
     explain: (id, error) => model(id, `Task ${id} stopped with this error:\n${error.slice(0, 1500)}\n\nThe spec:\n${(store.output(id, "spec") ?? "(none)").slice(0, 2000)}\n\nThe reviewer's last findings:\n${(store.output(id, "review") ?? "(none)").slice(0, 2000)}\n\nSay in plain words, in under 100 words, what happened, why, and what the person should do. Reply with that explanation only.`),
     landed: (id) => isLanded(root, id),
+    authority: () => checkAuthority(root).errors.map((v) => v.text),
     setAutonomy: (autonomy) => { try { writeManager(root, { autonomy }); } catch { /* the decision in the log still says what happened */ } },
     // What she needs is handed to her from the log: the run folders live inside the task's worktree, where she cannot read, and asking her to look produced an apology that was then sent to the Builder.
     guide: (id, error) => model(id, `Task ${id} keeps failing: the build does not pass the checks or the review, or it changed nothing. The last error:\n${error.slice(0, 1500)}\n\nThe spec:\n${(store.output(id, "spec") ?? "(none)").slice(0, 2500)}\n\nThe Builder's last summary:\n${(store.output(id, "build") ?? "(none)").slice(0, 1500)}\n\nThe reviewer's last findings:\n${(store.output(id, "review") ?? "(none)").slice(0, 2500)}\n\nWrite guidance for the Builder from this alone: what keeps going wrong and what to change, in under 120 words, no code. Do not say you could not read anything. If the findings are something no change by the Builder can fix, reply with exactly: NONE`),
@@ -305,6 +307,17 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         // A role file with broken frontmatter fails only when a run reaches it, so catch it here.
         if (path.startsWith(".claude/agents/") && !/^---\n[\s\S]*?^name: \S+[\s\S]*?\n---\n/m.test(content))
           return json({ error: "a role file must start with frontmatter (--- … ---) that has a name" }, 400);
+        // What a role file or a skill file grants is checked before it is saved: a person's edit may not give a role more than it is meant to have.
+        const roleFile = /^\.claude\/agents\/([\w-]+)\.md$/.exec(path), skillFile = /^\.claude\/skills\/([\w-]+)\/SKILL\.md$/.exec(path);
+        if (roleFile) {
+          const bad = checkRoleFile(roleFile[1]!, content, projectTeam(root)).filter((v) => !/leaves out/.test(v.text));
+          if (bad.length) return json({ error: `not saved, because it would give the role more than it is meant to have:\n- ${bad.map((v) => v.text).join("\n- ")}` }, 400);
+        }
+        if (skillFile) {
+          const users = projectRoles(root).filter((r) => { try { return roleSkills(readFileSync(join(root, ".claude", "agents", `${r}.md`), "utf8")).includes(skillFile[1]!); } catch { return false; } });
+          const bad = skillProblems(root, skillFile[1]!, users, content);
+          if (bad.length) return json({ error: `not saved, because the skill would give more than the roles are meant to have:\n- ${bad.join("\n- ")}` }, 400);
+        }
         // The commit message is the person's to write; a short sentence on one line, and an optional reason below it.
         const subject = typeof body.message === "string" && body.message.trim() ? body.message.trim() : `studio: edit ${path}`;
         const why = typeof body.why === "string" ? body.why.trim() : "";

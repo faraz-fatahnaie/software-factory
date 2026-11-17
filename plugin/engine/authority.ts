@@ -1,0 +1,212 @@
+// The authority model: who may do what, written as rules that are checked, not as intentions.
+//
+// What a role can do is the sum of several things that were written at different times by different people: the responsibilities it holds
+// (the catalog), the tools in its role file, the skills attached to it, what its conversation is allowed to run, and what the supervisor
+// does for it with no model at all. Each is sensible alone; together they can contradict. This file is the one place where they are compared.
+//
+// The rules (each is a function below, and each has a test):
+//   T1  Only the builder edits source: a role whose tools include Edit or Write must hold B2.            (validateTeam, team.ts)
+//   T2  The manager starts, retries and guides work, so she cannot also build or judge it.                (validateTeam, team.ts)
+//   T3  Nothing unattended may reach outside the project, change governance files or change configuration. (validateTeam, team.ts)
+//   G1  Nobody is granted what only a person may do: approve, push, merge, deploy, discard, revert.
+//   G2  Only the builder may write code; conversations write documents only; the manager and the guide write nothing.
+//   R1  A role file never grants more than the role's responsibilities need (it may grant less: then a capability cannot work).
+//   R2  A role file never sets its own permission mode, hooks or MCP servers.
+//   S1  A skill attached to a role never widens it: no edits for anyone but the builder, no shell wholesale, nothing only a person may do, no hooks.
+//   C1  Everything a conversation is told to run, it is allowed to run, or the gap is written down here with a reason (the ratchet: a new gap fails).
+//   M1  The manager's limits agree with each other (a task's limit is not above the day's).
+//
+// Checked: when the team changes (every path goes through validateTeam), when a skill is installed or attached, when a role or skill file is saved
+// in Studio, when the project is checked (`factory doctor`, the health strip), before a task runs, and before the supervisor starts one.
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { ALLOW as TASK_ALLOW } from "./claude";
+import { ALLOW as CHAT_ALLOW, GUIDE_ALLOW, MANAGER_ALLOW, TOPICS } from "./chat";
+import { loadConfig, managerOf, projectTeam, type ManagerSettings } from "./config";
+import { roleSkills } from "./skills";
+import { activeRoles, catalog, holderOf, isBuilt, toolsFor, type Preset } from "./team";
+
+export type Violation = { rule: string; where: string; text: string; /** Written down as a known gap (see KNOWN_GAPS): it does not fail the checks, a new one does. */ known?: boolean };
+
+/** What only a person may do. No allow list, role file, skill or script may grant any of it. */
+export const PERSON_ONLY = /\bgit\s+push\b|\bgh\s+pr\b|\bgh\s+release\b|\bfactory\s+(push|merge|approve|discard|revert|reject|deploy|sync)\b|\bfactory\s+release\s+tag\b|\bdeploy\b/i;
+const WIDE_SHELL = /^Bash(\(\s*(\*|[a-z]+\s+\*|[a-z]+:\*)?\s*\))?$/;
+const EDITS = ["Edit", "Write", "NotebookEdit"];
+
+/** Frontmatter of a markdown file as plain text lines, or "" when there is none. */
+const frontOf = (md: string) => md.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? "";
+const field = (md: string, key: string) => new RegExp(`^${key}:[ \\t]*(.*)$`, "im").exec(frontOf(md))?.[1]?.trim();
+/** `Read, Grep, Bash` (a role file) or `Bash(factory *) WebSearch` (a skill): the tools named, each with its scope in brackets. */
+export const toolTokens = (text: string) => text.match(/[A-Za-z_]+(?:\([^)]*\))?/g) ?? [];
+const toolName = (token: string) => token.replace(/\(.*$/, "");
+
+// ---------------------------------------------------------------------------------------------------------------- G1, G2: what conversations and agents are granted
+
+/** The lists of what each kind of session may run, by name, so the rules can read them. */
+// A function, not a constant: these modules import each other (skills.ts uses the checks), so the lists are read when asked for, not when the file loads.
+export const grants = () => ({ task: TASK_ALLOW, conversation: CHAT_ALLOW, manager: MANAGER_ALLOW, guide: GUIDE_ALLOW });
+
+export function checkGrants(): Violation[] {
+  const out: Violation[] = [];
+  for (const [who, list] of Object.entries(grants())) {
+    for (const entry of list) {
+      if (PERSON_ONLY.test(entry)) out.push({ rule: "G1", where: who, text: `${who} sessions are allowed "${entry}", which only a person may do` });
+      if (WIDE_SHELL.test(entry)) out.push({ rule: "G1", where: who, text: `${who} sessions are allowed "${entry}", which is the shell wholesale` });
+      const edits = EDITS.includes(toolName(entry));
+      if (edits && who !== "conversation") out.push({ rule: "G2", where: who, text: `${who} sessions are allowed "${entry}", but only conversations write, and only documents` });
+      if (edits && who === "conversation" && !/^(Write|Edit)\((docs\/\*\*|README\.md|CHANGELOG\.md)\)$/.test(entry)) out.push({ rule: "G2", where: who, text: `conversations may write documents only, but are allowed "${entry}"` });
+    }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------------------------------------------- C1: told to run, and allowed to run
+
+/**
+ * Gaps that exist today between what a conversation is told to run and what it may run: the instruction names a `factory` command, and the dashboard's
+ * conversation is not allowed that command (in a person's own terminal session it may be). They are listed so that a NEW gap is an error that has
+ * to be decided on: grant the command, change the instruction, or add it here with a reason. F-098 in BACKLOG.md is to close the ones listed.
+ */
+export const KNOWN_GAPS: Record<string, string> = {
+  "M17: factory team": "M17 tells the person where to change the team (`factory team` has subcommands that rewrite the configuration, so the conversation may not run it); she only names it",
+  "X1: factory team": "X1 names `factory team` for the person to run: it rewrites the configuration, so the conversation may not",
+  "X1: factory skill add": "installing a skill brings in third-party instructions: the person confirms it in Studio, or runs the command in their own terminal",
+  "P2: factory promote": "the plan conversation names promote for the person to press; moving items to Ready is the person's word (or a proposal the manager carries out)",
+  "F3: factory configure": "setting the gate changes what the orchestrator runs on every task, so a dashboard conversation may not do it; it should propose the command for the person to run",
+  "K3: AGENTS.md": "K3 is told to apply changes to AGENTS.md, which the guard forbids to every agent; it should write a proposal under docs/ for the person to apply in Studio",
+};
+
+/** `factory <command>` as an instruction names it, one entry per different command, without its arguments. */
+export function commandsNamed(instruction: string): string[] {
+  const found = new Set<string>();
+  for (const m of instruction.matchAll(/`factory ([a-z]+(?: (?:save|report|check|info|tag|add|search|auto-merge|auto-push|ci))?)/g)) found.add(`factory ${m[1]}`);
+  return [...found];
+}
+const allowsCommand = (list: string[], command: string) => list.some((e) => {
+  const c = e.replace(/^Bash\(/, "").replace(/\)$/, "").replace(/:\*$/, "");
+  return e.startsWith("Bash(") && (command === c || command.startsWith(`${c} `));
+});
+
+export function checkConversations(team: Preset): Violation[] {
+  const found = new Map<string, Violation>();
+  for (const [topic, t] of Object.entries(TOPICS)) {
+    const allowed = t.guide ? grants().guide : t.manager ? grants().manager : grants().conversation;
+    for (const id of t.ids) {
+      const r = catalog.find((x) => x.id === id);
+      if (!r || !isBuilt(id, team) || !r.instruction) continue;
+      const add = (key: string, text: string) => found.set(key, { rule: "C1", where: `${topic} (${id})`, text, known: key in KNOWN_GAPS });
+      for (const c of commandsNamed(r.instruction).filter((c) => !allowsCommand(allowed, c))) add(`${id}: ${c}`, `${id} tells the conversation to run \`${c}\`, which it is not allowed to run`);
+      // A responsibility that declares access to governance or configuration, but whose conversation can reach neither, cannot do what it declares.
+      for (const a of r.access) if (a === "governance" || a === "config") add(`${id}: ${a === "governance" ? "AGENTS.md" : "factory configure"}`, `${id} declares ${a} access, which no conversation has (the guard and the allow list keep it out)`);
+    }
+  }
+  return [...found.values()];
+}
+
+// ---------------------------------------------------------------------------------------------------------------- R1, R2: role files
+
+export function checkRoleFile(role: string, md: string, team: Preset): Violation[] {
+  const out: Violation[] = [];
+  const holds = team.roles[role]?.holds;
+  if (!holds) return out;
+  const allowed = new Set(toolsFor(holds, team)), given = toolTokens(field(md, "tools") ?? "").map(toolName);
+  const extra = given.filter((t) => !allowed.has(t) && t !== "Skill");
+  if (extra.length) out.push({ rule: "R1", where: role, text: `${role}'s role file gives it ${extra.join(", ")}, which none of its responsibilities need: that would let it do more than it is meant to` });
+  const missing = [...allowed].filter((t) => !given.includes(t));
+  if (given.length && missing.length) out.push({ rule: "R1", where: role, text: `${role}'s role file leaves out ${missing.join(", ")}, which its responsibilities need, so some of its work cannot be done`, known: false });
+  for (const key of ["permissionMode", "hooks", "mcpServers", "disallowedTools", "tools-allow"]) {
+    if (new RegExp(`^${key}:`, "im").test(frontOf(md))) out.push({ rule: "R2", where: role, text: `${role}'s role file sets ${key}: a role cannot change its own permissions, hooks or connections` });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------------------------------------------- S1: skills
+
+/** What a skill's own settings would add, for one role (or, with no role, for a conversation that has none). Empty when it widens nothing. */
+export function checkSkillFile(skill: string, md: string, role: string | undefined, team: Preset): Violation[] {
+  const out: Violation[] = [], where = role ? `${skill} on ${role}` : skill;
+  const front = frontOf(md);
+  const tokens = toolTokens(field(md, "allowed-tools") ?? "");
+  const builder = !!role && !!team.roles[role]?.holds.includes("B2");
+  const web = !!role && toolsFor(team.roles[role]?.holds ?? [], team).includes("WebFetch");
+  for (const t of tokens) {
+    if (EDITS.includes(toolName(t)) && !builder) out.push({ rule: "S1", where, text: `the skill ${skill} grants ${t}, so ${role ?? "a conversation"} could edit files, which only the builder may` });
+    if (toolName(t) === "Bash" && (PERSON_ONLY.test(t) || WIDE_SHELL.test(t))) out.push({ rule: "S1", where, text: `the skill ${skill} grants ${t}, which ${PERSON_ONLY.test(t) ? "is something only a person may do" : "is the shell wholesale"}` });
+    if (["WebFetch", "WebSearch"].includes(toolName(t)) && role && !web) out.push({ rule: "S1", where, text: `the skill ${skill} grants ${t}, but ${role} has no web access` });
+  }
+  if (/^hooks:/im.test(front)) out.push({ rule: "S1", where, text: `the skill ${skill} brings its own hooks, which would run commands outside the factory's guard` });
+  if (/^(permissionMode|mcpServers):/im.test(front)) out.push({ rule: "S1", where, text: `the skill ${skill} sets its own permissions or connections` });
+  return out;
+}
+
+/** Every attached skill against its role, and every installed skill against a conversation that has no role file to hold it back. */
+export function checkSkills(dir: string, team: Preset): Violation[] {
+  const out: Violation[] = [];
+  const base = join(dir, ".claude", "skills");
+  const read = (skill: string) => { try { return readFileSync(join(base, skill, "SKILL.md"), "utf8"); } catch { return ""; } };
+  const installed = existsSync(base) ? readdirSync(base).filter((d) => existsSync(join(base, d, "SKILL.md"))) : [];
+  const attachedTo = new Map<string, string[]>();
+  for (const role of activeRoles(team)) {
+    let md = "";
+    try { md = readFileSync(join(dir, ".claude", "agents", `${role}.md`), "utf8"); } catch { continue; }
+    for (const s of roleSkills(md)) attachedTo.set(s, [...(attachedTo.get(s) ?? []), role]);
+  }
+  for (const skill of installed) {
+    const md = read(skill);
+    for (const role of attachedTo.get(skill) ?? []) out.push(...checkSkillFile(skill, md, role, team));
+    // Whoever has no role file (the roles that only talk) is offered every skill, so each one is held to what a conversation may do.
+    out.push(...checkSkillFile(skill, md, undefined, team).filter((v) => !out.some((o) => o.text === v.text)));
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------------------------------------------- M1: the manager's limits
+
+export function checkLimits(m: Required<ManagerSettings>, gate: string[] = []): Violation[] {
+  const out: Violation[] = [];
+  if (m.perTask > m.perDay) out.push({ rule: "M1", where: "manager", text: `the limit for one task ($${m.perTask}) is above the day's limit ($${m.perDay}), so the day's limit would never hold` });
+  for (const g of gate) if (PERSON_ONLY.test(g)) out.push({ rule: "M1", where: "gate", text: `the gate runs "${g}" after every build, which is something only a person may do` });
+  return out;
+}
+
+// ---------------------------------------------------------------------------------------------------------------- everything
+
+export type Authority = { errors: Violation[]; warnings: Violation[]; known: Violation[] };
+
+/** Every rule, for one project. Errors stop work (a task is not started, a skill is not installed); warnings are worth a look; known gaps are listed, not failed. */
+export function checkAuthority(dir: string): Authority {
+  const errors: Violation[] = [], warnings: Violation[] = [], known: Violation[] = [];
+  const put = (v: Violation, soft = false) => (v.known ? known : soft ? warnings : errors).push(v);
+  const team = projectTeam(dir);
+  for (const v of checkGrants()) put(v);
+  for (const v of checkConversations(team)) put(v, true); // they are about what the factory itself ships: shown, and failed in the tests, but they do not stop a person's work
+  for (const role of activeRoles(team)) {
+    let md = "";
+    try { md = readFileSync(join(dir, ".claude", "agents", `${role}.md`), "utf8"); } catch { continue; } // a missing file is the setup check's to report
+    for (const v of checkRoleFile(role, md, team)) put(v, /leaves out/.test(v.text));
+  }
+  for (const v of checkSkills(dir, team)) put(v, true); // a skill that is already installed is shown, not refused: refusing is for adding one (see skills.ts)
+  try { const c = loadConfig(dir); for (const v of checkLimits(managerOf(c), c.gate)) put(v, true); } catch { /* the setup check reports an unreadable config */ }
+  const m = (() => { try { return managerOf(loadConfig(dir)); } catch { return undefined; } })();
+  if (m && m.parallel * m.perTask > m.perDay) warnings.push({ rule: "M1", where: "manager", text: `${m.parallel} tasks at once at $${m.perTask} each could spend $${m.parallel * m.perTask}, more than the day's limit of $${m.perDay}` });
+  return { errors, warnings, known };
+}
+
+/** Who may do what in this project, in a line each: the answer to "can this person do that?". */
+export function authorityMatrix(dir: string): { role: string; title: string; can: string[]; skills: string[]; conversations: string[] }[] {
+  const team = projectTeam(dir);
+  return Object.entries(team.roles).map(([role, r]) => {
+    const tools = new Set(toolsFor(r.holds, team));
+    let skills: string[] = [];
+    try { skills = roleSkills(readFileSync(join(dir, ".claude", "agents", `${role}.md`), "utf8")); } catch { /* no role file */ }
+    const can = [
+      ...(r.holds.includes("B2") ? ["edits code in its own task folder"] : tools.size && activeRoles(team).includes(role) ? ["reads the project and runs the checks"] : []),
+      ...(tools.has("WebFetch") ? ["searches the web"] : []),
+      ...(r.holds.includes("M18") ? ["starts, retries, guides and stops tasks (within the limits), and proposes; never approves, pushes, merges or deploys"] : []),
+      ...(r.holds.some((id) => Object.values(TOPICS).some((t) => t.ids.includes(id) && !t.manager && !t.guide)) ? ["writes documents in conversation"] : []),
+    ];
+    const conversations = Object.entries(TOPICS).filter(([, t]) => t.ids.some((id) => r.holds.includes(id))).map(([k]) => k);
+    return { role, title: r.title, can, skills, conversations };
+  });
+}
+export { holderOf };
