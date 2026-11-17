@@ -3,6 +3,15 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
+## Unreleased
+
+- **Nobody is told to do what it cannot.** The authority rules now also check the other direction: everything a role's
+  instruction tells it to run through git, gh, graphify or the factory is something it may run (or is named for you to run),
+  every button a role is taught to ask for exists on the page, and `factory authority` shows which role proposes which
+  (`[proposes, you press: …]`). The read-only git the instructions already asked for (`git describe`, `show`, `rev-parse`,
+  `ls-files`, `grep`, `blame`, `shortlog`) is now allowed to stages and conversations. The Release Engineer's and the
+  Technical Manager's descriptions say what they really do: explain and propose, you press.
+
 ## 1.2.1
 
 A fix release. **Update, then run `/software-factory:open`: it now stops this project's older dashboard (on any

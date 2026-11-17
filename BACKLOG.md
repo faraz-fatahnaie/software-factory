@@ -4,6 +4,7 @@ The factory's intake queue. `factory run` takes the top item under Ready.
 Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
+- [ ] F-106 (P2) The terminal skills: check that what each skill's `allowed-tools` grants covers what its responsibility tells the agent to run (G1, L1, L3 to L5, O2 run only in the person's own session today, so a missing permission is a prompt, not a dead end)
 - [ ] F-101 (P1) Run every release against a copy of a real, evolving project (the card game's), read-only, before it is published: config, backlog, branches, every route
 - [ ] F-102 (P2) A Release Engineer that explains and resolves what `factory integrate` finds: a conversation that walks the person through the order and offers each update as a button
 - [ ] F-099 (P3) A "who may do what" panel in the Team view, from the same table as `factory authority`
@@ -193,3 +194,5 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   git and gh write commands and every person-only factory command are denied to all factory sessions whatever a settings file allows; broad allows in .claude/settings.json are shown.
 - [x] F-105 (P1) Old projects never fail a configuration change
   withRoleDefaults/readConfig; upgrade tests run every config-changing command and route against configs from each earlier release.
+- [x] F-107 (P1) Needs: every duty has a route
+  Commands named by stages and conversations must be runnable or declared as proposed for the person; every PROPOSE kind has a button; roles are described as what they do; read-only git granted.

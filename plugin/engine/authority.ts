@@ -102,13 +102,20 @@ export function checkGrants(): Violation[] {
  */
 export const KNOWN_GAPS: Record<string, string> = {};
 
-/** `factory <command>` as an instruction names it, one entry per different command: the first word, and a second when it is a plain word (`factory docs save`, `factory team use`), never an argument. */
+/** The programs an agent runs through the shell that the permission lists are about: the factory's own command, git, gh and graphify. */
+const PROGRAMS = ["factory", "git", "gh", "graphify"];
+/**
+ * `factory <command>`, `git <command>`... as an instruction names it, one entry per different command: the program and its first word, and a second when it is a plain word
+ * (`factory docs save`, `factory team use`, `git describe`), never an argument or an option.
+ */
 export function commandsNamed(instruction: string): string[] {
   const found = new Set<string>();
-  for (const m of instruction.matchAll(/`factory ([^`]*)`/g)) {
-    const words = m[1]!.trim().split(/\s+/);
+  for (const m of instruction.matchAll(new RegExp(`\`(${PROGRAMS.join("|")}) ([^\`]*)\``, "g"))) {
+    const words = m[2]!.trim().split(/\s+/);
     if (!/^[a-z][a-z-]*$/.test(words[0] ?? "")) continue;
-    found.add(`factory ${words[0]}${words[1] && /^[a-z][a-z-]*$/.test(words[1]) ? ` ${words[1]}` : ""}`);
+    // git and graphify take one word (what follows is a branch or an argument); gh and the factory take two (`gh pr merge`, `factory docs save`).
+    const two = (m[1] === "gh" || m[1] === "factory") && words[1] && /^[a-z][a-z-]*$/.test(words[1]);
+    found.add(`${m[1]} ${words[0]}${two ? ` ${words[1]}` : ""}`);
   }
   return [...found];
 }
@@ -127,12 +134,32 @@ export function checkConversations(team: Preset): Violation[] {
       const r = catalog.find((x) => x.id === id);
       if (!r || !isBuilt(id, team) || !r.instruction) continue;
       const add = (key: string, text: string) => found.set(key, { rule: "C1", where: `${topic} (${id})`, text, known: key in KNOWN_GAPS });
-      for (const c of commandsNamed(r.instruction).filter((c) => !allowsCommand(allowed, c) && !(r.proposes ?? []).includes(c))) add(`${id}: ${c}`, `${id} tells the conversation to run \`${c}\`, which it is not allowed to run`);
+      for (const c of commandsNamed(r.instruction).filter((c) => !allowsCommand(allowed, c) && !(r.proposes ?? []).some((p) => c === p || c.startsWith(`${p} `)))) add(`${id}: ${c}`, `${id} tells the conversation to run \`${c}\`, which it is not allowed to run`);
       // A responsibility that declares access to governance or configuration, but whose conversation can reach neither, cannot do what it declares.
       for (const a of r.access) if (a === "governance" || a === "config") add(`${id}: ${a === "governance" ? "AGENTS.md" : "factory configure"}`, `${id} declares ${a} access, which no conversation has (the guard and the allow list keep it out)`);
     }
   }
   return [...found.values()];
+}
+
+/**
+ * N1, the other half of C1 for the unattended stages: whatever a stage's instruction tells the agent to run through git, gh, graphify or the factory, the stage may run
+ * (`TASK_ALLOW`), or the responsibility declares it as `proposes` (named for someone else to run). A duty with no way to do it is a dead end the agent only finds when it tries.
+ */
+export function checkStages(team: Preset): Violation[] {
+  const out: Violation[] = [];
+  for (const r of catalog) {
+    if (!r.instruction || !isBuilt(r.id, team) || !r.how.startsWith("headless") || Object.values(TOPICS).some((t) => t.ids.includes(r.id))) continue;
+    for (const c of commandsNamed(r.instruction)) if (!allowsCommand(grants().task, c) && !(r.proposes ?? []).some((p) => c === p || c.startsWith(`${p} `))) out.push({ rule: "N1", where: `stage (${r.id})`, text: `${r.id} tells the agent to run \`${c}\`, which a stage is not allowed to run`, known: `${r.id}: ${c}` in KNOWN_GAPS });
+  }
+  return out;
+}
+
+/** What each role may ask for with a button, from the `PROPOSE:` lines its responsibilities' instructions teach: the person presses, and it is done. */
+export function proposalsOf(holds: string[]): string[] {
+  const kinds = new Set<string>();
+  for (const id of holds) for (const m of (catalog.find((r) => r.id === id)?.instruction ?? "").matchAll(/`PROPOSE: ([a-z]+)/g)) kinds.add(m[1]!);
+  return [...kinds];
 }
 
 // ---------------------------------------------------------------------------------------------------------------- R1, R2: role files
@@ -211,7 +238,7 @@ export function checkAuthority(dir: string): Authority {
   const put = (v: Violation, soft = false) => (v.known ? known : soft ? warnings : errors).push(v);
   const team = projectTeam(dir);
   for (const v of checkGrants()) put(v);
-  for (const v of checkConversations(team)) put(v, true); // they are about what the factory itself ships: shown, and failed in the tests, but they do not stop a person's work
+  for (const v of [...checkConversations(team), ...checkStages(team)]) put(v, true); // they are about what the factory itself ships: shown, and failed in the tests, but they do not stop a person's work
   for (const role of activeRoles(team)) {
     let md = "";
     try { md = readFileSync(join(dir, ".claude", "agents", `${role}.md`), "utf8"); } catch { continue; } // a missing file is the setup check's to report
@@ -226,7 +253,7 @@ export function checkAuthority(dir: string): Authority {
 }
 
 /** Who may do what in this project, in a line each: the answer to "can this person do that?". */
-export function authorityMatrix(dir: string): { role: string; title: string; can: string[]; skills: string[]; conversations: string[] }[] {
+export function authorityMatrix(dir: string): { role: string; title: string; can: string[]; proposes: string[]; skills: string[]; conversations: string[] }[] {
   const team = projectTeam(dir);
   return Object.entries(team.roles).map(([role, r]) => {
     const tools = new Set(toolsFor(r.holds, team));
@@ -239,7 +266,7 @@ export function authorityMatrix(dir: string): { role: string; title: string; can
       ...(r.holds.some((id) => Object.values(TOPICS).some((t) => t.ids.includes(id) && !t.manager && !t.guide)) ? ["writes documents in conversation"] : []),
     ];
     const conversations = Object.entries(TOPICS).filter(([, t]) => t.ids.some((id) => r.holds.includes(id))).map(([k]) => k);
-    return { role, title: r.title, can, skills, conversations };
+    return { role, title: r.title, can, proposes: proposalsOf(r.holds), skills, conversations };
   });
 }
 export { holderOf };

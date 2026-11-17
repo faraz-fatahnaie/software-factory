@@ -34,7 +34,7 @@
       },
       "technical-manager": {
         "title": "Technical Manager",
-        "description": "The face of the team: you talk to this role, and it asks the others and answers for them. It also triages the Inbox, starts and watches tasks, explains what stopped and chooses the fix.",
+        "description": "The face of the team: you talk to this role, and it asks the others and answers for them. It also triages the Inbox, starts, watches, retries and guides tasks within the limits you set, explains what stopped and proposes the fix as a button; it never approves, pushes, merges or deploys.",
         "holds": [
           "P4",
           "M1",
@@ -144,7 +144,7 @@
       },
       "release-engineer": {
         "title": "Release Engineer",
-        "description": "Looks after git and GitHub, prepares releases and deployment, and pushes, merges or deploys only when asked.",
+        "description": "Explains what is waiting to reach main and in what order to merge it, prepares releases and deployment, and proposes pushes, merges and updates as buttons: you press them, and nothing is pushed, merged or deployed without you.",
         "holds": [
           "L2",
           "L3",
@@ -292,7 +292,7 @@
       },
       "release-engineer": {
         "title": "Release Engineer",
-        "description": "Looks after git and GitHub, prepares releases and deployment, audits before a release, and pushes, merges or deploys only when asked.",
+        "description": "Explains what is waiting to reach main and in what order to merge it, prepares releases and deployment, audits before a release, and proposes pushes, merges and updates as buttons: you press them, and nothing is pushed, merged or deployed without you.",
         "holds": [
           "L2",
           "L3",
@@ -382,7 +382,7 @@
       },
       "technical-manager": {
         "title": "Technical Manager",
-        "description": "The face of the team: you talk to this role, and it asks the others and answers for them. It also triages the Inbox, starts and watches tasks, explains what stopped and chooses the fix.",
+        "description": "The face of the team: you talk to this role, and it asks the others and answers for them. It also triages the Inbox, starts, watches, retries and guides tasks within the limits you set, explains what stopped and proposes the fix as a button; it never approves, pushes, merges or deploys.",
         "holds": [
           "P4",
           "M1",
@@ -497,7 +497,7 @@
       },
       "release-engineer": {
         "title": "Release Engineer",
-        "description": "Looks after git and GitHub, prepares releases and deployment, and pushes, merges or deploys only when asked.",
+        "description": "Explains what is waiting to reach main and in what order to merge it, prepares releases and deployment, and proposes pushes, merges and updates as buttons: you press them, and nothing is pushed, merged or deployed without you.",
         "holds": [
           "L2",
           "L3",

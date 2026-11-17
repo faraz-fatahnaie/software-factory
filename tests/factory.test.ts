@@ -5,7 +5,7 @@ import { add, dependsOn, FROM_CONVERSATION, move, parse, type Item } from "../pl
 import { ensureWorktree, isLanded } from "../plugin/engine/worktree";
 import { newer, ownDashboards, replaceOlder, VERSION, who } from "../plugin/engine/upgrade";
 import { filesOf, formatPlan, order, plan as integrationPlan, trial, waiting as waitingTasks } from "../plugin/engine/integrate";
-import { authorityMatrix, checkAuthority, checkConversations, checkGrants, checkLimits, checkProjectSettings, checkRoleFile, checkSkillFile, commandsNamed, DENY_FLOOR, floorDenies, KNOWN_GAPS, PERSON_ONLY } from "../plugin/engine/authority";
+import { authorityMatrix, checkAuthority, checkConversations, checkGrants, checkLimits, checkProjectSettings, checkRoleFile, checkSkillFile, checkStages, commandsNamed, DENY_FLOOR, floorDenies, KNOWN_GAPS, PERSON_ONLY, proposalsOf } from "../plugin/engine/authority";
 import { ALLOW as CHAT_ALLOW, MANAGER_ALLOW, GUIDE_ALLOW } from "../plugin/engine/chat";
 import { ALLOW as TASK_ALLOW } from "../plugin/engine/claude";
 import { agentEvents, claudeArgs, classify } from "../plugin/engine/claude";
@@ -1939,7 +1939,7 @@ test("the Guide: read-only permissions, its own prompt, and a topic of its own t
   const argv = chatArgs({ topic: "guide", message: "why did it fail?" }, team);
   const allowed = argv.slice(argv.indexOf("--allowedTools") + 1, argv.indexOf("--disallowedTools"));
   expect(allowed.some((a) => a.startsWith("Write") || a.startsWith("Edit"))).toBe(false);
-  expect(allowed.every((a) => !a.startsWith("Bash") || /^Bash\((factory (doctor|status|vcs)|git (status|log|diff))/.test(a))).toBe(true);
+  expect(allowed.every((a) => !a.startsWith("Bash") || /^Bash\((factory (doctor|status|vcs)|git (status|log|diff|show|describe|rev-parse|ls-files|grep|blame|shortlog))/.test(a))).toBe(true);
   expect(argv.indexOf("--add-dir")).toBeLessThan(argv.indexOf("--allowedTools")); // the list of tools is open-ended, so other flags come first
   expect(argv[argv.indexOf("--append-system-prompt") + 1]).toContain("You change nothing");
   const { dir } = repo();
@@ -4640,4 +4640,85 @@ test("floor: a project that allows git and gh for every session is told what tha
   expect(a.errors).toEqual([]);
   expect(a.warnings.filter((w) => w.rule === "P1")).toHaveLength(2);
   expect(doctor(dir).lines.some((l) => l.startsWith("–") && l.includes('allow "Bash(git *)"'))).toBe(true);
+});
+
+// ======================================================================================================================================
+// Needs: whatever a role is told to do, it can do. The other half of the authority rules: not only "nobody may do more than it should", but
+// "nobody is told to do what it cannot". A duty with no way to do it is a dead end the agent finds only when it tries (the Release Engineer
+// asked to resolve conflicts, the manager asked to approve): so every duty has a route, and a test fails when one does not.
+// ======================================================================================================================================
+
+test("needs: commands an instruction names are found for git, gh and graphify as well as the factory, and never an option or a path", () => {
+  expect(commandsNamed("Run `git describe --tags --abbrev=0` and `git diff HEAD`, then `git log --oneline`; `gh pr merge 3`; `graphify query \"x\"`; `factory gate`.")).toEqual(["git describe", "git diff", "git log", "gh pr merge", "graphify query", "factory gate"]);
+  expect(commandsNamed("Read `graphify-out/GRAPH_REPORT.md` and `git`, then `gitignore` and `factory`.")).toEqual([]); // a path, a bare program, a different word
+  expect(commandsNamed("Use `git -C /tmp status` or `git --version`.")).toEqual([]); // an option is not a command
+  expect(commandsNamed("The patch applies with `git apply` (the builder applies it).")).toEqual(["git apply"]);
+});
+
+test("needs: every stage and every conversation may run what its instruction tells it to, in every preset", () => {
+  for (const name of Object.keys(presets)) {
+    const team = resolveTeam({ preset: name });
+    expect(checkStages(team).filter((v) => !v.known).map((v) => v.text)).toEqual([]);
+    expect(checkConversations(team).filter((v) => !v.known).map((v) => v.text)).toEqual([]);
+  }
+  expect(Object.keys(KNOWN_GAPS)).toEqual([]);
+});
+
+test("needs: a duty with no way to do it is caught when it is written, in a stage or a conversation", () => {
+  const edit = (id: string, extra: string) => { const r = catalog.find((x) => x.id === id)!, was = r.instruction!; r.instruction = `${was}\n\n${extra}`; return () => { r.instruction = was; }; };
+  let undo = edit("B1", "When done, run `git push origin main`.");
+  try { expect(checkStages(balanced()).map((v) => v.text)).toEqual(["B1 tells the agent to run `git push`, which a stage is not allowed to run"]); } finally { undo(); }
+  undo = edit("B1", "Check the tag with `git describe --tags`."); // read-only: granted
+  try { expect(checkStages(balanced())).toEqual([]); } finally { undo(); }
+  undo = edit("S4", "Then resolve the conflicts with `git merge main`.");
+  try { expect(checkConversations(balanced()).map((v) => v.text)).toEqual(["S4 tells the conversation to run `git merge`, which it is not allowed to run"]); } finally { undo(); }
+  undo = edit("G2", "Fix a conflict yourself with `git rebase main`.");
+  try { expect(checkConversations(balanced()).map((v) => v.text)).toEqual(["G2 tells the conversation to run `git rebase`, which it is not allowed to run"]); } finally { undo(); }
+  // Named for someone else to run is not a duty of this role: declared as such, it passes.
+  const g2 = catalog.find((x) => x.id === "G2")!;
+  undo = edit("G2", "Tell the person to run `git rebase main`."); g2.proposes = ["git rebase"];
+  try { expect(checkConversations(balanced())).toEqual([]); } finally { undo(); delete g2.proposes; }
+  expect(checkStages(balanced())).toEqual([]);
+  expect(checkConversations(balanced())).toEqual([]);
+});
+
+test("needs: the read-only git an instruction asks for is allowed, and none that changes anything is", () => {
+  for (const c of ["git status", "git diff", "git log", "git show", "git describe", "git rev-parse", "git ls-files", "git grep", "git blame", "git shortlog"]) {
+    for (const [who, list] of Object.entries({ task: TASK_ALLOW, conversation: CHAT_ALLOW, manager: MANAGER_ALLOW, guide: GUIDE_ALLOW })) expect({ who, c, allowed: list.includes(`Bash(${c}:*)`) }).toEqual({ who, c, allowed: true });
+    expect(floorDenies(c)).toBe(false);
+  }
+  for (const c of ["git push", "git commit", "git merge", "git reset", "git checkout", "git rebase", "git branch", "git tag", "git stash"]) {
+    for (const list of [TASK_ALLOW, CHAT_ALLOW, MANAGER_ALLOW, GUIDE_ALLOW]) expect(list.includes(`Bash(${c}:*)`)).toBe(false);
+    expect(floorDenies(c)).toBe(true);
+  }
+});
+
+test("needs: every button a role is taught to ask for exists on the page and is carried out, and the table says who asks for which", () => {
+  const talk = readFileSync(join(import.meta.dir, "../gui/talk.tsx"), "utf8"), state = readFileSync(join(import.meta.dir, "../plugin/engine/state.ts"), "utf8");
+  const kinds = /kind: ((?:"[a-z]+"(?: \| )?)+); ids/.exec(state)![1]!.match(/[a-z]+/g)!;
+  expect(kinds.sort()).toEqual(["approve", "batch", "merge", "promote", "push", "retry", "run", "sync", "update"]);
+  for (const k of kinds) {
+    expect(talk).toMatch(new RegExp(`\\b${k}: "`)); // a button label
+    expect(parseProposal(`PROPOSE: ${k}${k === "sync" ? "" : " F-001 F-002"}`).proposal?.kind as string).toBe(k); // and the page reads it
+  }
+  for (const r of catalog) for (const m of (r.instruction ?? "").matchAll(/`PROPOSE: ([a-z]+)/g)) expect({ id: r.id, kind: m[1], known: kinds.includes(m[1]!) }).toEqual({ id: r.id, kind: m[1], known: true }); // never a button that does not exist
+  const team = resolveTeam({ preset: "full" });
+  expect(proposalsOf(team.roles["release-engineer"]!.holds).sort()).toEqual(["batch", "merge", "push", "sync", "update"]);
+  expect(proposalsOf(team.roles["technical-manager"]!.holds).sort()).toEqual(["approve", "batch", "merge", "promote", "push", "retry", "run", "update"]);
+  expect(proposalsOf(team.roles.builder!.holds)).toEqual([]); // the builder asks for nothing: it builds
+  const { dir, cli } = repo();
+  cli("team", "apply");
+  const out = cli("authority").out;
+  expect(out).toMatch(/Release Engineer \(release-engineer\): .*\[proposes, you press: .*update/);
+  expect(out).toMatch(/Technical Manager \(technical-manager\): .*\[proposes, you press: .*approve/);
+  expect(authorityMatrix(dir).find((r) => r.role === "builder")!.proposes).toEqual([]);
+});
+
+test("needs: what a role is described as doing is what it can do: nothing is said to be pushed, merged or deployed by a role without saying that you press it", () => {
+  for (const name of Object.keys(presets)) for (const [role, r] of Object.entries(resolveTeam({ preset: name }).roles)) {
+    if (/\b(pushes|merges|deploys|approves)\b/i.test(r.description)) expect({ role, says: /(you press|never|without you|only when)/i.test(r.description) }).toEqual({ role, says: true });
+  }
+  const full = resolveTeam({ preset: "full" });
+  expect(full.roles["release-engineer"]!.description).toContain("proposes pushes, merges and updates as buttons: you press them");
+  expect(full.roles["technical-manager"]!.description).toContain("it never approves, pushes, merges or deploys");
 });

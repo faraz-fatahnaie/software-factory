@@ -254,7 +254,7 @@ async function main([cmd, ...args]: string[]) {
     const { authorityMatrix, checkAuthority: check } = await import("./authority");
     const a = check(root);
     console.log("Who may do what");
-    for (const r of authorityMatrix(root)) console.log(`  ${r.title} (${r.role}): ${r.can.join("; ") || "talks and advises"}${r.conversations.length ? `  [talks: ${r.conversations.join(", ")}]` : ""}${r.skills.length ? `  [skills: ${r.skills.join(", ")}]` : ""}`);
+    for (const r of authorityMatrix(root)) console.log(`  ${r.title} (${r.role}): ${r.can.join("; ") || "talks and advises"}${r.proposes.length ? `  [proposes, you press: ${r.proposes.join(", ")}]` : ""}${r.conversations.length ? `  [talks: ${r.conversations.join(", ")}]` : ""}${r.skills.length ? `  [skills: ${r.skills.join(", ")}]` : ""}`);
     console.log("  Only a person: approve, push, merge, deploy, discard, revert, and change the configuration.");
     const list = (title: string, vs: { rule: string; where: string; text: string }[]) => { if (vs.length) console.log(`\n${title}\n${vs.map((v) => `  [${v.rule}] ${v.text}`).join("\n")}`); };
     list(`Problems (${a.errors.length}): these stop work`, a.errors);
