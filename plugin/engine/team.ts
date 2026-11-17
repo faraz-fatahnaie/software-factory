@@ -12,6 +12,8 @@ export type Responsibility = {
   id: string; area: string; summary: string; when: string; how: string; access: string[];
   /** Present only once the responsibility is built: a short heading and the instruction an agent receives. */
   title?: string; instruction?: string;
+  /** `factory` commands the instruction names for the person to run (or a button to press), which the conversation itself may not run. */
+  proposes?: string[];
 };
 export type RoleDef = {
   title: string; description: string; holds: string[];

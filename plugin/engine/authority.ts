@@ -63,28 +63,27 @@ export function checkGrants(): Violation[] {
 // ---------------------------------------------------------------------------------------------------------------- C1: told to run, and allowed to run
 
 /**
- * Gaps that exist today between what a conversation is told to run and what it may run: the instruction names a `factory` command, and the dashboard's
- * conversation is not allowed that command (in a person's own terminal session it may be). They are listed so that a NEW gap is an error that has
- * to be decided on: grant the command, change the instruction, or add it here with a reason. F-098 in BACKLOG.md is to close the ones listed.
+ * Gaps between what a conversation is told to run and what it may run, written down with a reason when they are accepted for now. There are none today:
+ * a command a conversation may not run is declared as `proposes` on the responsibility (the person runs it, or presses a button). A NEW gap is an error
+ * that has to be decided on: grant the command, declare it as proposed, change the instruction, or add it here with a reason.
  */
-export const KNOWN_GAPS: Record<string, string> = {
-  "M17: factory team": "M17 tells the person where to change the team (`factory team` has subcommands that rewrite the configuration, so the conversation may not run it); she only names it",
-  "X1: factory team": "X1 names `factory team` for the person to run: it rewrites the configuration, so the conversation may not",
-  "X1: factory skill add": "installing a skill brings in third-party instructions: the person confirms it in Studio, or runs the command in their own terminal",
-  "P2: factory promote": "the plan conversation names promote for the person to press; moving items to Ready is the person's word (or a proposal the manager carries out)",
-  "F3: factory configure": "setting the gate changes what the orchestrator runs on every task, so a dashboard conversation may not do it; it should propose the command for the person to run",
-  "K3: AGENTS.md": "K3 is told to apply changes to AGENTS.md, which the guard forbids to every agent; it should write a proposal under docs/ for the person to apply in Studio",
-};
+export const KNOWN_GAPS: Record<string, string> = {};
 
-/** `factory <command>` as an instruction names it, one entry per different command, without its arguments. */
+/** `factory <command>` as an instruction names it, one entry per different command: the first word, and a second when it is a plain word (`factory docs save`, `factory team use`), never an argument. */
 export function commandsNamed(instruction: string): string[] {
   const found = new Set<string>();
-  for (const m of instruction.matchAll(/`factory ([a-z]+(?: (?:save|report|check|info|tag|add|search|auto-merge|auto-push|ci))?)/g)) found.add(`factory ${m[1]}`);
+  for (const m of instruction.matchAll(/`factory ([^`]*)`/g)) {
+    const words = m[1]!.trim().split(/\s+/);
+    if (!/^[a-z][a-z-]*$/.test(words[0] ?? "")) continue;
+    found.add(`factory ${words[0]}${words[1] && /^[a-z][a-z-]*$/.test(words[1]) ? ` ${words[1]}` : ""}`);
+  }
   return [...found];
 }
+/** `Bash(factory add:*)` allows `factory add` with any arguments; `Bash(factory team)` allows exactly `factory team` and nothing after it. */
 const allowsCommand = (list: string[], command: string) => list.some((e) => {
-  const c = e.replace(/^Bash\(/, "").replace(/\)$/, "").replace(/:\*$/, "");
-  return e.startsWith("Bash(") && (command === c || command.startsWith(`${c} `));
+  if (!e.startsWith("Bash(") || !e.endsWith(")")) return false;
+  const body = e.slice(5, -1);
+  return body.endsWith(":*") ? command === body.slice(0, -2) || command.startsWith(`${body.slice(0, -2)} `) : command === body;
 });
 
 export function checkConversations(team: Preset): Violation[] {
@@ -95,7 +94,7 @@ export function checkConversations(team: Preset): Violation[] {
       const r = catalog.find((x) => x.id === id);
       if (!r || !isBuilt(id, team) || !r.instruction) continue;
       const add = (key: string, text: string) => found.set(key, { rule: "C1", where: `${topic} (${id})`, text, known: key in KNOWN_GAPS });
-      for (const c of commandsNamed(r.instruction).filter((c) => !allowsCommand(allowed, c))) add(`${id}: ${c}`, `${id} tells the conversation to run \`${c}\`, which it is not allowed to run`);
+      for (const c of commandsNamed(r.instruction).filter((c) => !allowsCommand(allowed, c) && !(r.proposes ?? []).includes(c))) add(`${id}: ${c}`, `${id} tells the conversation to run \`${c}\`, which it is not allowed to run`);
       // A responsibility that declares access to governance or configuration, but whose conversation can reach neither, cannot do what it declares.
       for (const a of r.access) if (a === "governance" || a === "config") add(`${id}: ${a === "governance" ? "AGENTS.md" : "factory configure"}`, `${id} declares ${a} access, which no conversation has (the guard and the allow list keep it out)`);
     }

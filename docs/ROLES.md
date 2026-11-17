@@ -425,10 +425,10 @@ What a role can do is the sum of several things written at different times: its 
 | **R1** | A role file never grants more than its responsibilities need | a role file is saved in Studio; `doctor`; before a task runs |
 | **R2** | A role file never sets its own permission mode, hooks or connections | the same |
 | **S1** | A skill never widens a role: no edits for anyone but the builder, no shell wholesale, nothing only a person may do, no hooks of its own | a skill is installed or attached, or saved in Studio (installed skills are shown, not refused) |
-| **C1** | Every `factory` command a conversation's instruction names is one it may run, or the gap is written down with a reason (`KNOWN_GAPS`) | tests (a new gap fails); `factory authority` lists the known ones |
+| **C1** | Every `factory` command a conversation's instruction names is one it may run, or the responsibility declares it as `proposes` (the person runs it, or presses a button), or the gap is written down with a reason (`KNOWN_GAPS`, empty today) | tests (a new gap fails); `factory authority` lists any known gap |
 | **M1** | The manager's limits agree (a task's limit is not above the day's); the gate never runs what only a person may | `factory manager set`; `factory authority` |
 
-An error stops work: no task is started by hand or by autopilot while one stands. **Adding a capability safely:** declare it where it lives (the catalog's `access`, a role file's `tools`, an allow list, a skill's `allowed-tools`) and run `bun test`: the search over every move of every responsibility, and the grants and gaps checks, will say if it contradicts a rule. Closing a known gap is F-098.
+An error stops work: no task is started by hand or by autopilot while one stands. **Adding a capability safely:** declare it where it lives (the catalog's `access`, a role file's `tools`, an allow list, a skill's `allowed-tools`) and run `bun test`: the search over every move of every responsibility, and the grants and gaps checks, will say if it contradicts a rule. A conversation that is told to run a command it may not run must say so: add the command to the responsibility's `proposes` and word the instruction so the person runs it.
 
 ### Stopping loops
 

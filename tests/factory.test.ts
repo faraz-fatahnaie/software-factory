@@ -3742,14 +3742,18 @@ test("authority G1: what counts as only a person's to do", () => {
 
 test("authority C1: what a conversation is told to run, it is allowed to run, or the gap is written down with a reason", () => {
   expect(commandsNamed("Run `factory status` and `factory docs save`, then `factory add \"x\"` and `factory skill search ui`, `factory release check`.")).toEqual(["factory status", "factory docs save", "factory add", "factory skill search", "factory release check"]);
+  // Arguments are not commands, and a subcommand that changes things is its own command: `factory team` lists, `factory team use` rewrites the configuration.
+  expect(commandsNamed("`factory promote F-014 F-015`, `factory run F-014`, `factory team use lean`, `factory team`, `factory configure --gate \"x\"`, `factory vcs auto-merge on`, `factory skill add <owner/repo@skill> --role <role>`")).toEqual(["factory promote", "factory run", "factory team use", "factory team", "factory configure", "factory vcs auto-merge", "factory skill add"]);
+  expect(commandsNamed("no commands here, and factory status without backticks")).toEqual([]);
   for (const name of Object.keys(presets)) {
     const unknown = checkConversations(resolveTeam({ preset: name })).filter((v) => !v.known);
     expect(unknown.map((v) => `${v.where}: ${v.text}`)).toEqual([]); // a NEW gap: grant the command, change the instruction, or write it down in KNOWN_GAPS
   }
-  // The list of known gaps is exact: an entry that no longer exists is removed, so the list cannot rot.
+  // The list of known gaps is exact: an entry that no longer exists is removed, so the list cannot rot. (There are none today: see F-098 below.)
   const present = new Set<string>();
   for (const name of Object.keys(presets)) for (const v of checkConversations(resolveTeam({ preset: name }))) if (v.known) present.add(v.text);
   expect(present.size).toBe(Object.keys(KNOWN_GAPS).length);
+  expect(Object.keys(KNOWN_GAPS)).toEqual([]);
   for (const [key, why] of Object.entries(KNOWN_GAPS)) {
     expect(key).toMatch(/^[A-Z]\d+: /);
     expect(why.length).toBeGreaterThan(40); // every gap says why it is acceptable for now
@@ -3765,11 +3769,13 @@ test("authority C1: a new instruction that tells a conversation to run something
     entry.instruction = `${was}\n\nRun \`factory gate\` first.`; // granted: no violation
     expect(checkConversations(balanced()).filter((v) => !v.known)).toEqual([]);
   } finally { entry.instruction = was; }
-  const k3 = catalog.find((r) => r.id === "F3")!, access = k3.access;
+  // A conversation that declares access to governance files or configuration, which no conversation has, is caught too.
+  const k1 = catalog.find((r) => r.id === "K1")!, access = k1.access;
   try {
-    (k3 as { access: string[] }).access = ["read"]; // the declared access goes: the known gap for F3's configuration access is gone, and a stale entry is noticed by the test above
-    expect(checkConversations(balanced()).some((v) => v.where === "design (F3)" && /declares config access/.test(v.text))).toBe(false);
-  } finally { (k3 as { access: string[] }).access = access; }
+    (k1 as { access: string[] }).access = ["write", "governance"];
+    expect(checkConversations(balanced()).filter((v) => !v.known).map((v) => v.text)).toEqual(["K1 declares governance access, which no conversation has (the guard and the allow list keep it out)"]);
+  } finally { (k1 as { access: string[] }).access = access; }
+  expect(checkConversations(balanced()).filter((v) => !v.known)).toEqual([]);
 });
 
 test("authority R1, R2: a role file never grants more than its responsibilities need, and never sets its own permissions", () => {
@@ -3939,7 +3945,7 @@ test("authority: factory authority says who may do what, what is wrong, and what
   expect(ok.out).toMatch(/Builder \(builder\): edits code in its own task folder/);
   expect(ok.out).toMatch(/Technical Manager \(technical-manager\): .*starts, retries, guides and stops tasks \(within the limits\), and proposes; never approves, pushes, merges or deploys/);
   expect(ok.out).toContain("Only a person: approve, push, merge, deploy, discard, revert, and change the configuration.");
-  expect(ok.out).toMatch(/Known gaps \(6\): written down, to be closed \(F-098\)/);
+  expect(ok.out).not.toContain("Known gaps"); // none are written down
   expect(ok.out).toContain("The rules hold.");
   expect(ok.out).not.toMatch(/Reviewer \(reviewer\): .*edits code/); // only the builder edits
   const file = join(dir, ".claude/agents/builder.md");
@@ -3961,4 +3967,34 @@ test("authority: who may do what is the same table for every preset, down to the
     expect(rows.filter((r) => r.can.some((c) => c.startsWith("edits code"))).map((r) => r.role)).toEqual([holderOf(resolveTeam({ preset }), "B2")!]);
     expect(rows.filter((r) => r.can.some((c) => c.includes("never approves"))).map((r) => r.role)).toEqual([holderOf(resolveTeam({ preset }), "M18")!]);
   }
+});
+
+test("F-098: no conversation is told to do what it cannot: the gate and AGENTS.md are the person's, and a command named for the person is declared as such", () => {
+  const by = (id: string) => catalog.find((r) => r.id === id)!;
+  // The gate runs after every build, so it is the person's to set: the design conversation shows the command instead of running it.
+  expect(by("F3").access).toEqual(["read"]);
+  expect(by("F3").proposes).toEqual(["factory configure"]);
+  expect(by("F3").instruction).toMatch(/in the dashboard this conversation may not change the configuration, so tell them to run it themselves/);
+  // AGENTS.md is a governance file: the docs conversation proposes it under docs/ and the person applies it in Studio.
+  expect(by("K3").access).toEqual(["write"]);
+  expect(by("K3").instruction).toMatch(/Never edit `AGENTS\.md` itself.*docs\/context\/AGENTS\.proposed\.md.*apply what they accept/s);
+  expect(by("K3").instruction).not.toMatch(/apply it only after they approve/);
+  const root = tmp();
+  expect(guard({ tool_name: "Write", tool_input: { file_path: join(root, "docs/context/AGENTS.proposed.md") } }, root)).toBeNull(); // where the proposal goes: allowed
+  expect(guard({ tool_name: "Write", tool_input: { file_path: join(root, "AGENTS.md") } }, root)).toMatch(/AGENTS\.md is a governance file/); // what it must not touch: blocked
+  expect(CHAT_ALLOW).toContain("Write(docs/**)");
+  // Skills are the person's to install; the plan and manager conversations name the people's buttons and commands.
+  expect(by("X1").proposes).toEqual(["factory skill add"]);
+  expect(by("X1").instruction).toMatch(/A skill is third-party instructions, so you do not install one yourself/);
+  expect(by("P2").proposes).toEqual(["factory promote"]);
+  // Read-only listings are granted exactly: `factory team` lists the team, and `factory team use` is not allowed.
+  expect(CHAT_ALLOW).toContain("Bash(factory team)");
+  expect(MANAGER_ALLOW).toContain("Bash(factory team)");
+  expect(CHAT_ALLOW.some((e) => /factory team:/.test(e))).toBe(false);
+  // Whatever a conversation is told it may not do, nothing it is told to do needs authority it does not have.
+  for (const r of catalog) if (r.how === "chat" && r.instruction) expect(r.access.filter((a) => a === "governance" || a === "config")).toEqual([]);
+  for (const r of catalog) for (const c of r.proposes ?? []) expect(r.instruction).toContain(`\`${c}`); // a declared proposal is one the instruction actually names
+  expect(checkConversations(balanced())).toEqual([]);
+  expect(checkConversations(lean())).toEqual([]);
+  expect(checkConversations(full())).toEqual([]);
 });

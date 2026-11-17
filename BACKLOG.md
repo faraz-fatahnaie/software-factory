@@ -4,7 +4,7 @@ The factory's intake queue. `factory run` takes the top item under Ready.
 Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
-- [ ] F-098 (P1) Close the known gaps the authority checker lists: F3 and K3 declare access (the gate, AGENTS.md) that no dashboard conversation has, and M17, X1, P2 name commands for the person; make each propose a button or a Studio step instead
+- [ ] F-100 (P2) An Apply setup button in the design conversation: it shows the gate commands and runs `factory configure` only when the person presses it
 - [ ] F-099 (P3) A "who may do what" panel in the Team view, from the same table as `factory authority`
 - [ ] F-090 (P2) Per-stage budget with --max-budget-usd, so one stage cannot overspend between the supervisor's checks
 - [ ] F-091 (P2) A visible Pause button for autopilot on every screen, and a desktop notification when she pauses or escalates
@@ -182,3 +182,5 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
   Install a skill for one or several roles at once (Studio: tick the people; `--role a,b`); each person's slash list offers only the skills attached to their role, and a skill typed for another role is refused.
 - [x] F-097 (P1) Authority model and checker
   The rules about who may do what (one writer, the manager does not build or judge, nothing unattended goes outside, skills and role files never widen a role, conversations may run what they are told to) written in one file, checked wherever they could break, and searched over every move of every responsibility.
+- [x] F-098 (P1) Close the known gaps the authority checker lists
+  F3 and K3 no longer declare access no conversation has (the gate is the person's to set, AGENTS.md is proposed under docs/ and applied in Studio); commands named for the person are declared as `proposes`. Known gaps: none.

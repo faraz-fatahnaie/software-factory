@@ -3,6 +3,15 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
+## Unreleased
+
+- **No conversation is told to do what it cannot.** The two contradictions the authority check found are closed. The
+  design conversation no longer claims it records the gate: the gate runs after every build, so it is yours to set, and it
+  shows you the exact `factory configure` command to run. The docs conversation no longer claims it edits `AGENTS.md`
+  (a governance file no agent may change): it writes a proposal to `docs/context/AGENTS.proposed.md` and you apply what you
+  accept in Studio. Commands a conversation only names for you (`factory promote`, `factory skill add`) are now declared
+  as such in the catalog (`proposes`), and `factory team` (the read-only listing) is granted exactly.
+
 ## 1.2.0
 
 Who may do what is now checked, not hoped for. **Update, restart the dashboard (and any Claude session started before
