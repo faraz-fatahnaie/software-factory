@@ -3,7 +3,10 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
-## Unreleased
+## 1.2.2
+
+A small release: the authority rules now check that nobody is told to do what it cannot. **Update, restart the dashboard
+(`/software-factory:open` replaces an older one) and any Claude session started before the update; nothing else is needed.**
 
 - **Nobody is told to do what it cannot.** The authority rules now also check the other direction: everything a role's
   instruction tells it to run through git, gh, graphify or the factory is something it may run (or is named for you to run),
