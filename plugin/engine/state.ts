@@ -270,6 +270,41 @@ export function matchCommands<T extends { name: string }>(typed: string, command
   return commands.map((c, i) => ({ c, i })).filter(({ c }) => loose.test(c.name.toLowerCase())).sort((a, b) => rank(a.c.name) - rank(b.c.name) || a.i - b.i).map(({ c }) => c);
 }
 
+/** A setup a conversation proposes: the command that installs the project's dependencies, and the checks every build must pass. Only a button the person presses applies it. */
+export type Setup = { setup: string[]; gate: string[] };
+/** One command of a setup: a single line of text, not an option, in a sensible length. Returns why it is not, or "" when it is fine. */
+export function badCommand(c: unknown): string {
+  if (typeof c !== "string" || !c.trim()) return "a command is empty";
+  if (c.length > 300) return "a command is over 300 characters";
+  if (/[\r\n]/.test(c)) return "a command is on more than one line";
+  if (c.trim().startsWith("-")) return "a command looks like an option";
+  return "";
+}
+/** The shape of a setup: what the page shows and the server applies. Returns the problems, none when it is valid. */
+export function checkSetup(v: unknown): string[] {
+  const s = v as Partial<Setup> | null;
+  if (typeof s !== "object" || s === null || Array.isArray(s)) return ["a setup needs a gate (and maybe a setup command)"];
+  const errs: string[] = [];
+  for (const [key, max] of [["setup", 6], ["gate", 12]] as const) {
+    const list = s[key] ?? [];
+    if (!Array.isArray(list)) { errs.push(`${key} must be a list of commands`); continue; }
+    if (list.length > max) errs.push(`${key}: at most ${max} commands`);
+    for (const c of list) { const why = badCommand(c); if (why) errs.push(`${key}: ${why}`); }
+  }
+  if (!(s.gate ?? []).length && !(s.setup ?? []).length) errs.push("a setup needs at least one command");
+  return errs;
+}
+/** The one `SETUP: {"setup":["…"],"gate":["…"]}` line of a reply, taken out and checked. A line that is not a valid setup stays in the text. */
+export function parseSetup(text: string): { text: string; setup?: Setup } {
+  const m = /^SETUP: (\{.*\})[ \t]*\n?/m.exec(text);
+  if (!m) return { text };
+  try {
+    const v = JSON.parse(m[1]!) as Partial<Setup>;
+    if (checkSetup(v).length) return { text };
+    return { text: text.replace(m[0], "").replace(/\n{3,}/g, "\n\n").trimEnd(), setup: { setup: v.setup ?? [], gate: v.gate ?? [] } };
+  } catch { return { text }; }
+}
+
 /** A reply that ends with `SUGGEST: …` lines: the reply without them, and up to three short messages the person could send next. */
 export function splitSuggestions(text: string): { text: string; suggestions: string[] } {
   const found: string[] = [];

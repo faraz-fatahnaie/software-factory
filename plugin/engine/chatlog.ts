@@ -3,10 +3,10 @@
 // Only text is kept: no file contents, and long command output is cut. Clearing a conversation deletes its file.
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseProposal, splitSuggestions, type Context, type Proposal, type ToolStep } from "./state";
+import { parseProposal, parseSetup, splitSuggestions, type Context, type Proposal, type Setup, type ToolStep } from "./state";
 
 export type Shown = { name: string; size: number; url?: string };
-export type Msg = { who: "you" | "team"; text: string; files?: Shown[]; suggestions?: string[]; tools?: ToolStep[]; cost?: number; bad?: boolean; proposal?: Proposal; acted?: string; /** Not a message: the line where the conversation was compacted. What is above it the model now holds as a summary. */ divider?: { before: number; after: number; at: string } };
+export type Msg = { who: "you" | "team"; text: string; files?: Shown[]; suggestions?: string[]; tools?: ToolStep[]; cost?: number; bad?: boolean; proposal?: Proposal; /** A setup (the install command and the gate) the reply proposes: a button applies it. */ setup?: Setup; acted?: string; /** Not a message: the line where the conversation was compacted. What is above it the model now holds as a summary. */ divider?: { before: number; after: number; at: string } };
 /** One conversation as it is kept: the messages, and the Claude sessions it continues (its own, and for the manager one per role it consulted). */
 export type Stored = { messages: Msg[]; session?: string; subs?: Record<string, string>; /** How full the context was after the last reply; for the manager, also that of each role's side conversation. */ context?: Context; contexts?: Record<string, Context>; /** The names its agent last reported it can run (skills, plugin commands). */ commands?: string[] };
 
@@ -73,7 +73,7 @@ export function markCompacted(root: string, topic: string, c: { before: number; 
 /** A person pressed the button a reply proposed: the reply says how it went, and the outcome follows it as a message. */
 export function markActed(root: string, topic: string, index: number, ok: boolean, text: string): Stored {
   const c = readChat(root, topic);
-  if (!Number.isInteger(index) || !c.messages[index]?.proposal) throw new Error("index: not a message that proposed something");
+  if (!Number.isInteger(index) || !(c.messages[index]?.proposal || c.messages[index]?.setup)) throw new Error("index: not a message that proposed something");
   return write(root, topic, { ...c, messages: [...c.messages.map((m, i) => (i === index ? { ...m, acted: ok ? "Done" : "Failed" } : m)), { who: "team", text: text.slice(0, 20_000), bad: !ok }] });
 }
 
@@ -94,8 +94,8 @@ type Turn = { ok: boolean; status: string; text: string; costUsd?: number; denia
 /** A reply as the page shows it: its text, the next messages it suggests, the action it proposes (or already carried out on autopilot), and what it ran. */
 export function replyMsg(d: Turn): Msg {
   if (!d.ok) return { who: "team", text: FAILURES[d.status] ?? d.text, ...(d.status !== "stopped" && { bad: true }) }; // a stop the person asked for is not an error
-  const split = splitSuggestions(d.text), { text, proposal } = parseProposal(split.text);
-  const reply: Msg = { who: "team", text, suggestions: split.suggestions, proposal, tools: d.tools, cost: d.costUsd };
+  const split = splitSuggestions(d.text), parsed = parseProposal(split.text), withSetup = parseSetup(parsed.text), proposal = parsed.proposal, text = withSetup.text;
+  const reply: Msg = { who: "team", text, suggestions: split.suggestions, proposal, ...(withSetup.setup && { setup: withSetup.setup }), tools: d.tools, cost: d.costUsd };
   // On autopilot the manager has already carried out what it proposed: the message says so, and there is no button.
   if (d.executed) { reply.proposal = d.executed.proposal; reply.acted = d.executed.ok ? "Done" : "Failed"; reply.text = `${reply.text}\n\n${d.executed.note}`.trim(); if (!d.executed.ok) reply.bad = true; }
   if (d.denials?.length) reply.tools = [...(reply.tools ?? []), ...d.denials.map((x) => ({ tool: "Not allowed", detail: x, error: true }))];

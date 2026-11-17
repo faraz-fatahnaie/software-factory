@@ -19,7 +19,7 @@ seedStates(dir, cli);
 // A stand-in for the claude command for the Talk checks: one command with its output, then a reply that uses every kind of Markdown. It waits a moment so the box can be used while a reply is on its way.
 const bin = join(dir, ".factory", "fakebin");
 mkdirSync(bin, { recursive: true });
-const REPLY = "## Plan\\n\\nHere is **bold**, `code` and a [link](https://example.com).\\n\\n- one\\n- two\\n\\n| A | B |\\n|---|---|\\n| 1 | 2 |\\n\\n```ts\\nconst x = 1;\\n```\\n\\nسلام، این یک پیام فارسی است.";
+const REPLY = "## Plan\\n\\nHere is **bold**, `code` and a [link](https://example.com).\\n\\n- one\\n- two\\n\\n| A | B |\\n|---|---|\\n| 1 | 2 |\\n\\n```ts\\nconst x = 1;\\n```\\n\\nسلام، این یک پیام فارسی است." + "\\nSETUP: {\\\"setup\\\":[\\\"true\\\"],\\\"gate\\\":[\\\"test -d .\\\"]}"; // and a setup the page offers to apply
 writeFileSync(join(bin, "claude"), `#!/bin/sh
 sleep 1.5
 printf '%s\\n' '{"type":"system","subtype":"init","slash_commands":["compact","clear","model","hello","review:security"]}'
@@ -122,7 +122,7 @@ try {
     await page.locator(".bk-changes .udiff .ln.add").first().waitFor();
     for (const tab of ["Summary", "Activity", "Spec", "Review"]) await page.getByRole("tab", { name: new RegExp(`^${tab}`) }).click();
     await page.getByRole("tab", { name: "Summary" }).click();
-    await page.getByRole("heading", { name: /main has 1 new commit/ }).waitFor();
+    await page.getByRole("heading", { name: /main has \d+ new commits?/ }).waitFor();
     await page.getByLabel("What the manager says").getByText(/F-005 is ready for your decision/).waitFor(); // what was checked before the handover (M14)
     await page.getByRole("button", { name: "Update this task" }).waitFor();
     await a11y(page, `${name} task panel (needs you)`);
@@ -207,6 +207,17 @@ try {
     await page.locator(".chat-md table td", { hasText: "2" }).waitFor();
     await page.locator(".md-code", { hasText: "const x = 1;" }).waitFor();
     await page.locator('.chat-md a[href="https://example.com"]').waitFor();
+    // The reply proposed a setup: the page shows the commands and nothing is applied until the button is pressed; pressing it records the gate and commits it.
+    const setup = page.getByRole("group", { name: "Setup to apply" });
+    await setup.getByText("test -d .", { exact: true }).waitFor();
+    const gateNow = () => JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).gate.join();
+    const applied = gateNow() === "test -d ."; // the second width finds it applied by the first
+    if (!applied) assert.equal(gateNow(), "true", `${name}: showing a setup applies nothing`);
+    await a11y(page, `${name} Talk setup`);
+    await setup.getByRole("button", { name: "Apply setup" }).click();
+    await setup.getByText("Done", { exact: true }).waitFor();
+    assert.deepEqual(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).gate, ["test -d ."]);
+    await page.locator(".bubble.team", { hasText: "Setup applied." }).waitFor();
     await page.locator(".chat-head .ctx.warn", { hasText: "74% of context" }).waitFor(); // how full the conversation is, amber from 70%
     assert.match(await page.locator(".chat-head .ctx").getAttribute("title") ?? "", /148k of 200k tokens/);
     await a11y(page, `${name} Talk reply`);

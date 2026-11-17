@@ -87,6 +87,9 @@ folded list under the reply.
   under the person's name shows how full the conversation's context is.
 - **Any language.** Replies are formatted, and right-to-left text reads correctly.
 
+When the Architect proposes the checks every build must pass, the reply shows them with an **Apply setup**
+  button: read the commands, then press it to record them (nothing changes before that).
+
 To work something out in depth she picks the person, and that person asks one question at a time:
 
 1. **Brainstorm** (`/software-factory:brainstorm`, or Talk → Mara). Who is it for, what problem, what does

@@ -31,7 +31,7 @@ import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugi
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
 import { blockedReason, doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
-import { parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev, contextOf, tokens, matchCommands } from "../plugin/engine/state";
+import { badCommand, checkSetup, parseSetup, parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev, contextOf, tokens, matchCommands } from "../plugin/engine/state";
 import { commandsFor, DASHBOARD_COMMANDS, projectCommands, reportedBy } from "../plugin/engine/commands";
 import { addSkill, attachSkill, detachSkill, parseFind, roleSkills, setSkill, skillProblems } from "../plugin/engine/skills";
 import { counts, lineDiff, marks, splitDiff, withGaps } from "../gui/linediff";
@@ -3974,7 +3974,8 @@ test("F-098: no conversation is told to do what it cannot: the gate and AGENTS.m
   // The gate runs after every build, so it is the person's to set: the design conversation shows the command instead of running it.
   expect(by("F3").access).toEqual(["read"]);
   expect(by("F3").proposes).toEqual(["factory configure"]);
-  expect(by("F3").instruction).toMatch(/in the dashboard this conversation may not change the configuration, so tell them to run it themselves/);
+  expect(by("F3").instruction).toMatch(/In the dashboard this conversation may not change the configuration: end your message with exactly one line `SETUP: \{/);
+  expect(by("F3").instruction).toMatch(/the page shows the person the commands with an Apply setup button; pressing it is their approval/);
   // AGENTS.md is a governance file: the docs conversation proposes it under docs/ and the person applies it in Studio.
   expect(by("K3").access).toEqual(["write"]);
   expect(by("K3").instruction).toMatch(/Never edit `AGENTS\.md` itself.*docs\/context\/AGENTS\.proposed\.md.*apply what they accept/s);
@@ -3998,3 +3999,62 @@ test("F-098: no conversation is told to do what it cannot: the gate and AGENTS.m
   expect(checkConversations(lean())).toEqual([]);
   expect(checkConversations(full())).toEqual([]);
 });
+
+test("F-100: a conversation proposes a setup as one line, the page shows it, and only a checked, valid setup is ever applied", () => {
+  const line = (v: unknown) => `Here is what I suggest.\nSETUP: ${JSON.stringify(v)}\nSUGGEST: Looks good`;
+  const ok = parseSetup(line({ setup: ["npm install"], gate: ["npm test", "npm run lint"] }));
+  expect(ok.setup).toEqual({ setup: ["npm install"], gate: ["npm test", "npm run lint"] });
+  expect(ok.text).toBe("Here is what I suggest.\nSUGGEST: Looks good"); // the line is taken out of what the person reads
+  expect(parseSetup(line({ gate: ["bun test"] })).setup).toEqual({ setup: [], gate: ["bun test"] }); // no install command is fine
+  expect(parseSetup("No setup here").setup).toBeUndefined();
+  for (const bad of [{}, { gate: [] }, { gate: "npm test" }, { gate: [""] }, { gate: ["a\nb"] }, { gate: ["--help"] }, { gate: ["x".repeat(301)] }, { gate: Array(13).fill("true") }, { setup: Array(7).fill("true"), gate: ["true"] }, { gate: [5] }, [], null]) {
+    const r = parseSetup(line(bad));
+    expect(r.setup).toBeUndefined();
+    expect(r.text).toContain("SETUP: "); // a line that is not a valid setup is left in the text, and no button appears
+  }
+  expect(parseSetup("SETUP: {not json}").setup).toBeUndefined();
+  expect(checkSetup({ gate: ["npm test"] })).toEqual([]);
+  expect(checkSetup({ gate: ["a\nb"], setup: [""] })).toEqual(["setup: a command is empty", "gate: a command is on more than one line"]);
+  expect(badCommand("  -rf")).toBe("a command looks like an option");
+  expect(replyMsg({ ok: true, status: "ok", text: `Done.\nSETUP: ${JSON.stringify({ gate: ["bun test"] })}\nPROPOSE: run F-001` })).toMatchObject({ text: "Done.", setup: { setup: [], gate: ["bun test"] }, proposal: { kind: "run", ids: ["F-001"] } });
+});
+
+test("F-100: Apply setup records the gate with factory configure, commits it, refuses what is not a setup, and the message says how it went", async () => {
+  const { dir, sh } = repo();
+  const bin = join(tmp(), "bin");
+  mkdirSync(bin, { recursive: true });
+  const reply = `Here is a gate.\nSETUP: ${JSON.stringify({ setup: ["bun install"], gate: ["bun test", "bun run typecheck"] })}`;
+  writeFileSync(join(bin, "claude"), `#!/bin/sh\nprintf '%s\\n' '${JSON.stringify({ type: "result", subtype: "success", is_error: false, result: reply, session_id: "11111111-1111-1111-1111-111111111111", total_cost_usd: 0.01, usage: {} })}'\n`);
+  chmodSync(join(bin, "claude"), 0o755);
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  const server = await serve(dir, 0);
+  const base = `http://127.0.0.1:${server.port}`;
+  const post = async (url: string, body: unknown) => { const r = await fetch(`${base}${url}`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify(body) }); return { status: r.status, data: (await r.json()) as any }; };
+  try {
+    const turn = await post("/api/chat", { topic: "design", message: "Set the checks up" });
+    const msg = turn.data.chat.messages.at(-1);
+    expect(msg.setup).toEqual({ setup: ["bun install"], gate: ["bun test", "bun run typecheck"] });
+    expect(msg.text).toBe("Here is a gate.");
+    const before = JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8"));
+    expect(before.gate).toEqual(["true"]); // nothing is applied by the conversation itself
+
+    // Refused before anything changes: not a setup, a gate that does what only a person may do, a command that looks like an option.
+    for (const bad of [{}, { gate: "bun test" }, { gate: ["a\nb"] }, { gate: ["--version"] }, { gate: ["bun test", "git push origin main"] }, { setup: ["gh pr merge 3"], gate: ["true"] }]) {
+      expect((await post("/api/configure", bad)).status).toBe(400);
+    }
+    expect(JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8")).gate).toEqual(["true"]);
+
+    const applied = await post("/api/configure", msg.setup);
+    expect(applied.status).toBe(200);
+    expect(applied.data.output).toBe("setup: bun install\ngate:  bun test ; bun run typecheck");
+    const after = JSON.parse(readFileSync(join(dir, "factory.config.json"), "utf8"));
+    expect(after.gate).toEqual(["bun test", "bun run typecheck"]);
+    expect(after.setup).toEqual(["bun install"]);
+    expect(sh("git", "log", "-1", "--format=%s").out).toBe("software-factory: update setup and gate"); // committed, because task worktrees start from the last commit
+    const acted = await post("/api/chats/acted", { topic: "design", index: turn.data.chat.messages.length - 1, ok: true, text: `Setup applied.\n\n${applied.data.output}` });
+    expect(acted.data.messages.at(-2).acted).toBe("Done");
+    expect(acted.data.messages.at(-1)).toMatchObject({ who: "team", text: expect.stringContaining("Setup applied.") });
+    expect(acted.data.messages.at(-2).setup).toEqual(msg.setup); // the card stays, now marked done
+  } finally { server.stop(); process.env.PATH = path; }
+}, 60_000);

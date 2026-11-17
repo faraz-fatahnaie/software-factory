@@ -3,8 +3,8 @@ import { basename, join } from "node:path";
 import { parse } from "./backlog";
 import { chatArgs, chatTurn, managerTurn, resumeChat, stopChat, TOPICS, compactTurn, managerPrompt } from "./chat";
 import { loadConfig, managerOf, parseConfig, projectRoles, projectTeam } from "./config";
-import { parseProposal, type Context } from "./state";
-import { checkAuthority, checkRoleFile } from "./authority";
+import { parseProposal, type Context, checkSetup } from "./state";
+import { checkAuthority, checkRoleFile, checkLimits } from "./authority";
 import { commandsFor, projectCommands } from "./commands";
 import { appendChat, clearChat, importChat, markActed, markCompacted, readChat, replyMsg } from "./chatlog";
 import { allEvents, report } from "./retro";
@@ -295,6 +295,14 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
       }
       if (["POST /api/approve", "POST /api/discard", "POST /api/promote"].includes(route))
         return ids.length === 1 ? cli(url.pathname.slice(5), ids[0]!) : json({ error: "one id required" }, 400);
+      if (route === "POST /api/configure") {
+        // The person pressed Apply setup on what a conversation proposed. The commands are checked again here, and what the gate runs after every build may not be something only a person may do.
+        const errs = checkSetup(body);
+        const gate = Array.isArray(body.gate) ? (body.gate as string[]) : [], setup = Array.isArray(body.setup) ? (body.setup as string[]) : [];
+        if (!errs.length) errs.push(...checkLimits(managerOf(loadConfig(root)), [...setup, ...gate]).filter((v) => v.where === "gate").map((v) => v.text));
+        if (errs.length) return json({ error: errs.join("; ") }, 400);
+        return cli("configure", ...(setup.length ? setup.flatMap((c) => ["--setup", c]) : []), ...(gate.length ? gate.flatMap((c) => ["--gate", c]) : []));
+      }
       if (route === "POST /api/skill") {
         const { action, skill, role } = body;
         const ok = ["add", "attach", "detach"].includes(action as string) && typeof skill === "string" && /^[\w./@:-]{1,120}$/.test(skill) && typeof role === "string";

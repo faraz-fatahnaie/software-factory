@@ -1,7 +1,7 @@
 // Talk: conversations with the people (robots) who hold each job. Checks: the factory's own commands, one button each.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Msg, Shown, Stored } from "../plugin/engine/chatlog";
-import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, matchCommands, stepsSummary, tokens, type Context, type Proposal, type ToolStep, DASHBOARD_COMMANDS, type Command } from "../plugin/engine/state";
+import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, matchCommands, stepsSummary, tokens, type Context, type Proposal, type Setup, type ToolStep, DASHBOARD_COMMANDS, type Command } from "../plugin/engine/state";
 import { mirror } from "./chatstore";
 import { call } from "./data";
 import { Icon } from "./icons";
@@ -204,6 +204,15 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
   const stop = async () => { patch(key, (c) => ({ ...c, queued: undefined })); await call("/api/chat/stop", { topic: key }); };
 
   // The approval: the button calls the same endpoints as the dashboard's own buttons.
+  /** The person pressed Apply setup: the server checks the commands again and records them with `factory configure`, then the message says how it went. */
+  const applySetup = async (i: number, s: Setup) => {
+    const k = key;
+    patch(k, (c) => ({ ...c, busy: true }));
+    const r = await call<{ output?: string }>("/api/configure", s);
+    const text = r.ok ? `Setup applied.\n\n${r.data.output ?? ""}`.trim() : r.error;
+    const kept = await call<Stored>("/api/chats/acted", { topic: k, index: i, ok: r.ok, text });
+    patch(k, (c) => (kept.ok ? mirror(c, kept.data) : { ...c, busy: false, messages: [...c.messages.map((m, j) => (j === i ? { ...m, acted: r.ok ? "Done" : "Failed" } : m)), { who: "team", text, bad: !r.ok }] }));
+  };
   const approve = async (i: number, p: Proposal) => {
     const k = key;
     patch(k, (c) => ({ ...c, busy: true }));
@@ -303,6 +312,17 @@ export function Talk({ chats, setChats, topic: wanted }: { chats: Chats; setChat
                   {m.files?.length ? <ul className="files">{m.files.map((f, j) => <FileChip key={j} f={f} />)}</ul> : null}
                   {m.who === "team" && !m.bad ? <Markdown text={m.text} /> : <div dir="auto">{m.text}</div>}
                   {m.cost ? <div className="msg-meta"><span>${m.cost.toFixed(4)}</span></div> : null}
+                  {m.setup && (
+                    <div className="proposal setup" role="group" aria-label="Setup to apply">
+                      <span>Apply this setup to the project?</span>
+                      <dl>
+                        {m.setup.setup.length > 0 && <><dt>Install</dt>{m.setup.setup.map((c, j) => <dd key={`s${j}`}><code>{c}</code></dd>)}</>}
+                        {m.setup.gate.length > 0 && <><dt>Every build must pass</dt>{m.setup.gate.map((c, j) => <dd key={`g${j}`}><code>{c}</code></dd>)}</>}
+                      </dl>
+                      <span className="note">These run on this computer after every build, so read them first. Nothing changes until you press the button.</span>
+                      {m.acted ? <b>{m.acted}</b> : <button className="primary" disabled={chat.busy} onClick={() => applySetup(i, m.setup!)}>Apply setup</button>}
+                    </div>
+                  )}
                   {m.proposal && (
                     <div className="proposal">
                       <span>{PROPOSAL_ASK[m.proposal.kind](m.proposal.ids)}</span>

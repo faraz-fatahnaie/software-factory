@@ -5,6 +5,10 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **Apply setup button.** When the design conversation proposes the install command and the checks every build must pass, the
+  page shows them as a card with an **Apply setup** button. Nothing changes until you press it; pressing it records them
+  (`factory configure`, committed) and the message says it is done. The commands are checked again before they are
+  applied: one line each, not an option, and nothing only a person may do (no `git push` in the gate).
 - **No conversation is told to do what it cannot.** The two contradictions the authority check found are closed. The
   design conversation no longer claims it records the gate: the gate runs after every build, so it is yours to set, and it
   shows you the exact `factory configure` command to run. The docs conversation no longer claims it edits `AGENTS.md`
