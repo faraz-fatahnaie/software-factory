@@ -3,7 +3,12 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
-## Unreleased
+## 1.2.0
+
+Who may do what is now checked, not hoped for. **Update, restart the dashboard (and any Claude session started before
+the update), and run `factory authority` once** to see the rules and whether your project keeps them. Nothing in an
+existing project is blocked by the update: skills you already installed that ask for more than a role should have are
+shown as worth a look, not refused.
 
 - **Who may do what is now checked.** The rules about what each role, skill, conversation and script may do are written
   down in one place and checked wherever they could be broken (`factory authority` shows them and the result):
