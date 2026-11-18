@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { Config, Role } from "./config";
 import { formatWeakenings, justified, weakeningFeedback, weakenings } from "./bar";
 import { readNotes } from "./chronicle";
+import { minorFindings, reviewApproves } from "./state";
 import { changesInWorktree, formatFindings, scanSecrets, sensitiveReasons } from "./security";
 import { activeRoles, customStages, resolveTeam, stageDuties, stageRole } from "./team";
 import type { Store } from "./events";
@@ -19,6 +20,8 @@ export type Runner = (job: Job) => Promise<RunnerResult>;
 export type Gate = (cwd: string) => Promise<{ ok: boolean; output: string }>;
 
 const MAX_BUILDS = 3;
+/** What the Reviewer is told about its findings (F-109): only Required work sends a task back. In the prompt, so it reaches role files written before it. */
+export const REVIEW_RULE = "Label every finding with its severity: `- [required] file:line — problem — fix` for a defect against the spec, a listed test missing or failing, a security problem, a change outside the spec or a weakened check; `- [optional]` for an improvement worth doing later (also list it under `## Follow-ups`); `- [nit]` for style or taste; `- [fyi]` for something the person should know. Answer REQUEST_CHANGES only for [required] findings: a review whose findings are all below Required lets the task through, and they go to the person.";
 /** What the Builder is told before it starts; the check in bar.ts holds it to it. */
 export const BAR_RULE = "Do not make the checks pass by lowering the bar: no suppression comments, skipped or focused tests, deleted tests or assertions, lowered thresholds or unimplemented stubs. If one is truly right, name its file under a `## Weakened checks` heading in your reply, with the reason; one you do not name fails the check.";
 
@@ -148,7 +151,7 @@ export async function runTask(
         (name === "document" ? `Roles you may write notes for: ${activeRoles(team).join(", ")}.\n` : "") +
         // Only single commands are pre-approved: a chained or piped one is refused, and the stage then cannot see what it needs.
         "Run each shell command on its own, without &&, ; or pipes, and without `cd` or `git -C` (you are already in the project folder): only plain single commands are pre-approved and others are refused.\n" +
-        (name === "build" ? `${BAR_RULE}\n` : "") +
+        (name === "build" ? `${BAR_RULE}\n` : name === "review" ? `${REVIEW_RULE}\n` : "") +
         `Gate commands for this project (all must pass): ${o.config.gate.join(" ; ")}` +
         (why && `\n\nWhy you were asked: ${why}`) +
         (feedback && `\n\nAddress this feedback:\n${feedback}`) +
@@ -253,7 +256,7 @@ export async function runTask(
       const review = check.ok && !bar && !blocked ? await stage("review", roleFor("review")!, "", context) : "";
       stopIfBlocked("review", review);
       // Anything other than APPROVE alone on the first line counts as changes requested.
-      if (verdictIs(review, "APPROVE")) {
+      if (reviewApproves(review)) {
         // The summary for the chronicle. A failure here never blocks a task that passed review.
         const scribe = roleFor("document");
         if (scribe && o.config.roles[scribe] && o.config.roles[scribe]!.enabled !== false) {
@@ -264,13 +267,15 @@ export async function runTask(
         }
         // Done (M14): what was checked before the handover, written where the person decides.
         const files = changesInWorktree(o.cwd).map((c) => c.file), notes = doneNotes(files, !!o.resume);
+        const minor = minorFindings(review);
+        if (minor.length) notes.push(`The review left ${minor.length} finding${minor.length === 1 ? "" : "s"} below Required, for you to decide: ${minor.slice(0, 5).map((l) => l.replace(/^[-*]\s*/, "")).join(" ")}${minor.length > 5 ? ` (and ${minor.length - 5} more in the review)` : ""}`);
         if (lowered.length) notes.push(`The Builder lowered the bar on purpose (reasons in its build notes, and the review accepted them): ${lowered.map((w) => `${w.file}: ${w.kind}`).join("; ")}.`);
         emit("manager", "manager.decision", { data: { action: "done", auto: true, notes, text: `${task.id} is ready for your decision. The project's checks pass, the security check is clean and the review approved it${dod ? " against your definition of done" : ""}${files.length ? ` (${files.length} file${files.length === 1 ? "" : "s"} changed)` : ""}.${notes.length ? ` To look at: ${notes.join(" ")}` : ""}` } });
         emit("run", "run.done");
         return { ok: true as const, run, followUps: [...followUps(build), ...followUps(securityText), ...extraFollowUps, ...followUps(review)] };
       }
       if (attempt === MAX_BUILDS) throw new Error(`no approved build after ${MAX_BUILDS} attempts`);
-      feedback = !check.ok ? check.output : bar || blocked || review;
+      feedback = !check.ok ? check.output : bar || blocked || (/^\s*[-*]\s*\[required\]/im.test(review) ? `Fix the findings marked [required]. The others are for the person to decide; leave them.\n\n${review}` : review);
     }
   } catch (e) {
     emit("run", "run.failed", { data: String(e) });

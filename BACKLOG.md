@@ -5,8 +5,8 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
 Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Build F-108 to F-122 in this order: phase 1 is F-108 to F-111 (the bar and the loops), phase 2 F-112 to F-115 (the standard and risky work), phase 3 F-116 and F-117 (testing how agents behave), phase 4 F-118 to F-122 (smaller wins). One commit per item, a report after each phase.
-- [ ] F-109 (P1) Severity on review findings: only Required sends a task back
-  The Reviewer marks each finding Required, Optional, Nit or FYI. A review whose findings are all below Required approves, and the rest go to the handover notes and Inbox instead of another build round.
+- [ ] F-123 (P1) Role files of an existing project are rebuilt from the new catalog after an update
+  Found on 2026-11-18: the card game project's role files have none of the BLOCKED instructions from 1.2.0, because generated role files are only rebuilt when the team changes. Rebuild the generated ones (keeping attached skills and hand-edited files) and commit them when the plugin version changes. Before F-110, which depends on it.
 - [ ] F-110 (P1) Excuses, warning signs and evidence in each role's instructions
   Builder, Reviewer, Security, Tester: the excuses agents give for skipping a step, with the answer; the signs that something is wrong; what evidence "done" needs. Prompt text in the catalog only.
 - [ ] F-111 (P1) Stop and ask before building risky work
@@ -221,3 +221,5 @@ Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Bui
   Commands named by stages and conversations must be runnable or declared as proposed for the person; every PROPOSE kind has a button; roles are described as what they do; read-only git granted.
 - [x] F-108 (P1) A gate check for a weakened bar (no model)
   The check fails a build that adds a suppression (@ts-ignore, eslint-disable, noqa, type: ignore and the like), skips or focuses a test, deletes a test file or test cases, removes assertions, lowers a coverage threshold or leaves an unimplemented stub, unless the Builder names each such file under `## Weakened checks` with a reason. A justified one goes to the Reviewer to judge and to the person in the handover notes. Never silent.
+- [x] F-109 (P1) Severity on review findings: only Required sends a task back
+  The Reviewer marks each finding Required, Optional, Nit or FYI. A review whose findings are all below Required approves, and the rest go to the handover notes and Inbox instead of another build round.

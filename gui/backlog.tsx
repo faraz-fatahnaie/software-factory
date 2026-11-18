@@ -2,7 +2,7 @@
 // documents and changes). Everything is derived from the backlog and the event log; the buttons call the same endpoints as the command line.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { elapsed, liveOf, STAGES, summarize, doing, type Ev, type TaskRun } from "../plugin/engine/state";
+import { elapsed, liveOf, reviewApproves, STAGES, summarize, doing, type Ev, type TaskRun } from "../plugin/engine/state";
 import { agoShort } from "./commitgraph";
 import { useNow, type Backlog as Data, type Item } from "./data";
 import { FileTree, parseUnified, Stat, UnifiedLines, type FileItem } from "./diff";
@@ -57,7 +57,7 @@ const verdictOf = (run?: TaskRun) => {
   const text = run?.outputs.review;
   if (!text) return null;
   const head = text.trim().split("\n")[0]!;
-  return { ok: /^APPROVE/i.test(head), head: head.replace(/^(APPROVE|REQUEST[_ ]CHANGES|CHANGES)[:\s-]*/i, "").trim(), who: Object.values(run!.stages).find((s) => s.role === "reviewer")?.role ?? "reviewer" };
+  return { ok: reviewApproves(text.trim()), head: head.replace(/^(APPROVE|REQUEST[_ ]CHANGES|CHANGES)[:\s-]*/i, "").trim(), who: Object.values(run!.stages).find((s) => s.role === "reviewer")?.role ?? "reviewer" };
 };
 
 // ---------------------------------------------------------------------------------------------------------------- Cards

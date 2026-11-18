@@ -126,12 +126,30 @@ export function series(events: Ev[], from: number, to: number, n: number): Bucke
   return out;
 }
 
+/** A review finding with its severity (F-109): `- [required|optional|nit|fyi] file:line — problem — fix`. */
+const FINDING = /^\s*[-*]\s*\[(required|optional|nit|fyi)\]/i;
+/** The findings of a review, before its `## Follow-ups`: each bullet with its severity, or none when it carries no label. */
+const findingsOf = (text: string) => (text.split(/^## Follow-ups\s*$/m)[0] ?? "").split("\n").slice(1).filter((l) => /^\s*[-*]\s/.test(l)).map((l) => ({ line: l.trim(), severity: FINDING.exec(l)?.[1]?.toLowerCase() }));
+/**
+ * Whether a review lets the task through: `APPROVE`, or `REQUEST_CHANGES` whose findings are all labelled below Required (Optional, Nit, FYI).
+ * A review with any unlabelled finding is read by its first line alone, as before. Only Required work sends a task back to the Builder.
+ */
+export function reviewApproves(text: string): boolean {
+  const head = text.split("\n")[0]!.trim();
+  if (head === "APPROVE") return true;
+  if (head !== "REQUEST_CHANGES") return false;
+  const f = findingsOf(text);
+  return f.length > 0 && f.every((x) => x.severity && x.severity !== "required");
+}
+/** The findings below Required in a review that let the task through, for the person's handover. */
+export const minorFindings = (text: string) => findingsOf(text).filter((x) => x.severity && x.severity !== "required").map((x) => x.line);
+
 /** How often the gate passed, and how often a review approved. */
 export function passRates(events: Ev[]) {
   const r = { gate: { ok: 0, total: 0 }, review: { ok: 0, total: 0 } };
   for (const e of events) {
     if (e.stage === "check" && (e.type === "stage.ok" || e.type === "stage.failed")) { r.gate.total++; if (e.type === "stage.ok") r.gate.ok++; }
-    if (e.stage === "review" && e.type === "stage.ok") { r.review.total++; if (/^APPROVE\b/.test(e.data?.output ?? "")) r.review.ok++; }
+    if (e.stage === "review" && e.type === "stage.ok") { r.review.total++; if (reviewApproves(e.data?.output ?? "")) r.review.ok++; }
   }
   return r;
 }

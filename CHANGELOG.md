@@ -11,6 +11,11 @@ Each release lists what changed and anything you need to do in your own project.
   Builder with what it found. When one is truly right, the Builder names the file under `## Weakened checks` with a
   reason: the Reviewer judges it and the handover note shows it to you. Tests moved between files are not a loss.
 
+- **Only a required finding sends a task back.** The Reviewer labels each finding `[required]`, `[optional]`, `[nit]`
+  or `[fyi]`. A review whose findings are all below Required lets the task through, and they are listed in the handover
+  note for you to decide (optional ones also go to Inbox). The Builder, sent back, is told to fix the Required ones only.
+  The rule is in the Reviewer's prompt, so it holds for role files written by an earlier version too.
+
 ## 1.2.2
 
 A small release: the authority rules now check that nobody is told to do what it cannot. **Update, restart the dashboard

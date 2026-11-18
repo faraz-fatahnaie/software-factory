@@ -32,8 +32,9 @@ import { estimate } from "../plugin/engine/estimate";
 import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugin/engine/vcs";
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
 import { findWeakenings, justified, removedLines } from "../plugin/engine/bar";
-import { BAR_RULE, blockedReason, doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
+import { BAR_RULE, REVIEW_RULE, blockedReason, doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
+import { minorFindings, reviewApproves } from "../plugin/engine/state";
 import { badCommand, checkSetup, parseSetup, parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev, contextOf, tokens, matchCommands } from "../plugin/engine/state";
 import { commandsFor, DASHBOARD_COMMANDS, projectCommands, reportedBy } from "../plugin/engine/commands";
 import { addSkill, attachSkill, detachSkill, parseFind, roleSkills, setSkill, skillProblems } from "../plugin/engine/skills";
@@ -4826,4 +4827,58 @@ test("bar: a Builder that answers the weakening with a reason only (no file chan
   const never = await replay({ setup: TESTED, write: (cwd, n) => writeFileSync(join(cwd, "src.ts"), `// @ts-ignore\nexport const x${n} = 1;\n`) });
   expect((never.result as { error: string }).error).toBe("Error: no approved build after 3 attempts");
   expect(never.reviews).toBe(0);
+});
+
+// F-109: only Required findings send a task back.
+test("review: only a [required] finding sends a task back; a review of nits, optional ideas and notes lets it through", () => {
+  expect(reviewApproves("APPROVE\nFine.")).toBe(true);
+  expect(reviewApproves("REQUEST_CHANGES\n- [nit] a.ts:3 — name — rename\n- [optional] a.ts:9 — cache — later\n- [fyi] the API is slow\n\n## Follow-ups\n- cache the call")).toBe(true);
+  expect(reviewApproves("REQUEST_CHANGES\n- [Nit] a.ts:3 — x — y\n  * [FYI] z")).toBe(true); // labels in any case, either bullet
+  expect(reviewApproves("REQUEST_CHANGES\n- [required] a.ts:3 — wrong total — use the sum\n- [nit] a.ts:4 — x — y")).toBe(false);
+  expect(reviewApproves("REQUEST_CHANGES\n- [nit] a.ts:3 — x — y\n- a.ts:9 — the total is wrong — fix it")).toBe(false); // an unlabelled finding counts as before
+  expect(reviewApproves("REQUEST_CHANGES\n- a.ts:9 — the total is wrong")).toBe(false);
+  expect(reviewApproves("REQUEST_CHANGES\nThe total is wrong.")).toBe(false); // no findings at all: read by the first line
+  expect(reviewApproves("REQUEST_CHANGES\n\n## Follow-ups\n- [nit] x")).toBe(false); // follow-ups are not findings
+  expect(reviewApproves("APPROVE, but\n- [nit] x")).toBe(false);
+  expect(reviewApproves("BLOCKED: F-005 is not merged\n- [nit] x")).toBe(false);
+  expect(reviewApproves("")).toBe(false);
+  expect(minorFindings("REQUEST_CHANGES\n- [nit] a.ts:3 — x — y\n- [required] b\n- [fyi] z\n## Follow-ups\n- [optional] w")).toEqual(["- [nit] a.ts:3 — x — y", "- [fyi] z"]);
+  expect(REVIEW_RULE).toMatch(/REQUEST_CHANGES only for \[required\]/);
+});
+
+test("review: the F-050 shape. A review of nits no longer costs another build: the task goes to the person with the nits in the handover", async () => {
+  const write = (cwd: string, n: number) => writeFileSync(join(cwd, `f${n}.txt`), `${n}\n`);
+  const r = await replay({ write, review: () => "REQUEST_CHANGES\n- [nit] f1.txt:1 — the file name could say more — rename it\n- [optional] f1.txt:1 — add a header — later\n\n## Follow-ups\n- add a header to f1.txt" });
+  expect(r.result.ok).toBe(true);
+  expect(r.builds).toBe(1);
+  expect(r.reviews).toBe(1);
+  expect((r.result as { followUps: string[] }).followUps).toContain("add a header to f1.txt");
+  const done = r.store.list(r.store.lastRun("F-001")!).find((e) => e.type === "manager.decision")!.data as { notes: string[] };
+  expect(done.notes.join(" ")).toMatch(/2 findings below Required, for you to decide: \[nit\] f1\.txt:1 — the file name could say more — rename it \[optional\] f1\.txt:1/);
+});
+
+test("review: a [required] finding is sent back with an instruction to fix only it, and the Reviewer and Builder are told the rules in their prompts", async () => {
+  const prompts: Record<string, string[]> = {};
+  const { dir } = repo();
+  const store = openStore(":memory:");
+  let reviews = 0;
+  const runner: Runner = async ({ stage, cwd, prompt }) => {
+    (prompts[stage] ??= []).push(prompt);
+    if (stage === "build") { writeFileSync(join(cwd, `f${prompts.build!.length}.txt`), "x\n"); return { status: "ok", text: "Built." }; }
+    if (stage === "review") return { status: "ok", text: ++reviews === 1 ? "REQUEST_CHANGES\n- [required] f1.txt:1 — the total is wrong — use the sum\n- [nit] f1.txt:1 — spacing" : "APPROVE\nFixed." };
+    return { status: "ok", text: stage === "spec" ? "# Spec" : stage === "document" ? "## Chronicle\nx" : "x" };
+  };
+  const result = await runTask(SAFE_TASK, { config, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
+  expect(result.ok).toBe(true);
+  expect(prompts.build).toHaveLength(2);
+  expect(prompts.build![1]).toMatch(/Fix the findings marked \[required\]\. The others are for the person to decide; leave them\.\n\nREQUEST_CHANGES\n- \[required\] f1\.txt:1 — the total is wrong/);
+  expect(prompts.build![0]).toContain(BAR_RULE);
+  expect(prompts.build![0]).not.toContain(REVIEW_RULE);
+  expect(prompts.review![0]).toContain(REVIEW_RULE);
+  expect(prompts.spec![0]).not.toContain(REVIEW_RULE);
+});
+
+test("review: pass rates and the retrospective count a review of nits as an approval", () => {
+  const ev = (output: string) => ({ ts: "2026-11-18T10:00:00Z", run: "r", task: "F-001", stage: "review", type: "stage.ok", data: { output } }) as Ev;
+  expect(passRates([ev("APPROVE\nok"), ev("REQUEST_CHANGES\n- [nit] x"), ev("REQUEST_CHANGES\n- [required] x")]).review).toEqual({ ok: 2, total: 3 });
 });

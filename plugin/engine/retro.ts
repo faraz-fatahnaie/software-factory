@@ -2,7 +2,7 @@
 // Counted from the backlog and the event log, with no model: a model only reads this report and says what it means.
 import type { Item } from "./backlog";
 import type { Store } from "./events";
-import { costs, type Ev } from "./state";
+import { costs, reviewApproves, type Ev } from "./state";
 import { failureKind, type Kind } from "./supervisor";
 
 export type Milestone = { name: string; ids: string[]; done: number; open: string[] };
@@ -58,7 +58,7 @@ export function health(events: Ev[]): Health {
     if (e.stage === "build" && e.type === "stage.ok") h.builds++;
     if (e.stage === "check" && e.type === "stage.failed") h.checksFailed++;
     if (e.stage === "security" && e.type === "stage.failed") h.securityBack++;
-    if (e.stage === "review" && e.type === "stage.ok" && !/^APPROVE\s*(\n|$)/.test(e.data?.output ?? "")) h.reviewsBack++;
+    if (e.stage === "review" && e.type === "stage.ok" && !reviewApproves(e.data?.output ?? "")) h.reviewsBack++;
   }
   h.causes = [...counts].map(([kind, count]) => ({ kind, text: CAUSE[kind], count, tasks: [...causes.get(kind)!] })).sort((a, b) => b.count - a.count);
   h.roles = [...costs(events).role].map(([role, r]) => ({ role, stages: r.stages, failed: r.stages - r.ok, cost: r.cost })).sort((a, b) => b.cost - a.cost);
