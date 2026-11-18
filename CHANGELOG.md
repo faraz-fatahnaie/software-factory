@@ -5,6 +5,10 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **A second review for risky work.** When the spec named a risk (see "Risky work waits for your yes") and the review
+  approves, a second reviewer starts fresh and tries to break the change: the input that breaks it, the check it skips,
+  the data it loses. A failure it can show sends the task back; a doubt it cannot show is only noted. It runs once per
+  task, and never for ordinary work.
 - **Oversized changes are flagged, not reviewed round after round.** The Planner writes thin tasks. A build larger than
   the largest change `CONSTRAINTS.md` allows (400 lines if it names none) is flagged to the Reviewer, who may ask for a
   split, and to you. If two reviews still cannot approve it, the task stops with "split it" instead of a third build.

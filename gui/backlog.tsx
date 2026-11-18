@@ -16,8 +16,8 @@ import { Select } from "./ui";
 
 type Act = (path: string, body: unknown) => Promise<boolean>;
 const COLUMNS = [["Inbox", "Inbox"], ["Ready", "Ready"], ["In progress", "In progress"], ["Awaiting approval", "Needs you"], ["Done", "Done"]] as const;
-const STATION: Record<string, string> = { triage: "Triage", spec: "Spec", build: "Build", check: "Check", security: "Security", review: "Review", document: "Summary" };
-const DOING: Record<string, string> = { triage: "Triaging", spec: "Writing the spec", build: "Building", check: "Running the checks", security: "Checking security", review: "Reviewing", document: "Writing the summary" };
+const STATION: Record<string, string> = { triage: "Triage", spec: "Spec", build: "Build", check: "Check", security: "Security", review: "Review", doubt: "Second review", document: "Summary" };
+const DOING: Record<string, string> = { triage: "Triaging", spec: "Writing the spec", build: "Building", check: "Running the checks", security: "Checking security", review: "Reviewing", doubt: "Trying to disprove it", document: "Writing the summary" };
 const TRACK = ["spec", "build", "check", "review", "document"];
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const money = (n: number) => `$${n < 0.1 ? n.toFixed(3) : n.toFixed(2)}`;

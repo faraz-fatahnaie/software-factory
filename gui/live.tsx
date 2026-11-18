@@ -7,7 +7,7 @@ import { Icon } from "./icons";
 import { personaFor } from "./robots";
 
 /** A few more words than the stage's name, for the title of the tab. */
-export const STAGE_ING: Record<string, string> = { triage: "triaging", spec: "writing the spec for", build: "building", check: "checking", security: "checking the security of", review: "reviewing", document: "writing the summary of" };
+export const STAGE_ING: Record<string, string> = { triage: "triaging", spec: "writing the spec for", build: "building", check: "checking", security: "checking the security of", review: "reviewing", doubt: "trying to disprove", document: "writing the summary of" };
 const QUIET_AFTER_MS = 120_000;
 
 /** The sentence under a working person: the newest action, how long ago, and (folded) the few before it. */

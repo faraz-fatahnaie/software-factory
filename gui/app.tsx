@@ -209,8 +209,8 @@ export function Feed({ events, limit, open }: { events: Ev[]; limit: number; ope
   );
 }
 
-const STAGE_DID: Record<string, string> = { triage: "triage", spec: "spec", build: "build", check: "checks", security: "security", review: "review", document: "summary" };
-const DOING: Record<string, string> = { triage: "Triaging", spec: "Writing the spec for", build: "Building", check: "Running the checks on", security: "Checking the security of", review: "Reviewing", document: "Writing the summary of" };
+const STAGE_DID: Record<string, string> = { triage: "triage", spec: "spec", build: "build", check: "checks", security: "security", review: "review", doubt: "second review", document: "summary" };
+const DOING: Record<string, string> = { triage: "Triaging", spec: "Writing the spec for", build: "Building", check: "Running the checks on", security: "Checking the security of", review: "Reviewing", doubt: "Trying to disprove", document: "Writing the summary of" };
 
 function Overview(p: { events: Ev[]; tasks: Map<string, TaskRun>; rateLimit: any; backlog: Backlog; open: (id: string) => void; team: TeamData | null; vcs: VcsData | null; act: Act; refreshVcs: () => Promise<void>; chats: Chats; talkTo: (key: string) => void; openPerson: (role: string) => void; health: HealthData | null; recheck: () => Promise<void>; explain: (title: string, detail: string) => void }) {
   const working = useMemo(() => roster(p.tasks), [p.tasks]);

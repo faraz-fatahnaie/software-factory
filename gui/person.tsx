@@ -12,7 +12,7 @@ import { personaFor, Robot } from "./robots";
 import { TALK_TO } from "./team";
 import type { TeamData } from "./team";
 
-const STAGE = { triage: "Triage", spec: "Spec", build: "Build", check: "Check", security: "Security", review: "Review", document: "Summary" } as Record<string, string>;
+const STAGE = { triage: "Triage", spec: "Spec", build: "Build", check: "Check", security: "Security", review: "Review", doubt: "Second review", document: "Summary" } as Record<string, string>;
 const money = (n: number) => `$${n < 0.1 ? n.toFixed(3) : n.toFixed(2)}`;
 const took = (ms?: number) => (ms === undefined ? "" : ms < 1000 ? "<1s" : ms < 60_000 ? `${Math.round(ms / 1000)}s` : `${Math.floor(ms / 60_000)}m ${String(Math.round((ms % 60_000) / 1000)).padStart(2, "0")}s`);
 const reduced = () => typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;

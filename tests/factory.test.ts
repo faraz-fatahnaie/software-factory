@@ -3114,6 +3114,7 @@ async function replay(o: { consent?: boolean; spec?: string; build?: string | ((
     if (stage === "review") { reviews++; return { status: "ok", text: o.review ? o.review(reviews) : "APPROVE\nFine." }; }
     if (stage === "spec") return { status: "ok", text: o.spec ?? "# Spec\nDo it." };
     if (stage === "security") return { status: "ok", text: o.security ?? "SECURE" };
+    if (stage === "doubt") return { status: "ok", text: "APPROVE\nI could not break it." };
     return { status: "ok", text: stage === "document" ? "## Chronicle\nDone." : stage };
   };
   const gate = async () => ({ ok: (o.gate ?? [])[gates++] ?? true, output: "the check failed" });
@@ -4989,7 +4990,7 @@ test("risk: only the person can say yes. Autopilot never retries, guides or buil
 test("risk: a send-back keeps its spec and is not asked again", async () => {
   const { dir } = repo();
   const store = openStore(":memory:");
-  const runner: Runner = async ({ stage, cwd }) => { if (stage === "build") writeFileSync(join(cwd, "b.txt"), "b\n"); return { status: "ok", text: stage === "review" ? "APPROVE\nok" : stage === "document" ? "## Chronicle\nx" : "Built." }; };
+  const runner: Runner = async ({ stage, cwd }) => { if (stage === "build") writeFileSync(join(cwd, "b.txt"), "b\n"); return { status: "ok", text: stage === "review" || stage === "doubt" ? "APPROVE\nok" : stage === "document" ? "## Chronicle\nx" : "Built." }; };
   const r = await runTask(SAFE_TASK, { config, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir, resume: { spec: "# Spec\n\nRisk: payments", feedback: "Use 30%", files: [], round: 2 } });
   expect(r.ok).toBe(true);
 });
@@ -5072,4 +5073,48 @@ test("size: an oversized change is flagged to the Reviewer and the person; one t
   // A small change is never flagged, and keeps its three tries.
   const small = await replay({ write: (cwd, n) => writeFileSync(join(cwd, `f${n}.txt`), `${n}\n`), review: () => "REQUEST_CHANGES\n- [required] x" });
   expect(small.builds).toBe(3);
+});
+
+// F-115: a doubting second review, only for risky work.
+async function doubtRun(o: { spec: string; doubt?: (n: number) => string; review?: (n: number) => string; resume?: boolean }) {
+  const { dir } = repo();
+  const store = openStore(":memory:"), calls: string[] = [], prompts: Record<string, string[]> = {};
+  let n = 0, d = 0, r = 0;
+  const runner: Runner = async ({ stage, cwd, prompt }) => {
+    calls.push(stage); (prompts[stage] ??= []).push(prompt);
+    if (stage === "build") { writeFileSync(join(cwd, `f${++n}.ts`), `export const v = ${n};\n`); return { status: "ok", text: "Built." }; }
+    if (stage === "review") return { status: "ok", text: o.review ? o.review(++r) : "APPROVE\nFine." };
+    if (stage === "doubt") return { status: "ok", text: o.doubt ? o.doubt(++d) : "APPROVE\nI could not break it." };
+    return { status: "ok", text: stage === "spec" ? o.spec : stage === "document" ? "## Chronicle\nx" : "x" };
+  };
+  const result = await runTask(SAFE_TASK, { config, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir, consent: true, ...(o.resume && { resume: { spec: o.spec, feedback: "Use 30%", files: [], round: 2 } }) });
+  return { result, calls, prompts, store };
+}
+
+test("doubt: risky work gets a second review set to disprove it, after the first approves; plain work never does", async () => {
+  const risky = await doubtRun({ spec: "# Spec\nCharge the deposit.\n\nRisk: payments" });
+  expect(risky.result.ok).toBe(true);
+  expect(risky.calls.filter((c) => c === "review" || c === "doubt")).toEqual(["review", "doubt"]);
+  expect(risky.prompts.doubt![0]).toMatch(/Why you were asked: this change is high-stakes \(the spec plans payments: charging, refunds or billing\), and another reviewer has approved it\..*your job is to disprove it/);
+  expect(risky.prompts.doubt![0]).toContain(REVIEW_RULE);
+  expect(risky.prompts.doubt![0]).toContain(STANDARD_DONE); // it judges against the same bar
+  const done = risky.store.list(risky.store.lastRun("F-001")!).find((e) => e.type === "manager.decision")!.data as { notes: string[] };
+  expect(done.notes.join(" ")).toContain("A second reviewer, set to disprove it because it touches payments, could not break it.");
+  const plain = await doubtRun({ spec: "# Spec\nRename a label.\n\nRisk: none" });
+  expect(plain.calls).not.toContain("doubt");
+  // Not when the first review asks for changes: it runs once the change is otherwise ready.
+  const sent = await doubtRun({ spec: "# Spec\n\nRisk: auth", review: (n) => (n === 1 ? "REQUEST_CHANGES\n- [required] f1.ts:1 — x" : "APPROVE") });
+  expect(sent.calls.filter((c) => c === "review" || c === "doubt")).toEqual(["review", "review", "doubt"]);
+});
+
+test("doubt: a failure it can show sends the task back with its findings, and it runs once per task, so the cost stays bounded", async () => {
+  const r = await doubtRun({ spec: "# Spec\n\nRisk: auth", doubt: () => "REQUEST_CHANGES\n- [required] f1.ts:1 — an expired session still passes — check the expiry\n- [fyi] the token lives a day" });
+  expect(r.result.ok).toBe(true); // the second build passes the normal review; the doubter is not asked again
+  expect(r.calls.filter((c) => c === "build" || c === "review" || c === "doubt")).toEqual(["build", "review", "doubt", "build", "review"]);
+  expect(r.prompts.build![1]).toMatch(/Fix the findings marked \[required\]\.[\s\S]*an expired session still passes/);
+  // A doubt it cannot show is not a reason to send it back.
+  const fyi = await doubtRun({ spec: "# Spec\n\nRisk: auth", doubt: () => "REQUEST_CHANGES\n- [fyi] I am not sure about the expiry" });
+  expect(fyi.calls.filter((c) => c === "build")).toHaveLength(1);
+  // A send-back of risky work keeps its spec, so it is doubted too.
+  expect((await doubtRun({ spec: "# Spec\n\nRisk: secrets", resume: true })).calls).toContain("doubt");
 });
