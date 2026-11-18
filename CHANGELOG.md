@@ -5,6 +5,11 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **Role instructions now reach a project after an update.** Until now a project kept the role files of the version it
+  was made with, so fixes to what roles are told (such as the `BLOCKED:` rule of 1.2.0) never reached it. Starting the
+  dashboard or a run now rebuilds each generated role file whose text nobody changed, keeps the skills attached to it,
+  and commits it. A file you edited, or one without the "Generated from…" line, is left alone. Each file now carries a
+  short stamp of its text so an edit can be told apart.
 - **A check made green by lowering the bar fails.** After the project's checks pass, the factory reads the change itself
   (no model): a new suppression comment (`@ts-ignore`, `eslint-disable`, `noqa`, `type: ignore`…), a skipped or focused
   test, deleted tests or assertions, a lowered coverage threshold or an unimplemented stub sends the build back to the

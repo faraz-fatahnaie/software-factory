@@ -6,7 +6,7 @@ import { SECTIONS } from "./backlog";
 import { loadConfig, parseConfig, projectRoles, teamOf } from "./config";
 import { GRAPH_IGNORE, graphifyInstalled, updateGraph } from "./graph";
 import { roleSkills } from "./skills";
-import { activeRoles, DEFAULT_PRESET, GENERATED, presets, renderRole, resolveTeam } from "./team";
+import { activeRoles, DEFAULT_PRESET, GENERATED, presets, renderRole, resolveTeam, untouched } from "./team";
 
 const GENERATED_MARK = GENERATED.slice(0, 40);
 
@@ -160,6 +160,27 @@ export function ensureRoleFiles(dir: string): string[] {
     made.push(file);
   }
   return made;
+}
+
+/**
+ * After an update of the plugin: rebuilds each generated role file whose text nobody changed, so the new catalog's instructions reach the project
+ * (F-123: before this, a project kept the instructions of the version it was made with). Attached skills are kept; an edited or hand-made file is left
+ * alone. Returns the files rewritten; the caller commits them, because task worktrees branch from HEAD.
+ */
+export function refreshRoleFiles(dir: string): string[] {
+  let team;
+  try { team = teamOf(JSON.parse(read(dir, "factory.config.json"))); } catch { return []; }
+  const out: string[] = [];
+  for (const role of activeRoles(team)) {
+    const file = `.claude/agents/${role}.md`, current = read(dir, file);
+    if (!current || !untouched(current)) continue;
+    const next = renderRole(role, team, roleSkills(current));
+    // Already current but not committed (an earlier commit failed, or a file was just made): it still has to reach HEAD, or no worktree sees it.
+    if (next === current) { if (Bun.spawnSync(["git", "status", "--porcelain", "--", file], { cwd: dir, stdout: "pipe", stderr: "pipe" }).stdout.toString().trim()) out.push(file); continue; }
+    writeFileSync(join(dir, file), next);
+    out.push(file);
+  }
+  return out;
 }
 
 /**

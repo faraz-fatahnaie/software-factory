@@ -217,7 +217,21 @@ export function toolsFor(holds: string[], team: Preset = DEFAULT_TEAM): string[]
   return [...new Set(tools)];
 }
 
-export const GENERATED = "<!-- Generated from the software factory's responsibility catalog. `factory team apply` rebuilds this file; edits to it are kept unless you pass --force. Remove this line to take it over. -->";
+export const GENERATED = "<!-- Generated from the software factory's responsibility catalog. `factory team apply` rebuilds this file, and so does an update of the plugin while the text below this line is as it was written. Remove this line to take it over. -->";
+/**
+ * A short stamp of a role file as it was written, kept in its marker line: an update rebuilds the file only while it still matches (F-123). It covers the
+ * whole file except the marker line and the attached skills, which the factory changes itself; any other edit, in the text or the frontmatter, shows.
+ */
+const MARKER_LINE = /^<!-- Generated from the software factory.*\n?/m;
+const stamp = (md: string) => Bun.hash(md.replace(MARKER_LINE, "").replace(/^skills:\n(?: {2}- .*\n)*/m, "")).toString(36);
+const STAMP = / \[text ([0-9a-z]+)\] -->$/m;
+/** Whether a generated role file is as the factory wrote it, so rebuilding it loses nothing. A file from before the stamp cannot tell and counts as untouched: the factory has always rebuilt generated files on `team apply`. */
+export function untouched(md: string): boolean {
+  const marker = MARKER_LINE.exec(md)?.[0];
+  if (!marker) return false;
+  const recorded = STAMP.exec(marker.trimEnd())?.[1];
+  return !recorded || recorded === stamp(md);
+}
 
 /** A role file: frontmatter plus one section per built responsibility the role holds. */
 export function renderRole(name: string, team: Preset = DEFAULT_TEAM, skills: string[] = []): string {
@@ -228,7 +242,8 @@ export function renderRole(name: string, team: Preset = DEFAULT_TEAM, skills: st
   const sections = built.map((r) => `## ${r.title}\n\n${r.instruction}`).join("\n\n");
   const frontmatter = ["---", `name: ${name}`, `description: ${role.description}`, `tools: ${toolsFor(role.holds, team).join(", ")}`,
     ...(skills.length ? ["skills:", ...skills.map((s) => `  - ${s}`)] : []), "---"];
-  return `${frontmatter.join("\n")}\n${GENERATED}\nYou are the ${role.title} of this project's software factory.\n\n${sections}\n`;
+  const md = `${frontmatter.join("\n")}\n${GENERATED}\nYou are the ${role.title} of this project's software factory.\n\n${sections}\n`;
+  return md.replace(GENERATED, GENERATED.replace(/ -->$/, ` [text ${stamp(md)}] -->`));
 }
 
 const CHAT_RULES = readFileSync(join(DATA, "CHAT.md"), "utf8").trim();

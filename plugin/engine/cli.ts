@@ -6,7 +6,8 @@ import { add, dependsOn, FROM_CONVERSATION, move, parse, type Item, type Section
 import { claudeRunner } from "./claude";
 import { loadConfig, managerOf, parseConfig, projectTeam, readConfig } from "./config";
 import { openStore } from "./events";
-import { applyTeam, configure, ensureRoleFiles, detect, DOC_PATHS, doctor, init, nextStep, projectDocs } from "./init";
+import { VERSION } from "./upgrade";
+import { applyTeam, configure, ensureRoleFiles, detect, DOC_PATHS, doctor, init, nextStep, projectDocs, refreshRoleFiles } from "./init";
 import { appendChronicle, appendNotes, chronicleEntry, parseScribe, stageOutput } from "./chronicle";
 import { graphifyInstalled, updateGraph } from "./graph";
 import { formatChecks, formatInfo, readiness, releaseInfo, tagRelease } from "./release";
@@ -112,15 +113,21 @@ factory skill add <owner/repo@skill> --role <r> install a skill and attach it to
 factory skill attach|detach <skill> --role <r>  attach or detach a skill that is already installed`;
 
 /** Runs backlog items through the pipeline, each in its own worktree, and moves each to Awaiting approval or Blocked. `resume` makes it a send-back of the single item. */
-/** A role the plugin gained since this project was made has no role file yet: make it, and commit it, because task worktrees branch from HEAD. */
+/**
+ * Role files for this version of the plugin: a role it gained gets its file, and a generated file nobody edited is rebuilt from the new catalog. Both are
+ * committed, because task worktrees branch from HEAD.
+ */
 function repairRoleFiles(): string[] {
-  const made = withLock(() => {
-    const files = ensureRoleFiles(root);
-    if (files.length) commitPaths("software-factory: add role files for roles new in this version", ...files);
-    return files;
+  const { made, rebuilt } = withLock(() => {
+    const made = ensureRoleFiles(root);
+    if (made.length) commitPaths("software-factory: add role files for roles new in this version", ...made);
+    const rebuilt = refreshRoleFiles(root);
+    if (rebuilt.length) commitPaths(`software-factory: rebuild role files from the catalog of version ${VERSION}`, ...rebuilt);
+    return { made, rebuilt };
   });
   if (made.length) console.log(`created ${made.join(", ")} (roles that are new in this version of the plugin)`);
-  return made;
+  if (rebuilt.length) console.log(`rebuilt ${rebuilt.join(", ")} from this version's instructions (your attached skills are kept; a file you edited is left alone)`);
+  return [...made, ...rebuilt];
 }
 
 async function runItems(config: ReturnType<typeof loadConfig>, runner: Runner, chosen: Item[], resume?: Resume) {
