@@ -5,6 +5,10 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **The roles that build and judge are told the excuses that do not hold.** The Builder, its testing duty, the Reviewer
+  and the security review now name the reasons agents give for skipping a step ("I'll add the tests afterwards", "the
+  tests pass, so it is right", "it is internal only") with the answer, the signs that something is going wrong, and the
+  evidence their reply must show.
 - **Role instructions now reach a project after an update.** Until now a project kept the role files of the version it
   was made with, so fixes to what roles are told (such as the `BLOCKED:` rule of 1.2.0) never reached it. Starting the
   dashboard or a run now rebuilds each generated role file whose text nobody changed, keeps the skills attached to it,

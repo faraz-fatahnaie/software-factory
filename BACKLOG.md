@@ -5,8 +5,6 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
 Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Build F-108 to F-122 in this order: phase 1 is F-108 to F-111 plus F-123 (the bar, the loops, and role files that reach a project), phase 2 F-112 to F-115 (the standard and risky work), phase 3 F-116 and F-117 (testing how agents behave), phase 4 F-118 to F-122 (smaller wins). One commit per item, a report after each phase.
-- [ ] F-110 (P1) Excuses, warning signs and evidence in each role's instructions
-  Builder, Reviewer, Security, Tester: the excuses agents give for skipping a step, with the answer; the signs that something is wrong; what evidence "done" needs. Prompt text in the catalog only.
 - [ ] F-111 (P1) Stop and ask before building risky work
   When the spec plans a change to auth or permissions, a destructive migration, payments, deletion of data, secrets or a deploy, the task stops before Build and waits for the person's yes (Blocked with the reason, run again with --anyway).
 - [ ] F-112 (P2) A standing definition of done by default
@@ -223,3 +221,5 @@ Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Bui
   The Reviewer marks each finding Required, Optional, Nit or FYI. A review whose findings are all below Required approves, and the rest go to the handover notes and Inbox instead of another build round.
 - [x] F-123 (P1) Role files of an existing project are rebuilt from the new catalog after an update
   Found on 2026-11-18: the card game project's role files have none of the BLOCKED instructions from 1.2.0, because generated role files are only rebuilt when the team changes. Rebuild the generated ones (keeping attached skills and hand-edited files) and commit them when the plugin version changes. Before F-110, which depends on it.
+- [x] F-110 (P1) Excuses, warning signs and evidence in each role's instructions
+  Builder, Reviewer, Security, Tester: the excuses agents give for skipping a step, with the answer; the signs that something is wrong; what evidence "done" needs. Prompt text in the catalog only.
