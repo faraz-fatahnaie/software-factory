@@ -5,6 +5,9 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **A standard definition of done.** A project that has not written its own (in `docs/plan/roadmap.md`) is now
+  reviewed against a standard one: correct and tested, clean, fits the rest of the code, documented, safe to ship.
+  Your own, when you write it, replaces it.
 - **Risky work waits for your yes before it is built.** The spec now ends with a `Risk:` line. When it names login or
   permissions, deleting or rewriting stored data, payments, secrets or a deploy, the run stops before anything is built
   and the task shows **Build it** instead of Retry. Only you can say yes, there or with `factory run <F-id> --anyway`:

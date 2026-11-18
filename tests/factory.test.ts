@@ -33,7 +33,7 @@ import { estimate } from "../plugin/engine/estimate";
 import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugin/engine/vcs";
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
 import { findWeakenings, justified, removedLines } from "../plugin/engine/bar";
-import { BAR_RULE, REVIEW_RULE, RISK_RULE, risksOf, blockedReason, doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
+import { BAR_RULE, REVIEW_RULE, RISK_RULE, risksOf, STANDARD_DONE, blockedReason, doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
 import { minorFindings, reviewApproves } from "../plugin/engine/state";
 import { badCommand, checkSetup, parseSetup, parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev, contextOf, tokens, matchCommands } from "../plugin/engine/state";
@@ -2379,6 +2379,13 @@ test("ready and done (M14): triage stops an item that is too large or has no che
   expect(fine.prompts.review).not.toContain("- M1");
   expect(fine.said[0]).toMatchObject({ action: "done", notes: ["Code changed, but no test was added or changed with it."] });
   expect(fine.said[0]!.text).toMatch(/F-001 is ready for your decision\..*against your definition of done.*\(\d+ files? changed\)\. To look at: Code changed/);
+  // F-112: a project with no definition of its own is reviewed against the standard one, and the handover says which it was.
+  const standard = await run(TRIAGED);
+  expect(standard.prompts.review).toContain(`the standard definition of done (the project has not written its own; a missed point is a [required] finding only when it is a real defect):\n${STANDARD_DONE}`);
+  expect(standard.prompts.review).not.toContain("Privacy rules were checked.");
+  expect(fine.prompts.review).not.toContain(STANDARD_DONE); // the project's own replaces it
+  expect(standard.said[0]!.text).toMatch(/approved it against the standard definition of done/);
+  expect(STANDARD_DONE).toMatch(/fails without the change[\s\S]*no dead code[\s\S]*untrusted input is validated/);
 
   const hold = manage({}, [mItem("F-001", "Ready"), mItem("F-002", "Ready", "Acceptance: it works")]);
   hold.canTriage.value = false; // a team with no triage: the loose idea waits, the item with checks starts
