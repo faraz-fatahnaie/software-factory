@@ -113,6 +113,7 @@ there against an unrelated project, because that is what a user's cache looks li
 ## Release checklist
 
 1. All checks above pass, including a run from a copied `plugin/` folder on a non-JavaScript project.
+   Then `bun run rehearse <a real factory project>` (a user's, made by an earlier version): it clones the project, runs this version's commands and dashboard on the copy, and lists what an update would change. Every line must pass; the project itself is never touched.
 2. Bump `version` in `plugin/.claude-plugin/plugin.json` (and `package.json`).
 3. Update `README.md` with the install lines for the real repository.
 4. Add the version to `CHANGELOG.md` (what changed, and anything a user must do in their own project). Publish the

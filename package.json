@@ -11,7 +11,8 @@
     "smoke": "bun e2e/smoke.e2e.ts",
     "site": "bun e2e/site.e2e.ts",
     "evals:roles": "bun evals/roles.ts",
-    "evals:plugin": "bun evals/plugin.ts"
+    "evals:plugin": "bun evals/plugin.ts",
+    "rehearse": "bun e2e/rehearse.ts"
   },
   "dependencies": {
     "react": "^19.3.1",
