@@ -17,10 +17,10 @@ type HookInput = {
 // list because every later stage of the same task reads them: a builder that could edit
 // AGENTS.md could tell its own reviewer to approve. graphify-out is on it because the GUI
 // displays graph.html.
-const PROTECTED = /(^|\/)(BACKLOG\.md|factory\.config\.json|AGENTS\.md|CLAUDE(\.local)?\.md)$|(^|\/)(\.(claude|git|factory)|graphify-out)(\/|$)/;
+const PROTECTED = /(^|\/)(BACKLOG\.md|CONSTRAINTS\.md|factory\.config\.json|AGENTS\.md|CLAUDE(\.local)?\.md)$|(^|\/)(\.(claude|git|factory)|graphify-out)(\/|$)/;
 // ponytail: a text match on the command, not a shell parser. It stops accidents and plain
 // attempts; real containment needs an OS-level sandbox (queued in BACKLOG.md).
-const PROTECTED_IN_COMMAND = /BACKLOG\.md|factory\.config\.json|AGENTS\.md|CLAUDE(\.local)?\.md|graphify-out|(^|[\s"'=\/])\.(claude|git|factory)(?![\w-])/;
+const PROTECTED_IN_COMMAND = /BACKLOG\.md|CONSTRAINTS\.md|factory\.config\.json|AGENTS\.md|CLAUDE(\.local)?\.md|graphify-out|(^|[\s"'=\/])\.(claude|git|factory)(?![\w-])/;
 const OUTWARD = /\bgit\s+push\b|\bgh\s+pr\s+(create|merge)\b/;
 
 /** Resolves symlinks through the deepest existing ancestor, so not-yet-created files work too. */
@@ -50,7 +50,7 @@ export function guard(i: HookInput, root: string): string | null {
     if (OUTWARD.test(command)) return "pushing and opening pull requests is the orchestrator's job, after human approval";
     // Only a role that may write (the builder) can reach these paths through the shell.
     if (i.permission_mode === "acceptEdits" && PROTECTED_IN_COMMAND.test(command))
-      return "shell commands must not touch the governance files (BACKLOG.md, factory.config.json, AGENTS.md, CLAUDE.md, .claude, .git, .factory, graphify-out). Use the Read tool to read them";
+      return "shell commands must not touch the governance files (BACKLOG.md, CONSTRAINTS.md, factory.config.json, AGENTS.md, CLAUDE.md, .claude, .git, .factory, graphify-out). Use the Read tool to read them";
   }
   return null;
 }

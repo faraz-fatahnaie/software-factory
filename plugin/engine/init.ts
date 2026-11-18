@@ -75,6 +75,7 @@ export function init(dir: string, opts: { setup?: string[]; gate?: string[]; tea
   create("factory.config.json", `${JSON.stringify(config, null, 2)}\n`);
   create("BACKLOG.md", readFileSync(join(TEMPLATES, "BACKLOG.md"), "utf8"));
   create("docs/README.md", readFileSync(join(TEMPLATES, "DOCS.md"), "utf8"));
+  create("CONSTRAINTS.md", readFileSync(join(TEMPLATES, "CONSTRAINTS.md"), "utf8"));
   for (const role of activeRoles(team)) create(`.claude/agents/${role}.md`, renderRole(role, team));
 
   // The rules go into AGENTS.md, and CLAUDE.md imports it so Claude Code loads them.
@@ -121,6 +122,7 @@ export function doctor(dir: string) {
 
   const backlog = read(dir, "BACKLOG.md");
   check(SECTIONS.every((s) => backlog.split("\n").includes(`## ${s}`)), "BACKLOG.md with all six sections", "run: factory init");
+  check(!!read(dir, "CONSTRAINTS.md"), "CONSTRAINTS.md (this project's quality bar)", "run: factory init, which adds it with defaults you edit and keeps every file you have", false);
   for (const role of projectRoles(dir)) {
     const file = read(dir, `.claude/agents/${role}.md`);
     check(!!file, `role file .claude/agents/${role}.md`, "run: factory team apply");

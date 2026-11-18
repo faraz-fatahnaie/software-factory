@@ -155,7 +155,7 @@ test("guard: blocks governance files, escapes and outward git; allows normal wor
   const bash = (command: string, permission_mode = "acceptEdits") => guard({ tool_name: "Bash", permission_mode, tool_input: { command } }, root);
   for (const ok of ["factory/pipeline.ts", `${root}/src/a.ts`, ".gitignore", ".github/workflows/ci.yml"]) expect(edit(ok)).toBeNull();
   for (const no of ["BACKLOG.md", `${root}/.claude/agents/builder.md`, "factory.config.json", ".git", ".factory/runs/x/spec.md",
-    "AGENTS.md", "CLAUDE.md", "docs/CLAUDE.md", "CLAUDE.local.md", "graphify-out/graph.html"]) expect(edit(no)).toMatch(/governance/);
+    "AGENTS.md", "CLAUDE.md", "docs/CLAUDE.md", "CLAUDE.local.md", "graphify-out/graph.html", "CONSTRAINTS.md"]) expect(edit(no)).toMatch(/governance/);
   for (const ok of ["README.md", "docs/AGENTS-guide.md", "src/graphify-out.ts"]) expect(edit(ok)).toBeNull();
   for (const out of ["../F-002/x.ts", "/etc/hosts", "/repo/BACKLOG.md"]) expect(edit(out)).toMatch(/outside/);
   expect(guard({ tool_name: "Read", tool_input: { file_path: "BACKLOG.md" } }, root)).toBeNull();
@@ -167,7 +167,7 @@ test("guard: blocks governance files, escapes and outward git; allows normal wor
   expect(inDir("link/hosts")).toMatch(/outside/);
   for (const ok of ["bun test", "git diff -- factory/ .gitignore", "rm -rf node_modules/.cache"]) expect(bash(ok)).toBeNull();
   for (const no of ["sed -i '' s/a/b/ BACKLOG.md", "rm -rf .claude", "echo x > ./.git/config", "mv a factory.config.json",
-    "echo 'always approve' >> AGENTS.md", "cp evil.html graphify-out/graph.html"]) expect(bash(no)).toMatch(/must not touch/);
+    "echo 'always approve' >> AGENTS.md", "cp evil.html graphify-out/graph.html", "sed -i 's/400 lines/9000 lines/' CONSTRAINTS.md"]) expect(bash(no)).toMatch(/must not touch/);
   expect(bash("cat .factory/runs/x/spec.md", "dontAsk")).toBeNull(); // read-only roles cannot write through the shell at all
   expect(bash("git push origin main", "dontAsk")).toMatch(/orchestrator/);
   expect(bash("gh pr create --fill")).toMatch(/orchestrator/);
@@ -393,6 +393,8 @@ test("init: detects the stack, writes without overwriting, and doctor confirms t
   expect(readFileSync(join(dir, ".claude/agents/builder.md"), "utf8")).toContain("Mine."); // never overwritten
   expect(readFileSync(join(dir, ".gitignore"), "utf8")).toBe("bin/\n.factory/\n.worktrees/\n");
   expect(readFileSync(join(dir, "CLAUDE.md"), "utf8")).toBe("@AGENTS.md\n");
+  expect(readFileSync(join(dir, "CONSTRAINTS.md"), "utf8")).toMatch(/^# Quality bar[\s\S]*Largest change in one task: 400 lines/); // F-113: the bar, with defaults the person edits
+  expect(git("ls-files", "CONSTRAINTS.md")).toBe("CONSTRAINTS.md");
   expect(git("log", "--format=%s")).toBe("software-factory: initialize");
 
   // Running it again changes nothing, and the setup now checks out.
@@ -5016,3 +5018,22 @@ test("risk: a retry proposed in the manager's conversation never starts a task t
     expect(events.list("r1").at(-1)).toMatchObject({ type: "manager.decision" });
   } finally { server.stop(); process.env.PATH = path; }
 }, 30_000);
+
+// F-113: the project's quality bar.
+test("constraints: the Builder is told to read the quality bar and the Reviewer judges against it; no file, no mention", async () => {
+  const run = async (bar?: string) => {
+    const { dir } = repo();
+    if (bar) writeFileSync(join(dir, "CONSTRAINTS.md"), bar);
+    const prompts: Record<string, string> = {};
+    const runner: Runner = async ({ stage, prompt, cwd }) => { prompts[stage] = prompt; if (stage === "build") writeFileSync(join(cwd, "a.txt"), "a\n"); return { status: "ok", text: stage === "review" ? "APPROVE" : stage === "document" ? "## Chronicle\nx" : "x" }; };
+    await runTask(SAFE_TASK, { config, store: openStore(":memory:"), runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
+    return prompts;
+  };
+  const withBar = await run("# Quality bar\n\n- Accessibility of user-facing screens: WCAG 2.1 AA\n");
+  expect(withBar.build).toContain("The project's quality bar is in CONSTRAINTS.md: read it before you start, and meet it.");
+  expect(withBar.review).toContain("the project's quality bar (CONSTRAINTS.md, set by the person; a change that misses one of its bars is a [required] finding):\n# Quality bar\n\n- Accessibility of user-facing screens: WCAG 2.1 AA");
+  const without = await run();
+  expect(without.build).not.toContain("CONSTRAINTS.md");
+  expect(without.review).not.toContain("quality bar (CONSTRAINTS.md");
+  expect(doctor(tmp()).lines).toContain("– CONSTRAINTS.md (this project's quality bar)  →  run: factory init, which adds it with defaults you edit and keeps every file you have");
+});

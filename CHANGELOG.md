@@ -5,6 +5,10 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **Your quality bar in one file: `CONSTRAINTS.md`.** `factory init` writes it with defaults (the largest change in one
+  task, coverage held at today's level, accessibility, performance, dependencies) for you to edit. The Builder is told to
+  read it, the Reviewer treats a missed bar as required, and agents may not change it. An existing project: run
+  `factory init` once; it adds the file and keeps everything you have.
 - **A standard definition of done.** A project that has not written its own (in `docs/plan/roadmap.md`) is now
   reviewed against a standard one: correct and tested, clean, fits the rest of the code, documented, safe to ship.
   Your own, when you write it, replaces it.
