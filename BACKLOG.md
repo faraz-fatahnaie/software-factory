@@ -8,7 +8,6 @@ Re-checked 2026-11-18 after F-108 to F-123, for need and priority before buildin
 Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Build F-108 to F-122 in this order: phase 1 is F-108 to F-111 plus F-123 (the bar, the loops, and role files that reach a project), phase 2 F-112 to F-115 (the standard and risky work), phase 3 F-116 and F-117 (testing how agents behave), phase 4 F-118 to F-122 (smaller wins). One commit per item, a report after each phase.
 - [ ] F-102 (P2) A Release Engineer that explains and resolves what `factory integrate` finds: a conversation that walks the person through the order and offers each update as a button
 - [ ] F-099 (P3) A "who may do what" panel in the Team view, from the same table as `factory authority`
-- [ ] F-090 (P2) Per-stage budget with --max-budget-usd, so one stage cannot overspend between the supervisor's checks
 - [ ] F-091 (P2) A visible Pause button for autopilot on every screen, and a desktop notification when she pauses or escalates
 - [ ] F-092 (P2) Person-intent proof: autopilot carries out a proposal only for ids the person named or just had added
 - [ ] F-093 (P2) Build M7 (settle a deadlock between roles after two rounds), M6 (split or re-scope a task) and M1 (Inbox duplicates)
@@ -29,7 +28,6 @@ Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Bui
 - [ ] F-015 (P3) Mid-turn steering if headless CLIs support message injection
 - [ ] F-016 Keep the user-level CLAUDE.md out of factory agents (project-only settings still load it)
 - [ ] F-017 Consider the CLI's native --fallback-model for overload, alongside the factory's own chain
-- [ ] F-018 Budget cap per stage with --max-budget-usd
 - [ ] F-019 Run builder stages inside an OS-level sandbox; the guard hook is a text match, not containment
 - [x] F-020 Reject with feedback
   `factory reject <F-id> --feedback "…"`, `POST /api/reject`, `/software-factory:reject` and a Send back with comments box in the task panel. Same branch and spec, a new round (Build to Review again), the comments recorded on the run and shown on the card and in the panel.
@@ -224,3 +222,5 @@ Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Bui
 - [x] F-122 (P3) Docs: an adoption guide (new project vs an existing codebase) and an honest comparison with skill packs
 - [x] F-106 (P2) The terminal skills: check that what each skill's `allowed-tools` grants covers what its responsibility tells the agent to run (G1, L1, L3 to L5, O2 run only in the person's own session today, so a missing permission is a prompt, not a dead end)
 - [x] F-101 (P1) Run every release against a copy of a real, evolving project (the card game's), read-only, before it is published: config, backlog, branches, every route
+- [x] F-090 (P2) Per-stage budget with --max-budget-usd, so one stage cannot overspend between the supervisor's checks
+- [x] F-018 Budget cap per stage with --max-budget-usd (closed: the same as F-090)

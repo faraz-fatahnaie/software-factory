@@ -21,6 +21,8 @@ export function claudeArgs(job: Job, gate: string[], skills: string[] = []): str
     "--agent", job.role,
     "--model", job.model,
     "--effort", job.effort,
+    // What is left of the task's limit (F-090): Claude stops the stage there, so the supervisor's checks between stages cannot be outrun.
+    ...(job.budget !== undefined ? ["--max-budget-usd", String(job.budget)] : []),
     // One JSON line per message, so tool calls reach the event log while the stage runs.
     "--output-format", "stream-json", "--verbose",
     // Only the build stage may change files. dontAsk still permits read-only shell commands
@@ -96,7 +98,8 @@ export function classify(exitCode: number, stdout: string, stderr: string): Runn
   // must never be read as one.
   const msg = api == null && (!r || r.is_error) ? text : "";
   const status =
-    api === 429 || api === 529 || /rate.?limit|usage limit|overloaded/i.test(msg) ? "rate_limited"
+    r?.subtype === "error_max_budget_usd" ? "budget"
+    : api === 429 || api === 529 || /rate.?limit|usage limit|overloaded/i.test(msg) ? "rate_limited"
     : api === 401 || api === 403 || /not logged in|authenticat|invalid api key/i.test(msg) ? "auth"
     : "error";
   return { status, text, usage };

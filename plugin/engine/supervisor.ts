@@ -19,6 +19,7 @@ export function failureKind(error: string): Kind {
   if (/no approved build after/.test(error)) return "builds";
   if (/^Error: not ready:/.test(error)) return "unready";
   if (/^Error: blocked:/.test(error)) return "blocked";
+  if (/^Error: budget:/.test(error)) return "budget";
   if (/^Error: needs your yes:/.test(error)) return "consent";
   if (/^Error: stuck:/.test(error)) return "stuck";
   if (/setup failed/.test(error)) return "setup";

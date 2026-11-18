@@ -5245,3 +5245,24 @@ test("authority N4: every terminal skill allows what the responsibilities it loa
   expect(gaps).toContain("N4 /software-factory:mine (G2): G2 tells the agent to run `factory integrate`, which /software-factory:mine does not allow, so the person is asked each time");
   expect(gaps.every((g) => g.startsWith("N4 /software-factory:mine (G2)"))).toBe(true);
 });
+
+// F-090: each stage is capped at what is left of the task's limit, and a stage that reaches it is a budget stop, never retried.
+test("budget: each stage gets what earlier stages left of the task's limit; a stage that reaches it ends the run as a budget stop, which is never retried", async () => {
+  const job = { role: "builder", model: "sonnet", effort: "low", stage: "build", prompt: "p", cwd: "/x", budget: 3.5 };
+  expect(claudeArgs(job, ["bun test"]).join(" ")).toContain("--max-budget-usd 3.5");
+  expect(claudeArgs({ ...job, budget: undefined }, []).join(" ")).not.toContain("--max-budget-usd");
+  expect(classify(1, JSON.stringify({ type: "result", subtype: "error_max_budget_usd", is_error: true, errors: ["Reached maximum budget ($3.5)"], total_cost_usd: 3.6 }), "").status).toBe("budget");
+
+  const budgets: Record<string, number> = {};
+  const runner: Runner = async ({ stage, cwd, budget }) => {
+    budgets[stage] = budget!;
+    if (stage === "build") { writeFileSync(join(cwd, "a.txt"), "a\n"); return { status: "budget", text: "Reached maximum budget", usage: { costUsd: 2.6 } }; }
+    return { status: "ok", text: "# Spec\n\nRisk: none", usage: { costUsd: 2.4 } };
+  };
+  const cfg = { ...config, manager: { perTask: 5 } } as typeof config;
+  const r = await runTask(SAFE_TASK, { config: cfg, store: openStore(":memory:"), runner, gate: async () => ({ ok: true, output: "" }), cwd: repo().dir });
+  expect(budgets).toEqual({ spec: 5, build: 2.6 }); // the spec spent 2.40 of 5
+  expect(r).toMatchObject({ ok: false, error: "Error: budget: the build stage reached what was left of the limit for one task ($5; this run spent $5.00), so it was stopped" });
+  expect(failureKind((r as { error: string }).error)).toBe("budget");
+  expect(decide("budget", 0, 0, { recoveries: 3, perTask: 5 }).action).toBe("escalate");
+});

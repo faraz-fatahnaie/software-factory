@@ -5,6 +5,9 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **No stage can overspend.** Each stage is capped at what is left of the limit for one task (`factory manager set
+  perTask`, $5 by default), and Claude stops it there. Before, one long stage could spend past the limit before the
+  manager's next check. A stage stopped this way ends the run as a budget stop, which is handed to you, never retried.
 - **The commands you type may run what they are told to.** A new check (N4) compares each slash command's permissions
   with the instructions it loads. It found eight gaps, now closed: read-only commands the docs, security and git
   setup commands needed are allowed, and `gh auth login`, turning on auto-merge and `git push` are declared as yours
