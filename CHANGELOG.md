@@ -3,7 +3,14 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
-## Unreleased
+## 1.3.0
+
+A larger release, inspired by comparing the factory with skill packs such as agent-skills: the bar a change must clear is
+checked as code, review loops are cut short, risky work waits for you, and the roles' instructions now reach projects
+made by earlier versions. **Update, restart the dashboard (`/software-factory:open` replaces an older one) and any
+Claude session started before the update. Then run `factory init` once in each project: it adds `CONSTRAINTS.md`, your
+quality bar, and keeps every file you have. Starting the dashboard or a run brings the role files up to date by itself.**
+
 
 - **Your private instructions stay out of the factory's agents.** Claude Code loaded your personal
   `~/.claude/CLAUDE.md` into every factory stage and conversation, even with project settings only. Factory sessions
