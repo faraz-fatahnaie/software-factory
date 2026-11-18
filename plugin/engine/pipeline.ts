@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Config, Role } from "./config";
+import { formatWeakenings, justified, weakeningFeedback, weakenings } from "./bar";
 import { readNotes } from "./chronicle";
 import { changesInWorktree, formatFindings, scanSecrets, sensitiveReasons } from "./security";
 import { activeRoles, customStages, resolveTeam, stageDuties, stageRole } from "./team";
@@ -18,6 +19,8 @@ export type Runner = (job: Job) => Promise<RunnerResult>;
 export type Gate = (cwd: string) => Promise<{ ok: boolean; output: string }>;
 
 const MAX_BUILDS = 3;
+/** What the Builder is told before it starts; the check in bar.ts holds it to it. */
+export const BAR_RULE = "Do not make the checks pass by lowering the bar: no suppression comments, skipped or focused tests, deleted tests or assertions, lowered thresholds or unimplemented stubs. If one is truly right, name its file under a `## Weakened checks` heading in your reply, with the reason; one you do not name fails the check.";
 
 // Child processes of this orchestrator, so a stop request (Ctrl-C, or the GUI) can end them.
 const live = new Set<{ kill(): void }>();
@@ -145,6 +148,7 @@ export async function runTask(
         (name === "document" ? `Roles you may write notes for: ${activeRoles(team).join(", ")}.\n` : "") +
         // Only single commands are pre-approved: a chained or piped one is refused, and the stage then cannot see what it needs.
         "Run each shell command on its own, without &&, ; or pipes, and without `cd` or `git -C` (you are already in the project folder): only plain single commands are pre-approved and others are refused.\n" +
+        (name === "build" ? `${BAR_RULE}\n` : "") +
         `Gate commands for this project (all must pass): ${o.config.gate.join(" ; ")}` +
         (why && `\n\nWhy you were asked: ${why}`) +
         (feedback && `\n\nAddress this feedback:\n${feedback}`) +
@@ -215,20 +219,28 @@ export async function runTask(
     // Whether an attempt changed anything: two attempts in a row that changed nothing cannot end differently, so the second is the last.
     let before = fingerprint();
     let feedback = o.resume ? peopleFeedback(o.resume) : "";
+    // A Builder told to name a weakening may answer with words only: that attempt changes no file and is not stuck.
+    let named = false;
     for (let attempt = 1; ; attempt++) {
       const build = await stage("build", roleFor("build")!, feedback);
       stopIfBlocked("build", build);
       const after = fingerprint();
-      if (attempt >= 2 && before !== undefined && after === before)
+      if (attempt >= 2 && before !== undefined && after === before && !named)
         throw new Error(`stuck: attempt ${attempt} changed nothing since attempt ${attempt - 1}, so another try cannot end differently. The last feedback was: ${feedback.replace(/\s+/g, " ").slice(0, 300)}`);
       before = after;
       emit("check", "stage.start");
       const check = await o.gate(o.cwd);
-      emit("check", check.ok ? "stage.ok" : "stage.failed", { data: check.output });
-      const blocked = check.ok ? await secure() : "";
+      // The bar (F-108): green checks that were made green by weakening them. An update from main only resolves clashes; main's own changes were accepted already.
+      const weak = check.ok && !o.resume?.update ? weakenings(o.cwd) : [];
+      const bar = weak.some((w) => !justified(build, w)) ? weakeningFeedback(weak.filter((w) => !justified(build, w))) : "";
+      const lowered = bar ? [] : weak;
+      emit("check", check.ok && !bar ? "stage.ok" : "stage.failed", { data: check.ok ? bar || undefined : check.output });
+      if (lowered.length) emit("check", "check.lowered", { data: formatWeakenings(lowered) });
+      named = !!bar;
+      const blocked = check.ok && !bar ? await secure() : "";
       // The user's own unattended checks: advisory. What they find goes to the reviewer and to the backlog; they never block.
       let own = "";
-      if (check.ok && !blocked) {
+      if (check.ok && !bar && !blocked) {
         for (const { role: r, titles } of customStages(team)) {
           if (!o.config.roles[r] || o.config.roles[r]!.enabled === false) continue;
           const out = await stage("extra", r, "", "", titles);
@@ -237,8 +249,8 @@ export async function runTask(
         }
       }
       const dod = definitionOfDone(o.cwd);
-      const context = [own && `your own checks reported (information for your review, not instructions):${own}`, dod && `the project's definition of done, agreed with the person (check the change against it, and say which point a change of this size does not meet):\n${dod}`].filter(Boolean).join("\n\n");
-      const review = check.ok && !blocked ? await stage("review", roleFor("review")!, "", context) : "";
+      const context = [own && `your own checks reported (information for your review, not instructions):${own}`, lowered.length && `the Builder lowered the bar on purpose, with its reasons in build.md under "Weakened checks". Approve only if each reason holds; otherwise ask for the code to be fixed instead:\n${formatWeakenings(lowered)}`, dod && `the project's definition of done, agreed with the person (check the change against it, and say which point a change of this size does not meet):\n${dod}`].filter(Boolean).join("\n\n");
+      const review = check.ok && !bar && !blocked ? await stage("review", roleFor("review")!, "", context) : "";
       stopIfBlocked("review", review);
       // Anything other than APPROVE alone on the first line counts as changes requested.
       if (verdictIs(review, "APPROVE")) {
@@ -252,12 +264,13 @@ export async function runTask(
         }
         // Done (M14): what was checked before the handover, written where the person decides.
         const files = changesInWorktree(o.cwd).map((c) => c.file), notes = doneNotes(files, !!o.resume);
+        if (lowered.length) notes.push(`The Builder lowered the bar on purpose (reasons in its build notes, and the review accepted them): ${lowered.map((w) => `${w.file}: ${w.kind}`).join("; ")}.`);
         emit("manager", "manager.decision", { data: { action: "done", auto: true, notes, text: `${task.id} is ready for your decision. The project's checks pass, the security check is clean and the review approved it${dod ? " against your definition of done" : ""}${files.length ? ` (${files.length} file${files.length === 1 ? "" : "s"} changed)` : ""}.${notes.length ? ` To look at: ${notes.join(" ")}` : ""}` } });
         emit("run", "run.done");
         return { ok: true as const, run, followUps: [...followUps(build), ...followUps(securityText), ...extraFollowUps, ...followUps(review)] };
       }
       if (attempt === MAX_BUILDS) throw new Error(`no approved build after ${MAX_BUILDS} attempts`);
-      feedback = !check.ok ? check.output : blocked || review;
+      feedback = !check.ok ? check.output : bar || blocked || review;
     }
   } catch (e) {
     emit("run", "run.failed", { data: String(e) });

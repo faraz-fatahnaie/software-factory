@@ -5,8 +5,6 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
 Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Build F-108 to F-122 in this order: phase 1 is F-108 to F-111 (the bar and the loops), phase 2 F-112 to F-115 (the standard and risky work), phase 3 F-116 and F-117 (testing how agents behave), phase 4 F-118 to F-122 (smaller wins). One commit per item, a report after each phase.
-- [ ] F-108 (P1) A gate check for a weakened bar (no model)
-  The check fails a build that adds a suppression (@ts-ignore, eslint-disable, noqa, type: ignore and the like), skips or focuses a test, deletes a test file or test cases, removes assertions, lowers a coverage threshold or leaves an unimplemented stub, unless the Builder names each such file under `## Weakened checks` with a reason. A justified one goes to the Reviewer to judge and to the person in the handover notes. Never silent.
 - [ ] F-109 (P1) Severity on review findings: only Required sends a task back
   The Reviewer marks each finding Required, Optional, Nit or FYI. A review whose findings are all below Required approves, and the rest go to the handover notes and Inbox instead of another build round.
 - [ ] F-110 (P1) Excuses, warning signs and evidence in each role's instructions
@@ -221,3 +219,5 @@ Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Bui
   withRoleDefaults/readConfig; upgrade tests run every config-changing command and route against configs from each earlier release.
 - [x] F-107 (P1) Needs: every duty has a route
   Commands named by stages and conversations must be runnable or declared as proposed for the person; every PROPOSE kind has a button; roles are described as what they do; read-only git granted.
+- [x] F-108 (P1) A gate check for a weakened bar (no model)
+  The check fails a build that adds a suppression (@ts-ignore, eslint-disable, noqa, type: ignore and the like), skips or focuses a test, deletes a test file or test cases, removes assertions, lowers a coverage threshold or leaves an unimplemented stub, unless the Builder names each such file under `## Weakened checks` with a reason. A justified one goes to the Reviewer to judge and to the person in the handover notes. Never silent.

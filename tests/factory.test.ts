@@ -31,7 +31,8 @@ import { appendChat, clearChat, importChat, markActed, pack, readChat, replyMsg,
 import { estimate } from "../plugin/engine/estimate";
 import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugin/engine/vcs";
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
-import { blockedReason, doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
+import { findWeakenings, justified, removedLines } from "../plugin/engine/bar";
+import { BAR_RULE, blockedReason, doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
 import { badCommand, checkSetup, parseSetup, parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev, contextOf, tokens, matchCommands } from "../plugin/engine/state";
 import { commandsFor, DASHBOARD_COMMANDS, projectCommands, reportedBy } from "../plugin/engine/commands";
@@ -3041,13 +3042,14 @@ test("guidance for a blocked task: continues from its spec when it has one, and 
 const SAFE_TASK = { id: "F-001", title: "First", detail: "Acceptance: it works" };
 
 /** Runs one task through the pipeline in a git folder, with a runner that says what each stage replies and what the Builder writes. */
-async function replay(o: { spec?: string; build?: string; review?: (n: number) => string; write?: (cwd: string, n: number) => void; security?: string; gate?: boolean[] }) {
-  const { dir } = repo();
+async function replay(o: { spec?: string; build?: string | ((n: number) => string); review?: (n: number) => string; write?: (cwd: string, n: number) => void; security?: string; gate?: boolean[]; setup?: (dir: string) => void }) {
+  const { dir, sh } = repo();
+  if (o.setup) { o.setup(dir); sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "setup"); }
   const store = openStore(":memory:"), calls: string[] = [];
   let builds = 0, reviews = 0, gates = 0;
   const runner: Runner = async ({ stage, cwd }) => {
     calls.push(stage);
-    if (stage === "build") { builds++; o.write?.(cwd, builds); return { status: "ok", text: o.build ?? "Built." }; }
+    if (stage === "build") { builds++; o.write?.(cwd, builds); return { status: "ok", text: typeof o.build === "function" ? o.build(builds) : o.build ?? "Built." }; }
     if (stage === "review") { reviews++; return { status: "ok", text: o.review ? o.review(reviews) : "APPROVE\nFine." }; }
     if (stage === "spec") return { status: "ok", text: o.spec ?? "# Spec\nDo it." };
     if (stage === "security") return { status: "ok", text: o.security ?? "SECURE" };
@@ -4721,4 +4723,107 @@ test("needs: what a role is described as doing is what it can do: nothing is sai
   const full = resolveTeam({ preset: "full" });
   expect(full.roles["release-engineer"]!.description).toContain("proposes pushes, merges and updates as buttons: you press them");
   expect(full.roles["technical-manager"]!.description).toContain("it never approves, pushes, merges or deploys");
+});
+
+// F-108: the bar a change must not quietly lower.
+const plus = (file: string, ...lines: string[]) => ({ file, added: lines.map((text, i) => ({ line: i + 1, text })) });
+const lost = (file: string, lines: string[], deleted = false) => ({ file, lines, deleted });
+
+test("bar: suppressions, skipped or focused tests and stubs are found in what a change adds; prose and ordinary code are not", () => {
+  const kinds = (c: ReturnType<typeof plus>) => findWeakenings([c], []).map((w) => w.kind);
+  for (const l of ["// @ts-ignore", "x = y as any // @ts-expect-error", "/* eslint-disable no-console */", "import os  # noqa", "x = f()  # type: ignore", "# pylint: disable=all", "//nolint", "/* istanbul ignore next */", "@SuppressWarnings(\"unchecked\")", "#[allow(dead_code)]", "// biome-ignore lint: x"])
+    expect(kinds(plus("src/a.ts", l))).toEqual(["a check is silenced"]);
+  for (const l of ["it.skip('works', () => {})", "test.only('x', () => {})", "describe.skip('y', () => {})", "xit('z', () => {})", "@pytest.mark.skip(reason='later')", "@unittest.skip('x')", "  t.Skip(\"flaky\")", "#[ignore]", "it.todo('later')"])
+    expect(kinds(plus("tests/a.test.ts", l))).toEqual(["a test is skipped or focused"]);
+  for (const l of ["throw new Error('not implemented')", "raise NotImplementedError", "todo!()", "panic(\"not implemented\")"])
+    expect(kinds(plus("src/a.ts", l))).toEqual(["an unimplemented stub"]);
+  expect(kinds(plus("tests/a.test.ts", "expect(() => f()).toThrow(new Error('not implemented'))"))).toEqual([]); // a test may name a stub
+  expect(kinds(plus("docs/guide.md", "Never write @ts-ignore or it.skip."))).toEqual([]);
+  expect(kinds(plus("src/a.ts", "const skip = items.slice(1); describe(x);", "it('works', () => expect(1).toBe(1));"))).toEqual([]);
+  expect(kinds(plus("src/a.ts", "it.skip('x')"))).toEqual([]); // a skip outside a test file is code, not a test
+});
+
+test("bar: removed test cases and assertions count over all test files, so moving tests is not a loss", () => {
+  const cases = ["it('a', () => {", "  expect(1).toBe(1);", "});", "it('b', () => {", "  expect(2).toBe(2);", "});"];
+  // A case deleted.
+  expect(findWeakenings([], [lost("tests/a.test.ts", cases.slice(3, 6))])).toEqual([{ file: "tests/a.test.ts", kind: "1 test case removed" }]);
+  // An assertion deleted, the case kept.
+  expect(findWeakenings([], [lost("tests/a.test.ts", ["  expect(2).toBe(2);"])])).toEqual([{ file: "tests/a.test.ts", kind: "1 assertion removed" }]);
+  // Python, Go.
+  expect(findWeakenings([], [lost("test_pay.py", ["def test_refund():", "    assert refund(5) == 5"])])[0]!.kind).toBe("1 test case removed");
+  expect(findWeakenings([], [lost("pay_test.go", ["func TestRefund(t *testing.T) {", "\tt.Errorf(\"x\")"])])[0]!.kind).toBe("1 test case removed");
+  // Moved to another file (a new, untracked one counts as added): nothing.
+  expect(findWeakenings([plus("tests/b.test.ts", ...cases)], [lost("tests/a.test.ts", cases, true)])).toEqual([]);
+  // Rewritten in place with as many cases and assertions: nothing.
+  expect(findWeakenings([plus("tests/a.test.ts", "it('a2', () => {", "  expect(3).toBe(3);")], [lost("tests/a.test.ts", cases.slice(0, 2))])).toEqual([]);
+  // A deleted test file with nothing to replace it.
+  expect(findWeakenings([], [lost("tests/old.test.ts", ["// nothing countable"], true)])).toEqual([{ file: "tests/old.test.ts", kind: "a test file is deleted" }]);
+  // Code that loses an assert is not a test file: nothing.
+  expect(findWeakenings([], [lost("src/a.ts", ["assert(x)"])])).toEqual([]);
+});
+
+test("bar: a threshold edited down is found, edited up or left alone is not", () => {
+  const w = (from: string, to: string, file = "jest.config.js") => findWeakenings([added(file, to)], [lost(file, [from])]);
+  expect(w("  coverageThreshold: { global: { lines: 80 } },", "  coverageThreshold: { global: { lines: 60 } },")[0]!.kind).toMatch(/^a threshold is lowered \(coverageThreshold.*80.*→.*60/);
+  expect(w("addopts = --cov-fail-under=90", "addopts = --cov-fail-under=75", "pytest.ini")).toHaveLength(1);
+  expect(w("fail_under = 85", "fail_under = 85.5", ".coveragerc")).toEqual([]);
+  expect(w("fail_under = 85", "fail_under = 90", ".coveragerc")).toEqual([]);
+  expect(w("timeout: 30", "timeout: 10", "ci.yml")).toEqual([]); // not a quality threshold
+  expect(w("coverage: 80", "coverage: 60", "README.md")).toEqual([]);
+});
+
+test("bar: removed lines are read from a diff without mistaking headers for lines", () => {
+  const diff = ["diff --git a/tests/a.test.ts b/tests/a.test.ts", "--- a/tests/a.test.ts", "+++ b/tests/a.test.ts", "@@ -3,1 +2,0 @@", "-  expect(2).toBe(2);", "--- this was a comment line starting with two dashes",
+    "diff --git a/tests/old.test.ts b/tests/old.test.ts", "deleted file mode 100644", "--- a/tests/old.test.ts", "+++ /dev/null", "@@ -1,2 +0,0 @@", "-it('x', () => {", "-});",
+    "diff --git a/new.ts b/new.ts", "new file mode 100644", "--- /dev/null", "+++ b/new.ts", "@@ -0,0 +1 @@", "+x"].join("\n");
+  expect(removedLines(diff)).toEqual([
+    { file: "tests/a.test.ts", lines: ["  expect(2).toBe(2);", "-- this was a comment line starting with two dashes"], deleted: false },
+    { file: "tests/old.test.ts", lines: ["it('x', () => {", "});"], deleted: true },
+  ]);
+  expect(justified("Built.\n\n## Weakened checks\n- tests/a.test.ts: the API it tested was removed in the spec\n\n## Follow-ups\n- x", { file: "tests/a.test.ts", kind: "" })).toBe(true);
+  expect(justified("Built. tests/a.test.ts is fine.", { file: "tests/a.test.ts", kind: "" })).toBe(false); // named outside the section
+});
+
+const TESTED = (dir: string) => { mkdirSync(join(dir, "tests"), { recursive: true }); writeFileSync(join(dir, "tests/pay.test.ts"), "it('pays', () => {\n  expect(pay(5)).toBe(5);\n});\nit('refunds', () => {\n  expect(refund(5)).toBe(5);\n});\n"); };
+
+test("bar: the incident shape. A Builder that skips the failing test to go green is sent back with what it did, and the Reviewer never sees the green build", async () => {
+  const r = await replay({ setup: TESTED, write: (cwd, n) => writeFileSync(join(cwd, "tests/pay.test.ts"), n === 1 ? "it('pays', () => {\n  expect(pay(5)).toBe(5);\n});\nit.skip('refunds', () => {\n  expect(refund(5)).toBe(5);\n});\n" : "it('pays', () => {\n  expect(pay(5)).toBe(5);\n});\nit('refunds', () => {\n  expect(refund(5)).toBe(5);\n});\n// fixed\n") });
+  expect(r.result.ok).toBe(true);
+  expect(r.builds).toBe(2);
+  expect(r.reviews).toBe(1); // only the honest build was reviewed
+  const evs = r.store.list(r.store.lastRun("F-001")!);
+  const failed = evs.find((e) => e.stage === "check" && e.type === "stage.failed")!;
+  expect(String(failed.data)).toMatch(/lowered:\n- tests\/pay\.test\.ts:4: a test is skipped or focused/);
+  expect(String(failed.data)).toMatch(/## Weakened checks/);
+});
+
+test("bar: a weakening the Builder names with a reason passes the check, goes to the Reviewer to judge and to the person in the handover", async () => {
+  let reviewPrompt = "";
+  const { dir, sh } = repo();
+  TESTED(dir); sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "setup");
+  const store = openStore(":memory:");
+  const runner: Runner = async ({ stage, cwd, prompt }) => {
+    if (stage === "build") { writeFileSync(join(cwd, "tests/pay.test.ts"), "it('pays', () => {\n  expect(pay(5)).toBe(5);\n});\n"); return { status: "ok", text: "Removed refunds.\n\n## Weakened checks\n- tests/pay.test.ts: the spec removes refunds, so their test goes too" }; }
+    if (stage === "review") { reviewPrompt = prompt; return { status: "ok", text: "APPROVE\nThe reason holds." }; }
+    return { status: "ok", text: stage === "spec" ? "# Spec\nRemove refunds." : stage === "document" ? "## Chronicle\nx" : "x" };
+  };
+  const result = await runTask(SAFE_TASK, { config, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
+  expect(result.ok).toBe(true);
+  expect(reviewPrompt).toMatch(/lowered the bar on purpose.*\n- tests\/pay\.test\.ts: 1 test case removed/);
+  const evs = store.list(store.lastRun("F-001")!);
+  expect(evs.find((e) => e.type === "check.lowered")?.data).toBe("- tests/pay.test.ts: 1 test case removed");
+  const done = evs.find((e) => e.type === "manager.decision")!.data as { notes: string[]; text: string };
+  expect(done.notes.join(" ")).toMatch(/lowered the bar on purpose.*tests\/pay\.test\.ts: 1 test case removed/);
+});
+
+test("bar: a Builder that answers the weakening with a reason only (no file changed) is not called stuck, and the Builder is told the rule before it starts", async () => {
+  const r = await replay({ setup: TESTED, write: (cwd, n) => { if (n === 1) writeFileSync(join(cwd, "src.ts"), "// @ts-ignore\nexport const x: number = 'a';\n"); },
+    build: (n) => (n === 1 ? "Built." : "Kept it.\n\n## Weakened checks\n- src.ts: the generated type is wrong upstream; a follow-up fixes it") });
+  expect(r.result.ok).toBe(true);
+  expect(r.builds).toBe(2);
+  expect(BAR_RULE).toMatch(/## Weakened checks/);
+  // Unnamed every time: the limit of three builds still holds.
+  const never = await replay({ setup: TESTED, write: (cwd, n) => writeFileSync(join(cwd, "src.ts"), `// @ts-ignore\nexport const x${n} = 1;\n`) });
+  expect((never.result as { error: string }).error).toBe("Error: no approved build after 3 attempts");
+  expect(never.reviews).toBe(0);
 });

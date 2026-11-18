@@ -3,6 +3,14 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
+## Unreleased
+
+- **A check made green by lowering the bar fails.** After the project's checks pass, the factory reads the change itself
+  (no model): a new suppression comment (`@ts-ignore`, `eslint-disable`, `noqa`, `type: ignore`…), a skipped or focused
+  test, deleted tests or assertions, a lowered coverage threshold or an unimplemented stub sends the build back to the
+  Builder with what it found. When one is truly right, the Builder names the file under `## Weakened checks` with a
+  reason: the Reviewer judges it and the handover note shows it to you. Tests moved between files are not a loss.
+
 ## 1.2.2
 
 A small release: the authority rules now check that nobody is told to do what it cannot. **Update, restart the dashboard

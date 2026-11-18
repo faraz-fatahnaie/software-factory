@@ -441,6 +441,7 @@ Everything the supervisor does by itself is bounded, and each bound is a rule wi
 | --- | --- |
 | A stage may answer `BLOCKED: <reason>`; the run stops and is never retried | Builder and Reviewer going round on something only a person (or another task) can fix |
 | Two attempts in a row that change nothing end the run | A third build that cannot end differently |
+| A check made green by lowering the bar (a suppression comment, a skipped, focused or deleted test, removed assertions, a lowered threshold, a stub) fails, unless the Builder names the file under `## Weakened checks` with a reason; a named one goes to the Reviewer to judge and to you in the handover (`plugin/engine/bar.ts`, "bar") | A green build that is green only because its checks were weakened |
 | Guidance once per task, from the log, never an apology | A guided round that repeats the failure |
 | `Depends on:` is read; a task waits until its dependency is merged into main | A task built without the work it needs |
 | Two failed runs in a row pause autopilot | A bad day of tasks failing one after another |
