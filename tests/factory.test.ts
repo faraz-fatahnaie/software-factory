@@ -5118,3 +5118,17 @@ test("doubt: a failure it can show sends the task back with its findings, and it
   // A send-back of risky work keeps its spec, so it is doubted too.
   expect((await doubtRun({ spec: "# Spec\n\nRisk: secrets", resume: true })).calls).toContain("doubt");
 });
+
+// F-116: the roles' behaviour evals. Without a model: each case's good answer must pass its grader and its bad answer must fail it.
+test("evals: every role case tells a good answer from a bad one, through the real pipeline, without a model", async () => {
+  const { CASES } = await import("../evals/roles/cases");
+  const { runCase } = await import("../evals/roles");
+  expect(new Set(CASES.map((c) => c.id)).size).toBe(CASES.length);
+  expect(new Set(CASES.map((c) => c.role))).toEqual(new Set(["builder", "reviewer", "architect"]));
+  for (const c of CASES) {
+    const good = await runCase(c, c.good), bad = await runCase(c, c.bad);
+    expect({ case: c.id, good: c.grade(good) }).toEqual({ case: c.id, good: "" });
+    expect({ case: c.id, bad: c.grade(bad) === "" }).toEqual({ case: c.id, bad: false });
+    expect(good.cost + bad.cost).toBe(0);
+  }
+}, 120_000);

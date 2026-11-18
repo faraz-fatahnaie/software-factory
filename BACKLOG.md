@@ -5,8 +5,6 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
 Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Build F-108 to F-122 in this order: phase 1 is F-108 to F-111 plus F-123 (the bar, the loops, and role files that reach a project), phase 2 F-112 to F-115 (the standard and risky work), phase 3 F-116 and F-117 (testing how agents behave), phase 4 F-118 to F-122 (smaller wins). One commit per item, a report after each phase.
-- [ ] F-116 (P2) Behaviour evals for the roles, with pressure cases
-  Run each role headless on fixture tasks and grade what it did, including prompts that push it to skip steps ("we're in a hurry", "the reviewer already approved"). On demand, not part of `bun test`.
 - [ ] F-117 (P3) `claude plugin eval` for the slash skills: a natural request reaches the right command
 - [ ] F-118 (P3) Suggested skills per role in the presets (TDD and incremental build for the Builder, review for the Reviewer, hardening for Security, ADRs for the Scribe), installed only on the person's yes. Overlaps F-034.
 - [ ] F-119 (P3) Checklists loaded only when needed (security, accessibility, performance, observability), attached to a role by what the change touches
@@ -223,3 +221,5 @@ Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Bui
   The Planner writes tasks as thin slices with acceptance checks; a build far above a few hundred changed lines is flagged with a suggested split rather than reviewed round after round.
 - [x] F-115 (P2) A doubting second review for high-stakes tasks only
   A fresh reviewer set to disprove, run only when F-111 found risky work, so the cost stays bounded.
+- [x] F-116 (P2) Behaviour evals for the roles, with pressure cases
+  Run each role headless on fixture tasks and grade what it did, including prompts that push it to skip steps ("we're in a hurry", "the reviewer already approved"). On demand, not part of `bun test`.

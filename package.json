@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "e2e": "bun e2e/gui.e2e.ts",
     "smoke": "bun e2e/smoke.e2e.ts",
-    "site": "bun e2e/site.e2e.ts"
+    "site": "bun e2e/site.e2e.ts",
+    "evals:roles": "bun evals/roles.ts"
   },
   "dependencies": {
     "react": "^19.3.1",

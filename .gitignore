@@ -26,3 +26,5 @@ graphify-out/20*/
 # the video experiment (kept locally; only the still-capture script is part of the repo)
 video/*
 !video/capture-stills.ts
+# eval results (F-116, F-117): written on every run
+evals/results/

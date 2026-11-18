@@ -21,6 +21,7 @@
     "plugin/engine",
     "gui",
     "tests",
-    "e2e"
+    "e2e",
+    "evals"
   ]
 }
