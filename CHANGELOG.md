@@ -5,6 +5,9 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **Checklists only when a change needs them.** The Reviewer gets a short security, accessibility, performance or
+  observability checklist when the change touches what it covers (a login or a query, a screen, a database or network
+  call, a route or job), with the reason; an ordinary change gets none, so it costs nothing extra.
 - **Suggested skills for each role.** `factory skill suggested` lists workflow skills worth attaching (test-first and
   thin slices for the Builder, a five-axis review for the Reviewer, hardening for security, and more), each with the one
   command that installs it for the role that holds that duty. Nothing is installed until you run it, and every one is

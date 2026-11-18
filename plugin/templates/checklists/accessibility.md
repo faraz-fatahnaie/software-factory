@@ -1,0 +1,6 @@
+- Everything that can be clicked can be reached and used with the keyboard alone, in a sensible order, with a visible focus.
+- Every control has a name a screen reader can say (a label, or aria-label when there is no visible text); images that mean something have alt text.
+- Text and controls have enough contrast (4.5:1 for text), and colour is never the only way something is shown.
+- Headings, lists and landmarks use the right elements, not styled divs.
+- Errors say what went wrong and how to fix it, next to the field, and are announced.
+- It works at 200% zoom and at phone width without losing content.

@@ -1,0 +1,4 @@
+- A new route, job or integration logs when it fails, with enough context to find the cause (what, which item), and never secrets or personal data.
+- Errors are not swallowed: each one is handled, or passed on with its cause.
+- A failure a person must act on is visible to them (a status, an alert or an error message), not only in a log.
+- Retries are bounded and logged, so a loop shows.

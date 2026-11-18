@@ -1,0 +1,6 @@
+- Every input from outside (a request, a form, a file, the environment, another system) is validated where it enters, by type, size and allowed values.
+- Queries, shell commands, file paths and HTML are built with parameters or escaping, never by joining strings with input.
+- Each new route or action checks who is asking and whether they may; a failed check reveals nothing.
+- Secrets come from the environment; none is logged, returned in an error or put in a URL.
+- Passwords are hashed with a slow, salted function; tokens expire; sessions end on logout.
+- A new dependency is needed, maintained and pinned.

@@ -1,0 +1,6 @@
+- No query or request inside a loop when one could fetch them all (the N+1 pattern).
+- Lists that can grow are paged or limited; nothing loads a whole table to show a few rows.
+- Slow work (network, disk, large computations) does not block a request or the screen; it has a timeout.
+- Queries filter on indexed columns; a new filter on a large table comes with its index.
+- Nothing large is sent that the receiver does not use.
+- A claim that something is fast or slow is backed by a measurement.

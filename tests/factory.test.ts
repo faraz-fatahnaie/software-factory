@@ -5169,3 +5169,29 @@ test("skills: suggestions follow the duty to whoever holds it, leave out what is
   expect(out.out).toMatch(/\n  reviewer +a review on five axes, with severities\n    factory skill add addyosmani\/agent-skills@code-review-and-quality --role reviewer/);
   expect(existsSync(join(dir, ".claude/skills/code-review-and-quality"))).toBe(false);
 });
+
+// F-119: checklists only when a change needs them.
+test("checklists: chosen by what the change touches, with the reason; tests alone and ordinary code call for none", async () => {
+  const { checklistsFor, checklistText } = await import("../plugin/engine/checklists");
+  const ch = (file: string, ...lines: string[]) => ({ file, added: lines.map((text, i) => ({ line: i + 1, text })) });
+  const names = (...c: ReturnType<typeof ch>[]) => checklistsFor(c).map((x) => x.name);
+  expect(names(ch("src/total.ts", "export const total = (a: number[]) => a.reduce((x, y) => x + y, 0);"))).toEqual([]);
+  expect(names(ch("src/Button.tsx", "<button>Save</button>"))).toEqual(["accessibility"]);
+  expect(names(ch("src/orders.ts", "const rows = await db.query('SELECT * FROM orders WHERE id = $1', [id]);"))).toEqual(["security", "performance"]);
+  expect(names(ch("src/api/orders.ts", "app.get('/orders', list);"))).toEqual(["security", "observability"]);
+  expect(names(ch("src/login.ts", "export const ok = true;"))).toEqual(["security"]);
+  expect(names(ch("tests/Button.test.tsx", "render(<Button />); await fetch('/x');"))).toEqual([]); // tests alone call for none
+  const text = checklistText(checklistsFor([ch("src/Button.tsx", "<button />")]));
+  expect(text).toMatch(/^checklists for what this change touches .*\n\n### Accessibility \(it changes what people see \(src\/Button\.tsx\)\)\n- Everything that can be clicked/);
+  expect(checklistText([])).toBe("");
+
+  // In the pipeline: only the Reviewer of a change that needs one gets it.
+  const run = async (file: string, text: string) => {
+    const { dir } = repo(); let review = "";
+    const runner: Runner = async ({ stage, cwd, prompt }) => { if (stage === "build") { mkdirSync(join(cwd, "src"), { recursive: true }); writeFileSync(join(cwd, file), text); } if (stage === "review") review = prompt; return { status: "ok", text: stage === "review" ? "APPROVE" : stage === "document" ? "## Chronicle\nx" : "x" }; };
+    await runTask(SAFE_TASK, { config, store: openStore(":memory:"), runner, gate: async () => ({ ok: true, output: "" }), cwd: dir });
+    return review;
+  };
+  expect(await run("src/Card.tsx", "export const Card = () => <div role=\"button\">x</div>;\n")).toContain("### Accessibility");
+  expect(await run("src/sum.ts", "export const sum = 1;\n")).not.toContain("checklists for what this change touches");
+});
