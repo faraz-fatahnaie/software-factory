@@ -4,6 +4,31 @@ The factory's intake queue. `factory run` takes the top item under Ready.
 Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
+Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Build F-108 to F-122 in this order: phase 1 is F-108 to F-111 (the bar and the loops), phase 2 F-112 to F-115 (the standard and risky work), phase 3 F-116 and F-117 (testing how agents behave), phase 4 F-118 to F-122 (smaller wins). One commit per item, a report after each phase.
+- [ ] F-108 (P1) A gate check for a weakened bar (no model)
+  The check fails a build that adds a suppression (@ts-ignore, eslint-disable, noqa, type: ignore and the like), skips or focuses a test, deletes a test file or test cases, removes assertions, lowers a coverage threshold or leaves an unimplemented stub, unless the Builder names each such file under `## Weakened checks` with a reason. A justified one goes to the Reviewer to judge and to the person in the handover notes. Never silent.
+- [ ] F-109 (P1) Severity on review findings: only Required sends a task back
+  The Reviewer marks each finding Required, Optional, Nit or FYI. A review whose findings are all below Required approves, and the rest go to the handover notes and Inbox instead of another build round.
+- [ ] F-110 (P1) Excuses, warning signs and evidence in each role's instructions
+  Builder, Reviewer, Security, Tester: the excuses agents give for skipping a step, with the answer; the signs that something is wrong; what evidence "done" needs. Prompt text in the catalog only.
+- [ ] F-111 (P1) Stop and ask before building risky work
+  When the spec plans a change to auth or permissions, a destructive migration, payments, deletion of data, secrets or a deploy, the task stops before Build and waits for the person's yes (Blocked with the reason, run again with --anyway).
+- [ ] F-112 (P2) A standing definition of done by default
+  When the project has none in its roadmap, the Reviewer checks against a built-in one (correctness, quality, integration, documentation, ready to ship).
+- [ ] F-113 (P2) The project's quality bar as a file, held by a ratchet
+  `CONSTRAINTS.md` written at init from a few questions, each with a default; "measure today and hold that line" for numbers such as coverage. The gate and the Reviewer read it.
+- [ ] F-114 (P2) Size: thin tasks and an oversized build flagged
+  The Planner writes tasks as thin slices with acceptance checks; a build far above a few hundred changed lines is flagged with a suggested split rather than reviewed round after round.
+- [ ] F-115 (P2) A doubting second review for high-stakes tasks only
+  A fresh reviewer set to disprove, run only when F-111 found risky work, so the cost stays bounded.
+- [ ] F-116 (P2) Behaviour evals for the roles, with pressure cases
+  Run each role headless on fixture tasks and grade what it did, including prompts that push it to skip steps ("we're in a hurry", "the reviewer already approved"). On demand, not part of `bun test`.
+- [ ] F-117 (P3) `claude plugin eval` for the slash skills: a natural request reaches the right command
+- [ ] F-118 (P3) Suggested skills per role in the presets (TDD and incremental build for the Builder, review for the Reviewer, hardening for Security, ADRs for the Scribe), installed only on the person's yes. Overlaps F-034.
+- [ ] F-119 (P3) Checklists loaded only when needed (security, accessibility, performance, observability), attached to a role by what the change touches
+- [ ] F-120 (P3) Warn before a run when the main folder has uncommitted changes: a task starts from HEAD and leaves them out
+- [ ] F-121 (P3) Protected code: `factory-protect-start/end` markers the guard hook keeps the Builder from changing
+- [ ] F-122 (P3) Docs: an adoption guide (new project vs an existing codebase) and an honest comparison with skill packs
 - [ ] F-106 (P2) The terminal skills: check that what each skill's `allowed-tools` grants covers what its responsibility tells the agent to run (G1, L1, L3 to L5, O2 run only in the person's own session today, so a missing permission is a prompt, not a dead end)
 - [ ] F-101 (P1) Run every release against a copy of a real, evolving project (the card game's), read-only, before it is published: config, backlog, branches, every route
 - [ ] F-102 (P2) A Release Engineer that explains and resolves what `factory integrate` finds: a conversation that walks the person through the order and offers each update as a button
