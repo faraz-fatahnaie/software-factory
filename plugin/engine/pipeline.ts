@@ -164,7 +164,8 @@ export const peopleFeedback = (r: Pick<Resume, "feedback" | "files" | "update">)
 /** [Triage →] Spec → Build → Check → Review, looping Build on gate or review failure. Triage runs only for ad-hoc items. A send-back (`resume`) keeps the earlier spec and starts at Build. */
 export async function runTask(
   task: { id: string; title: string; detail?: string },
-  o: { config: Config; store: Store; runner: Runner; gate: Gate; cwd: string; resume?: Resume; /** The person said yes to building risky work (F-111): `factory run --anyway`, or Build it on the page. */ consent?: boolean },
+  o: { config: Config; store: Store; runner: Runner; gate: Gate; cwd: string; resume?: Resume; /** The person said yes to building risky work (F-111): `factory run --anyway`, or Build it on the page. */ consent?: boolean;
+    /** Files the person had changed and not committed in the main folder when the run started (F-120): the task was built without them. */ uncommitted?: string[] },
 ) {
   const run = crypto.randomUUID().slice(0, 8);
   const dir = join(o.cwd, ".factory", "runs", run);
@@ -332,6 +333,7 @@ export async function runTask(
         }
         // Done (M14): what was checked before the handover, written where the person decides.
         const files = changesInWorktree(o.cwd).map((c) => c.file), notes = doneNotes(files, !!o.resume);
+        if (o.uncommitted?.length) notes.push(`When it started, your main folder had changes that were not committed (${o.uncommitted.slice(0, 5).join(", ")}${o.uncommitted.length > 5 ? ` and ${o.uncommitted.length - 5} more` : ""}): a task starts from the last commit, so it was built without them.`);
         const minor = minorFindings(review);
         if (minor.length) notes.push(`The review left ${minor.length} finding${minor.length === 1 ? "" : "s"} below Required, for you to decide: ${minor.slice(0, 5).map((l) => l.replace(/^[-*]\s*/, "")).join(" ")}${minor.length > 5 ? ` (and ${minor.length - 5} more in the review)` : ""}`);
         if (doubt) notes.push(`A second reviewer, set to disprove it because it touches ${risks.join(", ")}, could not break it.`);

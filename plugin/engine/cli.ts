@@ -18,6 +18,7 @@ import { runTask, shellGate, stopAll, stubRunner, type Resume, type Runner } fro
 import { addSkill, searchSkills, setSkill } from "./skills";
 import { armAutoMerge, ciWorkflow, failingChecksItem, formatStatus, hasChecks, listPrs, mergeTask, pushTask, revertTask, runTexts, syncGithub, vcsStatus, BATCH, pushBatch } from "./vcs";
 import { baseBranch } from "./vcs";
+import { uncommittedWork } from "./worktree";
 import { abortUpdate, APPROVED, behindBy, commitAll, ensureWorktree, land, mergeBase, removeWorktree, unresolved, worktreeOf, isLanded, branchOf, git } from "./worktree";
 
 const root = process.cwd();
@@ -137,6 +138,13 @@ async function runItems(config: ReturnType<typeof loadConfig>, runner: Runner, c
   const { errors } = checkAuthority(root);
   if (errors.length) throw new Error(`not started: the project breaks a rule about who may do what:\n  - ${errors.map((v) => v.text).join("\n  - ")}\nRun \`factory authority\` for the whole picture.`);
   const store = openEvents();
+  // Uncommitted work in the main folder (F-120): the tasks start from the last commit and will not see it. Said now, and again in each handover.
+  const uncommitted = uncommittedWork(root);
+  if (uncommitted.length) {
+    const text = `Your main folder has changes that are not committed (${uncommitted.slice(0, 5).join(", ")}${uncommitted.length > 5 ? ` and ${uncommitted.length - 5} more` : ""}). ${chosen.map((i) => i.id).join(", ")} start${chosen.length === 1 ? "s" : ""} from the last commit and will not include them: commit them first if the task${chosen.length === 1 ? "" : "s"} need${chosen.length === 1 ? "s" : ""} them.`;
+    console.warn(text);
+    store.emit({ run: "", task: "", stage: "manager", type: "manager.note", data: { text } });
+  }
   // Ctrl-C or a stop from the GUI: end the stages, then let each task settle into Blocked below.
   process.on("SIGINT", stopAll);
   process.on("SIGTERM", stopAll);
@@ -148,7 +156,7 @@ async function runItems(config: ReturnType<typeof loadConfig>, runner: Runner, c
       const dir = ensureWorktree(root, item.id);
       const setup = await shellGate(config.setup ?? [])(dir);
       if (!setup.ok) throw new Error(`setup failed:\n${setup.output}`);
-      const result = await runTask(item, { config, store, runner, gate: shellGate(config.gate), cwd: dir, resume, consent });
+      const result = await runTask(item, { config, store, runner, gate: shellGate(config.gate), cwd: dir, resume, consent, uncommitted });
       ({ run, followUps } = result);
       if (!result.ok) error = result.error;
       else if (resume?.update && unresolved(dir, resume.files).length) error = `conflict markers remain in ${unresolved(dir, resume.files).join(", ")}`;

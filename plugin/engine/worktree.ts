@@ -77,6 +77,13 @@ export function commitAll(dir: string, message: string): boolean {
   return true;
 }
 
+/** What the person changed in the main folder and did not commit (F-120). A task starts from HEAD and does not see it. The factory's own BACKLOG.md is left out: it commits that itself. */
+export function uncommittedWork(root: string): string[] {
+  const p = Bun.spawnSync(["git", "status", "--porcelain", "--untracked-files=all"], { cwd: root, stdout: "pipe", stderr: "pipe" });
+  if (p.exitCode !== 0) return [];
+  return p.stdout.toString().split("\n").filter(Boolean).map((l) => l.slice(3).replace(/^.* -> /, "").replace(/^"|"$/g, "")).filter((f) => f !== "BACKLOG.md" && !/^\.(factory|worktrees)\//.test(f));
+}
+
 /** Deletes the task's checkout and local branch, including any uncommitted work in it. */
 export function removeWorktree(root: string, id: string, keepBranch = false) {
   if (existsSync(worktreeOf(root, id))) git(root, "worktree", "remove", "--force", worktreeOf(root, id));

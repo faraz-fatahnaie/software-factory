@@ -5,6 +5,8 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **Uncommitted work is pointed out.** A task starts from the last commit, so changes you have not committed are not in
+  it. A run now says so when it starts (in the terminal and the Overview feed) and again in the handover note.
 - **Checklists only when a change needs them.** The Reviewer gets a short security, accessibility, performance or
   observability checklist when the change touches what it covers (a login or a query, a screen, a database or network
   call, a route or job), with the reason; an ordinary change gets none, so it costs nothing extra.

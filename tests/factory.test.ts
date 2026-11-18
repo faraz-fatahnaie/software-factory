@@ -5195,3 +5195,20 @@ test("checklists: chosen by what the change touches, with the reason; tests alon
   expect(await run("src/Card.tsx", "export const Card = () => <div role=\"button\">x</div>;\n")).toContain("### Accessibility");
   expect(await run("src/sum.ts", "export const sum = 1;\n")).not.toContain("checklists for what this change touches");
 });
+
+// F-120: uncommitted work in the main folder is said before a run, and again in the handover.
+test("uncommitted: a run says what the main folder has not committed, and the handover repeats it; the factory's own backlog does not count", () => {
+  const { dir, cli } = repo();
+  const { uncommittedWork } = require("../plugin/engine/worktree") as typeof import("../plugin/engine/worktree");
+  expect(uncommittedWork(dir)).toEqual([]);
+  writeFileSync(join(dir, "BACKLOG.md"), readFileSync(join(dir, "BACKLOG.md"), "utf8") + "\n");
+  expect(uncommittedWork(dir)).toEqual([]);
+  writeFileSync(join(dir, "AGENTS.md"), "# Rules\nchanged\n"); writeFileSync(join(dir, "draft.ts"), "x\n");
+  expect(uncommittedWork(dir)).toEqual(["AGENTS.md", "draft.ts"]);
+  const run = cli("run", "F-001", "--stub");
+  expect(run.out).toContain("Your main folder has changes that are not committed (AGENTS.md, draft.ts). F-001 starts from the last commit and will not include them: commit them first if the task needs them.");
+  const store = openStore(join(dir, ".factory/events.db"));
+  const done = store.decisions("F-001").map((e) => e.data as { action: string; notes: string[] }).find((d) => d.action === "done")!;
+  expect(done.notes.join(" ")).toContain("When it started, your main folder had changes that were not committed (AGENTS.md, draft.ts): a task starts from the last commit, so it was built without them.");
+  expect(uncommittedWork(tmp())).toEqual([]); // not a git folder
+});
