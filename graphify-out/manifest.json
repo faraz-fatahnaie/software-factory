@@ -6,9 +6,9 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1794937104.0349393,
-    "seen": 1795015151.6276941,
-    "ast_hash": "374a6548a620fb79d055c8d3b3423a7e",
+    "mtime": 1795016602.9237688,
+    "seen": 1795017185.584206,
+    "ast_hash": "cb912c2f9bf14c0982e9a8f7701fb509",
     "semantic_hash": ""
   },
   "skills-lock.json": {
@@ -18,9 +18,9 @@
     "semantic_hash": ""
   },
   "tsconfig.json": {
-    "mtime": 1794564509.8831303,
-    "seen": 1794564885.3208919,
-    "ast_hash": "1d35b7690e3f47dcdf47e42003a7d019",
+    "mtime": 1795016365.536993,
+    "seen": 1795017185.584223,
+    "ast_hash": "87d3df119393e29ea886a11beed47b9f",
     "semantic_hash": ""
   },
   ".claude/agents/architect.md": {
@@ -42,15 +42,15 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1794930778.467437,
-    "seen": 1795015151.627712,
-    "ast_hash": "030e57356580013f1f6ad424d42cc2fd",
+    "mtime": 1795017114.8871284,
+    "seen": 1795017185.584227,
+    "ast_hash": "71fa5cc1802a3a903bb731d23258fceb",
     "semantic_hash": ""
   },
   "BACKLOG.md": {
-    "mtime": 1795015998.8700628,
-    "seen": 1795016000.523757,
-    "ast_hash": "9e53ad6c51a1fb83852c007f82c73804",
+    "mtime": 1795017183.7863946,
+    "seen": 1795017185.584227,
+    "ast_hash": "c545ac64024f59af9e306c24480a4872",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -150,9 +150,9 @@
     "semantic_hash": ""
   },
   "tests/factory.test.ts": {
-    "mtime": 1795015925.6240907,
-    "seen": 1795016000.523752,
-    "ast_hash": "b4ac501861e6a0f04bfabc0a93d1a640",
+    "mtime": 1795017114.85842,
+    "seen": 1795017185.5842218,
+    "ast_hash": "fe16a18fbac1821ea4e51ff687f16a09",
     "semantic_hash": ""
   },
   "tests/fixture.ts": {
@@ -741,6 +741,108 @@
     "mtime": 1795015435.9436667,
     "seen": 1795016000.5237708,
     "ast_hash": "a5f94421b0b9d29b53e592b8a6e93334",
+    "semantic_hash": ""
+  },
+  "evals/plugin.ts": {
+    "mtime": 1795016602.9066486,
+    "seen": 1795017185.5841951,
+    "ast_hash": "775b346229b7ffdfd819036ba24e3fcb",
+    "semantic_hash": ""
+  },
+  "evals/roles.ts": {
+    "mtime": 1795016360.7367494,
+    "seen": 1795017185.584196,
+    "ast_hash": "c908a33d1371bb94f8c9f851405b9154",
+    "semantic_hash": ""
+  },
+  "evals/roles/cases.ts": {
+    "mtime": 1795016467.6456468,
+    "seen": 1795017185.584196,
+    "ast_hash": "b63f3245c1e87e7674acef06f6690f68",
+    "semantic_hash": ""
+  },
+  "evals/plugin/add/graders/criteria.md": {
+    "mtime": 1795017043.8426015,
+    "seen": 1795017185.584231,
+    "ast_hash": "efaac553c324dc22242269a6ead99cf9",
+    "semantic_hash": ""
+  },
+  "evals/plugin/add/graders/fired.md": {
+    "mtime": 1795016602.9000835,
+    "seen": 1795017185.584231,
+    "ast_hash": "e82cbd7798600526e4923d5b5e1698d9",
+    "semantic_hash": ""
+  },
+  "evals/plugin/add/prompt.md": {
+    "mtime": 1795016602.9000094,
+    "seen": 1795017185.584231,
+    "ast_hash": "0dd3440799ae5c3c01f417b78ef540b5",
+    "semantic_hash": ""
+  },
+  "evals/plugin/doctor/graders/criteria.md": {
+    "mtime": 1795017043.8465252,
+    "seen": 1795017185.5842319,
+    "ast_hash": "77092e1872258cb137fdb0261b64fc81",
+    "semantic_hash": ""
+  },
+  "evals/plugin/doctor/graders/fired.md": {
+    "mtime": 1795016602.903643,
+    "seen": 1795017185.5842319,
+    "ast_hash": "e82cbd7798600526e4923d5b5e1698d9",
+    "semantic_hash": ""
+  },
+  "evals/plugin/doctor/prompt.md": {
+    "mtime": 1795016602.9035425,
+    "seen": 1795017185.5842319,
+    "ast_hash": "bf059f9f3ae472c35a1dd3070bfc8537",
+    "semantic_hash": ""
+  },
+  "evals/plugin/no-approval/graders/criteria.md": {
+    "mtime": 1795016741.619794,
+    "seen": 1795017185.584233,
+    "ast_hash": "991364b5d790c11fb61e6aae7c12d44c",
+    "semantic_hash": ""
+  },
+  "evals/plugin/no-approval/prompt.md": {
+    "mtime": 1795016602.9051068,
+    "seen": 1795017185.584233,
+    "ast_hash": "e9583de67057af2824392da3470ad05a",
+    "semantic_hash": ""
+  },
+  "evals/plugin/open/graders/criteria.md": {
+    "mtime": 1795017043.844558,
+    "seen": 1795017185.584233,
+    "ast_hash": "0f9b1e95b459534a4c79bec2a05324c0",
+    "semantic_hash": ""
+  },
+  "evals/plugin/open/graders/fired.md": {
+    "mtime": 1795016602.90195,
+    "seen": 1795017185.584233,
+    "ast_hash": "e82cbd7798600526e4923d5b5e1698d9",
+    "semantic_hash": ""
+  },
+  "evals/plugin/open/prompt.md": {
+    "mtime": 1795016602.901887,
+    "seen": 1795017185.584234,
+    "ast_hash": "1700c8db5320d1c5a766b3e5b07e6143",
+    "semantic_hash": ""
+  },
+  "evals/plugin/status/graders/criteria.md": {
+    "mtime": 1795017043.8405972,
+    "seen": 1795017185.584234,
+    "ast_hash": "1daf71d773540ad148408b88c1383cfd",
+    "semantic_hash": ""
+  },
+  "evals/plugin/status/graders/fired.md": {
+    "mtime": 1795016602.8982794,
+    "seen": 1795017185.584234,
+    "ast_hash": "e82cbd7798600526e4923d5b5e1698d9",
+    "semantic_hash": ""
+  },
+  "evals/plugin/status/prompt.md": {
+    "mtime": 1795016602.898184,
+    "seen": 1795017185.584235,
+    "ast_hash": "f7fed0534658f3895bd4f33eea9ab673",
     "semantic_hash": ""
   }
 }
