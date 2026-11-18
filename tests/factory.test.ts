@@ -5,7 +5,7 @@ import { add, dependsOn, FROM_CONVERSATION, move, parse, type Item } from "../pl
 import { ensureWorktree, isLanded } from "../plugin/engine/worktree";
 import { newer, ownDashboards, replaceOlder, VERSION, who } from "../plugin/engine/upgrade";
 import { filesOf, formatPlan, order, plan as integrationPlan, trial, waiting as waitingTasks } from "../plugin/engine/integrate";
-import { authorityMatrix, checkAuthority, checkConversations, checkGrants, checkLimits, checkProjectSettings, checkRoleFile, checkSkillFile, checkStages, commandsNamed, DENY_FLOOR, floorDenies, KNOWN_GAPS, PERSON_ONLY, proposalsOf } from "../plugin/engine/authority";
+import { checkTerminalSkills, authorityMatrix, checkAuthority, checkConversations, checkGrants, checkLimits, checkProjectSettings, checkRoleFile, checkSkillFile, checkStages, commandsNamed, DENY_FLOOR, floorDenies, KNOWN_GAPS, PERSON_ONLY, proposalsOf } from "../plugin/engine/authority";
 import { ALLOW as CHAT_ALLOW, MANAGER_ALLOW, GUIDE_ALLOW } from "../plugin/engine/chat";
 import { ALLOW as TASK_ALLOW } from "../plugin/engine/claude";
 import { agentEvents, claudeArgs, classify } from "../plugin/engine/claude";
@@ -5233,4 +5233,15 @@ test("protected: blocks a person marked are found, a change to one is sent back 
   const never = await replay({ setup, write: (cwd) => rmSync(join(cwd, "tax.ts")) });
   expect(never.reviews).toBe(0);
   expect(BAR_RULE).toContain("factory-protect-start");
+});
+
+// F-106: the commands a person types may run what their instructions name.
+test("authority N4: every terminal skill allows what the responsibilities it loads tell it to run, in every team; a new gap is found", () => {
+  for (const p of Object.keys(presets)) expect({ p, gaps: checkTerminalSkills(resolveTeam({ preset: p })).map((v) => v.text) }).toEqual({ p, gaps: [] });
+  const dir = tmp();
+  mkdirSync(join(dir, "mine"), { recursive: true });
+  writeFileSync(join(dir, "mine", "SKILL.md"), "---\nname: mine\nallowed-tools: Bash(factory role:*)\n---\nRun `factory role G2` and follow it.\n");
+  const gaps = checkTerminalSkills(resolveTeam({ preset: "balanced" }), dir).map((v) => `${v.rule} ${v.where}: ${v.text}`);
+  expect(gaps).toContain("N4 /software-factory:mine (G2): G2 tells the agent to run `factory integrate`, which /software-factory:mine does not allow, so the person is asked each time");
+  expect(gaps.every((g) => g.startsWith("N4 /software-factory:mine (G2)"))).toBe(true);
 });

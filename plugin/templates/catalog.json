@@ -459,6 +459,9 @@
   },
   {
     "id": "L1",
+    "proposes": [
+      "git push"
+    ],
     "area": "Release and deployment",
     "summary": "Version and changelog",
     "when": "request",
@@ -609,6 +612,10 @@
   },
   {
     "id": "G1",
+    "proposes": [
+      "gh auth login",
+      "factory vcs auto-merge"
+    ],
     "area": "Version control",
     "summary": "Set up git and GitHub for the project",
     "when": "project",

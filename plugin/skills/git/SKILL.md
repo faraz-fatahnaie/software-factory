@@ -3,7 +3,7 @@ name: git
 description: Set up git and GitHub for this project (a private repository, the remote, .gitignore), or see what is waiting to be pushed or merged. Only when the user asks to set up version control, GitHub, pushing or pull requests.
 argument-hint: [what you want]
 disable-model-invocation: true
-allowed-tools: Bash(factory role:*) Bash(factory vcs) Bash(factory add:*) Bash(git status:*) Bash(git remote:*) Bash(git log:*) Bash(gh auth status)
+allowed-tools: Bash(factory role:*) Bash(factory vcs) Bash(factory add:*) Bash(git init:*) Bash(gh repo create:*) Bash(factory integrate:*) Bash(git status:*) Bash(git remote:*) Bash(git log:*) Bash(gh auth status)
 ---
 `factory` is the software factory's command-line tool; this plugin puts it on the PATH.
 

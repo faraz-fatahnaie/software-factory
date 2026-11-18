@@ -3,7 +3,7 @@ name: secure
 description: Work out the threats, data protection and performance risks of the project with the user, or audit it before a release. Only when the user asks about security, privacy, performance or a release audit.
 argument-hint: [audit]
 disable-model-invocation: true
-allowed-tools: Bash(factory *) WebSearch WebFetch
+allowed-tools: Bash(factory *) Bash(git describe:*) WebSearch WebFetch
 ---
 `factory` is the software factory's command-line tool; this plugin puts it on the PATH.
 

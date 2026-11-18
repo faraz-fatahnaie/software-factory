@@ -5,6 +5,10 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **The commands you type may run what they are told to.** A new check (N4) compares each slash command's permissions
+  with the instructions it loads. It found eight gaps, now closed: read-only commands the docs, security and git
+  setup commands needed are allowed, and `gh auth login`, turning on auto-merge and `git push` are declared as yours
+  to run, so Claude tells you the command instead of trying it.
 - **Docs: starting on a project you already have, and how the factory compares to skill packs** (in the README).
 - **Protected code.** Put code between a `factory-protect-start` and a `factory-protect-end` comment and no agent may
   change, move or delete it: the checks compare those blocks with the last commit and send the build back, and no

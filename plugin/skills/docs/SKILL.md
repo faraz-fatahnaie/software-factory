@@ -3,7 +3,7 @@ name: docs
 description: Bring the README, user documentation and context files (AGENTS.md) up to date with what has been built, with the user's approval. Only when the user asks to update the documentation.
 argument-hint: [what to focus on]
 disable-model-invocation: true
-allowed-tools: Bash(factory *)
+allowed-tools: Bash(factory *) Bash(git log:*)
 ---
 `factory` is the software factory's command-line tool; this plugin puts it on the PATH.
 

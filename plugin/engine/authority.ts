@@ -123,7 +123,9 @@ export function commandsNamed(instruction: string): string[] {
 const allowsCommand = (list: string[], command: string) => list.some((e) => {
   if (!e.startsWith("Bash(") || !e.endsWith(")")) return false;
   const body = e.slice(5, -1);
-  return body.endsWith(":*") ? command === body.slice(0, -2) || command.startsWith(`${body.slice(0, -2)} `) : command === body;
+  // `factory add:*` and `factory *` (the form a skill's allowed-tools uses) both allow the command with anything after it.
+  const prefix = body.endsWith(":*") ? body.slice(0, -2) : body.endsWith(" *") ? body.slice(0, -2) : undefined;
+  return prefix !== undefined ? command === prefix || command.startsWith(`${prefix} `) : command === body;
 });
 
 export function checkConversations(team: Preset): Violation[] {
@@ -151,6 +153,27 @@ export function checkStages(team: Preset): Violation[] {
   for (const r of catalog) {
     if (!r.instruction || !isBuilt(r.id, team) || !r.how.startsWith("headless") || Object.values(TOPICS).some((t) => t.ids.includes(r.id))) continue;
     for (const c of commandsNamed(r.instruction)) if (!allowsCommand(grants().task, c) && !(r.proposes ?? []).some((p) => c === p || c.startsWith(`${p} `))) out.push({ rule: "N1", where: `stage (${r.id})`, text: `${r.id} tells the agent to run \`${c}\`, which a stage is not allowed to run`, known: `${r.id}: ${c}` in KNOWN_GAPS });
+  }
+  return out;
+}
+
+/**
+ * N4, the same for the commands a person types (F-106): a terminal skill loads its instructions with `factory role <ids>`, and whatever those tell the agent to
+ * run through git, gh, graphify or the factory, the skill's `allowed-tools` must allow, or the responsibility declares it as proposed. In the person's own
+ * session a missing permission is only a prompt, so this is shown, never a refusal.
+ */
+export function checkTerminalSkills(team: Preset, dir = join(import.meta.dir, "..", "skills")): Violation[] {
+  const out: Violation[] = [];
+  for (const name of existsSync(dir) ? readdirSync(dir).sort() : []) {
+    let md = ""; try { md = readFileSync(join(dir, name, "SKILL.md"), "utf8"); } catch { continue; }
+    const allowed = toolTokens(field(md, "allowed-tools") ?? "");
+    const ids = [...md.matchAll(/factory role ((?:[A-Z]\d+ ?)+)/g)].flatMap((m) => m[1]!.trim().split(/\s+/));
+    for (const id of new Set(ids)) {
+      const r = catalog.find((x) => x.id === id);
+      if (!r?.instruction || !isBuilt(id, team)) continue;
+      for (const c of commandsNamed(r.instruction)) if (!allowsCommand(allowed, c) && !(r.proposes ?? []).some((p) => c === p || c.startsWith(`${p} `)))
+        out.push({ rule: "N4", where: `/software-factory:${name} (${id})`, text: `${id} tells the agent to run \`${c}\`, which /software-factory:${name} does not allow, so the person is asked each time`, known: `${name}: ${c}` in KNOWN_GAPS });
+    }
   }
   return out;
 }
@@ -238,7 +261,7 @@ export function checkAuthority(dir: string): Authority {
   const put = (v: Violation, soft = false) => (v.known ? known : soft ? warnings : errors).push(v);
   const team = projectTeam(dir);
   for (const v of checkGrants()) put(v);
-  for (const v of [...checkConversations(team), ...checkStages(team)]) put(v, true); // they are about what the factory itself ships: shown, and failed in the tests, but they do not stop a person's work
+  for (const v of [...checkConversations(team), ...checkStages(team), ...checkTerminalSkills(team)]) put(v, true); // they are about what the factory itself ships: shown, and failed in the tests, but they do not stop a person's work
   for (const role of activeRoles(team)) {
     let md = "";
     try { md = readFileSync(join(dir, ".claude", "agents", `${role}.md`), "utf8"); } catch { continue; } // a missing file is the setup check's to report
