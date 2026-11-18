@@ -2,6 +2,8 @@
 // test, a deleted test or assertion, a lowered threshold, a stub. The gate cannot see that, and a review can miss it. This reads the change itself,
 // with no model: anything found fails the check unless the Builder names the file under `## Weakened checks` with a reason, and a named one goes to the
 // Reviewer to judge and to the person in the handover. Nothing here is silent.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { changesInWorktree, LOCKFILE } from "./security";
 
 export type Weakening = { file: string; line?: number; kind: string };
@@ -77,6 +79,20 @@ export function findWeakenings(added: { file: string; added: { line: number; tex
   }
   return found;
 }
+
+/** The blocks a person marked as theirs (F-121): from a line holding `factory-protect-start` to one holding `factory-protect-end`, in order. */
+export const protectedBlocks = (text: string): string[] => [...text.matchAll(/^[^\n]*factory-protect-start[^\n]*\n[\s\S]*?^[^\n]*factory-protect-end[^\n]*$/gm)].map((m) => m[0]);
+/** Files whose protected blocks the change altered, moved out or deleted, against HEAD. Only a person changes these; nothing the Builder says makes it right. */
+export function protectedChanges(cwd: string): string[] {
+  const files = new Set([...changesInWorktree(cwd).map((c) => c.file), ...removedLines(git(cwd, "diff", "HEAD", "-U0", "--no-color")).map((r) => r.file)]);
+  const read = (f: string) => { try { return readFileSync(join(cwd, f), "utf8"); } catch { return ""; } };
+  return [...files].filter((f) => {
+    const before = protectedBlocks(git(cwd, "show", `HEAD:${f}`));
+    return before.length > 0 && JSON.stringify(before) !== JSON.stringify(protectedBlocks(read(f)));
+  });
+}
+export const protectedFeedback = (files: string[]) =>
+  `The change alters code a person marked as theirs (between factory-protect-start and factory-protect-end) in: ${files.join(", ")}. Only a person changes it. Put each block back exactly as it was and solve the task around it; if that is impossible, say so with BLOCKED: and why.`;
 
 /** How many lines a change adds and removes against HEAD (F-114). Lock files and folders the factory skips do not count. */
 export function changeSize(cwd: string): number {

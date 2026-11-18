@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { chmodSync, existsSync, readdirSync, mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, readdirSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { add, dependsOn, FROM_CONVERSATION, move, parse, type Item } from "../plugin/engine/backlog";
 import { ensureWorktree, isLanded } from "../plugin/engine/worktree";
@@ -5211,4 +5211,26 @@ test("uncommitted: a run says what the main folder has not committed, and the ha
   const done = store.decisions("F-001").map((e) => e.data as { action: string; notes: string[] }).find((d) => d.action === "done")!;
   expect(done.notes.join(" ")).toContain("When it started, your main folder had changes that were not committed (AGENTS.md, draft.ts): a task starts from the last commit, so it was built without them.");
   expect(uncommittedWork(tmp())).toEqual([]); // not a git folder
+});
+
+// F-121: protected code.
+test("protected: blocks a person marked are found, a change to one is sent back with no way to justify it, and putting it back passes", async () => {
+  const { protectedBlocks } = await import("../plugin/engine/bar");
+  const text = "a\n// factory-protect-start: tax rules\nconst rate = 0.2;\n// factory-protect-end\nb\n# factory-protect-start\nx = 1\n# factory-protect-end\n";
+  expect(protectedBlocks(text)).toEqual(["// factory-protect-start: tax rules\nconst rate = 0.2;\n// factory-protect-end", "# factory-protect-start\nx = 1\n# factory-protect-end"]);
+  expect(protectedBlocks("no markers")).toEqual([]);
+  const original = "export const total = 1;\n// factory-protect-start: the tax rate, set by finance\nexport const rate = 0.2;\n// factory-protect-end\n";
+  const setup = (dir: string) => writeFileSync(join(dir, "tax.ts"), original);
+  // The Builder edits the protected rate first (and says why), then puts it back.
+  const r = await replay({ setup, build: () => "Changed the rate.\n\n## Weakened checks\n- tax.ts: the rate looked wrong",
+    write: (cwd, n) => writeFileSync(join(cwd, "tax.ts"), n === 1 ? original.replace("0.2", "0.25") : `${original}export const net = 2;\n`) });
+  expect(r.result.ok).toBe(true);
+  expect(r.builds).toBe(2);
+  expect(r.reviews).toBe(1); // the altered block never reached the Reviewer
+  const failed = r.store.list(r.store.lastRun("F-001")!).find((e) => e.stage === "check" && e.type === "stage.failed")!;
+  expect(String(failed.data)).toMatch(/^The change alters code a person marked as theirs \(between factory-protect-start and factory-protect-end\) in: tax\.ts\. Only a person changes it/);
+  // Deleting the file, or never putting it back, is refused too.
+  const never = await replay({ setup, write: (cwd) => rmSync(join(cwd, "tax.ts")) });
+  expect(never.reviews).toBe(0);
+  expect(BAR_RULE).toContain("factory-protect-start");
 });

@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Config, Role } from "./config";
-import { changeSize, formatWeakenings, justified, sizeLimit, weakeningFeedback, weakenings } from "./bar";
+import { changeSize, formatWeakenings, justified, protectedChanges, protectedFeedback, sizeLimit, weakeningFeedback, weakenings } from "./bar";
 import { readNotes } from "./chronicle";
 import { checklistsFor, checklistText } from "./checklists";
 import { minorFindings, reviewApproves } from "./state";
@@ -51,7 +51,7 @@ const DOUBT_WHY = (risks: string[]) => `this change is high-stakes (the spec pla
 /** What the Reviewer is told about its findings (F-109): only Required work sends a task back. In the prompt, so it reaches role files written before it. */
 export const REVIEW_RULE = "Label every finding with its severity: `- [required] file:line — problem — fix` for a defect against the spec, a listed test missing or failing, a security problem, a change outside the spec or a weakened check; `- [optional]` for an improvement worth doing later (also list it under `## Follow-ups`); `- [nit]` for style or taste; `- [fyi]` for something the person should know. Answer REQUEST_CHANGES only for [required] findings: a review whose findings are all below Required lets the task through, and they go to the person.";
 /** What the Builder is told before it starts; the check in bar.ts holds it to it. */
-export const BAR_RULE = "Do not make the checks pass by lowering the bar: no suppression comments, skipped or focused tests, deleted tests or assertions, lowered thresholds or unimplemented stubs. If one is truly right, name its file under a `## Weakened checks` heading in your reply, with the reason; one you do not name fails the check.";
+export const BAR_RULE = "Do not make the checks pass by lowering the bar: no suppression comments, skipped or focused tests, deleted tests or assertions, lowered thresholds or unimplemented stubs. If one is truly right, name its file under a `## Weakened checks` heading in your reply, with the reason; one you do not name fails the check. Code between \`factory-protect-start\` and \`factory-protect-end\` comments is the person's: never change, move or delete it.";
 
 // Child processes of this orchestrator, so a stop request (Ctrl-C, or the GUI) can end them.
 const live = new Set<{ kill(): void }>();
@@ -289,11 +289,13 @@ export async function runTask(
       const check = await o.gate(o.cwd);
       // The bar (F-108): green checks that were made green by weakening them. An update from main only resolves clashes; main's own changes were accepted already.
       const weak = check.ok && !o.resume?.update ? weakenings(o.cwd) : [];
-      const bar = weak.some((w) => !justified(build, w)) ? weakeningFeedback(weak.filter((w) => !justified(build, w))) : "";
+      // Protected code (F-121): a person's marked blocks are put back, whatever the reason. Checked here, so a change made through the shell is seen too.
+      const guarded = check.ok && !o.resume?.update ? protectedChanges(o.cwd) : [];
+      const bar = guarded.length ? protectedFeedback(guarded) : weak.some((w) => !justified(build, w)) ? weakeningFeedback(weak.filter((w) => !justified(build, w))) : "";
       const lowered = bar ? [] : weak;
       emit("check", check.ok && !bar ? "stage.ok" : "stage.failed", { data: check.ok ? bar || undefined : check.output });
       if (lowered.length) emit("check", "check.lowered", { data: formatWeakenings(lowered) });
-      named = !!bar;
+      named = !!bar && !guarded.length;
       const blocked = check.ok && !bar ? await secure() : "";
       // The user's own unattended checks: advisory. What they find goes to the reviewer and to the backlog; they never block.
       let own = "";

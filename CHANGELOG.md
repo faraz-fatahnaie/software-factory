@@ -5,6 +5,9 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **Protected code.** Put code between a `factory-protect-start` and a `factory-protect-end` comment and no agent may
+  change, move or delete it: the checks compare those blocks with the last commit and send the build back, and no
+  reason the Builder gives makes it pass.
 - **Uncommitted work is pointed out.** A task starts from the last commit, so changes you have not committed are not in
   it. A run now says so when it starts (in the terminal and the Overview feed) and again in the handover note.
 - **Checklists only when a change needs them.** The Reviewer gets a short security, accessibility, performance or
