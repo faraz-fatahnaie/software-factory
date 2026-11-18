@@ -5,7 +5,6 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
 Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Build F-108 to F-122 in this order: phase 1 is F-108 to F-111 plus F-123 (the bar, the loops, and role files that reach a project), phase 2 F-112 to F-115 (the standard and risky work), phase 3 F-116 and F-117 (testing how agents behave), phase 4 F-118 to F-122 (smaller wins). One commit per item, a report after each phase.
-- [ ] F-122 (P3) Docs: an adoption guide (new project vs an existing codebase) and an honest comparison with skill packs
 - [ ] F-106 (P2) The terminal skills: check that what each skill's `allowed-tools` grants covers what its responsibility tells the agent to run (G1, L1, L3 to L5, O2 run only in the person's own session today, so a missing permission is a prompt, not a dead end)
 - [ ] F-101 (P1) Run every release against a copy of a real, evolving project (the card game's), read-only, before it is published: config, backlog, branches, every route
 - [ ] F-102 (P2) A Release Engineer that explains and resolves what `factory integrate` finds: a conversation that walks the person through the order and offers each update as a button
@@ -223,3 +222,4 @@ Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Bui
 - [x] F-119 (P3) Checklists loaded only when needed (security, accessibility, performance, observability), attached to a role by what the change touches
 - [x] F-120 (P3) Warn before a run when the main folder has uncommitted changes: a task starts from HEAD and leaves them out
 - [x] F-121 (P3) Protected code: `factory-protect-start/end` markers the guard hook keeps the Builder from changing
+- [x] F-122 (P3) Docs: an adoption guide (new project vs an existing codebase) and an honest comparison with skill packs

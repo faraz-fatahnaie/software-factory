@@ -119,6 +119,25 @@ folder (*Install*, option 2). Then
 Product Partner (**Talk** in the dashboard, or `/software-factory:brainstorm`) and tell her what you want
 to build.
 
+### A new project, or one you already have
+
+**A new project.** Follow the whole path: the Product Partner writes the brief, the Architect the design, the
+Planner the backlog, and the first milestone ("Foundation") sets up the tests and checks every later task must
+pass. Write your quality bar into `CONSTRAINTS.md` before the first task, while nobody has to argue about it.
+
+**A project that already has code.** Start small and prove it on your own code before you trust it with more:
+
+1. `init` detects your stack and proposes the gate (your tests and lint). Check that `factory gate` passes on
+   main as it is: a gate that fails before any task starts fails every task.
+2. Open `CONSTRAINTS.md` and set each bar to where the project is **today** ("hold"), not where you wish it
+   were: the factory then refuses anything that lowers it, and you raise it when you are ready.
+3. Mark code that must not move (a pricing rule, a tuned query) with `factory-protect-start` and
+   `factory-protect-end` comments.
+4. Add one small, well-understood item and run it on **assist**, not autopilot. Read the spec, the review and the
+   diff before you approve. Do a few like that before you hand over bigger work, or switch autopilot on.
+5. If the code has no tests yet, make the first items "add tests for X" ones: the Reviewer and the bar checks can
+   only hold what a test proves.
+
 ## What you get
 
 ### The pipeline
@@ -190,8 +209,10 @@ push | merge | revert | sync | vcs | team | configure | scan | release | status 
 | Which model, effort and fallbacks each role uses, even per stage | Agents view; `factory.config.json` |
 | The commands that must pass before a review (tests, lint) and the setup command | `factory configure`; `factory.config.json` |
 | The rules every agent follows | `AGENTS.md`, in Studio |
+| The quality bar: the largest change one task may make, coverage, accessibility, performance | `CONSTRAINTS.md`; agents read it and may not change it |
+| Code no agent may change | Put it between `factory-protect-start` and `factory-protect-end` comments |
 | A role's instructions and tools | `.claude/agents/<role>.md`, in Studio. Edits survive a rebuild unless you ask to overwrite. |
-| Skills, per role | Studio: attach, detach, search skills.sh and install (tick who gets it); `factory skill add\|attach\|detach <skill> --role a,b`. A conversation offers only the skills attached to its role. |
+| Skills, per role | Studio: attach, detach, search skills.sh and install (tick who gets it); `factory skill add\|attach\|detach <skill> --role a,b`. A conversation offers only the skills attached to its role. `factory skill suggested` lists ones worth attaching. |
 | What counts as sensitive for the security review | `security` in `factory.config.json` (always, paths, keywords) |
 | Auto-merge of pull requests (off by default) | The GitHub tile, `factory vcs auto-merge on` |
 | Push on approval (off by default): approving a task also pushes it and opens its pull request | The GitHub tile, `factory vcs auto-push on` |
@@ -200,7 +221,7 @@ push | merge | revert | sync | vcs | team | configure | scan | release | status 
 
 **You cannot change, on purpose:**
 
-- Agents cannot edit `BACKLOG.md`, `factory.config.json`, `AGENTS.md`, `.claude`, `.git`, `.factory`, or
+- Agents cannot edit `BACKLOG.md`, `CONSTRAINTS.md`, `factory.config.json`, `AGENTS.md`, `.claude`, `.git`, `.factory`, or
   push to GitHub or open pull requests. A guard blocks it, and only you and the factory change them.
 - Only the Builder changes code. Everyone else reads and writes documents.
 - Nothing deploys automatically. Nothing lands without your approval.
@@ -220,6 +241,23 @@ Everything the factory makes is in your project, so you can read it, commit it, 
 | `docs/` | Brief, research, requirements, roadmap, architecture and decisions, the chronicle of what was done. |
 | `.worktrees/<F-id>/` | One folder and branch (`factory/<F-id>`) per task in flight. Not committed. |
 | `.factory/` | Run files and the event log. Not committed. |
+
+## How it compares to skill packs
+
+Skill packs such as [agent-skills](https://github.com/addyosmani/agent-skills) or
+[Superpowers](https://github.com/obra/superpowers) are written workflows: a skill tells one agent, in your own
+session, how a senior engineer would spec, test, review or ship. They are portable across many agents, cost nothing
+to install, and you stay in the loop at every step. Nothing runs them for you, and nothing checks that they were
+followed.
+
+The factory is the machine around the work: a pipeline that runs agents unattended in their own git worktrees, a
+gate and bar checks written as code (a skipped test, a lowered threshold or a changed protected block fails, whatever
+the agent says), rules about who may do what that are checked before anything starts, spending limits, and a
+dashboard where you decide. It is Claude Code only, and it costs model time while it works.
+
+They fit together: a skill pack's workflows can be attached to the factory's roles (`factory skill suggested` lists
+some), where they guide each agent and the factory checks the result. Use a skill pack alone when you want to work
+with one agent yourself; use the factory when you want a team to work through a backlog while you review.
 
 ## Learn more
 

@@ -5,6 +5,7 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **Docs: starting on a project you already have, and how the factory compares to skill packs** (in the README).
 - **Protected code.** Put code between a `factory-protect-start` and a `factory-protect-end` comment and no agent may
   change, move or delete it: the checks compare those blocks with the last commit and send the build back, and no
   reason the Builder gives makes it pass.
