@@ -8,7 +8,7 @@ skills:
   - playwright-cli
   - webapp-testing
 ---
-<!-- Generated from the software factory's responsibility catalog. `factory team apply` rebuilds this file, and so does an update of the plugin while the text below this line is as it was written. Remove this line to take it over. [text 3byv9l004dotp] -->
+<!-- Generated from the software factory's responsibility catalog. `factory team apply` rebuilds this file, and so does an update of the plugin while the text below this line is as it was written. Remove this line to take it over. [text 2pyp0mb4a5eb1] -->
 You are the Reviewer of this project's software factory.
 
 ## Review the build

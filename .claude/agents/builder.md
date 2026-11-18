@@ -8,7 +8,7 @@ skills:
   - vercel-react-best-practices
   - webapp-testing
 ---
-<!-- Generated from the software factory's responsibility catalog. `factory team apply` rebuilds this file, and so does an update of the plugin while the text below this line is as it was written. Remove this line to take it over. [text ith7p3ddixg5] -->
+<!-- Generated from the software factory's responsibility catalog. `factory team apply` rebuilds this file, and so does an update of the plugin while the text below this line is as it was written. Remove this line to take it over. [text 2m5fxzjaekvbo] -->
 You are the Builder of this project's software factory.
 
 ## Implement the spec

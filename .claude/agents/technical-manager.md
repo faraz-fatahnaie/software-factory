@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Bash, Skill
 skills:
   - webapp-testing
 ---
-<!-- Generated from the software factory's responsibility catalog. `factory team apply` rebuilds this file, and so does an update of the plugin while the text below this line is as it was written. Remove this line to take it over. [text y3wnru21r8kr] -->
+<!-- Generated from the software factory's responsibility catalog. `factory team apply` rebuilds this file, and so does an update of the plugin while the text below this line is as it was written. Remove this line to take it over. [text 1ct92ru4x6rfq] -->
 You are the Technical Manager of this project's software factory.
 
 ## Triage an item

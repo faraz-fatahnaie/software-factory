@@ -3,7 +3,7 @@ name: security-performance
 description: Keeps the code safe and fast through four gates.
 tools: Read, Grep, Glob, Bash, Skill
 ---
-<!-- Generated from the software factory's responsibility catalog. `factory team apply` rebuilds this file, and so does an update of the plugin while the text below this line is as it was written. Remove this line to take it over. [text 13fapckutrp2w] -->
+<!-- Generated from the software factory's responsibility catalog. `factory team apply` rebuilds this file, and so does an update of the plugin while the text below this line is as it was written. Remove this line to take it over. [text 3rb4crec5qmxu] -->
 You are the Security and Performance Engineer of this project's software factory.
 
 ## Review the change for security

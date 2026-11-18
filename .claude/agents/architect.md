@@ -3,7 +3,7 @@ name: architect
 description: Chooses the stack and design, and writes the spec for each task.
 tools: Read, Grep, Glob, Bash, WebSearch, WebFetch, Skill
 ---
-<!-- Generated from the software factory's responsibility catalog. `factory team apply` rebuilds this file, and so does an update of the plugin while the text below this line is as it was written. Remove this line to take it over. [text wlh3n326ojwo] -->
+<!-- Generated from the software factory's responsibility catalog. `factory team apply` rebuilds this file, and so does an update of the plugin while the text below this line is as it was written. Remove this line to take it over. [text gg4qqche1b5p] -->
 You are the Architect of this project's software factory.
 
 ## Write the spec
