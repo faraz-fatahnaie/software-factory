@@ -5149,3 +5149,23 @@ test("evals: each plugin routing case names a command that exists and that Claud
     expect(existsSync(join(root, c, "graders/fired.md"))).toBe(true);
   }
 });
+
+// F-118: suggested skills, installed only on the person's word.
+test("skills: suggestions follow the duty to whoever holds it, leave out what is attached, and install nothing", async () => {
+  const { SUGGESTED, suggestedSkills } = await import("../plugin/engine/skills");
+  const { dir, cli } = repo();
+  cli("team", "apply");
+  const before = suggestedSkills(dir);
+  expect(before.find((s) => s.pkg.endsWith("@code-review-and-quality"))).toMatchObject({ role: "reviewer", command: "factory skill add addyosmani/agent-skills@code-review-and-quality --role reviewer" });
+  expect(before.find((s) => s.pkg.endsWith("@test-driven-development"))?.role).toBe("builder");
+  for (const s of SUGGESTED) expect(s.pkg).toMatch(/^[A-Za-z0-9][\w.-]*\/[\w.-]+@[\w.:-]+$/);
+  // Attached already: not suggested again.
+  const file = join(dir, ".claude/agents/builder.md");
+  const { attachSkill } = await import("../plugin/engine/skills");
+  writeFileSync(file, attachSkill(readFileSync(file, "utf8"), "test-driven-development"));
+  expect(suggestedSkills(dir).some((s) => s.pkg.endsWith("@test-driven-development"))).toBe(false);
+  const out = cli("skill", "suggested");
+  expect(out.out).toStartWith("Suggested skills, none installed until you run the line:\n");
+  expect(out.out).toMatch(/\n  reviewer +a review on five axes, with severities\n    factory skill add addyosmani\/agent-skills@code-review-and-quality --role reviewer/);
+  expect(existsSync(join(dir, ".claude/skills/code-review-and-quality"))).toBe(false);
+});

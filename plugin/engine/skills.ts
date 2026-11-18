@@ -2,11 +2,37 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { checkSkillFile } from "./authority";
 import { projectRoles, projectTeam } from "./config";
+import { holderOf } from "./team";
 
 // Pinned: `npx -y` would otherwise run whatever version was published most recently.
 export const SKILLS_CLI = "skills@1.8.1";
 // Starts with a letter or digit, so a package name can never be read as a command-line option.
 const PKG = /^[A-Za-z0-9][\w.-]*\/[\w.-]+@[\w.:-]+$/;
+
+/**
+ * Skills worth attaching (F-118), by the responsibility they help with, so they follow the duty to whichever role holds it in a team. Workflows only:
+ * they add steps to follow, never tools or permissions, and installing one is still checked by the authority rules. Nothing is installed unless the
+ * person runs the command that is offered.
+ */
+export const SUGGESTED: { id: string; pkg: string; why: string }[] = [
+  { id: "B2", pkg: "addyosmani/agent-skills@test-driven-development", why: "red, green, refactor: the failing test first" },
+  { id: "B2", pkg: "addyosmani/agent-skills@incremental-implementation", why: "build in thin, verified slices" },
+  { id: "B2", pkg: "addyosmani/agent-skills@debugging-and-error-recovery", why: "find the cause of a failing check before changing code" },
+  { id: "B1", pkg: "addyosmani/agent-skills@spec-driven-development", why: "a spec with objectives, boundaries and tests before code" },
+  { id: "C1", pkg: "addyosmani/agent-skills@code-review-and-quality", why: "a review on five axes, with severities" },
+  { id: "S1", pkg: "addyosmani/agent-skills@security-and-hardening", why: "untrusted input, authentication and secrets, checked in order" },
+  { id: "Q2", pkg: "addyosmani/agent-skills@performance-optimization", why: "measure before calling something slow" },
+];
+/** The suggestions this project's team has not attached yet: the role that would get each one, and the command that installs it. */
+export function suggestedSkills(cwd: string) {
+  const team = projectTeam(cwd), roles = projectRoles(cwd);
+  return SUGGESTED.flatMap((s) => {
+    const role = holderOf(team, s.id), name = s.pkg.split("@")[1]!;
+    if (!role || !roles.includes(role)) return []; // a role with no role file (one that only talks) cannot take a skill yet
+    let md = ""; try { md = readFileSync(join(cwd, ".claude", "agents", `${role}.md`), "utf8"); } catch { /* not made yet */ }
+    return roleSkills(md).includes(name) ? [] : [{ ...s, role, command: `factory skill add ${s.pkg} --role ${role}` }];
+  });
+}
 
 /** Adds a skill to an agent file's frontmatter `skills:` list. Idempotent. */
 export function attachSkill(md: string, skill: string): string {

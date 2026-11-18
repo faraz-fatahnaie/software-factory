@@ -5,6 +5,10 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **Suggested skills for each role.** `factory skill suggested` lists workflow skills worth attaching (test-first and
+  thin slices for the Builder, a five-axis review for the Reviewer, hardening for security, and more), each with the one
+  command that installs it for the role that holds that duty. Nothing is installed until you run it, and every one is
+  checked by the authority rules like any other skill.
 - **A second review for risky work.** When the spec named a risk (see "Risky work waits for your yes") and the review
   approves, a second reviewer starts fresh and tries to break the change: the input that breaks it, the check it skips,
   the data it loses. A failure it can show sends the task back; a doubt it cannot show is only noted. It runs once per

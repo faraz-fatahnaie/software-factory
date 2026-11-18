@@ -92,6 +92,7 @@ factory scan [--since <revision>]                scan for hard-coded secrets: th
 factory docs save                               commit the documents (docs/, README.md, AGENTS.md...) so task agents can read them
 factory configure [--setup "<cmd>"]... [--gate "<cmd>"]...   change the project's setup and gate commands
 factory skill search "<words>"                  search skills.sh: packages, install counts and review pages
+factory skill suggested                         skills worth attaching to this team's roles, with the command for each (installs nothing)
 factory team [apply [--force]]                  show the team, or rebuild the role files from the catalog
 factory doctor                                  check the machine and this project's setup
 factory status                                  what is ready, running, waiting for you or blocked
@@ -186,6 +187,13 @@ async function main([cmd, ...args]: string[]) {
     const added = add(readFileSync(backlogPath, "utf8"), title, "Inbox", { detail: process.env.FACTORY_SOURCE === "chat" ? [detail, FROM_CONVERSATION].filter(Boolean).join("\n") : detail, prio });
     editBacklog(`add ${added.id}`, () => added.text);
     return console.log(`added ${added.id} to Inbox`);
+  }
+
+  if (cmd === "skill" && args[0] === "suggested") {
+    const { suggestedSkills } = await import("./skills");
+    const list = suggestedSkills(root);
+    if (!list.length) return console.log("every suggested skill is attached already (or the roles that would take them only talk)");
+    return console.log(`Suggested skills, none installed until you run the line:\n${list.map((s) => `  ${s.role.padEnd(20)} ${s.why}\n    ${s.command}`).join("\n")}`);
   }
 
   if (cmd === "skill" && args[0] === "search" && args[1]) {
