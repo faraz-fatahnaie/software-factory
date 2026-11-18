@@ -5132,3 +5132,20 @@ test("evals: every role case tells a good answer from a bad one, through the rea
     expect(good.cost + bad.cost).toBe(0);
   }
 }, 120_000);
+
+// F-117: the routing evals for the slash commands are well formed, and only ever expect a command Claude may start by itself.
+test("evals: each plugin routing case names a command that exists and that Claude may start; approving is never expected to fire", () => {
+  const root = join(import.meta.dir, "../evals/plugin");
+  const cases = readdirSync(root);
+  expect(cases.length).toBeGreaterThanOrEqual(5);
+  for (const c of cases) {
+    expect(readFileSync(join(root, c, "prompt.md"), "utf8")).toMatch(/^---\nmax_turns: \d+\nallowed_tools: \[[^\]]*Skill[^\]]*\]\n---\n\n\S/);
+    const criteria = readFileSync(join(root, c, "graders/criteria.md"), "utf8");
+    expect(criteria).toMatch(/^---\ntype: llm\nweight: 1\nfocus: trace\n---/);
+    const named = /invoked the software-factory:(\w+) skill/.exec(criteria)?.[1];
+    if (!named) { expect(criteria).toMatch(/did not approve/); continue; } // the negative case
+    const skill = readFileSync(join(import.meta.dir, `../plugin/skills/${named}/SKILL.md`), "utf8");
+    expect({ c, manual: skill.includes("disable-model-invocation: true") }).toEqual({ c, manual: false });
+    expect(existsSync(join(root, c, "graders/fired.md"))).toBe(true);
+  }
+});
