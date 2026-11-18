@@ -53,6 +53,9 @@ function useDiff(id: string, fresh: string, enabled = true): DiffFile[] | null |
   return files;
 }
 
+/** A task that stopped before Build because its spec plans risky work: only the person's Build it starts it (F-111). */
+const waitsForYes = (run?: TaskRun) => /^Error: needs your yes:/.test(run?.error ?? "");
+
 const verdictOf = (run?: TaskRun) => {
   const text = run?.outputs.review;
   if (!text) return null;
@@ -323,7 +326,8 @@ function Panel(p: { behind?: number; busy: boolean; item: Item; run?: TaskRun; e
             <h2 ref={head} tabIndex={-1}>{item.title}</h2>
             <span className="row gap">
               {sec === "Ready" && <button onClick={() => act("/api/run", { ids: [item.id], stub: p.stub })}>Run</button>}
-              {sec === "Blocked" && <button onClick={() => act("/api/run", { ids: [item.id], stub: p.stub })} title="Starts again from the beginning">Retry</button>}
+              {sec === "Blocked" && waitsForYes(run) && <button className="primary" onClick={() => act("/api/run", { ids: [item.id], stub: p.stub, anyway: true })} title="You read the spec and agree that this risky work may be built">Build it</button>}
+              {sec === "Blocked" && !waitsForYes(run) && <button onClick={() => act("/api/run", { ids: [item.id], stub: p.stub })} title="Starts again from the beginning">Retry</button>}
               {sec === "Blocked" && ["ok", "skipped"].includes(run?.stages.spec?.state ?? "") && !sending && <button onClick={() => setSending(true)} title="Continue from the spec, with your guidance for the Builder">Send guidance</button>}
               {p.item.section === "In progress" && run?.status === "running" && <button className="danger" onClick={() => act("/api/stop", { id: item.id })}>Stop</button>}
               {sec === "Inbox" && <button onClick={() => act("/api/promote", { id: item.id })}>Promote to Ready</button>}
@@ -533,7 +537,7 @@ export function BacklogView(p: { openPerson?: (role: string) => void; backlog: D
                 {asking === b.id ? (
                   <span className="row gap"><b>Throw away the work?</b><button onClick={() => setAsking("")}>Keep it</button><button className="danger-btn" onClick={() => p.act("/api/discard", { id: b.id })}>Delete the work</button></span>
                 ) : (
-                  <span className="row gap"><button onClick={() => p.select(b.id)}>Look into it</button><button onClick={() => p.act("/api/run", { ids: [b.id], stub })}>Retry</button><button className="danger" onClick={() => setAsking(b.id)}>Discard</button></span>
+                  <span className="row gap"><button onClick={() => p.select(b.id)}>{waitsForYes(run) ? "Read the spec" : "Look into it"}</button>{!waitsForYes(run) && <button onClick={() => p.act("/api/run", { ids: [b.id], stub })}>Retry</button>}<button className="danger" onClick={() => setAsking(b.id)}>Discard</button></span>
                 )}
               </div>
             );

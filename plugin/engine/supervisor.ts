@@ -10,7 +10,7 @@ import { checkLimits } from "./authority";
 import { followUps, needsTriage } from "./pipeline";
 import { milestones } from "./retro";
 
-export type Kind = "rate_limit" | "auth" | "stopped" | "stalled" | "builds" | "setup" | "clash" | "unready" | "blocked" | "stuck" | "budget" | "other";
+export type Kind = "rate_limit" | "auth" | "stopped" | "stalled" | "builds" | "setup" | "clash" | "unready" | "blocked" | "consent" | "stuck" | "budget" | "other";
 /** What kind of failure an error message describes. These are the messages the pipeline and the CLI write. */
 export function failureKind(error: string): Kind {
   if (/every model in the .+ chain is rate limited/.test(error)) return "rate_limit";
@@ -19,6 +19,7 @@ export function failureKind(error: string): Kind {
   if (/no approved build after/.test(error)) return "builds";
   if (/^Error: not ready:/.test(error)) return "unready";
   if (/^Error: blocked:/.test(error)) return "blocked";
+  if (/^Error: needs your yes:/.test(error)) return "consent";
   if (/^Error: stuck:/.test(error)) return "stuck";
   if (/setup failed/.test(error)) return "setup";
   if (/conflict markers remain|clash/.test(error)) return "clash";
@@ -37,6 +38,8 @@ export function decide(kind: Kind, tries: number, spent: number, s: { recoveries
   if (kind === "clash") return hand("It clashes with changes on main. Use Update this task, so the Builder can resolve the clash.");
   // Something outside the task has to change (another task's code, a decision, a credential): no number of tries fixes that, and each one costs money.
   if (kind === "blocked") return hand(`It cannot go on until something outside it changes: ${error.replace(/^Error: blocked: /, "").replace(/ \(said by \w+\)$/, "")}. I did not try again.`);
+  // Risky work (F-111): only the person can say yes, so nothing here retries it, guides it or builds it.
+  if (kind === "consent") return hand(`It plans risky work, so it waits for your yes: ${error.replace(/^Error: needs your yes: /, "").replace(/\. Read the spec.*$/s, "")}. Read the spec, then press Build it.`);
   if (kind === "budget") return hand(`It reached the limit for one task (${usd(s.perTask)}) during this run, so I stopped it. Look at what it spent on, then run it again if you want to go on.`);
   // Stuck (two attempts in a row changed nothing): one more build cannot end differently, but one piece of guidance might. Asked once; if she has nothing that a Builder could act on, it goes to the person.
   if (kind === "stuck" && tries >= 1) return hand(`Another attempt would end the same way: ${error.replace(/^Error: stuck: /, "").slice(0, 300)} I already tried guidance once, so I did not try again.`);

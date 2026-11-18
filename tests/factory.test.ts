@@ -33,7 +33,7 @@ import { estimate } from "../plugin/engine/estimate";
 import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugin/engine/vcs";
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
 import { findWeakenings, justified, removedLines } from "../plugin/engine/bar";
-import { BAR_RULE, REVIEW_RULE, blockedReason, doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
+import { BAR_RULE, REVIEW_RULE, RISK_RULE, risksOf, blockedReason, doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
 import { minorFindings, reviewApproves } from "../plugin/engine/state";
 import { badCommand, checkSetup, parseSetup, parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev, contextOf, tokens, matchCommands } from "../plugin/engine/state";
@@ -3094,7 +3094,7 @@ test("guidance for a blocked task: continues from its spec when it has one, and 
 const SAFE_TASK = { id: "F-001", title: "First", detail: "Acceptance: it works" };
 
 /** Runs one task through the pipeline in a git folder, with a runner that says what each stage replies and what the Builder writes. */
-async function replay(o: { spec?: string; build?: string | ((n: number) => string); review?: (n: number) => string; write?: (cwd: string, n: number) => void; security?: string; gate?: boolean[]; setup?: (dir: string) => void }) {
+async function replay(o: { consent?: boolean; spec?: string; build?: string | ((n: number) => string); review?: (n: number) => string; write?: (cwd: string, n: number) => void; security?: string; gate?: boolean[]; setup?: (dir: string) => void }) {
   const { dir, sh } = repo();
   if (o.setup) { o.setup(dir); sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "setup"); }
   const store = openStore(":memory:"), calls: string[] = [];
@@ -3108,7 +3108,7 @@ async function replay(o: { spec?: string; build?: string | ((n: number) => strin
     return { status: "ok", text: stage === "document" ? "## Chronicle\nDone." : stage };
   };
   const gate = async () => ({ ok: (o.gate ?? [])[gates++] ?? true, output: "the check failed" });
-  const result = await runTask(SAFE_TASK, { config, store, runner, gate, cwd: dir });
+  const result = await runTask(SAFE_TASK, { config, store, runner, gate, cwd: dir, consent: o.consent });
   return { result, calls, builds, reviews, store, dir };
 }
 
@@ -4933,3 +4933,79 @@ test("review: pass rates and the retrospective count a review of nits as an appr
   const ev = (output: string) => ({ ts: "2026-11-18T10:00:00Z", run: "r", task: "F-001", stage: "review", type: "stage.ok", data: { output } }) as Ev;
   expect(passRates([ev("APPROVE\nok"), ev("REQUEST_CHANGES\n- [nit] x"), ev("REQUEST_CHANGES\n- [required] x")]).review).toEqual({ ok: 2, total: 3 });
 });
+
+// F-111: risky work waits for the person's yes before anything is built.
+test("risk: the spec's Risk line is read leniently; none, or no line, means none", () => {
+  expect(risksOf("# Spec\nDo it.\n\nRisk: none")).toEqual([]);
+  expect(risksOf("# Spec\nDo it.")).toEqual([]);
+  expect(risksOf("Risk: none. It touches no login code.")).toEqual([]); // "none" first wins
+  expect(risksOf("Risk: auth, data-loss")).toEqual(["auth", "data-loss"]);
+  expect(risksOf("**Risk**: authentication and a destructive migration")).toEqual(["auth", "data-loss"]);
+  expect(risksOf("- **Risk:** refunds through Stripe; a new API key")).toEqual(["payments", "secrets"]);
+  expect(risksOf("## Risk: deploy to production")).toEqual(["deploy"]);
+  expect(risksOf("Risk: auth\n\nLater text.\nRisk: none")).toEqual([]); // the last line counts
+  expect(risksOf("The risk: auth is out of scope.\nRisk: none")).toEqual([]);
+  expect(RISK_RULE).toMatch(/^End the spec with one line: `Risk: none`, or `Risk:` followed by each of these .*auth \(login, sessions, roles or permissions\), data-loss .*deploy/);
+});
+
+test("risk: a spec that plans risky work stops before Build and waits for the person; with their yes it is built, and the yes is logged", async () => {
+  const spec = "# Spec\nAdd a password reset.\n\nRisk: auth";
+  const stopped = await replay({ spec });
+  expect(stopped.result.ok).toBe(false);
+  expect((stopped.result as { error: string }).error).toBe("Error: needs your yes: the spec plans auth (login, sessions, roles or permissions). Read the spec, then build it with Build it on the page or `factory run F-001 --anyway`");
+  expect(stopped.calls).toEqual(["spec"]); // nothing built, checked or reviewed: no money spent beyond the spec
+  expect(failureKind((stopped.result as { error: string }).error)).toBe("consent");
+  const yes = await replay({ spec, consent: true, write: (cwd) => writeFileSync(join(cwd, "reset.ts"), "export const reset = 1;\n") });
+  expect(yes.result.ok).toBe(true);
+  expect(yes.store.list(yes.store.lastRun("F-001")!).find((e) => e.type === "risk.accepted")?.data).toEqual(["auth"]);
+  // A spec with no risk is built without asking.
+  expect((await replay({ spec: "# Spec\nRename a label.\n\nRisk: none", write: (cwd) => writeFileSync(join(cwd, "a.txt"), "a\n") })).result.ok).toBe(true);
+});
+
+test("risk: only the person can say yes. Autopilot never retries, guides or builds it, and the spec writer is told the rule in its prompt", async () => {
+  const s = { recoveries: 3, perTask: 5 };
+  const step = decide("consent", 0, 0, s, "Error: needs your yes: the spec plans payments (charging, refunds or billing). Read the spec, then build it with Build it on the page or `factory run F-001 --anyway`");
+  expect(step).toEqual({ action: "escalate", delayMin: 0, text: "It plans risky work, so it waits for your yes: the spec plans payments (charging, refunds or billing). Read the spec, then press Build it." });
+  expect(decide("consent", 5, 100, s).action).toBe("escalate");
+  expect(floorDenies("factory run F-001 --anyway")).toBe(true); // no session the factory starts may give the yes
+  expect(readFileSync(join(import.meta.dir, "../plugin/skills/run/SKILL.md"), "utf8")).toMatch(/Never add `--anyway` yourself/);
+  const prompts: Record<string, string> = {};
+  const store = openStore(":memory:");
+  const runner: Runner = async ({ stage, prompt }) => { prompts[stage] = prompt; return { status: "ok", text: stage === "spec" ? "# Spec\n\nRisk: secrets" : "x" }; };
+  await runTask(SAFE_TASK, { config, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: tmp() });
+  expect(prompts.spec).toContain(RISK_RULE);
+  expect(prompts.build).toBeUndefined();
+});
+
+test("risk: a send-back keeps its spec and is not asked again", async () => {
+  const { dir } = repo();
+  const store = openStore(":memory:");
+  const runner: Runner = async ({ stage, cwd }) => { if (stage === "build") writeFileSync(join(cwd, "b.txt"), "b\n"); return { status: "ok", text: stage === "review" ? "APPROVE\nok" : stage === "document" ? "## Chronicle\nx" : "Built." }; };
+  const r = await runTask(SAFE_TASK, { config, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir, resume: { spec: "# Spec\n\nRisk: payments", feedback: "Use 30%", files: [], round: 2 } });
+  expect(r.ok).toBe(true);
+});
+
+test("risk: a retry proposed in the manager's conversation never starts a task that waits for the person's yes, even on autopilot", async () => {
+  const { dir } = repo();
+  writeFileSync(join(dir, "BACKLOG.md"), move(readFileSync(join(dir, "BACKLOG.md"), "utf8"), "F-001", "Blocked"));
+  mkdirSync(join(dir, ".factory"), { recursive: true });
+  const events = openStore(join(dir, ".factory", "events.db"));
+  events.emit({ run: "r1", task: "F-001", stage: "run", type: "run.start" });
+  events.emit({ run: "r1", task: "F-001", stage: "run", type: "run.failed", data: "Error: needs your yes: the spec plans auth (login, sessions, roles or permissions). Read the spec, then build it with Build it on the page or `factory run F-001 --anyway`" });
+  const bin = join(tmp(), "bin");
+  mkdirSync(bin, { recursive: true });
+  const result = JSON.stringify({ type: "result", subtype: "success", is_error: false, result: "I will retry it.\nPROPOSE: retry F-001", session_id: "11111111-1111-1111-1111-111111111111", total_cost_usd: 0.01, usage: {} });
+  writeFileSync(join(bin, "claude"), `#!/bin/sh\nprintf '%s\\n' '${result}'\n`);
+  chmodSync(join(bin, "claude"), 0o755);
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  const server = await serve(dir, 0);
+  const base = `http://127.0.0.1:${server.port}`;
+  try {
+    const r = (await (await fetch(`${base}/api/chat`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify({ topic: "manager", message: "retry F-001" }) })).json()) as any;
+    expect(r.executed).toMatchObject({ ok: false, note: "F-001 plans risky work and waits for your yes: open it in Backlog, read the spec and press Build it." });
+    await Bun.sleep(300);
+    expect(parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).find((i) => i.id === "F-001")!.section).toBe("Blocked"); // nothing started
+    expect(events.list("r1").at(-1)).toMatchObject({ type: "manager.decision" });
+  } finally { server.stop(); process.env.PATH = path; }
+}, 30_000);

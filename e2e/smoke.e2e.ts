@@ -278,6 +278,23 @@ try {
     await page.getByRole("button", { name: "Start this conversation" }).waitFor(); // and it stays cleared
     await page.close();
   }
+
+  // Risky work (F-111): a task whose spec plans it waits for the person. Its last run becomes such a stop; the page offers Build it, not Retry.
+  const { Database } = await import("bun:sqlite");
+  const db = new Database(join(dir, ".factory/events.db"));
+  const ev = (ago: number, stage: string, type: string, data?: unknown) => db.query("INSERT INTO events (ts, run, task, stage, type, role, model, data) VALUES (?,?,?,?,?,?,?,?)").run(new Date(Date.now() - ago * 1000).toISOString(), "ry", "F-004", stage, type, stage === "spec" ? "architect" : null, null, data === undefined ? null : JSON.stringify(data));
+  ev(60, "run", "run.start"); ev(50, "spec", "stage.ok", { output: "# Spec\n\nTake the deposit through the payment provider.\n\nRisk: payments" });
+  ev(49, "run", "run.failed", "Error: needs your yes: the spec plans payments (charging, refunds or billing). Read the spec, then build it with Build it on the page or `factory run F-004 --anyway`");
+  db.close();
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  page.on("pageerror", (e) => problems.push(`risky work: page error ${e}`));
+  page.on("console", (m) => { if (m.type() === "error") problems.push(`risky work: console error ${m.text()}`); });
+  await page.goto(`http://127.0.0.1:${server.port}/#backlog`);
+  await page.getByRole("button", { name: "Read the spec" }).click();
+  await page.getByRole("dialog", { name: "Task F-004" }).getByRole("button", { name: "Build it" }).waitFor();
+  assert.equal(await page.getByRole("dialog", { name: "Task F-004" }).getByRole("button", { name: "Retry" }).count(), 0, "a task waiting for a yes is not retried");
+  await a11y(page, "risky work");
+  await page.close();
 } finally {
   await browser.close();
   server.stop();

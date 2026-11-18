@@ -5,6 +5,10 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **Risky work waits for your yes before it is built.** The spec now ends with a `Risk:` line. When it names login or
+  permissions, deleting or rewriting stored data, payments, secrets or a deploy, the run stops before anything is built
+  and the task shows **Build it** instead of Retry. Only you can say yes, there or with `factory run <F-id> --anyway`:
+  autopilot and the manager's conversation never start it.
 - **The roles that build and judge are told the excuses that do not hold.** The Builder, its testing duty, the Reviewer
   and the security review now name the reasons agents give for skipping a step ("I'll add the tests afterwards", "the
   tests pass, so it is right", "it is internal only") with the answer, the signs that something is going wrong, and the

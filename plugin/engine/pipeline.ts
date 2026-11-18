@@ -20,6 +20,30 @@ export type Runner = (job: Job) => Promise<RunnerResult>;
 export type Gate = (cwd: string) => Promise<{ ok: boolean; output: string }>;
 
 const MAX_BUILDS = 3;
+/** The kinds of risky work that wait for the person's yes before anything is built (F-111), with what each means. */
+export const RISKS: Record<string, string> = {
+  auth: "login, sessions, roles or permissions",
+  "data-loss": "a migration or code that deletes or rewrites stored data",
+  payments: "charging, refunds or billing",
+  secrets: "keys, tokens or credentials",
+  deploy: "releasing, infrastructure or production settings",
+};
+/** What the spec writer is told: in the prompt, so it reaches role files written before it. */
+export const RISK_RULE = `End the spec with one line: \`Risk: none\`, or \`Risk:\` followed by each of these the change plans to touch: ${Object.entries(RISKS).map(([k, v]) => `${k} (${v})`).join(", ")}. The person is asked before anything risky is built, so name it when in doubt.`;
+const RISK_WORDS: Record<string, RegExp> = {
+  auth: /\bauth\w*|\blog ?in|\bsign[ -]?in|\bsessions?\b|\bpermissions?\b|\broles?\b/i,
+  "data-loss": /data[ -]?loss|\bdelet\w*|\bdestructive|\bdrop\w*|\bmigrat\w*|\btruncat\w*|\boverwrit\w*/i,
+  payments: /\bpayments?\b|\bbilling|\brefunds?\b|\bcharg\w*|\binvoic\w*/i,
+  secrets: /\bsecrets?\b|\bcredentials?\b|\btokens?\b|\bapi[ -]?keys?\b/i,
+  deploy: /\bdeploy\w*|\binfrastructure|\bproduction|\brelease\w*/i,
+};
+/** The risks a spec declares on its last `Risk:` line, read leniently (a missed risk is the costly mistake). `none` first, or no line at all, means none. */
+export function risksOf(spec: string): string[] {
+  const line = [...spec.matchAll(/^[\s*_#>-]*risks?[*_]*\s*:[*_]*\s*(.+)$/gim)].at(-1)?.[1]?.trim() ?? "";
+  if (!line || /^[*_`]*none\b/i.test(line)) return [];
+  return Object.keys(RISKS).filter((k) => RISK_WORDS[k]!.test(line));
+}
+
 /** What the Reviewer is told about its findings (F-109): only Required work sends a task back. In the prompt, so it reaches role files written before it. */
 export const REVIEW_RULE = "Label every finding with its severity: `- [required] file:line — problem — fix` for a defect against the spec, a listed test missing or failing, a security problem, a change outside the spec or a weakened check; `- [optional]` for an improvement worth doing later (also list it under `## Follow-ups`); `- [nit]` for style or taste; `- [fyi]` for something the person should know. Answer REQUEST_CHANGES only for [required] findings: a review whose findings are all below Required lets the task through, and they go to the person.";
 /** What the Builder is told before it starts; the check in bar.ts holds it to it. */
@@ -121,7 +145,7 @@ export const peopleFeedback = (r: Pick<Resume, "feedback" | "files" | "update">)
 /** [Triage →] Spec → Build → Check → Review, looping Build on gate or review failure. Triage runs only for ad-hoc items. A send-back (`resume`) keeps the earlier spec and starts at Build. */
 export async function runTask(
   task: { id: string; title: string; detail?: string },
-  o: { config: Config; store: Store; runner: Runner; gate: Gate; cwd: string; resume?: Resume },
+  o: { config: Config; store: Store; runner: Runner; gate: Gate; cwd: string; resume?: Resume; /** The person said yes to building risky work (F-111): `factory run --anyway`, or Build it on the page. */ consent?: boolean },
 ) {
   const run = crypto.randomUUID().slice(0, 8);
   const dir = join(o.cwd, ".factory", "runs", run);
@@ -151,7 +175,7 @@ export async function runTask(
         (name === "document" ? `Roles you may write notes for: ${activeRoles(team).join(", ")}.\n` : "") +
         // Only single commands are pre-approved: a chained or piped one is refused, and the stage then cannot see what it needs.
         "Run each shell command on its own, without &&, ; or pipes, and without `cd` or `git -C` (you are already in the project folder): only plain single commands are pre-approved and others are refused.\n" +
-        (name === "build" ? `${BAR_RULE}\n` : name === "review" ? `${REVIEW_RULE}\n` : "") +
+        (name === "build" ? `${BAR_RULE}\n` : name === "review" ? `${REVIEW_RULE}\n` : name === "spec" ? `${RISK_RULE}\n` : "") +
         `Gate commands for this project (all must pass): ${o.config.gate.join(" ; ")}` +
         (why && `\n\nWhy you were asked: ${why}`) +
         (feedback && `\n\nAddress this feedback:\n${feedback}`) +
@@ -218,7 +242,14 @@ export async function runTask(
     else if (!needsTriage(task)) emit("triage", "stage.skipped", { data: "the item already carries acceptance checks" });
     else if (roleFor("triage")) { const why = unready(await stage("triage", roleFor("triage")!)); if (why) throw new Error(`not ready: ${why}`); }
     else emit("triage", "stage.skipped", { data: "triage is switched off in this team" });
-    if (!o.resume) stopIfBlocked("spec", await stage("spec", roleFor("spec")!));
+    if (!o.resume) {
+      const spec = await stage("spec", roleFor("spec")!);
+      stopIfBlocked("spec", spec);
+      // Risky work waits for the person before anything is built (F-111). A send-back or an update has their attention already.
+      const risks = risksOf(spec);
+      if (risks.length && !o.consent) throw new Error(`needs your yes: the spec plans ${risks.map((r) => `${r} (${RISKS[r]})`).join(", ")}. Read the spec, then build it with Build it on the page or \`factory run ${task.id} --anyway\``);
+      if (risks.length) emit("spec", "risk.accepted", { data: risks });
+    }
     // Whether an attempt changed anything: two attempts in a row that changed nothing cannot end differently, so the second is the last.
     let before = fingerprint();
     let feedback = o.resume ? peopleFeedback(o.resume) : "";

@@ -130,7 +130,7 @@ function repairRoleFiles(): string[] {
   return [...made, ...rebuilt];
 }
 
-async function runItems(config: ReturnType<typeof loadConfig>, runner: Runner, chosen: Item[], resume?: Resume) {
+async function runItems(config: ReturnType<typeof loadConfig>, runner: Runner, chosen: Item[], resume?: Resume, consent = false) {
   repairRoleFiles();
   // Nothing runs in a project that gives a role more than it is meant to have.
   const { errors } = checkAuthority(root);
@@ -147,7 +147,7 @@ async function runItems(config: ReturnType<typeof loadConfig>, runner: Runner, c
       const dir = ensureWorktree(root, item.id);
       const setup = await shellGate(config.setup ?? [])(dir);
       if (!setup.ok) throw new Error(`setup failed:\n${setup.output}`);
-      const result = await runTask(item, { config, store, runner, gate: shellGate(config.gate), cwd: dir, resume });
+      const result = await runTask(item, { config, store, runner, gate: shellGate(config.gate), cwd: dir, resume, consent });
       ({ run, followUps } = result);
       if (!result.ok) error = result.error;
       else if (resume?.update && unresolved(dir, resume.files).length) error = `conflict markers remain in ${unresolved(dir, resume.files).join(", ")}`;
@@ -608,7 +608,8 @@ async function main([cmd, ...args]: string[]) {
     if (!chosen.length) throw new Error(readItems().some((i) => i.section === "Ready") ? "every item under Ready is waiting for another task to land first (see `factory status`), or run one with --anyway" : "nothing under Ready");
     if (!anyway) for (const i of chosen) if (waiting(i).length) throw new Error(`${i.id} needs ${waiting(i).join(", ")} first. Land it (push and merge it, or \`factory sync\`), or build ${i.id} without it with --anyway`);
 
-    return runItems(config, runner, chosen);
+    // --anyway is the person's word: build it without what it waits for, and build risky work the spec names (F-111).
+    return runItems(config, runner, chosen, undefined, anyway);
   }
 
   if (cmd === "reject") {

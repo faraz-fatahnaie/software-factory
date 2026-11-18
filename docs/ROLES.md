@@ -440,6 +440,7 @@ Everything the supervisor does by itself is bounded, and each bound is a rule wi
 | Rule | What it prevents |
 | --- | --- |
 | A stage may answer `BLOCKED: <reason>`; the run stops and is never retried | Builder and Reviewer going round on something only a person (or another task) can fix |
+| A spec that plans risky work (`Risk:` auth, data-loss, payments, secrets or deploy) stops the run before Build; only the person's Build it (or `factory run --anyway`) starts it, never autopilot or a conversation (`risksOf` in `plugin/engine/pipeline.ts`, "risk:") | Money spent building something the person would not have agreed to |
 | Two attempts in a row that change nothing end the run | A third build that cannot end differently |
 | Review findings carry a severity (`[required]`, `[optional]`, `[nit]`, `[fyi]`); only a Required one sends a task back, and a review of nits and ideas lets it through with them in your handover (`reviewApproves` in `plugin/engine/state.ts`, "review:") | Build after build over style and taste |
 | A check made green by lowering the bar (a suppression comment, a skipped, focused or deleted test, removed assertions, a lowered threshold, a stub) fails, unless the Builder names the file under `## Weakened checks` with a reason; a named one goes to the Reviewer to judge and to you in the handover (`plugin/engine/bar.ts`, "bar") | A green build that is green only because its checks were weakened |

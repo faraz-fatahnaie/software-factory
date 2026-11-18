@@ -490,9 +490,13 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
             }
             note ||= [moved.length ? `Moved ${moved.join(", ")} to Ready.` : "", ...already.map((a) => `${a}; nothing to move.`)].filter(Boolean).join(" ");
           } else {
-            const idle = proposal.ids.filter((id) => !running.has(id) && !["Awaiting approval", "Done"].includes(where(id) ?? ""));
-            if (idle.length && launch(idle, ["run", ...idle])) note = `Started ${idle.join(", ")}. Follow it in Backlog.${idle.length < proposal.ids.length ? ` The others are already running or finished.` : ""}`;
-            else note = `${proposal.ids.join(", ")} ${proposal.ids.length === 1 ? "is" : "are"} already running or finished; nothing to start.`;
+            // Risky work that waits for the person's yes (F-111) is never started from a conversation: running it again would only write the spec again and stop.
+            const needsYes = (id: string) => { const r = store.lastRun(id); return !!r && /^Error: needs your yes:/.test(String(store.list(r).findLast((e) => e.type === "run.failed")?.data ?? "")); };
+            const yes = proposal.ids.filter((id) => where(id) === "Blocked" && needsYes(id));
+            const idle = proposal.ids.filter((id) => !running.has(id) && !yes.includes(id) && !["Awaiting approval", "Done"].includes(where(id) ?? ""));
+            if (idle.length && launch(idle, ["run", ...idle])) note = `Started ${idle.join(", ")}. Follow it in Backlog.${idle.length + yes.length < proposal.ids.length ? ` The others are already running or finished.` : ""}`;
+            else if (!yes.length) note = `${proposal.ids.join(", ")} ${proposal.ids.length === 1 ? "is" : "are"} already running or finished; nothing to start.`;
+            if (yes.length) { ok = !!idle.length; note = `${note ? `${note} ` : ""}${yes.join(", ")} ${yes.length === 1 ? "plans" : "plan"} risky work and ${yes.length === 1 ? "waits" : "wait"} for your yes: open ${yes.length === 1 ? "it" : "each"} in Backlog, read the spec and press Build it.`; }
           }
           for (const id of proposal.ids) store.emit({ run: store.lastRun(id) ?? "", task: id, stage: "manager", type: "manager.decision", data: { action: proposal.kind, text: `${id}: ${note}`, auto: true, by: "conversation" } });
           return done({ ...out, text, executed: { proposal, ok, note } });
@@ -538,7 +542,8 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         const chosen = ids.length ? ids : items().filter((i) => i.section === "Ready").slice(0, count).map((i) => i.id);
         if (!chosen.length) return json({ error: "nothing under Ready" }, 409);
         if (chosen.some((id) => running.has(id))) return json({ error: "already running" }, 409);
-        launch(chosen, ["run", ...chosen, ...(body.stub === true ? ["--stub"] : [])]);
+        // Build it (F-111): the person's yes to risky work, from the page only. A conversation's proposal never carries it.
+        launch(chosen, ["run", ...chosen, ...(body.stub === true ? ["--stub"] : []), ...(body.anyway === true && ids.length ? ["--anyway"] : [])]);
         return json({ started: chosen }, 202);
       }
       return json({ error: "not found" }, 404);
