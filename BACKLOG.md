@@ -26,7 +26,6 @@ Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Bui
 - [ ] F-013 (P3) Multi-repo support once a second repo exists
 - [ ] F-014 (P3) Visual workflow editor for skills
 - [ ] F-015 (P3) Mid-turn steering if headless CLIs support message injection
-- [ ] F-016 Keep the user-level CLAUDE.md out of factory agents (project-only settings still load it)
 - [ ] F-017 Consider the CLI's native --fallback-model for overload, alongside the factory's own chain
 - [ ] F-019 Run builder stages inside an OS-level sandbox; the guard hook is a text match, not containment
 - [x] F-020 Reject with feedback
@@ -224,3 +223,4 @@ Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Bui
 - [x] F-101 (P1) Run every release against a copy of a real, evolving project (the card game's), read-only, before it is published: config, backlog, branches, every route
 - [x] F-090 (P2) Per-stage budget with --max-budget-usd, so one stage cannot overspend between the supervisor's checks
 - [x] F-018 Budget cap per stage with --max-budget-usd (closed: the same as F-090)
+- [x] F-016 Keep the user-level CLAUDE.md out of factory agents (project-only settings still load it)

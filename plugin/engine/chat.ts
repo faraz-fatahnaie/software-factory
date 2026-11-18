@@ -5,7 +5,7 @@ import { basename, extname, join } from "node:path";
 import { ATTACH_EXT, ATTACH_MAX_BYTES, ATTACH_MAX_FILES, toolDetail, type ToolStep, contextOf, type Context } from "./state";
 import { DENY_FLOOR } from "./authority";
 import { reportedBy } from "./commands";
-import { classify, hookSettings } from "./claude";
+import { classify, hookSettings, NO_AUTO_CLAUDE_MD, projectInstructions } from "./claude";
 import { chatPromptFor, holderOf, lookup, type Preset } from "./team";
 
 /** The conversations the GUI offers. Each names responsibilities, like the matching command, so it works in any team grouping. */
@@ -122,7 +122,7 @@ export function saveAttachments(root: string, list: Attachment[] = []): string[]
 export const SUGGEST_RULE = "End every reply with up to three lines, each starting exactly `SUGGEST: ` and then a short message (under 80 characters) the person could most plausibly send next, in their voice and without quotes. They are the best ways to continue. Put nothing after them.";
 
 /** Checks a request from the page and returns the Claude command line for it. Throws a plain-words error when it is not valid. */
-export function chatArgs(r: ChatRequest, team: Preset, only?: { append?: string; readOnly?: boolean }): string[] {
+export function chatArgs(r: ChatRequest, team: Preset, only?: { append?: string; readOnly?: boolean; /** The project's own instructions (projectInstructions in claude.ts). */ project?: string }): string[] {
   const topic = TOPICS[r.topic];
   if (!topic) throw new Error(`topic: one of ${Object.keys(TOPICS).join(", ")}`);
   checkAttachments(r.attachments);
@@ -134,7 +134,7 @@ export function chatArgs(r: ChatRequest, team: Preset, only?: { append?: string;
   if (r.suggest !== undefined && typeof r.suggest !== "boolean") throw new Error("suggest: true or false");
   if (r.subs !== undefined && (typeof r.subs !== "object" || r.subs === null || !Object.entries(r.subs).every(([k, v]) => k in TOPICS && typeof v === "string" && /^[\w-]{8,64}$/.test(v)))) throw new Error("subs: a session id for each topic");
   const productDir = join(import.meta.dir, "..");
-  const system = `${topic.guide ? guidePrompt(productDir) : topic.manager ? managerPrompt(team, false, r.autonomy) : chatPromptFor(topic.ids, team)}${r.suggest ? `\n\n${SUGGEST_RULE}` : ""}${only?.append ? `\n\n${only.append}` : ""}`; // throws, in plain words, when a responsibility is switched off
+  const system = `${topic.guide ? guidePrompt(productDir) : topic.manager ? managerPrompt(team, false, r.autonomy) : chatPromptFor(topic.ids, team)}${r.suggest ? `\n\n${SUGGEST_RULE}` : ""}${only?.append ? `\n\n${only.append}` : ""}${only?.project ? `\n\n${only.project}` : ""}`; // throws, in plain words, when a responsibility is switched off
   return [
     "claude", "-p", r.message, "--model", model, "--effort", effort,
     "--append-system-prompt", system,
@@ -164,11 +164,11 @@ export async function chatTurn(root: string, r: ChatRequest, team: Preset, only?
   chatArgs(r, team, only); // validates, before any file is saved
   const files = saveAttachments(root, r.attachments);
   const message = files.length ? `${r.message.trim() || "Please look at the attached file(s)."}\n\nAttached files (open each with the Read tool):\n${files.map((f) => `- ${f}`).join("\n")}` : r.message;
-  const argv = chatArgs({ ...r, message, attachments: undefined }, team, only);
+  const argv = chatArgs({ ...r, message, attachments: undefined }, team, { ...only, project: projectInstructions(root) });
   const p = Bun.spawn(argv, {
     cwd: root, stdin: "ignore", stdout: "pipe", stderr: "pipe", timeout: 10 * 60_000,
     // FACTORY_ROOT is what the guard hook confines writes to; `factory` must resolve for the save and add commands.
-    env: { ...process.env, FACTORY_SOURCE: "chat", FACTORY_ROOT: root, PATH: `${join(import.meta.dir, "..", "bin")}:${process.env.PATH}` },
+    env: { ...process.env, ...NO_AUTO_CLAUDE_MD, FACTORY_SOURCE: "chat", FACTORY_ROOT: root, PATH: `${join(import.meta.dir, "..", "bin")}:${process.env.PATH}` },
   });
   const key = only?.group ?? r.topic;
   if (!live.has(key)) live.set(key, new Set());

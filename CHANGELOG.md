@@ -5,6 +5,10 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **Your private instructions stay out of the factory's agents.** Claude Code loaded your personal
+  `~/.claude/CLAUDE.md` into every factory stage and conversation, even with project settings only. Factory sessions
+  now load no CLAUDE.md by themselves and are given the project's own (with `AGENTS.md` and anything else it imports)
+  instead, so the project's rules always reach them and nothing personal does.
 - **No stage can overspend.** Each stage is capped at what is left of the limit for one task (`factory manager set
   perTask`, $5 by default), and Claude stops it there. Before, one long stage could spend past the limit before the
   manager's next check. A stage stopped this way ends the run as a budget stop, which is handed to you, never retried.

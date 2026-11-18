@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { track, type Job, type Runner, type RunnerResult } from "./pipeline";
 import { DENY_FLOOR } from "./authority";
 import { roleSkills } from "./skills";
@@ -10,7 +10,23 @@ const TIMEOUT_MS = 30 * 60_000;
 // tools at all is decided by `tools` in its agent file; this list cannot widen that.
 export const ALLOW = ["Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)", "Bash(git describe:*)", "Bash(git rev-parse:*)", "Bash(git ls-files:*)", "Bash(git grep:*)", "Bash(git blame:*)", "Bash(git shortlog:*)", "Bash(graphify query:*)", "WebSearch", "WebFetch"];
 
+/**
+ * The project's own instructions (F-016): its CLAUDE.md (and .claude/CLAUDE.md), with each `@file` import filled in from inside the project. Factory sessions
+ * run with Claude Code's own CLAUDE.md loading switched off, which is the only way to keep the person's private ~/.claude/CLAUDE.md out of the factory's
+ * agents (verified: --setting-sources project does not), and get these instead, so the project's rules, AGENTS.md included, always reach them.
+ */
+export function projectInstructions(cwd: string): string {
+  const base = resolve(cwd);
+  const read = (f: string) => { const p = resolve(base, f); if (p !== base && !p.startsWith(`${base}/`)) return ""; try { return readFileSync(p, "utf8"); } catch { return ""; } };
+  const text = ["CLAUDE.md", ".claude/CLAUDE.md"].map(read).filter(Boolean).join("\n\n")
+    .replace(/(^|\s)@([\w./-]+\.\w+)/g, (all, pre: string, f: string) => { const inner = read(f); return inner ? `${pre}${inner.trim()}` : all; });
+  return text.trim() ? `The project's own instructions (its CLAUDE.md, with the files it imports):\n\n${text.trim().slice(0, 60_000)}` : "";
+}
+/** Read by Claude Code: no CLAUDE.md is loaded by itself, the person's private one included. projectInstructions() brings the project's own. */
+export const NO_AUTO_CLAUDE_MD = { CLAUDE_CODE_DISABLE_CLAUDE_MDS: "1" };
+
 export function claudeArgs(job: Job, gate: string[], skills: string[] = []): string[] {
+  const own = projectInstructions(job.cwd);
   // `skills:` in an agent file is not preloaded when the agent runs as the main session
   // (verified on Claude Code 2.1.322), so name them and let the agent load what it needs.
   const prompt = skills.length
@@ -36,6 +52,7 @@ export function claudeArgs(job: Job, gate: string[], skills: string[] = []): str
     "--setting-sources", "project",
     "--strict-mcp-config",
     "--settings", hookSettings(job.stage),
+    ...(own ? ["--append-system-prompt", own] : []),
   ];
 }
 
@@ -112,7 +129,7 @@ export const claudeRunner = (gate: string[]): Runner => async (job) => {
   const p = track(Bun.spawn(claudeArgs(job, gate, skills), {
     cwd: job.cwd,
     // Read by hooks.ts: the task root to confine writes to, and the orchestrator's own copy of the gate.
-    env: { ...process.env, FACTORY_ROOT: job.cwd, FACTORY_GATE: JSON.stringify(gate) },
+    env: { ...process.env, ...NO_AUTO_CLAUDE_MD, FACTORY_ROOT: job.cwd, FACTORY_GATE: JSON.stringify(gate) },
     stdin: "ignore",
     stdout: "pipe",
     stderr: "pipe",

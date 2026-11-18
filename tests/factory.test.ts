@@ -5266,3 +5266,20 @@ test("budget: each stage gets what earlier stages left of the task's limit; a st
   expect(failureKind((r as { error: string }).error)).toBe("budget");
   expect(decide("budget", 0, 0, { recoveries: 3, perTask: 5 }).action).toBe("escalate");
 });
+
+// F-016: the person's private CLAUDE.md stays out of the factory's agents; the project's own instructions always reach them.
+test("instructions: factory sessions load no CLAUDE.md by themselves and get the project's own, imports filled in from inside the project only", async () => {
+  const { projectInstructions, NO_AUTO_CLAUDE_MD } = await import("../plugin/engine/claude");
+  const dir = tmp();
+  expect(projectInstructions(dir)).toBe("");
+  writeFileSync(join(dir, "AGENTS.md"), "## Rules\n1. Bun only.\n");
+  writeFileSync(join(dir, "CLAUDE.md"), "@AGENTS.md\n\nAlso: tabs.\n@../../etc/passwd\n");
+  const text = projectInstructions(dir);
+  expect(text).toBe("The project's own instructions (its CLAUDE.md, with the files it imports):\n\n## Rules\n1. Bun only.\n\nAlso: tabs.\n@../../etc/passwd");
+  expect(NO_AUTO_CLAUDE_MD).toEqual({ CLAUDE_CODE_DISABLE_CLAUDE_MDS: "1" });
+  const args = claudeArgs({ role: "builder", model: "sonnet", effort: "low", stage: "build", prompt: "p", cwd: dir }, []);
+  expect(args[args.indexOf("--append-system-prompt") + 1]).toBe(text);
+  expect(claudeArgs({ role: "builder", model: "sonnet", effort: "low", stage: "build", prompt: "p", cwd: tmp() }, [])).not.toContain("--append-system-prompt");
+  const chat = chatArgs({ topic: "brainstorm", message: "hi" } as never, resolveTeam({}), { project: text });
+  expect(chat[chat.indexOf("--append-system-prompt") + 1]).toEndWith(`\n\n${text}`);
+});
