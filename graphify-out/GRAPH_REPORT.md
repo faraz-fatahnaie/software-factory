@@ -1,17 +1,17 @@
 # Graph Report - software-factory  (2026-11-18)
 
 ## Corpus Check
-- 134 files · ~221,607 words
+- 139 files · ~225,266 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 10 file(s) not represented in the graph (top: (none) 5, .css 3, .lock 1)
 
 ## Summary
-- 1117 nodes · 3066 edges · 97 communities (50 shown, 47 thin omitted)
+- 1133 nodes · 3115 edges · 99 communities (48 shown, 51 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 29 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `6fc40f4c`
+- Built from commit: `6bf17284`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -40,27 +40,27 @@
 - app.tsx
 - views.tsx
 - talk.tsx
-- chatlog.ts
+- main
 - source.tsx
 - studio.tsx
 - source.ts
-- fixture.ts
+- smoke.e2e.ts
 - authority.ts
 - chat.ts
 - ref_node_fs
 - state.ts
-- robots.tsx
-- server.ts
+- team.tsx
+- skills.ts
 - cli.ts
 - release.ts
-- manager.tsx
+- serve
 - claude.ts
 - Runbook: building a product with the Software Factory
-- init.ts
+- health.ts
 - app.js
 - Changelog
 - 4. A feature, start to finish
-- worktree.ts
+- server.ts
 - backlog.ts
 - Software Factory
 - plugin/README.md
@@ -68,18 +68,16 @@
 - technical-manager.md
 - 5. What can happen on the way
 - CONTRIBUTING.md
-- plugin.ts
+- upgrade.ts
 - security.ts
-- markdown.tsx
-- build-docs.ts
+- commands.ts
 - bar.ts
-- hooks.ts
 - Quality bar
 
 ## God Nodes (most connected - your core abstractions)
-1. `main()` - 95 edges
+1. `main()` - 97 edges
 2. `serve()` - 65 edges
-3. `runTask()` - 37 edges
+3. `runTask()` - 41 edges
 4. `personaFor()` - 31 edges
 5. `activeRoles()` - 26 edges
 6. `resolveTeam()` - 25 edges
@@ -103,7 +101,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (97 total, 47 thin omitted)
+## Communities (99 total, 51 thin omitted)
 
 ### Community 0 - "Software Factory (AGENTS.md)"
 Cohesion: 0.19
@@ -111,27 +109,27 @@ Nodes (16): Control-plane GUI, factory.config.json, Run directory (.factory/runs
 
 ### Community 1 - "supervisor.ts"
 Cohesion: 0.11
-Nodes (31): Cost(), dependsOn(), FactoryEvent, Row, Store, followUps(), needsTriage(), CAUSE (+23 more)
+Nodes (30): dependsOn(), AUTONOMY, ManagerSettings, FactoryEvent, Row, Store, allEvents(), CAUSE (+22 more)
 
 ### Community 2 - "pipeline.ts"
-Cohesion: 0.12
-Nodes (26): formatWeakenings(), weakeningFeedback(), readNotes(), BAR_RULE, blockedReason(), definitionOfDone(), doneNotes(), DOUBT_WHY() (+18 more)
+Cohesion: 0.11
+Nodes (30): formatWeakenings(), weakeningFeedback(), checklistsFor(), readNotes(), Role, BAR_RULE, blockedReason(), definitionOfDone() (+22 more)
 
 ### Community 3 - "package.json"
 Cohesion: 0.07
 Nodes (29): dependencies, react, react-dom, devDependencies, axe-core, playwright-core, @types/bun, @types/react (+21 more)
 
 ### Community 4 - "vcs.ts"
-Cohesion: 0.12
-Nodes (31): formatFindings(), armAutoMerge(), BATCH, batchBody(), Branch, Check, checkOf(), Checks (+23 more)
+Cohesion: 0.14
+Nodes (33): formatFindings(), parseDiff(), armAutoMerge(), baseBranch(), batchBody(), Branch, Check, checkOf() (+25 more)
 
 ### Community 5 - "compilerOptions"
 Cohesion: 0.15
 Nodes (12): compilerOptions, jsx, lib, module, moduleResolution, noEmit, resolveJsonModule, skipLibCheck (+4 more)
 
 ### Community 7 - "backlog.tsx"
-Cohesion: 0.11
-Nodes (29): Act, activeOf(), Activity(), BacklogView(), Changes(), clock(), COLUMNS, diffs (+21 more)
+Cohesion: 0.10
+Nodes (33): Act, activeOf(), Activity(), BacklogView(), Changes(), clock(), COLUMNS, diffs (+25 more)
 
 ### Community 8 - "Building and publishing the plugin"
 Cohesion: 0.18
@@ -147,7 +145,7 @@ Nodes (7): Awaiting approval, Backlog, Blocked, Done, In progress, Inbox, Ready
 
 ### Community 13 - "team.ts"
 Cohesion: 0.05
-Nodes (82): project(), runCase(), AUTONOMY, ChatSettings, EFFORTS, isModel(), isStr(), isStrList() (+74 more)
+Nodes (95): project(), runCase(), graphEnabled(), ChatSettings, Config, EFFORTS, isModel(), isStr() (+87 more)
 
 ### Community 14 - "Roles and responsibilities"
 Cohesion: 0.09
@@ -159,75 +157,75 @@ Nodes (3): Review configuration and infrastructure, Review the change for perfor
 
 ### Community 36 - "factory.test.ts"
 Cohesion: 0.09
-Nodes (16): formatPlan(), order(), plan, trial(), listeners(), newer(), ownDashboards(), Replaced (+8 more)
+Nodes (25): { dir, sh, section, cli }, sh(), MANAGER_DEFAULTS, openStore(), ref_bun_test, autopilot(), autopilotRun(), branches() (+17 more)
 
 ### Community 41 - "app.tsx"
-Cohesion: 0.11
-Nodes (29): App(), DOING, GROUPS, HEADS, LINK_TEXT, SECTIONS, STAGE_DID, Throughput() (+21 more)
+Cohesion: 0.07
+Nodes (41): Act, App(), DOING, GROUPS, HEADS, LINK_TEXT, SECTIONS, STAGE_DID (+33 more)
 
 ### Community 42 - "views.tsx"
-Cohesion: 0.11
-Nodes (21): Feed(), logLine(), post(), RoleSkills(), Option, Select(), Skel(), ViewSkeleton() (+13 more)
+Cohesion: 0.15
+Nodes (15): Feed(), logLine(), Cost(), EFFORT_HINT, EFFORTS, KINDS, Logs(), MODEL_HINT (+7 more)
 
 ### Community 43 - "talk.tsx"
-Cohesion: 0.09
-Nodes (35): fetchChats(), merge(), mirror(), ACCEPT, Chat, Chats, ContextMeter(), draftKey() (+27 more)
+Cohesion: 0.05
+Nodes (63): merge(), mirror(), Markdown(), Block, cells(), Inline, parseBlocks(), parseInline() (+55 more)
 
-### Community 44 - "chatlog.ts"
-Cohesion: 0.22
-Nodes (19): appendChat(), clearChat(), FAILURES, file(), importChat(), markActed(), markCompacted(), pack() (+11 more)
+### Community 44 - "main"
+Cohesion: 0.23
+Nodes (15): flag(), main(), addCustom(), ids(), moveSettings(), offSettings(), onSettings(), parseChange() (+7 more)
 
 ### Community 45 - "source.tsx"
-Cohesion: 0.07
-Nodes (36): ago(), color(), COLORS, GraphRow, Lanes(), Ref, x(), Item (+28 more)
+Cohesion: 0.09
+Nodes (25): ago(), color(), COLORS, CommitGraph(), GraphRow, Lanes(), Ref, x() (+17 more)
 
 ### Community 47 - "studio.tsx"
 Cohesion: 0.12
-Nodes (26): counts(), DiffFile, lineDiff(), lines(), marks(), Op, Row, splitDiff() (+18 more)
+Nodes (27): post(), counts(), DiffFile, lineDiff(), lines(), marks(), Op, Row (+19 more)
 
 ### Community 48 - "source.ts"
-Cohesion: 0.14
-Nodes (25): estimate(), Change, changedFiles(), classifyCommit(), Commit, commitDetail(), fileDiff(), graphInfo() (+17 more)
+Cohesion: 0.15
+Nodes (22): Change, changedFiles(), classifyCommit(), Commit, commitDetail(), fileDiff(), graphInfo(), GraphRow (+14 more)
 
-### Community 49 - "fixture.ts"
-Cohesion: 0.06
-Nodes (33): { dir, sh, section, cli }, axe, dir, problems, server, axe, bin, { dir, cli } (+25 more)
+### Community 49 - "smoke.e2e.ts"
+Cohesion: 0.09
+Nodes (13): axe, dir, problems, server, axe, bin, { dir, cli }, problems (+5 more)
 
 ### Community 50 - "authority.ts"
-Cohesion: 0.13
-Nodes (28): allowsCommand(), Authority, authorityMatrix(), checkAuthority(), checkConversations(), checkGrants(), checkProjectSettings(), checkRoleFile() (+20 more)
+Cohesion: 0.15
+Nodes (20): Authority, authorityMatrix(), checkProjectSettings(), checkRoleFile(), checkSkillFile(), checkSkills(), EDITS, field() (+12 more)
 
 ### Community 51 - "chat.ts"
-Cohesion: 0.11
-Nodes (28): askable(), Attachment, autonomyRules(), chatArgs(), ChatRequest, chatTurn(), checkAttachments(), EFFORTS (+20 more)
+Cohesion: 0.12
+Nodes (28): ALLOW, askable(), Attachment, autonomyRules(), chatArgs(), ChatRequest, chatTurn(), checkAttachments() (+20 more)
 
 ### Community 52 - "ref_node_fs"
-Cohesion: 0.24
-Nodes (8): Case, CASES, FIXTURE, GATE, Outcome, Script, w(), ref_node_fs
+Cohesion: 0.10
+Nodes (19): args, dir, p, Case, CASES, FIXTURE, GATE, Outcome (+11 more)
 
 ### Community 53 - "state.ts"
-Cohesion: 0.07
-Nodes (53): Act, Line(), Overview(), DoneRow(), SendBack(), agoShort(), CommitGraph(), NotifyToggle() (+45 more)
+Cohesion: 0.09
+Nodes (36): Overview(), agoShort(), healthChip(), HealthStrip(), MARK, Icon(), PATHS, NowLine() (+28 more)
 
-### Community 54 - "robots.tsx"
-Cohesion: 0.13
-Nodes (15): Check, CHECKS, lastRun, Open, Palette(), Row, since(), Draw (+7 more)
+### Community 54 - "team.tsx"
+Cohesion: 0.06
+Nodes (47): Line(), SendBack(), Autonomy, AUTONOMY_OPTIONS, digest(), FIELDS, isManager(), ManagerInfo (+39 more)
 
-### Community 55 - "server.ts"
-Cohesion: 0.12
-Nodes (33): checkLimits(), compactTurn(), resumeChat(), stopChat(), commandsFor(), front(), projectCommands(), roleSkillsOf() (+25 more)
+### Community 55 - "skills.ts"
+Cohesion: 0.26
+Nodes (13): projectRoles(), projectTeam(), addSkill(), attachSkill(), detachSkill(), parseFind(), parseRoles(), searchSkills() (+5 more)
 
 ### Community 56 - "cli.ts"
-Cohesion: 0.14
-Nodes (32): parse(), appendChronicle(), appendNotes(), chronicleEntry(), EventLike, parseScribe(), stageOutput(), backlogPath (+24 more)
+Cohesion: 0.16
+Nodes (24): appendChronicle(), appendNotes(), chronicleEntry(), EventLike, parseScribe(), stageOutput(), backlogPath, commitPaths() (+16 more)
 
 ### Community 57 - "release.ts"
-Cohesion: 0.27
-Nodes (14): approved(), Check, dirtyFiles(), formatChecks(), formatInfo(), git(), JSON_FILES, read() (+6 more)
+Cohesion: 0.25
+Nodes (15): approved(), Check, dirtyFiles(), formatChecks(), formatInfo(), git(), JSON_FILES, read() (+7 more)
 
-### Community 58 - "manager.tsx"
-Cohesion: 0.23
-Nodes (11): Autonomy, AUTONOMY_OPTIONS, digest(), FIELDS, isManager(), ManagerInfo, ManagerSettings, ManagerSettingsTile() (+3 more)
+### Community 58 - "serve"
+Cohesion: 0.26
+Nodes (13): allowsCommand(), checkAuthority(), checkConversations(), checkGrants(), checkLimits(), checkStages(), commandsNamed(), grants() (+5 more)
 
 ### Community 59 - "claude.ts"
 Cohesion: 0.24
@@ -237,9 +235,9 @@ Nodes (11): DENY_FLOOR, agentEvents(), ALLOW, classify(), claudeArgs(), claudeRu
 Cohesion: 0.18
 Nodes (11): 1. Before you start, 2. Meet the team, 3. From an idea to a backlog, 6. Keeping control, 7. GitHub, checks and undoing, 8. Release and deploy, 9. Cheat sheet, Autopilot (+3 more)
 
-### Community 61 - "init.ts"
-Cohesion: 0.12
-Nodes (27): graphEnabled(), loadConfig(), GRAPH_IGNORE, graphifyInstalled(), updateGraph(), ago(), gateIsPlaceholder(), git() (+19 more)
+### Community 61 - "health.ts"
+Cohesion: 0.39
+Nodes (7): ago(), gateIsPlaceholder(), git(), Health, healthChecks(), HealthContext, waitedLong()
 
 ### Community 62 - "app.js"
 Cohesion: 0.20
@@ -253,17 +251,17 @@ Nodes (10): 1.0.0, 1.0.1, 1.1.0, 1.1.1, 1.2.0, 1.2.1, 1.2.2, Also new since 1.2.
 Cohesion: 0.20
 Nodes (10): 4. A feature, start to finish, Step 0. Ask, Step 1. Promote, Step 2. Run, Step 3. Watch (or do not), Step 4. The stages, one by one, Step 5. It stops and waits for you, Step 6. Review what it did (+2 more)
 
-### Community 65 - "worktree.ts"
-Cohesion: 0.24
-Nodes (20): Clash, filesOf(), hasRef(), waiting, baseBranch(), mergeTask(), tidy(), vcsStatus() (+12 more)
+### Community 65 - "server.ts"
+Cohesion: 0.15
+Nodes (26): Clash, filesOf(), formatPlan(), hasRef(), order(), plan, trial(), waiting (+18 more)
 
 ### Community 66 - "backlog.ts"
-Cohesion: 0.33
-Nodes (8): add(), endOf(), FROM_CONVERSATION, Item, move(), Section, SECTIONS, seedStates()
+Cohesion: 0.24
+Nodes (11): add(), endOf(), FROM_CONVERSATION, Item, move(), parse(), Section, SECTIONS (+3 more)
 
 ### Community 67 - "Software Factory"
-Cohesion: 0.25
-Nodes (8): First minutes, Install, Learn more, Software Factory, Updating, What you can change, and what you cannot, What you need, Where things live
+Cohesion: 0.20
+Nodes (10): A new project, or one you already have, First minutes, How it compares to skill packs, Install, Learn more, Software Factory, Updating, What you can change, and what you cannot (+2 more)
 
 ### Community 69 - "What you get"
 Cohesion: 0.40
@@ -277,53 +275,45 @@ Nodes (3): Hold a retrospective, Track milestones, Triage an item
 Cohesion: 0.50
 Nodes (4): 5. What can happen on the way, It stops and needs you, The factory fixes itself, Things around the pipeline
 
-### Community 76 - "plugin.ts"
-Cohesion: 0.33
-Nodes (4): args, dir, p, ref_node_os
+### Community 76 - "upgrade.ts"
+Cohesion: 0.32
+Nodes (7): listeners(), newer(), ownDashboards(), Replaced, replaceOlder(), VERSION, who
 
 ### Community 77 - "security.ts"
 Cohesion: 0.19
-Nodes (16): allTracked(), Change, changesInWorktree(), changesSince(), CONTENT_RULES, entropy(), Finding, git() (+8 more)
+Nodes (15): checklistText(), DIR, allTracked(), Change, changesInWorktree(), changesSince(), CONTENT_RULES, entropy() (+7 more)
 
-### Community 78 - "markdown.tsx"
-Cohesion: 0.27
-Nodes (7): Markdown(), Block, cells(), Inline, parseBlocks(), parseInline(), startsBlock()
-
-### Community 79 - "build-docs.ts"
-Cohesion: 0.33
-Nodes (3): out, pages, root
+### Community 78 - "commands.ts"
+Cohesion: 0.52
+Nodes (6): commandsFor(), front(), projectCommands(), roleSkillsOf(), short(), roleSkills()
 
 ### Community 80 - "bar.ts"
-Cohesion: 0.33
-Nodes (9): changeSize(), findWeakenings(), git(), justified(), named(), removedLines(), sizeLimit(), Weakening (+1 more)
-
-### Community 81 - "hooks.ts"
-Cohesion: 0.67
-Nodes (3): guard(), HookInput, real()
+Cohesion: 0.24
+Nodes (13): changeSize(), findWeakenings(), git(), justified(), named(), protectedBlocks(), protectedChanges(), protectedFeedback() (+5 more)
 
 ### Community 83 - "Quality bar"
 Cohesion: 0.50
 Nodes (3): Always, Quality bar, This project's bars
 
 ## Knowledge Gaps
-- **350 isolated node(s):** `{ dir, sh, section, cli }`, `dir`, `server`, `axe`, `problems` (+345 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 440 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **47 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **351 isolated node(s):** `{ dir, sh, section, cli }`, `dir`, `server`, `axe`, `problems` (+346 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 445 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **51 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `react` connect `app.tsx` to `package.json`, `backlog.tsx`, `views.tsx`, `talk.tsx`, `source.tsx`, `markdown.tsx`, `studio.tsx`, `state.ts`, `robots.tsx`, `manager.tsx`?**
-  _High betweenness centrality (0.039) - this node is a cross-community bridge._
-- **Why does `main()` connect `cli.ts` to `supervisor.ts`, `backlog.ts`, `worktree.ts`, `vcs.ts`, `factory.test.ts`, `team.ts`, `security.ts`, `source.ts`, `authority.ts`, `chat.ts`, `state.ts`, `server.ts`, `release.ts`, `claude.ts`, `init.ts`?**
-  _High betweenness centrality (0.036) - this node is a cross-community bridge._
-- **Why does `personaFor()` connect `state.ts` to `factory.test.ts`, `backlog.tsx`, `app.tsx`, `views.tsx`, `talk.tsx`, `studio.tsx`, `robots.tsx`, `manager.tsx`?**
-  _High betweenness centrality (0.023) - this node is a cross-community bridge._
+- **Why does `react` connect `team.tsx` to `package.json`, `backlog.tsx`, `app.tsx`, `views.tsx`, `talk.tsx`, `source.tsx`, `studio.tsx`, `state.ts`?**
+  _High betweenness centrality (0.037) - this node is a cross-community bridge._
+- **Why does `main()` connect `main` to `supervisor.ts`, `backlog.ts`, `server.ts`, `vcs.ts`, `factory.test.ts`, `upgrade.ts`, `team.ts`, `security.ts`, `authority.ts`, `chat.ts`, `state.ts`, `skills.ts`, `cli.ts`, `release.ts`, `serve`, `claude.ts`?**
+  _High betweenness centrality (0.026) - this node is a cross-community bridge._
+- **Why does `personaFor()` connect `team.tsx` to `factory.test.ts`, `backlog.tsx`, `app.tsx`, `views.tsx`, `talk.tsx`, `studio.tsx`, `state.ts`?**
+  _High betweenness centrality (0.022) - this node is a cross-community bridge._
 - **What connects `{ dir, sh, section, cli }`, `dir`, `server` to the rest of the system?**
-  _350 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _351 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `supervisor.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.11051693404634581 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10606060606060606 - nodes in this community are weakly interconnected._
 - **Should `pipeline.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.11965811965811966 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10967741935483871 - nodes in this community are weakly interconnected._
 - **Should `package.json` be split into smaller, more focused modules?**
   _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
