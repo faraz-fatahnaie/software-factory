@@ -2,7 +2,7 @@
 // test, a deleted test or assertion, a lowered threshold, a stub. The gate cannot see that, and a review can miss it. This reads the change itself,
 // with no model: anything found fails the check unless the Builder names the file under `## Weakened checks` with a reason, and a named one goes to the
 // Reviewer to judge and to the person in the handover. Nothing here is silent.
-import { changesInWorktree } from "./security";
+import { changesInWorktree, LOCKFILE } from "./security";
 
 export type Weakening = { file: string; line?: number; kind: string };
 
@@ -77,6 +77,16 @@ export function findWeakenings(added: { file: string; added: { line: number; tex
   }
   return found;
 }
+
+/** How many lines a change adds and removes against HEAD (F-114). Lock files and folders the factory skips do not count. */
+export function changeSize(cwd: string): number {
+  // A new file is read whole, and its final newline gives one empty "line" that is not there.
+  const added = changesInWorktree(cwd).reduce((n, c) => n + c.added.length - (c.added.at(-1)?.text === "" ? 1 : 0), 0);
+  const removed = removedLines(git(cwd, "diff", "HEAD", "-U0", "--no-color")).filter((r) => !LOCKFILE.test(r.file) && !/(^|\/)(node_modules|dist|build|vendor)\//.test(r.file)).reduce((n, r) => n + r.lines.length, 0);
+  return added + removed;
+}
+/** The largest change one task may make: `Largest change in one task: N lines` in CONSTRAINTS.md, else 400. */
+export const sizeLimit = (constraints: string) => Number(/largest change in one task\W*(\d+)/i.exec(constraints)?.[1] ?? 400) || 400;
 
 /** The files the Builder named, with a reason, under `## Weakened checks` in its reply. */
 const named = (reply: string) => (reply.split(/^## Weakened checks\s*$/m)[1]?.split(/^## /m)[0] ?? "");

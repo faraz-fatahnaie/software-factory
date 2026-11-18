@@ -32,7 +32,7 @@ import { appendChat, clearChat, importChat, markActed, pack, readChat, replyMsg,
 import { estimate } from "../plugin/engine/estimate";
 import { ciWorkflow, failingChecksItem, prBody, summarizeChecks } from "../plugin/engine/vcs";
 import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matchesQuery, parseRefs, rewriteParents, sourceInfo } from "../plugin/engine/source";
-import { findWeakenings, justified, removedLines } from "../plugin/engine/bar";
+import { changeSize, findWeakenings, justified, removedLines, sizeLimit } from "../plugin/engine/bar";
 import { BAR_RULE, REVIEW_RULE, RISK_RULE, risksOf, STANDARD_DONE, blockedReason, doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
 import { minorFindings, reviewApproves } from "../plugin/engine/state";
@@ -5036,4 +5036,40 @@ test("constraints: the Builder is told to read the quality bar and the Reviewer 
   expect(without.build).not.toContain("CONSTRAINTS.md");
   expect(without.review).not.toContain("quality bar (CONSTRAINTS.md");
   expect(doctor(tmp()).lines).toContain("– CONSTRAINTS.md (this project's quality bar)  →  run: factory init, which adds it with defaults you edit and keeps every file you have");
+});
+
+// F-114: size.
+test("size: the limit comes from CONSTRAINTS.md, else 400; a change is counted in lines added and removed, lock files left out", () => {
+  expect(sizeLimit("- Largest change in one task: 250 lines")).toBe(250);
+  expect(sizeLimit("**Largest change in one task**: 900")).toBe(900);
+  expect(sizeLimit("")).toBe(400);
+  expect(sizeLimit("- Largest change in one task: 0 lines")).toBe(400); // nonsense keeps the default
+  const { dir, sh } = repo();
+  writeFileSync(join(dir, "a.ts"), "1\n2\n3\n4\n"); writeFileSync(join(dir, "bun.lock"), "x\n".repeat(50));
+  sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "base");
+  writeFileSync(join(dir, "a.ts"), "1\n2\nthree\n"); // one changed, one removed: 1 added, 2 removed
+  writeFileSync(join(dir, "b.ts"), "x\ny\n"); // new: 2 added
+  writeFileSync(join(dir, "bun.lock"), "y\n".repeat(80));
+  expect(changeSize(dir)).toBe(5);
+});
+
+test("size: an oversized change is flagged to the Reviewer and the person; one that two reviews could not approve stops with split advice instead of a third build", async () => {
+  const big = (cwd: string, n: number) => writeFileSync(join(cwd, "big.ts"), Array.from({ length: 450 + n }, (_, i) => `export const v${i} = ${i};`).join("\n") + "\n");
+  let reviewPrompt = "";
+  const { dir } = repo();
+  const runner: Runner = async ({ stage, cwd, prompt }) => { if (stage === "build") big(cwd, 0); if (stage === "review") reviewPrompt = prompt; return { status: "ok", text: stage === "review" ? "APPROVE" : stage === "document" ? "## Chronicle\nx" : "x" }; };
+  const store = openStore(":memory:");
+  expect((await runTask(SAFE_TASK, { config, store, runner, gate: async () => ({ ok: true, output: "" }), cwd: dir })).ok).toBe(true);
+  expect(reviewPrompt).toMatch(/this change is 450 lines, above the 400 one task should change\. If it is too large to review well/);
+  const done = store.list(store.lastRun("F-001")!).find((e) => e.type === "manager.decision")!.data as { notes: string[] };
+  expect(done.notes.join(" ")).toMatch(/The change is 450 lines, above the 400 one task should change/);
+
+  const looping = await replay({ write: big, review: () => "REQUEST_CHANGES\n- [required] big.ts:1 — two concerns — split it" });
+  expect(looping.builds).toBe(2); // not 3
+  expect((looping.result as { error: string }).error).toMatch(/^Error: not ready: the change is 45\d lines, above the 400 one task should change, and the review still asks for changes after 2 builds\. Split the item/);
+  expect(failureKind((looping.result as { error: string }).error)).toBe("unready"); // handed to the person, never retried
+
+  // A small change is never flagged, and keeps its three tries.
+  const small = await replay({ write: (cwd, n) => writeFileSync(join(cwd, `f${n}.txt`), `${n}\n`), review: () => "REQUEST_CHANGES\n- [required] x" });
+  expect(small.builds).toBe(3);
 });

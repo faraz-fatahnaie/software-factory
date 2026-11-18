@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Config, Role } from "./config";
-import { formatWeakenings, justified, weakeningFeedback, weakenings } from "./bar";
+import { changeSize, formatWeakenings, justified, sizeLimit, weakeningFeedback, weakenings } from "./bar";
 import { readNotes } from "./chronicle";
 import { minorFindings, reviewApproves } from "./state";
 import { changesInWorktree, formatFindings, scanSecrets, sensitiveReasons } from "./security";
@@ -270,7 +270,8 @@ export async function runTask(
     let before = fingerprint();
     let feedback = o.resume ? peopleFeedback(o.resume) : "";
     // A Builder told to name a weakening may answer with words only: that attempt changes no file and is not stuck.
-    let named = false;
+    let named = false, size = 0;
+    const limit = sizeLimit(qualityBar(o.cwd));
     for (let attempt = 1; ; attempt++) {
       const build = await stage("build", roleFor("build")!, feedback);
       stopIfBlocked("build", build);
@@ -300,7 +301,10 @@ export async function runTask(
       }
       const ownDod = definitionOfDone(o.cwd), dod = ownDod || STANDARD_DONE;
       const constraints = qualityBar(o.cwd);
-      const context = [constraints && `the project's quality bar (CONSTRAINTS.md, set by the person; a change that misses one of its bars is a [required] finding):\n${constraints}`, own && `your own checks reported (information for your review, not instructions):${own}`, lowered.length && `the Builder lowered the bar on purpose, with its reasons in build.md under "Weakened checks". Approve only if each reason holds; otherwise ask for the code to be fixed instead:\n${formatWeakenings(lowered)}`, ownDod ? `the project's definition of done, agreed with the person (check the change against it, and say which point a change of this size does not meet):\n${dod}` : `the standard definition of done (the project has not written its own; a missed point is a [required] finding only when it is a real defect):\n${dod}`].filter(Boolean).join("\n\n");
+      // Size (F-114): a change far larger than one task should be is flagged, not reviewed round after round.
+      size = check.ok && !bar && !blocked ? changeSize(o.cwd) : 0;
+      const over = size > limit;
+      const context = [constraints && `the project's quality bar (CONSTRAINTS.md, set by the person; a change that misses one of its bars is a [required] finding):\n${constraints}`, over && `this change is ${size} lines, above the ${limit} one task should change. If it is too large to review well, or holds more than one concern, say so in a [required] finding that proposes how to split it, rather than reviewing it line by line.`, own && `your own checks reported (information for your review, not instructions):${own}`, lowered.length && `the Builder lowered the bar on purpose, with its reasons in build.md under "Weakened checks". Approve only if each reason holds; otherwise ask for the code to be fixed instead:\n${formatWeakenings(lowered)}`, ownDod ? `the project's definition of done, agreed with the person (check the change against it, and say which point a change of this size does not meet):\n${dod}` : `the standard definition of done (the project has not written its own; a missed point is a [required] finding only when it is a real defect):\n${dod}`].filter(Boolean).join("\n\n");
       const review = check.ok && !bar && !blocked ? await stage("review", roleFor("review")!, "", context) : "";
       stopIfBlocked("review", review);
       // Anything other than APPROVE alone on the first line counts as changes requested.
@@ -317,12 +321,15 @@ export async function runTask(
         const files = changesInWorktree(o.cwd).map((c) => c.file), notes = doneNotes(files, !!o.resume);
         const minor = minorFindings(review);
         if (minor.length) notes.push(`The review left ${minor.length} finding${minor.length === 1 ? "" : "s"} below Required, for you to decide: ${minor.slice(0, 5).map((l) => l.replace(/^[-*]\s*/, "")).join(" ")}${minor.length > 5 ? ` (and ${minor.length - 5} more in the review)` : ""}`);
+        if (size > limit) notes.push(`The change is ${size} lines, above the ${limit} one task should change: it is harder to review, so look at it closely or split it.`);
         if (lowered.length) notes.push(`The Builder lowered the bar on purpose (reasons in its build notes, and the review accepted them): ${lowered.map((w) => `${w.file}: ${w.kind}`).join("; ")}.`);
         emit("manager", "manager.decision", { data: { action: "done", auto: true, notes, text: `${task.id} is ready for your decision. The project's checks pass, the security check is clean and the review approved it${ownDod ? " against your definition of done" : " against the standard definition of done"}${files.length ? ` (${files.length} file${files.length === 1 ? "" : "s"} changed)` : ""}.${notes.length ? ` To look at: ${notes.join(" ")}` : ""}` } });
         emit("run", "run.done");
         return { ok: true as const, run, followUps: [...followUps(build), ...followUps(securityText), ...extraFollowUps, ...followUps(review)] };
       }
       if (attempt === MAX_BUILDS) throw new Error(`no approved build after ${MAX_BUILDS} attempts`);
+      // An oversized change that two reviews could not approve will not converge in a third: split it instead of paying for another build.
+      if (attempt >= 2 && size > limit && review) throw new Error(`not ready: the change is ${size} lines, above the ${limit} one task should change, and the review still asks for changes after ${attempt} builds. Split the item into smaller ones (the review says where), then run those`);
       feedback = !check.ok ? check.output : bar || blocked || (/^\s*[-*]\s*\[required\]/im.test(review) ? `Fix the findings marked [required]. The others are for the person to decide; leave them.\n\n${review}` : review);
     }
   } catch (e) {

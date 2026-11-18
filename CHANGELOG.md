@@ -5,6 +5,9 @@ Each release lists what changed and anything you need to do in your own project.
 
 ## Unreleased
 
+- **Oversized changes are flagged, not reviewed round after round.** The Planner writes thin tasks. A build larger than
+  the largest change `CONSTRAINTS.md` allows (400 lines if it names none) is flagged to the Reviewer, who may ask for a
+  split, and to you. If two reviews still cannot approve it, the task stops with "split it" instead of a third build.
 - **Your quality bar in one file: `CONSTRAINTS.md`.** `factory init` writes it with defaults (the largest change in one
   task, coverage held at today's level, accessibility, performance, dependencies) for you to edit. The Builder is told to
   read it, the Reviewer treats a missed bar as required, and agents may not change it. An existing project: run

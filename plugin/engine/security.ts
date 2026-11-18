@@ -10,7 +10,7 @@ export type Finding = { file: string; line: number; kind: string };
 const MAX_FILE = 200_000, MAX_LINES = 2000;
 const SKIP_DIR = /(^|\/)(node_modules|\.factory|\.git|graphify-out|dist|build|\.venv|venv|vendor|__pycache__)\//;
 const BINARY = /\.(png|jpe?g|gif|ico|webp|pdf|zip|gz|tgz|woff2?|ttf|otf|mp[34]|mov|wasm|sqlite3?|db)$/i;
-const LOCKFILE = /(^|\/)(package-lock\.json|bun\.lockb?|yarn\.lock|pnpm-lock\.yaml|poetry\.lock|uv\.lock|Pipfile\.lock|go\.sum|Cargo\.lock|Gemfile\.lock|composer\.lock)$/;
+export const LOCKFILE = /(^|\/)(package-lock\.json|bun\.lockb?|yarn\.lock|pnpm-lock\.yaml|poetry\.lock|uv\.lock|Pipfile\.lock|go\.sum|Cargo\.lock|Gemfile\.lock|composer\.lock)$/;
 const TEST_FILE = /(^|\/)(tests?|__tests__|spec|e2e)\/|\.(test|spec)\.[\w]+$|(^|\/)test_[\w]+\.py$/;
 
 const git = (cwd: string, ...args: string[]) => {

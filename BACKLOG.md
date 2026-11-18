@@ -5,8 +5,6 @@ Only the orchestrator moves items; people add to Inbox and promote to Ready.
 
 ## Inbox
 Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Build F-108 to F-122 in this order: phase 1 is F-108 to F-111 plus F-123 (the bar, the loops, and role files that reach a project), phase 2 F-112 to F-115 (the standard and risky work), phase 3 F-116 and F-117 (testing how agents behave), phase 4 F-118 to F-122 (smaller wins). One commit per item, a report after each phase.
-- [ ] F-114 (P2) Size: thin tasks and an oversized build flagged
-  The Planner writes tasks as thin slices with acceptance checks; a build far above a few hundred changed lines is flagged with a suggested split rather than reviewed round after round.
 - [ ] F-115 (P2) A doubting second review for high-stakes tasks only
   A fresh reviewer set to disprove, run only when F-111 found risky work, so the cost stays bounded.
 - [ ] F-116 (P2) Behaviour evals for the roles, with pressure cases
@@ -223,3 +221,5 @@ Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Bui
   When the project has none in its roadmap, the Reviewer checks against a built-in one (correctness, quality, integration, documentation, ready to ship).
 - [x] F-113 (P2) The project's quality bar as a file, held by a ratchet
   `CONSTRAINTS.md` written at init from a few questions, each with a default; "measure today and hold that line" for numbers such as coverage. The gate and the Reviewer read it.
+- [x] F-114 (P2) Size: thin tasks and an oversized build flagged
+  The Planner writes tasks as thin slices with acceptance checks; a build far above a few hundred changed lines is flagged with a suggested split rather than reviewed round after round.
