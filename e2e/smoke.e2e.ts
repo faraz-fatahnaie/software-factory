@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { chromium, type Page } from "playwright-core";
-import { repo, seedStates } from "../tests/fixture";
+import { fakeGh, ghPr, repo, seedStates, tmp } from "../tests/fixture";
 import { serve } from "../plugin/engine/server";
 
 const { dir, cli } = repo();
@@ -16,6 +16,15 @@ writeFileSync(join(dir, ".claude", "skills", "hello", "SKILL.md"), "---\nname: h
 cli("team", "apply"); // the role files exist before a skill is attached to one
 cli("skill", "attach", "hello", "--role", "technical-manager"); // attached to the manager's role only: other people's lists do not hold it
 seedStates(dir, cli);
+// A GitHub with one pull request that conflicts (F-007, approved): the Overview must offer Update this branch and Rebuild it for it.
+{
+  const gh = fakeGh();
+  Bun.spawnSync(["git", "remote", "add", "origin", "https://github.com/o/r.git"], { cwd: dir });
+  process.env.FACTORY_NO_WATCH = "1"; process.env.FACTORY_GH = gh.path;
+  const made = /F-\d+/.exec(String(cli("add", "A change that clashes with main").out))![0];
+  cli("promote", made); cli("run", made, "--stub"); cli("approve", made); // approved, with the remote there: the branch is kept
+  gh.prs([{ ...ghPr(7, made, "SUCCESS"), mergeable: "CONFLICTING" }]);
+}
 // A stand-in for the claude command for the Talk checks: one command with its output, then a reply that uses every kind of Markdown. It waits a moment so the box can be used while a reply is on its way.
 const bin = join(dir, ".factory", "fakebin");
 mkdirSync(bin, { recursive: true });
@@ -151,6 +160,12 @@ try {
     await guide.waitFor({ state: "detached" });
     await page.keyboard.press("Escape");
     await page.locator(".bk-panel").waitFor({ state: "detached" });
+
+    // A conflicting pull request: the two ways out are buttons (F-124).
+    await open(page, "Overview");
+    await page.getByRole("button", { name: "Rebuild it" }).first().waitFor({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Update this branch" }).first().waitFor();
+    await a11y(page, `${name} conflicting pull request`);
 
     // Every other view: it shows its own content and passes the check.
     const views: [string, string][] = [["Talk", ".chat-head .switch"], ["Team", ".status-chip.working"], ["Agents", "text=Models per role"], ["Source", ".scm, .pane"], ["Logs", ".feed li"], ["Worktrees", "text=F-005"], ["Studio", 'nav[aria-label="Files"] .fi']];
