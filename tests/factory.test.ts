@@ -1716,6 +1716,15 @@ test("preflight: free checks stop governance-only work, backlog bookkeeping and 
   expect(preflight(b, [])).toBe("");
 });
 
+test("a small change with no risky area is reviewed at medium effort; a larger or risky one keeps the role's effort", async () => {
+  const { lightReview } = await import("../plugin/engine/pipeline");
+  expect(lightReview(12, [], "high")).toBe("medium");
+  expect(lightReview(12, [], "medium")).toBeUndefined();
+  expect(lightReview(12, ["a login"], "high")).toBeUndefined();
+  expect(lightReview(200, [], "high")).toBeUndefined();
+  expect(lightReview(0, [], "high")).toBeUndefined(); // an unknown size is not small
+});
+
 test("version control: approve keeps the branch and pushes nothing; push scans, pushes and opens a pull request; merge and sync act only on request", () => {
   const { dir, sh, section, cli } = repo();
   const bare = tmp(), { calls, prs, path } = fakeGh();
