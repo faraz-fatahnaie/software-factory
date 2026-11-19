@@ -201,6 +201,7 @@ export async function runTask(
         (duties.length ? `Do only these parts of your role in this stage: ${duties.join("; ")}.\n` : "") +
         (name === "document" ? `Roles you may write notes for: ${activeRoles(team).join(", ")}.\n` : "") +
         // Only single commands are pre-approved: a chained or piped one is refused, and the stage then cannot see what it needs.
+        "Save tokens: every tool call re-sends everything said so far. Ask for independent files and searches together in one message, read a file once and only the part you need, do not explore beyond what the task names, and finish as soon as your output is complete.\n" +
         "Run each shell command on its own, without &&, ; or pipes, and without `cd` or `git -C` (you are already in the project folder): only plain single commands are pre-approved and others are refused.\n" +
         (name === "build" && existsSync(join(o.cwd, "CONSTRAINTS.md")) ? "The project's quality bar is in CONSTRAINTS.md: read it before you start, and meet it.\n" : "") +
         (name === "build" ? `${BAR_RULE}\n` : name === "review" || name === "doubt" ? `${REVIEW_RULE}\n` : name === "spec" ? `${RISK_RULE}\n` : "") +

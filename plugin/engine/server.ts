@@ -478,6 +478,15 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
           appendChat(root, topic, [{ who: "you", text: typeof body.shown === "string" && body.shown.trim() ? body.shown.slice(0, 20_000) : String(body.message), ...(attached.length && { files: attached.map((a) => ({ name: a.name, size: Buffer.from(a.data, "base64").length })) }) }]);
           said = true;
           chatting.add(topic);
+          // Token saving: every message re-sends the whole conversation, so one that has grown large is compacted first (by Claude's own /compact), by itself.
+          const big = readChat(root, topic);
+          if (big.session && big.context && (big.context.used >= 100_000 || big.context.used / big.context.window >= 0.6)) {
+            try {
+              const c = await compactTurn(root, { topic, session: big.session, model: "haiku" }, projectTeam(root));
+              if (c.ok && c.compact) { markCompacted(root, topic, c.compact, c.session); if (c.session) body.session = c.session; }
+              store.emit({ run: "", task: "", stage: "chat", type: "chat.turn", data: { topic, usage: { costUsd: 0 } } });
+            } catch { /* the message goes on in the old session */ }
+          }
           if (body.topic !== "manager") return done(await chatTurn(root, body as never, projectTeam(root)));
           const out = await managerTurn(root, body as never, projectTeam(root));
           // On autopilot a proposal to promote, run or retry is carried out at once (the person asked for it in this conversation); on assist the page shows a button.
