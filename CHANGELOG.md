@@ -3,9 +3,9 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
-## Unreleased
+## 1.4.0
 
-Autopilot made safe, after a review of everything it may do by itself and the lessons of a real project.
+Autopilot made safe, after a review of everything it may do by itself and the lessons of a real project. **Update, then restart the dashboard (`/software-factory:open` replaces an older one) and any Claude session started before the update. Nothing else to do: role files are refreshed by themselves.**
 
 - **The manager starts nothing you did not ask for.** On autopilot, a proposal in Talk is carried out at once only for the tasks your
   message names, or a plain "yes" to the ones she just named. A question, "wait", "don't" or "stop" is never asking. Her own ideas
