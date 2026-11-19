@@ -214,7 +214,7 @@ export function mergeTask(root: string, id: string): string[] {
   const pr = prs?.get(id);
   if (!prs || !pr || pr.state !== "OPEN") throw new Error(`${id} has no open pull request`);
   if (pr.checks === "failing") throw new Error(`the checks on ${id} are failing, so it was not merged. Fix them first (or merge on GitHub if you know better)`);
-  if (!pr.mergeable) throw new Error(`${id} conflicts with ${baseBranch(root)}, so it was not merged. Rebuild it: factory discard, then factory run`);
+  if (!pr.mergeable) throw new Error(`${id} conflicts with ${baseBranch(root)}, so it was not merged. Update this branch (the Builder resolves it), or Rebuild it if the clash is large`);
   const r = gh(root, "pr", "merge", String(pr.number), "--merge", "--delete-branch");
   if (r.code !== 0) throw new Error(`GitHub refused the merge: ${r.err}`);
   prs.set(id, { ...pr, state: "MERGED" });
