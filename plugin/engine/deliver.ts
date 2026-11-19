@@ -21,7 +21,7 @@ export function deliverStep(root: string, items: Item[], store: Parameters<typeo
     if (!pr.mergeable) return { needs: `${id}: its pull request #${pr.number} conflicts with ${baseBranch(root)}, so it was not merged. Press Update this branch (or Rebuild it if the clash is large) on its pull request.` };
     if (pr.checks === "pending") return {};
     mergeTask(root, id);
-    return { did: `${id}: checks passed, pull request #${pr.number} merged and ${baseBranch(root)} brought up to date.` };
+    return { did: `${id}: ${pr.checks === "none" ? "no checks to wait for" : "checks passed"}, pull request #${pr.number} merged and ${baseBranch(root)} brought up to date.` };
   }
   const p = plan(root, items);
   const next = p.steps.flatMap((st) => st.ids).map((id) => p.waiting.find((w) => w.id === id)).find((w) => w && w.state === "approved" && !p.main.some((m) => m.id === w.id) && !prs.has(w.id));

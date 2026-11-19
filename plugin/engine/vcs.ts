@@ -184,7 +184,7 @@ function tidy(root: string, prs: Map<string, Pr>): string[] {
   git(root, "fetch", "-q", "origin");
   const behind = Number(tryGit(root, "rev-list", "--count", `HEAD..origin/${base}`) ?? 0);
   if (behind) {
-    if (tryGit(root, "status", "--porcelain")) lines.push(`${base} is ${behind} commit${behind > 1 ? "s" : ""} behind GitHub, but this project has uncommitted changes, so it was not updated`);
+    if (tryGit(root, "status", "--porcelain", "--untracked-files=no")) lines.push(`${base} is ${behind} commit${behind > 1 ? "s" : ""} behind GitHub, but this project has uncommitted changes, so it was not updated`);
     else if (tryGit(root, "merge", "--no-edit", "-q", `origin/${base}`) !== null) lines.push(`${base} updated with ${behind} commit${behind > 1 ? "s" : ""} from GitHub`);
     else { Bun.spawnSync(["git", "merge", "--abort"], { cwd: root }); lines.push(`${base} could not be updated from GitHub without a conflict; nothing was changed`); }
   }
