@@ -3,9 +3,9 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
-## Unreleased
+## 1.5.0
 
-Autopilot takes approved work to GitHub, and the factory spends fewer tokens.
+Autopilot takes approved work to GitHub, roles can recover and every problem is counted, the factory spends fewer tokens, and new dependencies have a workflow. **Update, then restart the dashboard (`/software-factory:open`).**
 
 - **Autopilot delivers to GitHub.** After you approve a task it pushes it, opens the pull request and merges it when the checks pass,
   one at a time in `factory integrate` order, and keeps the project's branch level with GitHub (plain pushes, never forced, only
