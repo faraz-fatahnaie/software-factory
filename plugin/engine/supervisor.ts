@@ -159,6 +159,12 @@ export function supervisor(ctx: Ctx) {
         for (const title of followUps(text).slice(0, 3)) await ctx.cli("add", title.slice(0, 200), "--detail", `Proposed in the retrospective of the milestone "${m.name}".`);
       }).catch(() => {});
     }
+    // Halfway to a task's limit, say so once, while there is still time to look (F-125): the limit stops a run, a warning lets the person decide first.
+    if (s.autonomy !== "off") for (const it of items) {
+      if (it.section !== "In progress" || !ctx.running.has(it.id)) continue;
+      const started = ctx.store.last("run.start", it.id)?.ts ?? "", spent = ctx.store.spent(started, it.id);
+      if (spent >= s.perTask / 2 && spent < s.perTask && once(`half:${it.id}:${started}`)) decide_(it.id, "cost-warning", `${it.id} has spent ${usd(spent)} in this run, half of the limit for one task (${usd(s.perTask)}). ${s.autonomy === "autopilot" ? "I stop it at the limit." : "Stop it yourself if it looks lost."}`);
+    }
     if (s.autonomy !== "autopilot") { retryAt.clear(); return; }
 
     // The breaker: two runs in a row that failed (not stopped on purpose) mean whatever is wrong is not going away by itself, and every further run costs money.

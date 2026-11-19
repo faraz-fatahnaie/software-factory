@@ -690,7 +690,7 @@ async function main([cmd, ...args]: string[]) {
     const store = openEvents();
     store.emit({ run: store.lastRun(item.id) ?? "", task: item.id, stage: "pr", type: "task.discarded", data: { rebuild: true } });
     store.close();
-    return console.log(`${item.id} → Ready: the old branch${closed ? ` and ${closed}` : ""} are gone; run it again to build it on today's ${baseBranch(root)}`);
+    return console.log(`${item.id} → Ready: the old branch${closed ? ` and ${closed}` : ""} are gone; run it again to build it on today's ${baseBranch(root)} (factory run ${item.id} --keep-spec reuses the earlier spec and saves a new one)`);
   }
 
   if (cmd === "discard") {
@@ -709,7 +709,7 @@ async function main([cmd, ...args]: string[]) {
     const p = args.indexOf("--parallel");
     const count = p < 0 ? 1 : Number(args[p + 1]);
     // A mistyped id must not silently fall through to "run the top Ready item".
-    const unknown = args.filter((a, i) => !/^F-\d+$/.test(a) && a !== "--stub" && a !== "--anyway" && a !== "--parallel" && (p < 0 || i !== p + 1));
+    const unknown = args.filter((a, i) => !/^F-\d+$/.test(a) && a !== "--stub" && a !== "--anyway" && a !== "--keep-spec" && a !== "--parallel" && (p < 0 || i !== p + 1));
     if (unknown.length) throw new Error(`unknown argument: ${unknown.join(" ")}`);
     if (!Number.isInteger(count) || count < 1 || count > 8) throw new Error("--parallel takes a number from 1 to 8");
     // A task that needs another task's work is not built before that work is in main: it would be built without it, and fail the same way every time.
@@ -731,6 +731,13 @@ async function main([cmd, ...args]: string[]) {
       for (const i of chosen) { const why = preflight(i, unfinished); if (why) throw new Error(`not started: ${why}`); }
     }
     // --anyway is the person's word: build it without what it waits for, and build risky work the spec names (F-111).
+    // --keep-spec (F-125): after a rebuild, build the earlier spec again on today's main instead of paying for triage and a new spec. The Builder is told to check it still fits.
+    if (args.includes("--keep-spec")) {
+      if (chosen.length !== 1) throw new Error("--keep-spec takes one task");
+      const kept = resumeFrom(chosen[0]!, "The task is being built again on a newer main. The spec above was written for the code as it was: check it still fits the current code, and where it does not, do what the task asks, not what the old spec says.", []);
+      if (!kept.spec) throw new Error(`${chosen[0]!.id} has no earlier spec to keep: run it without --keep-spec`);
+      return runItems(config, runner, chosen, { ...kept, round: 1 }, anyway);
+    }
     return runItems(config, runner, chosen, undefined, anyway);
   }
 

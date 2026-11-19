@@ -65,7 +65,7 @@ export function useNotify(events: Ev[], tasks: Map<string, TaskRun>) {
     for (const e of events.slice(-20)) {
       // The manager pausing autopilot, handing a task to the person, or a failed update (F-091): each needs the person, so each is said.
       const action = e.type === "manager.decision" ? String(e.data?.action ?? "") : "";
-      const managerNews = ["pause", "escalate", "update-failed", "deliver-blocked"].includes(action);
+      const managerNews = ["pause", "escalate", "update-failed", "deliver-blocked", "cost-warning"].includes(action);
       if ((e.type !== "run.done" && e.type !== "run.failed" && !managerNews) || done.current.has(e.seq) || Date.now() - Date.parse(e.ts) > 30_000) continue;
       done.current.add(e.seq);
       if (!document.hidden) continue;

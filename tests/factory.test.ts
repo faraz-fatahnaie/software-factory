@@ -1725,6 +1725,20 @@ test("a small change with no risky area is reviewed at medium effort; a larger o
   expect(lightReview(0, [], "high")).toBeUndefined(); // an unknown size is not small
 });
 
+test("rebuild: --keep-spec builds the earlier spec again on the new main, without triage or a new spec", () => {
+  const { sh, section, cli } = repo();
+  expect(cli("run", "F-001", "--stub").code).toBe(0);
+  expect(cli("approve", "F-001").code).toBe(0);
+  expect(cli("discard", "F-001").code).toBe(1); // Done is not discarded: rebuild is the way back
+  expect(cli("rebuild", "F-001").code).toBe(0);
+  expect(section("F-001")).toBe("Ready");
+  const kept = cli("run", "F-001", "--keep-spec", "--stub");
+  expect(kept.code).toBe(0);
+  expect(section("F-001")).toBe("Awaiting approval");
+  expect(cli("run", "F-002", "--keep-spec", "--stub").code).toBe(1); // nothing earlier to keep
+  void sh;
+});
+
 test("version control: approve keeps the branch and pushes nothing; push scans, pushes and opens a pull request; merge and sync act only on request", () => {
   const { dir, sh, section, cli } = repo();
   const bare = tmp(), { calls, prs, path } = fakeGh();
@@ -3643,6 +3657,21 @@ test("safety: a run that has spent the limit for one task is stopped while it ru
   await cheap.tick();
   expect(cheap.killed).toEqual([]);
   cheap.stop();
+});
+
+test("cost: halfway to the limit for one task, the manager says so once, and does not stop it", async () => {
+  const m = manage({}, [mItem("F-001", "In progress")]);
+  m.running.set("F-001", { kill: () => m.killed.push("F-001") });
+  Bun.sleepSync(3);
+  m.store.emit({ run: "r1", task: "F-001", stage: "run", type: "run.start" });
+  m.store.emit({ run: "r1", task: "F-001", stage: "build", type: "stage.ok", data: { usage: { costUsd: 2 } } }); // under half of $5
+  await m.tick();
+  expect(m.decisions()).toEqual([]);
+  m.store.emit({ run: "r1", task: "F-001", stage: "review", type: "stage.ok", data: { usage: { costUsd: 1 } } }); // $3
+  await m.tick(); await m.tick();
+  expect(m.decisions()).toEqual(["cost-warning"]);
+  expect(m.killed).toEqual([]);
+  m.stop();
 });
 
 test("safety: what an earlier run spent does not stop a later run before it starts", async () => {
