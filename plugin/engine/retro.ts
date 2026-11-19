@@ -3,7 +3,29 @@
 import type { Item } from "./backlog";
 import type { Store } from "./events";
 import { costs, reviewApproves, type Ev } from "./state";
+import { problemsOf } from "./problems";
 import { failureKind, type Kind } from "./supervisor";
+
+/** The week's note (F-125): where the tokens and the problems went, counted from the log with no model. Empty when nothing ran. */
+export function weeklyNote(events: Ev[], days = 7, now = Date.now()): string {
+  const since = new Date(now - days * 86_400_000).toISOString(), week = events.filter((e) => e.ts >= since);
+  const stages = week.filter((e) => e.type === "stage.ok" && e.data?.usage), chats = week.filter((e) => e.type === "chat.turn");
+  if (!stages.length && !chats.length) return "";
+  const usd = (x: number) => `$${x.toFixed(2)}`, cost = (e: Ev) => Number(e.data?.usage?.costUsd ?? 0);
+  const by = (key: (e: Ev) => string) => { const m = new Map<string, { n: number; c: number }>(); for (const e of stages) { const k = key(e); const r = m.get(k) ?? { n: 0, c: 0 }; r.n++; r.c += cost(e); m.set(k, r); } return [...m].sort((a, b) => b[1].c - a[1].c); };
+  const total = stages.reduce((n, e) => n + cost(e), 0), chat = chats.reduce((n, e) => n + cost(e), 0);
+  const tasks = by((e) => e.task), builds = new Map<string, number>();
+  for (const e of stages) if (e.stage === "build") builds.set(e.task, (builds.get(e.task) ?? 0) + 1);
+  const rework = [...builds].filter(([, n]) => n >= 4).map(([t, n]) => `${t} was built ${n} times`);
+  const probs = problemsOf(week), outside = probs.filter((p) => p.needs === "outside");
+  return [
+    `The week in numbers (${days} days): ${usd(total + chat)} spent, ${usd(total)} on ${stages.length} task stages and ${usd(chat)} on conversations.`,
+    `By stage: ${by((e) => e.stage).map(([k, r]) => `${k} ${usd(r.c)} (${r.n})`).join(", ")}.`,
+    `Costliest tasks: ${tasks.slice(0, 3).map(([k, r]) => `${k} ${usd(r.c)}`).join(", ")}.`,
+    rework.length ? `Rework worth a look: ${rework.join("; ")}. Many builds on one task usually means the task was too big or its checks unclear: split it, or tighten its acceptance lines.` : "No task needed four or more builds.",
+    probs.length ? `${probs.length} problem${probs.length === 1 ? "" : "s"} needed a person or an outside agent (${outside.length} where the factory itself fell short). Run factory problems for the list.` : "Nothing needed a person or an outside agent.",
+  ].join("\n");
+}
 
 export type Milestone = { name: string; ids: string[]; done: number; open: string[] };
 /** The milestones the backlog's items name (a `Milestone: <name>` detail line, as the Planner writes it), in the order they first appear. */

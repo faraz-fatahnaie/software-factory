@@ -294,6 +294,11 @@ async function main([cmd, ...args]: string[]) {
     const { AUTONOMY, MANAGER_DEFAULTS } = await import("./config");
     const { AUTONOMY_TEXT, writeManager } = await import("./supervisor");
     const [sub, key, value] = args;
+    if (sub === "week") { // the week's note: where the tokens and the problems went (retro.ts weeklyNote)
+      const { allEvents, weeklyNote } = await import("./retro");
+      const store = openEvents();
+      try { return console.log(weeklyNote(allEvents(store)) || "Nothing ran in the last 7 days."); } finally { store.close(); }
+    }
     if (sub === "report") { // the facts she works from: milestones, what stopped tasks, what each role cost
       const { allEvents, report } = await import("./retro");
       const store = openEvents();

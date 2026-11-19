@@ -111,6 +111,8 @@ export type Ctx = {
   setAutonomy?: (a: Autonomy) => void;
   /** A model's retrospective when a milestone is done: what kept going wrong, with proposals under "## Follow-ups". May fail; the milestone is announced either way. */
   retro?: (milestone: string) => Promise<string>;
+  /** The week's note (retro.ts weeklyNote); empty when nothing ran. */
+  weekly?: () => string;
   every?: number;
   /** The clock; tests move it. */
   now?: () => number;
@@ -158,6 +160,11 @@ export function supervisor(ctx: Ctx) {
         // Her proposals go to the Inbox like any agent's follow-up: a person promotes them, autopilot does not.
         for (const title of followUps(text).slice(0, 3)) await ctx.cli("add", title.slice(0, 200), "--detail", `Proposed in the retrospective of the milestone "${m.name}".`);
       }).catch(() => {});
+    }
+    // Once a week, where the tokens and the problems went (F-125): news on assist and autopilot alike, never a model call.
+    if (s.autonomy !== "off" && ctx.weekly) {
+      const lastWeekly = ctx.store.decisions("", 400).find((e) => (e.data as { weekly?: boolean } | undefined)?.weekly)?.ts ?? "";
+      if (now - (lastWeekly ? Date.parse(lastWeekly) : 0) > 7 * 86_400_000) { const text = ctx.weekly(); if (text) ctx.store.emit({ run: "", task: "", stage: "manager", type: "manager.note", data: { text, weekly: true } }); }
     }
     // Halfway to a task's limit, say so once, while there is still time to look (F-125): the limit stops a run, a warning lets the person decide first.
     if (s.autonomy !== "off") for (const it of items) {
@@ -287,6 +294,11 @@ export function supervisor(ctx: Ctx) {
     const busyFiles = () => [...ctx.running.keys()].map((id) => ({ id, files: touching(fresh.find((i) => i.id === id) ?? mine(id)) }));
     const mine = (id: string): Item => ({ id, title: "", section: "", detail: "" });
     let waiting: { id: string; files: string[] }[] | undefined; // read once per tick, and only when something could start
+    // F-125: while the models are short of quota (a rate limit in the last 15 minutes), nothing new starts: it would only be refused and retried. Said once; it goes on by itself.
+    if (ready.length && room > 0 && ctx.store.quotaShort(new Date(now - 15 * 60_000).toISOString())) {
+      if (once(`quota-hold:${Math.floor(now / 3_600_000)}`)) decide_("", "hold", "The models are short of quota right now, so I am not starting new work. I start it again by myself when the limit has eased.");
+      return;
+    }
     for (const it of ready) {
       if (room <= 0) break;
       // F-125: free checks before any model is called (governance-only work, bookkeeping, a repeat of unfinished work): said once, left to the person.

@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { managerOf, type Config, type Role } from "./config";
+import { projectMap } from "./projectmap";
 import { changeSize, formatWeakenings, justified, protectedChanges, protectedFeedback, sizeLimit, weakeningFeedback, weakenings } from "./bar";
 import { readNotes } from "./chronicle";
 import { checklistsFor, checklistText } from "./checklists";
@@ -180,6 +181,8 @@ export async function runTask(
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "task.md"), `# ${task.id} ${task.title}\n${task.detail ? `\n${task.detail}\n` : ""}${o.resume ? `\n## Round ${o.resume.round}\n${peopleFeedback(o.resume)}\n` : ""}`);
   if (o.resume) writeFileSync(join(dir, "spec.md"), o.resume.spec);
+  const map = projectMap(o.cwd, o.config.gate);
+  if (map) writeFileSync(join(dir, "project.md"), map);
   const emit = (stage: string, type: string, extra: { role?: Role; model?: string; data?: unknown } = {}) =>
     o.store.emit({ run, task: task.id, stage, type, ...extra });
 
@@ -206,6 +209,7 @@ export async function runTask(
         (duties.length ? `Do only these parts of your role in this stage: ${duties.join("; ")}.\n` : "") +
         (name === "document" ? `Roles you may write notes for: ${activeRoles(team).join(", ")}.\n` : "") +
         // Only single commands are pre-approved: a chained or piped one is refused, and the stage then cannot see what it needs.
+        (existsSync(join(dir, "project.md")) ? "A map of the project's files is in project.md in the run folder: read it first, and use it instead of listing or searching the whole folder.\n" : "") +
         "Save tokens: every tool call re-sends everything said so far. Ask for independent files and searches together in one message, read a file once and only the part you need, do not explore beyond what the task names, and finish as soon as your output is complete.\n" +
         "Run each shell command on its own, without &&, ; or pipes, and without `cd` or `git -C` (you are already in the project folder): only plain single commands are pre-approved and others are refused.\n" +
         (name === "build" && existsSync(join(o.cwd, "CONSTRAINTS.md")) ? "The project's quality bar is in CONSTRAINTS.md: read it before you start, and meet it.\n" : "") +

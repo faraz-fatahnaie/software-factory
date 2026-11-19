@@ -19,6 +19,8 @@ Autopilot takes approved work to GitHub, and the factory spends fewer tokens.
 - **Fewer tokens.** Every stage is told to batch its reads and finish when done (a real task needed about half the turns and cost), and
   a conversation that has grown large compacts itself.
 - Syncing no longer skips the update because of untracked files.
+- **Roles can recover, and every problem is counted.** `factory recover` (the Technical Manager's and the Release Engineer's conversations may run it) updates a small clash and says in plain words what only you can do; its limits are in code. `factory problems` (also in Team, and `/api/problems`) lists everything that ended with you or with an outside agent needed, and the commands a role tried and was refused, so a recurring gap is repaired once.
+- **Fewer wasted model calls.** Work that only changes the backlog or the rules, or repeats unfinished work, is stopped before triage (`--anyway` overrides). Each run folder gets a `project.md` map of the files. A small change with no risky area is reviewed at medium effort. A half-way cost warning, a hold on new work while quota is short, `factory run <F-id> --keep-spec` after a rebuild, and a weekly note (`factory manager week`) of where the tokens and problems went.
 
 ## 1.4.0
 

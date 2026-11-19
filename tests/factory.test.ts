@@ -3674,6 +3674,39 @@ test("cost: halfway to the limit for one task, the manager says so once, and doe
   m.stop();
 });
 
+test("quota: while the models are short of quota nothing new starts, said once, and it starts again when the limit has eased", async () => {
+  const m = manage({}, [mItem("F-001", "Ready")], (store) => store.emit({ run: "r", task: "F-009", stage: "build", type: "stage.rate_limited" }));
+  await m.tick(); await m.tick();
+  expect(m.launched).toEqual([]);
+  expect(m.decisions()).toEqual(["hold"]);
+  m.stop();
+  const fine = manage({}, [mItem("F-001", "Ready")]);
+  await fine.tick();
+  expect(fine.launched.length).toBe(1);
+  fine.stop();
+});
+
+test("the week's note: where the tokens and problems went, counted without a model, and said once a week", async () => {
+  const { weeklyNote } = await import("../plugin/engine/retro");
+  const now = Date.now(); let n = 0;
+  const ev = (type: string, task: string, stage: string, data: unknown) => ({ seq: ++n, ts: new Date(now - 1000 * (100 - n)).toISOString(), run: "r", task, stage, type, data });
+  const events = [
+    ...[1, 2, 3, 4].map(() => ev("stage.ok", "F-050", "build", { usage: { costUsd: 0.5 } })),
+    ev("stage.ok", "F-051", "spec", { usage: { costUsd: 0.6 } }),
+    ev("chat.turn", "", "chat", { topic: "git", usage: { costUsd: 0.2 } }),
+    ev("manager.decision", "F-050", "manager", { action: "escalate", text: "F-050 needs you." }),
+  ];
+  const note = weeklyNote(events as never, 7, now);
+  expect(note).toContain("$2.80 spent");
+  expect(note).toContain("F-050 $2.00");
+  expect(note).toContain("F-050 was built 4 times");
+  expect(note).toContain("1 problem");
+  expect(weeklyNote([], 7, now)).toBe("");
+  const m = manage({}, []);
+  await m.tick();
+  m.stop();
+});
+
 test("safety: what an earlier run spent does not stop a later run before it starts", async () => {
   const m = manage({}, [mItem("F-001", "In progress")]);
   m.store.emit({ run: "r0", task: "F-001", stage: "build", type: "stage.ok", data: { usage: { costUsd: 9 } } }); // a run from before
