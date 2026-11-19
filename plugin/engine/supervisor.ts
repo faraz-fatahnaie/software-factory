@@ -72,7 +72,7 @@ export function overlap(a: string[], b: string[]): string | undefined {
 const RECENT = 7 * 24 * 3_600_000; // a milestone finished longer ago than this is history, not news
 const AWAITING_LIMIT = 3;
 /** The most files a clash may span for autopilot to update the task by itself (see the keep-up below). */
-const MAX_AUTO_CLASH = 2; // the person is the bottleneck: no new work while this many tasks wait for a decision
+export const MAX_AUTO_CLASH = 2; // the person is the bottleneck: no new work while this many tasks wait for a decision
 const startOfDay = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); };
 
 /** Whether a guidance text is something to send the Builder: not empty, and not the manager saying she could not do her job. */

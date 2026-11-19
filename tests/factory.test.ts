@@ -1673,6 +1673,36 @@ test("deliver: refusals are explained, and only one deliver runs at a time", asy
   again!();
 });
 
+test("problems: what needed a person or an outside agent is classified, counted and closed by what followed", async () => {
+  const { problemsOf, problemSummary, formatProblems } = await import("../plugin/engine/problems");
+  let n = 0;
+  const ev = (type: string, task: string, data: unknown, role?: string) => ({ seq: ++n, ts: `2026-11-19T10:00:${String(n).padStart(2, "0")}Z`, run: "r", task, stage: "x", type, role, data });
+  const events = [
+    ev("manager.decision", "F-001", { action: "escalate", text: "F-001 needs you." }),
+    ev("task.landed", "F-001", {}),
+    ev("manager.decision", "F-002", { action: "deliver-blocked", text: "F-002: its pull request #3 conflicts with main." }),
+    ev("manager.decision", "F-003", { action: "deliver-blocked", text: "Delivery to GitHub stopped: TypeError: x is not a function." }),
+    ev("stage.ok", "F-004", { usage: { denials: ["Bash git -C /tmp/x status", "Bash git push origin main"] } }, "architect"),
+    ev("run.failed", "F-005", "Error: blocked: needs a decision only a person can make"),
+    ev("manager.decision", "F-002", { action: "deliver", text: "F-002 merged" }),
+  ];
+  const list = problemsOf(events as never);
+  expect(list.map((p) => `${p.task}:${p.kind}:${p.needs}:${p.resolved ? p.resolvedBy : "open"}`)).toEqual([
+    "F-001:stuck-task:person:person", "F-002:delivery-blocked:person:autopilot", "F-003:engine-error:outside:open", "F-004:permission-gap:outside:open", "F-005:blocked-spec:person:open"]);
+  expect(list.find((p) => p.kind === "permission-gap")!.text).toContain("git -C"); // a refused push is the system working, not a gap
+  expect(problemSummary(list).refused[0]![0]).toContain("git -C");
+  expect(formatProblems(list, 7)).toContain("outside");
+  expect(formatProblems([], 7)).toContain("No problem");
+});
+
+test("recover: says what it did or cannot do, is off when the manager is off, and finds nothing to recover on a quiet project", () => {
+  const { cli } = repo();
+  expect(cli("recover").out).toContain("nothing to recover");
+  expect(cli("problems").out).toContain("No problem");
+  cli("manager", "off");
+  expect(cli("recover").out).toContain("off");
+});
+
 test("version control: approve keeps the branch and pushes nothing; push scans, pushes and opens a pull request; merge and sync act only on request", () => {
   const { dir, sh, section, cli } = repo();
   const bare = tmp(), { calls, prs, path } = fakeGh();

@@ -175,3 +175,29 @@ export function ManagerSettingsTile({ events, role }: { events: Ev[]; role: stri
     </section>
   );
 }
+
+type ProblemRow = { seq: number; ts: string; task: string; kind: string; needs: "person" | "outside"; text: string; resolved: boolean };
+type ProblemData = { days: number; problems: ProblemRow[]; kinds: { kind: string; needs: string; total: number; open: number }[]; refused: [string, number][] };
+
+/** What ended with "a person must decide" or "the factory fell short" (plugin/engine/problems.ts): the record the factory is repaired from. */
+export function ProblemsTile({ events }: { events: Ev[] }) {
+  const [data, setData] = useState<ProblemData | null>(null);
+  const last = events.at(-1)?.seq ?? 0;
+  useEffect(() => { fetch("/api/problems?days=7").then((r) => r.json()).then(setData).catch(() => setData(null)); }, [last]);
+  if (!data) return null;
+  const outside = data.kinds.filter((k) => k.needs === "outside"), open = data.problems.filter((p) => !p.resolved);
+  return (
+    <section className="tile problems" aria-label="Problems the factory could not finish by itself">
+      <header className="row gap"><div className="grow"><h2>What needed you this week</h2>
+        <p className="note">{data.kinds.length ? `${data.problems.length} in the last ${data.days} days, ${open.length} still open. "Factory fell short" means a role was missing a capability or the factory had a bug: those are the ones to repair.` : "Nothing needed a person or an outside agent in the last 7 days."}</p></div></header>
+      {data.kinds.length > 0 && (
+        <table className="plain"><thead><tr><th>Kind</th><th>Came to</th><th>Total</th><th>Open</th></tr></thead>
+          <tbody>{data.kinds.map((k) => <tr key={k.kind}><td>{k.kind}</td><td>{k.needs === "outside" ? "Factory fell short" : "You"}</td><td>{k.total}</td><td>{k.open}</td></tr>)}</tbody></table>
+      )}
+      {outside.length > 0 && data.refused.length > 0 && (
+        <><h3>Commands a role tried and was refused</h3><ul>{data.refused.map(([c, n]) => <li key={c}><code>{c}</code> <span className="note">{n}×</span></li>)}</ul></>
+      )}
+      {open.length > 0 && <><h3>Open now</h3><ul>{open.slice(0, 6).map((p) => <li key={p.seq}><b>{p.task || "–"}</b> {p.kind}: <span className="note">{p.text.slice(0, 140)}</span></li>)}</ul></>}
+    </section>
+  );
+}

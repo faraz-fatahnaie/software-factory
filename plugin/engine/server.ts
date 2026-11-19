@@ -10,6 +10,7 @@ import { VERSION } from "./upgrade";
 import { commandsFor, projectCommands } from "./commands";
 import { appendChat, clearChat, importChat, markActed, markCompacted, readChat, replyMsg } from "./chatlog";
 import { allEvents, report } from "./retro";
+import { problemsOf, problemSummary } from "./problems";
 import { supervisor, writeManager } from "./supervisor";
 import { openStore } from "./events";
 import { healthChecks, type Health } from "./health";
@@ -210,6 +211,11 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         // Quick and free, but it reads every tracked file for the secret scan, so the answer is kept for a few seconds. ?fresh asks again.
         if (!healthCache || Date.now() - healthCache.at > 20_000 || url.searchParams.has("fresh")) healthCache = { at: Date.now(), body: healthChecks(root, { items: items(), last: store.last }) };
         return json({ checkedAt: new Date(healthCache.at).toISOString(), checks: healthCache.body });
+      }
+      if (route === "GET /api/problems") {
+        const days = Math.min(90, Math.max(1, Number(url.searchParams.get("days") ?? 7) || 7)), since = new Date(Date.now() - days * 86_400_000).toISOString();
+        const list = problemsOf(allEvents(store)).filter((p) => p.ts >= since);
+        return json({ days, problems: list.slice(-50).reverse(), ...problemSummary(list) });
       }
       if (route === "GET /api/manager") {
         const day = new Date(); day.setHours(0, 0, 0, 0);
@@ -463,7 +469,7 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         let said = false;
         // The reply is written to the conversation's file before it is sent back, so it is kept even if the page has gone meanwhile.
         const done = (out: Parameters<typeof replyMsg>[0] & { session?: string; sessions?: Record<string, string>; context?: Context; contexts?: Record<string, Context>; commands?: string[] }) => {
-          store.emit({ run: "", task: "", stage: "chat", type: "chat.turn", data: { topic, usage: { costUsd: out.costUsd ?? 0 } } }); // what a conversation costs counts toward the day's limit
+          store.emit({ run: "", task: "", stage: "chat", type: "chat.turn", data: { topic, usage: { costUsd: out.costUsd ?? 0, denials: out.denials ?? [] } } }); // what a conversation costs counts toward the day's limit
           return json({ ...out, chat: appendChat(root, topic, [replyMsg(out)], { session: out.session, subs: out.sessions, context: out.context, contexts: out.contexts, commands: out.commands }) }); };
         try {
           if (typeof body.topic === "string" && body.topic !== "manager") resumeChat(body.topic);

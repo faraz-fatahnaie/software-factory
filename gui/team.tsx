@@ -5,7 +5,7 @@ import { lastWork, liveOf, roster, type Ev, type TaskRun } from "../plugin/engin
 import { agoShort } from "./commitgraph";
 import { PersonLink } from "./person";
 import { call } from "./data";
-import { ManagerSettingsTile } from "./manager";
+import { ManagerSettingsTile, ProblemsTile } from "./manager";
 import { personaFor, PRESENCE_TEXT, Robot, type Presence } from "./robots";
 import { Select, ViewSkeleton, type Option } from "./ui";
 
@@ -123,6 +123,7 @@ export function Team({ events, tasks, setError, talkTo, openPerson }: { events: 
           <><button className="quiet" disabled={rebuild === "busy"} onClick={() => { setRebuilt(""); setRebuild("ask"); }}>{rebuild === "busy" ? "Rebuilding…" : "Rebuild the role files"}</button>{rebuilt && <span className="note" role="status">{rebuilt}</span>}</>
         )}
       </div>
+      <ProblemsTile events={events} />
       <ManagerSettingsTile events={events} role={now.roles.some((r) => r.name === "technical-manager") ? "technical-manager" : "product-partner"} />
       <section className="tile crew" aria-label="A normal task">
         <div className="crew-title">

@@ -250,6 +250,44 @@ async function main([cmd, ...args]: string[]) {
     throw new Error(auto ? "no free port between 4400 and 4499" : `port ${args[0]} is in use by another program or project`);
   }
 
+  if (cmd === "recover") {
+    // The one recovery a role may run (F-125): look at the unmerged tasks and do only what is safe and bounded, in plain words. A small clash is updated (the
+    // Builder resolves it, your yes comes after); anything larger, failing checks, a sign-in or a rule on GitHub is said, once, as what the person must do. The
+    // limits live here, in code, so a conversation that runs it cannot go beyond them whatever it was told.
+    const m = managerOf(loadConfig(root));
+    if (m.autonomy === "off") return console.log("Recovery is off while the manager is off. Switch her to assist or autopilot first.");
+    const { waiting, trial } = await import("./integrate"), { MAX_AUTO_CLASH } = await import("./supervisor");
+    const mine = waiting(root, readItems()).filter((w) => !args[0] || w.id === args[0]);
+    if (!mine.length) return console.log(args[0] ? `${args[0]} is not waiting to be merged, so there is nothing to recover.` : "Nothing is waiting to be merged, so there is nothing to recover.");
+    const store = openEvents();
+    const say: string[] = [];
+    try {
+      for (const w of mine) {
+        const files = trial(root, "HEAD", w.branch);
+        if (!files?.length) { say.push(`${w.id}: no clash with ${baseBranch(root)}.`); continue; }
+        const why = files.length > MAX_AUTO_CLASH ? `${w.id} clashes with ${baseBranch(root)} in ${files.length} files (${files.slice(0, 3).join(", ")}${files.length > 3 ? " and more" : ""}). That is too large to patch: press Rebuild it on its pull request, which builds it again on today's main. I need your yes for that.`
+          : store.quotaShort(new Date(Date.now() - 3_600_000).toISOString()) ? `${w.id} clashes in ${files.join(", ")}, but the models are short of quota right now, so I did not start the update. Try again when your quota is back.`
+          : "";
+        if (why) { say.push(why); store.emit({ run: store.lastRun(w.id) ?? "", task: w.id, stage: "manager", type: "manager.decision", data: { action: "hold", auto: true, by: "recover", text: why } }); continue; }
+        // A small clash: the same update a person would press, run here (the Builder resolves it in the task's own folder).
+        const r = Bun.spawnSync([process.execPath, import.meta.path, "update", w.id], { cwd: root, stdout: "pipe", stderr: "pipe", env: process.env });
+        const out = `${r.stdout}${r.stderr}`.trim().split("\n").at(-1) ?? "";
+        const text = r.exitCode === 0 ? `${w.id}: updated from ${baseBranch(root)} (${files.join(", ")}). It comes back for your yes before anything is pushed.` : `${w.id}: the update could not be finished (${out.slice(0, 160)}).`;
+        say.push(text); store.emit({ run: store.lastRun(w.id) ?? "", task: w.id, stage: "manager", type: "manager.decision", data: { action: r.exitCode === 0 ? "update" : "update-failed", auto: true, by: "recover", text } });
+      }
+    } finally { store.close(); }
+    return console.log(say.join("\n"));
+  }
+
+  if (cmd === "problems") {
+    // What ended with "a person must decide" or "the factory fell short" (see problems.ts): the record to repair the factory from.
+    const days = Number(args[0] ?? 7);
+    if (!Number.isFinite(days) || days < 1) throw new Error("usage: factory problems [days]");
+    const { allEvents } = await import("./retro"), { problemsOf, formatProblems } = await import("./problems");
+    const store = openEvents();
+    try { const since = new Date(Date.now() - days * 86_400_000).toISOString(); return console.log(formatProblems(problemsOf(allEvents(store)).filter((p) => p.ts >= since), days)); } finally { store.close(); }
+  }
+
   if (cmd === "manager") {
     // What the Technical Manager may do by itself. The dashboard's Talk page has the same switch.
     const { AUTONOMY, MANAGER_DEFAULTS } = await import("./config");
