@@ -74,7 +74,7 @@ export function ManagerStrip({ events, items, role, talkTo, open, manager: { inf
   const last = mine.find((e) => e.type === "manager.decision") ?? mine[0], who = personaFor(role).name; // the short decision, not her longer note
   if (!info) return null;
   const s = info.settings, rest = s.perDay - info.spentToday;
-  const needsYou = mine.find((e) => e.type === "manager.decision" && e.data?.action === "escalate");
+  const needsYou = mine.find((e) => e.type === "manager.decision" && (e.data?.action === "escalate" || e.data?.action === "deliver-blocked"));
   const headline = s.autonomy === "autopilot" ? `${who} is on autopilot` : s.autonomy === "assist" ? `${who} is on assist` : `Autopilot is off`;
   return (
     <article className={`tile manager${needsYou && Date.now() - Date.parse(needsYou.ts) < 3_600_000 ? " warn" : ""}`} aria-label="Technical Manager">
@@ -107,8 +107,8 @@ export function ManagerStrip({ events, items, role, talkTo, open, manager: { inf
           {more && (
             <ul className="decisions" aria-label="Recent decisions">
               {mine.map((e) => (
-                <li key={e.seq} className={e.data?.action === "escalate" ? "warn" : undefined}>
-                  <Icon name={e.type === "manager.note" ? "talk" : e.data?.action === "escalate" ? "x" : "tick"} size={14} />
+                <li key={e.seq} className={e.data?.action === "escalate" || e.data?.action === "deliver-blocked" ? "warn" : undefined}>
+                  <Icon name={e.type === "manager.note" ? "talk" : e.data?.action === "escalate" || e.data?.action === "deliver-blocked" ? "x" : "tick"} size={14} />
                   <span className="grow">{String(e.data?.text ?? "")}</span>
                   {e.task && /^F-\d+$/.test(e.task) && <button className="chip-id" onClick={() => open(e.task)}>{e.task}</button>}
                   <span className="note">{agoShort(e.ts)} ago</span>

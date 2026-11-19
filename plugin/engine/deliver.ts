@@ -3,7 +3,7 @@
 // Never merges failing checks or a conflict, never force-pushes, only touches factory/* branches. Approving a task and deploying stay the person's.
 import type { Item } from "./backlog";
 import { plan } from "./integrate";
-import { baseBranch, listPrs, mergeTask, pushTask, remoteUrl, runTexts, vcsStatus, BATCH } from "./vcs";
+import { baseBranch, levelWithGitHub, listPrs, mergeTask, pushTask, remoteUrl, runTexts, vcsStatus, BATCH } from "./vcs";
 
 export type Step = { did?: string; needs?: string };
 
@@ -23,6 +23,9 @@ export function deliverStep(root: string, items: Item[], store: Parameters<typeo
     mergeTask(root, id);
     return { did: `${id}: ${pr.checks === "none" ? "no checks to wait for" : "checks passed"}, pull request #${pr.number} merged and ${baseBranch(root)} brought up to date.` };
   }
+  // Level first: a pull request is made from this folder's branch, so what only this folder has must be on GitHub before one is opened.
+  const level = levelWithGitHub(root);
+  if (level) return { did: level };
   const p = plan(root, items);
   const next = p.steps.flatMap((st) => st.ids).map((id) => p.waiting.find((w) => w.id === id)).find((w) => w && w.state === "approved" && !p.main.some((m) => m.id === w.id) && !prs.has(w.id));
   if (!next) return {};

@@ -324,3 +324,28 @@ export function closeTask(root: string, id: string): string | null {
   if (r.code !== 0) throw new Error(`GitHub would not close pull request #${pr.number}: ${r.err}`);
   return `pull request #${pr.number} closed`;
 }
+
+/**
+ * Keeps the project's own branch level with GitHub, for a person who never runs git: takes in what GitHub has that this folder lacks (a clean merge only),
+ * then pushes what only this folder has (the factory's backlog and record commits). A plain push: never forced, never a branch GitHub does not have yet.
+ * Returns a sentence when it did something, undefined when the two already match, and throws when it cannot (a clash, uncommitted work).
+ */
+export function levelWithGitHub(root: string): string | undefined {
+  const base = baseBranch(root);
+  if (!hasRef(root, `refs/remotes/origin/${base}`)) return undefined;
+  git(root, "fetch", "-q", "origin");
+  const count = (range: string) => Number(tryGit(root, "rev-list", "--count", range) ?? 0);
+  const behind = count(`HEAD..origin/${base}`);
+  const did: string[] = [];
+  if (behind) {
+    if (tryGit(root, "status", "--porcelain", "--untracked-files=no")) throw new Error(`${base} is ${behind} commit${behind > 1 ? "s" : ""} behind GitHub, but this folder has uncommitted changes, so it was not updated`);
+    if (tryGit(root, "merge", "--no-edit", "-q", `origin/${base}`) === null) { Bun.spawnSync(["git", "merge", "--abort"], { cwd: root }); throw new Error(`${base} could not be updated from GitHub without a conflict; nothing was changed`); }
+    did.push(`took ${behind} commit${behind > 1 ? "s" : ""} from GitHub`);
+  }
+  const ahead = count(`origin/${base}..HEAD`);
+  if (ahead) {
+    try { git(root, "push", "-q", "origin", base); } catch (e) { throw new Error(`${base} was not pushed: ${(e as Error).message.split("\n")[0]}`); }
+    did.push(`pushed ${ahead} commit${ahead > 1 ? "s" : ""}`);
+  }
+  return did.length ? `${base} brought level with GitHub (${did.join(", ")}).` : undefined;
+}

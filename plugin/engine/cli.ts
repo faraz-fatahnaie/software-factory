@@ -616,6 +616,11 @@ async function main([cmd, ...args]: string[]) {
     if (where === APPROVED && autoPush()) {
       try { pushed = `\n${pushItem({ ...item, section: "Done" })}`; } catch (e) { pushed = `\nApproved, but not pushed: ${(e as Error).message}\nPush it yourself when that is fixed: factory push ${item.id}`; }
     }
+    // Autopilot delivers at once, so delivery does not wait for the dashboard's minute sweep (or for the dashboard to be open at all).
+    if (where === APPROVED && !autoPush() && managerOf(loadConfig(root)).autonomy === "autopilot") {
+      const st = openEvents();
+      try { const r = deliverStep(root, readItems(), st); if (r.did || r.needs) pushed = `\n${r.did ?? r.needs}`; } catch (e) { pushed = `\nApproved. Delivery to GitHub did not start yet: ${(e as Error).message.split("\n")[0]}. It is tried again by autopilot.`; } finally { st.close(); }
+    }
     return console.log(`${item.id} → Done: ${where}${pushed}${notes.length ? `\nrecorded: ${notes.join(", ")}` : ""}${graph}`);
   }
 

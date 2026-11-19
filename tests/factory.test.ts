@@ -1578,9 +1578,9 @@ test("F-124: on autopilot, deliver pushes the next approved task, then merges it
   process.env.FACTORY_GH = path;
   try {
     expect(cli("run", "F-001", "F-002", "--stub").code).toBe(0);
+    cli("manager", "assist");
     expect(cli("approve", "F-001").code).toBe(0);
     expect(cli("approve", "F-002").code).toBe(0);
-    cli("manager", "assist");
     expect(cli("deliver").out).toContain("only on autopilot");
     expect(calls()).not.toContain("pr create");
     cli("manager", "autopilot");
@@ -1628,6 +1628,34 @@ test("rebuild: an approved task with an open pull request goes back to Ready, it
   }
 }, 60_000);
 
+test("deliver keeps the project's own branch level with GitHub: pushes local commits, takes in GitHub's, never forces", () => {
+  const { dir, sh, cli } = repo();
+  const bare = tmp(), { path } = fakeGh();
+  sh("git", "init", "-q", "--bare", bare);
+  sh("git", "remote", "add", "origin", bare);
+  sh("git", "push", "-q", "-u", "origin", "main");
+  process.env.FACTORY_GH = path;
+  try {
+    cli("manager", "autopilot");
+    const heads = () => Bun.spawnSync(["git", "rev-parse", "main"], { cwd: bare }).stdout.toString();
+    expect(cli("deliver").out).toContain("pushed 1 commit"); // the commit that switched autopilot on
+    expect(cli("deliver").out).toContain("nothing to deliver");
+    writeFileSync(join(dir, "note.txt"), "local\n"); sh("git", "add", "-A"); sh("git", "commit", "-q", "-m", "local record");
+    const local = sh("git", "rev-parse", "HEAD").out.trim();
+    expect(cli("deliver").out).toContain("pushed 1 commit");
+    expect(heads().trim()).toBe(local);
+    // GitHub has a commit this folder lacks: it is taken in, and nothing is forced.
+    const other = tmp();
+    sh("git", "clone", "-q", "-b", "main", bare, other);
+    writeFileSync(join(other, "theirs.txt"), "x\n");
+    for (const a of [["add", "-A"], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "theirs"], ["push", "-q", "origin", "main"]]) Bun.spawnSync(["git", ...a], { cwd: other });
+    expect(cli("deliver").out).toContain("took 1 commit from GitHub");
+    expect(existsSync(join(dir, "theirs.txt"))).toBe(true);
+  } finally {
+    delete process.env.FACTORY_GH;
+  }
+}, 60_000);
+
 test("version control: approve keeps the branch and pushes nothing; push scans, pushes and opens a pull request; merge and sync act only on request", () => {
   const { dir, sh, section, cli } = repo();
   const bare = tmp(), { calls, prs, path } = fakeGh();
@@ -1637,6 +1665,7 @@ test("version control: approve keeps the branch and pushes nothing; push scans, 
   process.env.FACTORY_GH = path;
   try {
     expect(cli("run", "F-001", "F-002", "--stub").code).toBe(0);
+    cli("manager", "assist"); // on autopilot approving also delivers (F-124); this test is about what a person asks for
 
     // Approving accepts the work and nothing more: no push, the branch stays, the worktree goes.
     const approved = cli("approve", "F-001");
