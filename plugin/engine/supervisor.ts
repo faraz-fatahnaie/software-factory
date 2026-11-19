@@ -1,6 +1,7 @@
 // The Technical Manager's code half: starts approved work, watches it, and recovers what stops, within limits the person sets.
 // No model decides here. A model is asked only to explain a task that needs a person, or to write guidance for the Builder.
 // Every action is written to the event log as `manager.decision`, in plain words, so nothing it does is hidden.
+import { preflight } from "./preflight";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { dependsOn, type Item } from "./backlog";
@@ -282,6 +283,9 @@ export function supervisor(ctx: Ctx) {
     let waiting: { id: string; files: string[] }[] | undefined; // read once per tick, and only when something could start
     for (const it of ready) {
       if (room <= 0) break;
+      // F-125: free checks before any model is called (governance-only work, bookkeeping, a repeat of unfinished work): said once, left to the person.
+      const stop = preflight(it, fresh.filter((i) => i.id !== it.id && (["Awaiting approval", "In progress", "Blocked"].includes(i.section) || (i.section === "Done" && ctx.landed?.(i.id) === false))));
+      if (stop) { if (once(`preflight:${it.id}`)) decide_(it.id, "hold", `${stop} I did not start it.`); continue; }
       // A task that needs another task's work does not start before that work is in main: it would be built without it and fail the same way every time.
       const waits = waitingFor(it, fresh);
       if (waits) { if (once(`wait:${it.id}:${waits}`)) decide_(it.id, "hold", `${it.id} waits for ${waits}. Once that is merged into main I start it.`, { with: dependsOn(it) }); continue; }

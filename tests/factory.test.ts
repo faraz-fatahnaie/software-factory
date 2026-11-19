@@ -1703,6 +1703,19 @@ test("recover: says what it did or cannot do, is off when the manager is off, an
   expect(cli("recover").out).toContain("off");
 });
 
+test("preflight: free checks stop governance-only work, backlog bookkeeping and a repeat of unfinished work before any model is called", async () => {
+  const { preflight } = await import("../plugin/engine/preflight");
+  const it = (id: string, title: string, section = "Ready", detail = ""): Item => ({ id, title, section, detail });
+  expect(preflight(it("F-040", "Close F-022 and F-026, which are moot now."), [])).toContain("backlog bookkeeping");
+  expect(preflight(it("F-041", "Update BACKLOG.md and AGENTS.md with the new rule"), [])).toContain("no agent may edit");
+  expect(preflight(it("F-042", "Update docs/rules.md and BACKLOG.md"), [])).toBe(""); // a real file is named too
+  const a = it("F-054", "F-050's forfeit warning could also say that a forfeit doesn't count toward the daily games challenge.", "Awaiting approval");
+  const b = it("F-056", "F-050's forfeit warning could also say that a forfeit doesn't count toward the daily games challenge.");
+  expect(preflight(b, [a])).toContain("same change as F-054");
+  expect(preflight(it("F-057", "Add a settings screen with a language switch and a theme choice for players"), [a])).toBe("");
+  expect(preflight(b, [])).toBe("");
+});
+
 test("version control: approve keeps the branch and pushes nothing; push scans, pushes and opens a pull request; merge and sync act only on request", () => {
   const { dir, sh, section, cli } = repo();
   const bare = tmp(), { calls, prs, path } = fakeGh();

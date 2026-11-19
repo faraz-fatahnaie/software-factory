@@ -16,6 +16,7 @@ import { activeRoles, chatPrompt, chatPromptFor, describeTeam, perTask, presets,
 import { addCustom, changeTeam, moveSettings, offSettings, onSettings, removeCustom, renameSettings, teamForAgents, titleSettings, useSettings } from "./teamctl";
 import { runTask, shellGate, stopAll, stubRunner, type Resume, type Runner } from "./pipeline";
 import { addSkill, searchSkills, setSkill } from "./skills";
+import { preflight } from "./preflight";
 import { deliverStep, takeLock, type Step } from "./deliver";
 import { armAutoMerge, baseBranch, closeTask, remoteUrl, ciWorkflow, failingChecksItem, formatStatus, hasChecks, listPrs, mergeTask, pushTask, revertTask, runTexts, syncGithub, vcsStatus, BATCH, pushBatch } from "./vcs";
 import { uncommittedWork } from "./worktree";
@@ -724,6 +725,11 @@ async function main([cmd, ...args]: string[]) {
     if (!chosen.length) throw new Error(readItems().some((i) => i.section === "Ready") ? "every item under Ready is waiting for another task to land first (see `factory status`), or run one with --anyway" : "nothing under Ready");
     if (!anyway) for (const i of chosen) if (waiting(i).length) throw new Error(`${i.id} needs ${waiting(i).join(", ")} first. Land it (push and merge it, or \`factory sync\`), or build ${i.id} without it with --anyway`);
 
+    // Free checks before any model is called: a change only to files no agent may edit, or a repeat of unfinished work (F-125). --anyway runs it regardless.
+    if (!anyway) {
+      const all = readItems(), unfinished = all.filter((i) => ["Awaiting approval", "In progress", "Blocked"].includes(i.section) || (i.section === "Done" && !isLanded(root, i.id)));
+      for (const i of chosen) { const why = preflight(i, unfinished); if (why) throw new Error(`not started: ${why}`); }
+    }
     // --anyway is the person's word: build it without what it waits for, and build risky work the spec names (F-111).
     return runItems(config, runner, chosen, undefined, anyway);
   }
