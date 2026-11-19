@@ -16,7 +16,7 @@ import { activeRoles, chatPrompt, chatPromptFor, describeTeam, perTask, presets,
 import { addCustom, changeTeam, moveSettings, offSettings, onSettings, removeCustom, renameSettings, teamForAgents, titleSettings, useSettings } from "./teamctl";
 import { runTask, shellGate, stopAll, stubRunner, type Resume, type Runner } from "./pipeline";
 import { addSkill, searchSkills, setSkill } from "./skills";
-import { deliverStep } from "./deliver";
+import { deliverStep, takeLock, type Step } from "./deliver";
 import { armAutoMerge, baseBranch, closeTask, remoteUrl, ciWorkflow, failingChecksItem, formatStatus, hasChecks, listPrs, mergeTask, pushTask, revertTask, runTexts, syncGithub, vcsStatus, BATCH, pushBatch } from "./vcs";
 import { uncommittedWork } from "./worktree";
 import { abortUpdate, APPROVED, behindBy, commitAll, ensureWorktree, land, mergeBase, removeWorktree, unresolved, worktreeOf, isLanded, branchOf, git } from "./worktree";
@@ -570,26 +570,44 @@ async function main([cmd, ...args]: string[]) {
   }
 
   if (cmd === "deliver") {
-    // F-124: autopilot only. One step: push the next approved task, or merge the open pull request when its checks pass.
+    // F-124: autopilot only. One step: push the next approved task, or merge the open pull request when its checks pass. `--watch` keeps taking steps until
+    // nothing is left (or a person is needed), so delivery goes on after the dashboard is closed.
     if (managerOf(loadConfig(root)).autonomy !== "autopilot") return console.log("deliver runs only on autopilot");
+    const unlock = takeLock(root);
+    if (!unlock) return console.log("deliver is already running");
     const store = openEvents();
-    try {
-      const r = deliverStep(root, readItems(), store);
-      const text = r.did ?? r.needs;
-      const same = (id: string) => !r.did && JSON.stringify(store.decisions(id, 1)[0]?.data ?? "").includes(JSON.stringify(text ?? "").slice(1, -1)); // a blocked message is said once
-      let text2 = text;
-      const failId = /^(F-\d+): the checks on its pull request/.exec(text ?? "")?.[1];
-      if (failId && !same(failId)) { // said once, with the fix waiting in the Inbox for the person's yes
-        const pr = listPrs(root)?.get(failId);
-        if (pr) { const { title, detail } = failingChecksItem(failId, pr); const added = add(readFileSync(backlogPath, "utf8"), title, "Inbox", { detail }); editBacklog(`add ${added.id}`, () => added.text); text2 = `${text} I added ${added.id} to your Inbox describing what failed: promote it and the team fixes it.`; }
+    const once = (): Step => {
+      try {
+        const r = deliverStep(root, readItems(), store);
+        const text = r.did ?? r.needs;
+        let text2 = text;
+        const same = (id: string) => !r.did && JSON.stringify(store.decisions(id, 1)[0]?.data ?? "").includes(JSON.stringify(text ?? "").slice(1, -1)); // a blocked message is said once
+        const failId = /^(F-\d+): the checks on its pull request #\d+ are failing/.exec(text ?? "")?.[1];
+        if (failId && !same(failId)) { // with the fix waiting in the Inbox for the person's yes
+          const pr = listPrs(root)?.get(failId);
+          if (pr) { const { title, detail } = failingChecksItem(failId, pr); const added = add(readFileSync(backlogPath, "utf8"), title, "Inbox", { detail }); editBacklog(`add ${added.id}`, () => added.text); text2 = `${text} I added ${added.id} to your Inbox describing what failed: promote it and the team fixes it.`; }
+        }
+        if (text) { const id = /^(F-\d+)/.exec(text)?.[1] ?? ""; if (!same(id)) store.emit({ run: store.lastRun(id) ?? "", task: id, stage: "manager", type: "manager.decision", data: { action: r.did ? "deliver" : "deliver-blocked", auto: true, text: text2 } }); }
+        console.log(text2 ?? (r.waiting ? "waiting for checks" : "nothing to deliver"));
+        return r;
+      } catch (e) {
+        const text = `Delivery to GitHub stopped: ${(e as Error).message.split("\n")[0]}. Nothing was lost; push or merge it yourself, or fix that and it goes on.`;
+        store.emit({ run: "", task: "", stage: "manager", type: "manager.decision", data: { action: "deliver-blocked", auto: true, text } });
+        console.log(text);
+        return { needs: text };
       }
-      if (text) { const id = /^(F-\d+)/.exec(text)?.[1] ?? ""; if (!same(id)) store.emit({ run: store.lastRun(id) ?? "", task: id, stage: "manager", type: "manager.decision", data: { action: r.did ? "deliver" : "deliver-blocked", auto: true, text: text2 } }); }
-      return console.log(text2 ?? "nothing to deliver");
-    } catch (e) {
-      const text = `Delivery to GitHub stopped: ${(e as Error).message.split("\n")[0]}. Nothing was lost; push or merge it yourself, or fix that and it goes on.`;
-      store.emit({ run: "", task: "", stage: "manager", type: "manager.decision", data: { action: "deliver-blocked", auto: true, text } });
-      return console.log(text);
-    } finally { store.close(); }
+    };
+    try {
+      if (!args.includes("--watch")) { once(); return; }
+      const until = Date.now() + 3 * 3_600_000; // a watcher never outlives three hours
+      while (Date.now() < until) {
+        const r = once();
+        if (r.needs) break; // a person is needed: the next approval or the dashboard starts it again
+        if (!r.did && !r.waiting) break; // nothing left
+        if (!r.did) await Bun.sleep(30_000);
+      }
+    } finally { store.close(); unlock(); }
+    return;
   }
   if (cmd === "sync") return console.log(syncGithub(root, autoMerge()).join("\n") || "already up to date");
 
@@ -616,10 +634,9 @@ async function main([cmd, ...args]: string[]) {
     if (where === APPROVED && autoPush()) {
       try { pushed = `\n${pushItem({ ...item, section: "Done" })}`; } catch (e) { pushed = `\nApproved, but not pushed: ${(e as Error).message}\nPush it yourself when that is fixed: factory push ${item.id}`; }
     }
-    // Autopilot delivers at once, so delivery does not wait for the dashboard's minute sweep (or for the dashboard to be open at all).
-    if (where === APPROVED && !autoPush() && managerOf(loadConfig(root)).autonomy === "autopilot") {
-      const st = openEvents();
-      try { const r = deliverStep(root, readItems(), st); if (r.did || r.needs) pushed = `\n${r.did ?? r.needs}`; } catch (e) { pushed = `\nApproved. Delivery to GitHub did not start yet: ${(e as Error).message.split("\n")[0]}. It is tried again by autopilot.`; } finally { st.close(); }
+    // Autopilot delivers at once and keeps watching the pull request, so delivery needs neither the dashboard nor a second command.
+    if (where === APPROVED && !autoPush() && !process.env.FACTORY_NO_WATCH && remoteUrl(root) && managerOf(loadConfig(root)).autonomy === "autopilot") {
+      try { Bun.spawn([process.execPath, import.meta.path, "deliver", "--watch"], { cwd: root, stdio: ["ignore", "ignore", "ignore"] }).unref(); pushed = `\nAutopilot is taking it to GitHub in the background: it pushes, opens the pull request and merges it when the checks pass. Progress is in the manager's feed.`; } catch { pushed = `\nApproved. Autopilot will deliver it within a minute while the dashboard is open.`; }
     }
     return console.log(`${item.id} → Done: ${where}${pushed}${notes.length ? `\nrecorded: ${notes.join(", ")}` : ""}${graph}`);
   }

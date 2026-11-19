@@ -17,6 +17,7 @@ import { allTracked, changesInWorktree, changesSince, parseDiff, scanSecrets, se
 import { appendChronicle, appendNotes, chronicleEntry, parseScribe, readNotes, stageOutput } from "../plugin/engine/chronicle";
 import { graphifyInstalled, updateGraph } from "../plugin/engine/graph";
 import { openStore } from "../plugin/engine/events";
+process.env.FACTORY_NO_WATCH = "1"; // approving on autopilot starts a background watcher (F-124): never in tests
 import { BACKLOG, config, fakeGh, ghPr, repo, role, tmp } from "./fixture";
 import { guard } from "../plugin/engine/hooks";
 import { applyTeam, configure, ensureRoleFiles, detect, doctor, init, nextStep, projectDocs, refreshRoleFiles } from "../plugin/engine/init";
@@ -1656,6 +1657,22 @@ test("deliver keeps the project's own branch level with GitHub: pushes local com
   }
 }, 60_000);
 
+test("deliver: refusals are explained, and only one deliver runs at a time", async () => {
+  const { explainRefusal, takeLock } = await import("../plugin/engine/deliver");
+  expect(explainRefusal("GitHub refused the merge: Pull request is not mergeable: the base branch policy prohibits the merge")).toContain("required review");
+  expect(explainRefusal("HTTP 401: bad credentials")).toContain("gh auth login");
+  expect(explainRefusal("something odd")).toContain("Open the pull request on GitHub");
+  const dir = tmp();
+  const first = takeLock(dir);
+  expect(first).toBeDefined();
+  writeFileSync(join(dir, ".factory/deliver.lock"), String(process.ppid)); // a live process other than us holds it
+  expect(takeLock(dir)).toBeUndefined();
+  writeFileSync(join(dir, ".factory/deliver.lock"), "99999999"); // a dead holder does not block
+  const again = takeLock(dir);
+  expect(again).toBeDefined();
+  again!();
+});
+
 test("version control: approve keeps the branch and pushes nothing; push scans, pushes and opens a pull request; merge and sync act only on request", () => {
   const { dir, sh, section, cli } = repo();
   const bare = tmp(), { calls, prs, path } = fakeGh();
@@ -1821,6 +1838,7 @@ test("revert with a GitHub remote goes up as a pull request, and failing checks 
   const bare = tmp(), { calls, prs, path } = fakeGh();
   sh("git", "init", "-q", "--bare", bare); sh("git", "remote", "add", "origin", bare);
   process.env.FACTORY_GH = path;
+  cli("manager", "assist"); // on autopilot approving also delivers in the background (F-124)
   try {
     expect(cli("run", "F-001", "--stub").code).toBe(0);
     expect(cli("approve", "F-001").code).toBe(0);
@@ -2793,6 +2811,7 @@ test("combined pull request: several approved tasks go up as one, a clashing tas
   sh("git", "init", "-q", "--bare", bare);
   sh("git", "remote", "add", "origin", bare);
   process.env.FACTORY_GH = path;
+  cli("manager", "assist"); // on autopilot approving also delivers in the background (F-124)
   try {
     cli("add", "Third item"); cli("promote", "F-003");
     expect(cli("run", "F-001", "F-002", "F-003", "--stub").code).toBe(0);
