@@ -1739,6 +1739,16 @@ test("rebuild: --keep-spec builds the earlier spec again on the new main, withou
   void sh;
 });
 
+test("a stage may run a named test runner on a path and read the registry, and the floor still denies installs", async () => {
+  const { ALLOW } = await import("../plugin/engine/claude");
+  const { floorDenies } = await import("../plugin/engine/authority");
+  for (const c of ["npx vitest run apps/mobile/src/economy", "npx jest src/a.test.ts", "npm view left-pad versions --json"]) {
+    expect(ALLOW.filter((a) => a.startsWith("Bash(")).some((a) => c.startsWith(a.slice(5, -3)))).toBe(true);
+    expect(floorDenies(c)).toBe(false);
+  }
+  expect(ALLOW.filter((a) => a.startsWith("Bash(")).some((a) => "npm install left-pad".startsWith(a.slice(5, -3)))).toBe(false); // a dependency is the person's decision
+});
+
 test("version control: approve keeps the branch and pushes nothing; push scans, pushes and opens a pull request; merge and sync act only on request", () => {
   const { dir, sh, section, cli } = repo();
   const bare = tmp(), { calls, prs, path } = fakeGh();

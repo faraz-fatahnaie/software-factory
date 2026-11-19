@@ -8,7 +8,9 @@ const TIMEOUT_MS = 30 * 60_000;
 
 // Read-only commands any role may run without a prompt. Whether a role has Bash or web
 // tools at all is decided by `tools` in its agent file; this list cannot widen that.
-export const ALLOW = ["Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)", "Bash(git describe:*)", "Bash(git rev-parse:*)", "Bash(git ls-files:*)", "Bash(git grep:*)", "Bash(git blame:*)", "Bash(git shortlog:*)", "Bash(graphify query:*)", "WebSearch", "WebFetch"];
+export const ALLOW = ["Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)", "Bash(git describe:*)", "Bash(git rev-parse:*)", "Bash(git ls-files:*)", "Bash(git grep:*)", "Bash(git blame:*)", "Bash(git shortlog:*)", "Bash(graphify query:*)", "WebSearch", "WebFetch",
+  // Found by `factory problems` (F-125): stages tried these and were refused, then ran the whole gate instead. A named test runner on a path runs only what the gate already runs; `npm view` only reads the registry.
+  "Bash(npx vitest:*)", "Bash(npx jest:*)", "Bash(npm view:*)"];
 
 /**
  * The project's own instructions (F-016): its CLAUDE.md (and .claude/CLAUDE.md), with each `@file` import filled in from inside the project. Factory sessions
