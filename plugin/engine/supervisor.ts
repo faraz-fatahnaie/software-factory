@@ -316,7 +316,7 @@ export function writeManager(root: string, patch: ManagerSettings): Required<Man
 }
 
 export const AUTONOMY_TEXT: Record<Autonomy, string> = {
-  autopilot: "Autopilot: the manager starts what is under Ready, in order (only what you promoted or named to her), tries a stopped task again or sends the Builder guidance, and updates a waiting branch with a small clash, all within the limits. It never approves, pushes, merges or deploys, never builds risky work without your yes, and never starts what you did not ask for",
+  autopilot: "Autopilot: the manager starts what is under Ready, in order (only what you promoted or named to her), tries a stopped task again or sends the Builder guidance, and updates a waiting branch with a small clash, all within the limits. Once you approve a task she also pushes it, opens its pull request and merges it when the checks pass (one at a time, never failing checks or a conflict). She never approves or deploys, never builds risky work without your yes, and never starts what you did not ask for",
   assist: "Assist: the manager diagnoses and proposes; you press the buttons. Nothing starts and nothing is spent by itself",
   off: "Off: the manager does nothing by itself (you can still talk to it)",
 };

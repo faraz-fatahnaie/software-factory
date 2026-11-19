@@ -1570,6 +1570,40 @@ test("server: the team is read, previewed and changed over HTTP with the same ch
   }
 }, 60_000);
 
+test("F-124: on autopilot, deliver pushes the next approved task, then merges it only when checks pass, one at a time", () => {
+  const { dir, sh, cli } = repo();
+  const bare = tmp(), { calls, prs, path } = fakeGh();
+  sh("git", "init", "-q", "--bare", bare);
+  sh("git", "remote", "add", "origin", bare);
+  process.env.FACTORY_GH = path;
+  try {
+    expect(cli("run", "F-001", "F-002", "--stub").code).toBe(0);
+    expect(cli("approve", "F-001").code).toBe(0);
+    expect(cli("approve", "F-002").code).toBe(0);
+    cli("manager", "assist");
+    expect(cli("deliver").out).toContain("only on autopilot");
+    expect(calls()).not.toContain("pr create");
+    cli("manager", "autopilot");
+    // Step 1: one task goes up, the other waits.
+    expect(cli("deliver").out).toMatch(/F-00\d: pushed and its pull request opened/);
+    expect((calls().match(/pr create/g) ?? []).length).toBe(1);
+    // A failing check is never merged; it is said once.
+    prs([ghPr(7, "F-001", "FAILURE")]);
+    const failing = cli("deliver").out;
+    expect(failing).toContain("checks on its pull request #7 are failing");
+    expect(calls()).not.toContain("pr merge");
+    expect(cli("deliver").code).toBe(0);
+    // Checks pass: it merges, and nothing else is pushed in the same step.
+    prs([ghPr(7, "F-001", "SUCCESS")]);
+    expect(cli("deliver").out).toContain("pull request #7 merged");
+    expect((calls().match(/pr create/g) ?? []).length).toBe(1);
+    prs([]);
+    expect(cli("deliver").out).toMatch(/F-002: pushed/);
+  } finally {
+    delete process.env.FACTORY_GH;
+  }
+}, 120_000);
+
 test("version control: approve keeps the branch and pushes nothing; push scans, pushes and opens a pull request; merge and sync act only on request", () => {
   const { dir, sh, section, cli } = repo();
   const bare = tmp(), { calls, prs, path } = fakeGh();

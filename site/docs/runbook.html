@@ -399,11 +399,22 @@ the Inbox, and they wait there. When Dina says &quot;build these&quot; (to Tess,
 starts them, one at a time. When a task stops, Tess looks at why.
 A rate limit or a network error: she waits and tries again (up to twice). Three builds that did not pass: she
 writes the Builder guidance and starts a new round. Not logged in, a broken setup command, a clash with main, or a
-task Dina stopped herself: Tess tells her, in plain words, and leaves it. She never approves, pushes, merges or
-deploys, and stops starting new work when $25 has been spent in a day or three tasks wait for Dina. Every
+task Dina stopped herself: Tess tells her, in plain words, and leaves it. She never approves or deploys. Once Dina approves a task, the factory's own code (not a model) pushes it, opens its pull
+request and merges it when the checks pass, one task at a time; failing checks or a conflict are left to Dina. It stops starting new work when $25 has been spent in a day or three tasks wait for Dina. Every
 decision is in <strong>Logs</strong>.</p>
-<p>To take control: <code>factory manager assist</code> (Tess only proposes, Dina presses the buttons) or
-<code>factory manager off</code>, or the <strong>Manager</strong> menu in Talk. <code>factory manager set perDay 10</code> changes a limit.</p>
+<p>What Tess may start is narrow on purpose. Under Ready she starts only what Dina promoted, or named to her in Talk (&quot;build F-012&quot;;
+a plain &quot;yes&quot; to a task Tess just named counts too; a question, &quot;wait&quot; or &quot;don't&quot; never does). Her own ideas are buttons Dina
+presses. A start Dina asked for in Talk still keeps the limits: past the day's spending, the number running at once or three approved
+tasks not merged, it waits for Dina's press. When Tess sends the Builder guidance, the Builder and the page show it as hers, never as
+Dina's. On assist nothing starts and nothing is spent by itself, not even the look back at a finished milestone.</p>
+<p>Main moving on is handled carefully: Tess updates one waiting branch at a time, not while the models are short of quota, and only
+when the clash is in at most two files. A bigger clash usually means two changes to the same feature, so it goes to Dina, with the
+advice that rebuilding is often cheaper. An update that fails says so in the manager's feed. A new task that names a file a finished,
+not-yet-merged task changes waits until that one is merged.</p>
+<p>To take control: the <strong>Autopilot on · Pause</strong> line in the side bar (on every screen) pauses it at once, and the same line turns it on
+again. Or <code>factory manager assist</code> (Tess only proposes, Dina presses the buttons), <code>factory manager off</code>, or the <strong>Manager</strong> menu in
+Talk. <code>factory manager set perDay 10</code> changes a limit. With <strong>Notify me</strong> on, a desktop notification says when autopilot pauses itself
+or a task needs Dina.</p>
 <p>When the last task of a milestone is finished, Tess says so, names what is due now (the documents, a security
 audit, a release check) and looks back at what kept going wrong; anything she proposes lands in the Inbox for
 Dina to promote. <code>factory manager report</code> prints the facts she works from: milestones, what stopped tasks, and

@@ -16,6 +16,7 @@ import { activeRoles, chatPrompt, chatPromptFor, describeTeam, perTask, presets,
 import { addCustom, changeTeam, moveSettings, offSettings, onSettings, removeCustom, renameSettings, teamForAgents, titleSettings, useSettings } from "./teamctl";
 import { runTask, shellGate, stopAll, stubRunner, type Resume, type Runner } from "./pipeline";
 import { addSkill, searchSkills, setSkill } from "./skills";
+import { deliverStep } from "./deliver";
 import { armAutoMerge, ciWorkflow, failingChecksItem, formatStatus, hasChecks, listPrs, mergeTask, pushTask, revertTask, runTexts, syncGithub, vcsStatus, BATCH, pushBatch } from "./vcs";
 import { baseBranch } from "./vcs";
 import { uncommittedWork } from "./worktree";
@@ -569,6 +570,22 @@ async function main([cmd, ...args]: string[]) {
     return console.log(lines.join("\n"));
   }
 
+  if (cmd === "deliver") {
+    // F-124: autopilot only. One step: push the next approved task, or merge the open pull request when its checks pass.
+    if (managerOf(loadConfig(root)).autonomy !== "autopilot") return console.log("deliver runs only on autopilot");
+    const store = openEvents();
+    try {
+      const r = deliverStep(root, readItems(), store);
+      const text = r.did ?? r.needs;
+      const same = (id: string) => !r.did && JSON.stringify(store.decisions(id, 1)[0]?.data ?? "").includes(JSON.stringify(text ?? "").slice(1, -1)); // a blocked message is said once
+      if (text) { const id = /^(F-\d+)/.exec(text)?.[1] ?? ""; if (!same(id)) store.emit({ run: store.lastRun(id) ?? "", task: id, stage: "manager", type: "manager.decision", data: { action: r.did ? "deliver" : "deliver-blocked", auto: true, text } }); }
+      return console.log(text ?? "nothing to deliver");
+    } catch (e) {
+      const text = `Delivery to GitHub stopped: ${(e as Error).message.split("\n")[0]}. Nothing was lost; push or merge it yourself, or fix that and it goes on.`;
+      store.emit({ run: "", task: "", stage: "manager", type: "manager.decision", data: { action: "deliver-blocked", auto: true, text } });
+      return console.log(text);
+    } finally { store.close(); }
+  }
   if (cmd === "sync") return console.log(syncGithub(root, autoMerge()).join("\n") || "already up to date");
 
   if (cmd === "approve") {

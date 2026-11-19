@@ -390,8 +390,8 @@ the Inbox, and they wait there. When Dina says "build these" (to Tess, or with P
 starts them, one at a time. When a task stops, Tess looks at why.
 A rate limit or a network error: she waits and tries again (up to twice). Three builds that did not pass: she
 writes the Builder guidance and starts a new round. Not logged in, a broken setup command, a clash with main, or a
-task Dina stopped herself: Tess tells her, in plain words, and leaves it. She never approves, pushes, merges or
-deploys, and stops starting new work when $25 has been spent in a day or three tasks wait for Dina. Every
+task Dina stopped herself: Tess tells her, in plain words, and leaves it. She never approves or deploys. Once Dina approves a task, the factory's own code (not a model) pushes it, opens its pull
+request and merges it when the checks pass, one task at a time; failing checks or a conflict are left to Dina. It stops starting new work when $25 has been spent in a day or three tasks wait for Dina. Every
 decision is in **Logs**.
 
 What Tess may start is narrow on purpose. Under Ready she starts only what Dina promoted, or named to her in Talk ("build F-012";

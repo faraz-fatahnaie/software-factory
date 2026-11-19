@@ -64,10 +64,6 @@ Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Bui
   Today only by editing factory.config.json or the Models page (roles only); stage settings are set automatically when a stage moves.
 - [ ] F-050 (P3) Custom unattended checks beyond advisory
   Let a custom check block or be triggered by sensitive areas, with the same rules as the security gate.
-- [ ] F-124 (P1) Autopilot delivers to GitHub for people who do not know git: after the person approves a task, push it, open its pull request, wait for checks, merge in factory integrate order one at a time, sync, an
-  Asked by the person on 2026-11-18. Done by the factory code (vcs.ts), never a model; agents stay denied git and gh.
-  Stays the person's: approving a task, the yes after the Builder resolved a clash, deploying. Never merge failing checks or conflicts, never force-push, never touch branches other than factory/*.
-  A large clash goes to the person with one Rebuild it button, never discarded by itself.
 
 ## Ready
 
@@ -78,6 +74,11 @@ Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Bui
 ## Blocked
 
 ## Done
+- [x] F-124 (P1) Autopilot delivers to GitHub for people who do not know git: after the person approves a task, push it, open its pull request, wait for checks, merge in factory integrate order one at a time, sync, an
+  Asked by the person on 2026-11-18. Done by the factory code (vcs.ts), never a model; agents stay denied git and gh.
+  Stays the person's: approving a task, the yes after the Builder resolved a clash, deploying. Never merge failing checks or conflicts, never force-push, never touch branches other than factory/*.
+  A large clash goes to the person with one Rebuild it button, never discarded by itself.
+  Built: `factory deliver` (plugin/engine/deliver.ts), run by the dashboard every minute on autopilot. One step each time: push the next approved task in integrate order, or merge the one open pull request when its checks pass. Failing checks and conflicts are said once and left to the person.
 - [x] F-001 (P1) Phase 1: foundation
   Rules files, config validation, event store, pipeline with stub runner, gate, backlog, per-role skills.
 - [x] F-002 (P1) Phase 2: Claude runner

@@ -123,7 +123,11 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
   let vcsCache: { at: number; remote: string | null; body: object } | undefined;
   // With auto-merge on, something has to notice when checks turn green. Once a minute, and only then.
   const sweep = setInterval(async () => {
-    try { if (loadConfig(root).vcs?.autoMerge) { await sh(process.execPath, CLI, "sync"); vcsCache = undefined; } } catch { /* a failed sweep is tried again next minute */ }
+    try {
+      const c = loadConfig(root);
+      if (managerOf(c).autonomy === "autopilot") { await sh(process.execPath, CLI, "deliver"); vcsCache = undefined; } // F-124
+      else if (c.vcs?.autoMerge) { await sh(process.execPath, CLI, "sync"); vcsCache = undefined; }
+    } catch { /* a failed sweep is tried again next minute */ }
   }, 60_000);
   sweep.unref();
   const teamPayload = () => {

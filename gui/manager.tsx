@@ -13,7 +13,7 @@ export type ManagerSettings = { autonomy: Autonomy; parallel: number; recoveries
 export type ManagerInfo = { settings: ManagerSettings; spentToday: number; /** The one-time explanation that autopilot is on has not been answered yet. */ notice?: boolean };
 
 export const AUTONOMY_OPTIONS: { value: Autonomy; label: string; hint: string }[] = [
-  { value: "autopilot", label: "autopilot", hint: "Starts what is under Ready, in order (only what you promoted or named to her), tries a stopped task again or sends the Builder guidance, and updates a waiting branch with a small clash, all within the limits. It never approves, pushes, merges or deploys, never builds risky work without your yes, and never starts what you did not ask for" },
+  { value: "autopilot", label: "autopilot", hint: "Starts what is under Ready, in order (only what you promoted or named to her), tries a stopped task again or sends the Builder guidance, and updates a waiting branch with a small clash, all within the limits. After you approve a task, the factory itself pushes it, opens the pull request and merges it when the checks pass. It never approves or deploys, never builds risky work without your yes, and never starts what you did not ask for" },
   { value: "assist", label: "assist", hint: "Diagnoses and proposes; you press the buttons. Nothing starts and nothing is spent by itself" },
   { value: "off", label: "off", hint: "Does nothing by itself. You can still talk to the manager" },
 ];
@@ -89,7 +89,7 @@ export function ManagerStrip({ events, items, role, talkTo, open, manager: { inf
       </header>
       {info.notice && s.autonomy === "autopilot" && (
         <section className="mgr-notice" role="region" aria-label="About autopilot">
-          <p><b>Autopilot is on.</b> {who} now starts what is under Ready, in order (only what you promoted or named to her: an item only added to the Inbox waits for your word), tries a stopped task again or sends the Builder guidance, and updates a waiting branch with a small clash, all within the limits, by herself. The Pause in the side bar stops it at once. Her limits: {s.parallel} task{s.parallel === 1 ? "" : "s"} at a time, {s.recoveries} retries per task, ${s.perTask} per task and ${s.perDay} per day. She never approves, pushes, merges or deploys, never builds risky work without your yes, and everything she decides is listed here.</p>
+          <p><b>Autopilot is on.</b> {who} now starts what is under Ready, in order (only what you promoted or named to her: an item only added to the Inbox waits for your word), tries a stopped task again or sends the Builder guidance, and updates a waiting branch with a small clash, all within the limits, by herself. The Pause in the side bar stops it at once. Her limits: {s.parallel} task{s.parallel === 1 ? "" : "s"} at a time, {s.recoveries} retries per task, ${s.perTask} per task and ${s.perDay} per day. After you approve a task the factory pushes and merges it when the checks pass. She never approves or deploys, never builds risky work without your yes, and everything she decides is listed here.</p>
           <div className="row gap"><button className="primary" onClick={() => dismiss()}>Keep autopilot</button><button onClick={() => dismiss({ autonomy: "assist" })}>Switch to assist</button><button onClick={() => dismiss({ autonomy: "off" })}>Turn it off</button></div>
         </section>
       )}
@@ -149,7 +149,7 @@ export function ManagerSettingsTile({ events, role }: { events: Ev[]; role: stri
     <section className="tile mgr-settings" aria-label={`What ${who} may do by herself`}>
       <header className="row gap">
         <Robot role={role} size={40} />
-        <div className="grow"><h2>What {who} may do by herself</h2><p className="note">She never approves, pushes, merges or deploys, at any level. Every decision is in Logs.</p></div>
+        <div className="grow"><h2>What {who} may do by herself</h2><p className="note">She never approves or deploys, at any level; she never pushes or merges either, except that on autopilot the factory delivers a task you approved (checks must pass). Every decision is in Logs.</p></div>
       </header>
       <fieldset>
         <legend>Autonomy</legend>
