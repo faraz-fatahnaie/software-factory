@@ -3,6 +3,23 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
+## Unreleased
+
+Autopilot takes approved work to GitHub, and the factory spends fewer tokens.
+
+- **Autopilot delivers to GitHub.** After you approve a task it pushes it, opens the pull request and merges it when the checks pass,
+  one at a time in `factory integrate` order, and keeps the project's branch level with GitHub (plain pushes, never forced, only
+  `factory/*` branches). It runs in the background after the approval, and the dashboard's minute sweep is the backup. Approving
+  a task and deploying stay yours. `factory deliver [--watch]`.
+- **Problems are said once, in plain words.** Failing checks (with a fix item in your Inbox), a conflict, a merge GitHub refuses
+  (a required review, a protected branch), checks pending over 45 minutes, and no GitHub sign-in show on the Manager strip and in a
+  notification.
+- **Rebuild it** (`factory rebuild <F-id>`): for a clash too large to update, closes the pull request, drops the old branch and builds the
+  task again on today's main. A button on every conflicting pull request, next to *Update this branch*.
+- **Fewer tokens.** Every stage is told to batch its reads and finish when done (a real task needed about half the turns and cost), and
+  a conversation that has grown large compacts itself.
+- Syncing no longer skips the update because of untracked files.
+
 ## 1.4.0
 
 Autopilot made safe, after a review of everything it may do by itself and the lessons of a real project. **Update, then restart the dashboard (`/software-factory:open` replaces an older one) and any Claude session started before the update. Nothing else to do: role files are refreshed by themselves.**

@@ -415,6 +415,24 @@ audit, a release check) and looks back at what kept going wrong; anything she pr
 Dina to promote. `factory manager report` prints the facts she works from: milestones, what stopped tasks, and
 what each role ran, failed and cost.
 
+### Autopilot takes approved work to GitHub
+
+For people who do not use git, autopilot does the git work after Dina approves a task. It is the factory's own code, not a
+model, and it works one step at a time: it brings the project's branch level with GitHub (taking in what GitHub has, then
+pushing what only this folder has: a plain push, never forced), pushes the next approved task in `factory integrate` order,
+opens its pull request, and merges it when its checks pass. It starts at the approval and keeps going in the background
+(`factory deliver --watch`), so it does not need the dashboard open; the dashboard's minute sweep is the backup. Only
+`factory/*` branches are touched, one pull request moves at a time, and approving a task and deploying stay Dina's.
+
+When it cannot go on it says so once on the Manager strip (and in a notification), in plain words, and waits for her:
+
+- **The checks fail.** It does not merge, and adds an Inbox item describing what failed: promote it and the team fixes it.
+- **The pull request conflicts with main.** *Update this branch* has the Builder resolve a small clash (autopilot does this
+  itself when it touches at most two files; Dina's yes comes after). For a large clash, **Rebuild it** (`factory rebuild F-014`)
+  closes the pull request, drops the old branch and builds the task again on today's main.
+- **GitHub refuses the merge** (a required review, a protected branch): it says which rule, and what to do on GitHub.
+- **The checks have been pending for over 45 minutes**, or **GitHub is not signed in** (`gh auth login`, once).
+
 ### When autopilot stops itself
 
 A task that needs another task's work (a `Depends on: F-005` line, which the Planner writes, and which a follow-up gets

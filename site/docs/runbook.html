@@ -41,6 +41,7 @@
 <a class="l2" href="#7-github-checks-and-undoing">7. GitHub, checks and undoing</a>
 <a class="l2" href="#8-release-and-deploy">8. Release and deploy</a>
 <a class="l2" href="#autopilot">Autopilot</a>
+<a class="l3" href="#autopilot-takes-approved-work-to-github">Autopilot takes approved work to GitHub</a>
 <a class="l3" href="#when-autopilot-stops-itself">When autopilot stops itself</a>
 <a class="l2" href="#updating-the-plugin">Updating the plugin</a>
 <a class="l2" href="#9-cheat-sheet">9. Cheat sheet</a>
@@ -419,6 +420,22 @@ or a task needs Dina.</p>
 audit, a release check) and looks back at what kept going wrong; anything she proposes lands in the Inbox for
 Dina to promote. <code>factory manager report</code> prints the facts she works from: milestones, what stopped tasks, and
 what each role ran, failed and cost.</p>
+<h3 id="autopilot-takes-approved-work-to-github">Autopilot takes approved work to GitHub</h3>
+<p>For people who do not use git, autopilot does the git work after Dina approves a task. It is the factory's own code, not a
+model, and it works one step at a time: it brings the project's branch level with GitHub (taking in what GitHub has, then
+pushing what only this folder has: a plain push, never forced), pushes the next approved task in <code>factory integrate</code> order,
+opens its pull request, and merges it when its checks pass. It starts at the approval and keeps going in the background
+(<code>factory deliver --watch</code>), so it does not need the dashboard open; the dashboard's minute sweep is the backup. Only
+<code>factory/*</code> branches are touched, one pull request moves at a time, and approving a task and deploying stay Dina's.</p>
+<p>When it cannot go on it says so once on the Manager strip (and in a notification), in plain words, and waits for her:</p>
+<ul>
+<li><strong>The checks fail.</strong> It does not merge, and adds an Inbox item describing what failed: promote it and the team fixes it.</li>
+<li><strong>The pull request conflicts with main.</strong> <em>Update this branch</em> has the Builder resolve a small clash (autopilot does this
+itself when it touches at most two files; Dina's yes comes after). For a large clash, <strong>Rebuild it</strong> (<code>factory rebuild F-014</code>)
+closes the pull request, drops the old branch and builds the task again on today's main.</li>
+<li><strong>GitHub refuses the merge</strong> (a required review, a protected branch): it says which rule, and what to do on GitHub.</li>
+<li><strong>The checks have been pending for over 45 minutes</strong>, or <strong>GitHub is not signed in</strong> (<code>gh auth login</code>, once).</li>
+</ul>
 <h3 id="when-autopilot-stops-itself">When autopilot stops itself</h3>
 <p>A task that needs another task's work (a <code>Depends on: F-005</code> line, which the Planner writes, and which a follow-up gets
 automatically from the task it was found in) waits in Ready until that work is <strong>merged into main</strong>, not only
