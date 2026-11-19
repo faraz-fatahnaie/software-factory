@@ -8,8 +8,6 @@ Re-checked 2026-11-18 after F-108 to F-123, for need and priority before buildin
 Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Build F-108 to F-122 in this order: phase 1 is F-108 to F-111 plus F-123 (the bar, the loops, and role files that reach a project), phase 2 F-112 to F-115 (the standard and risky work), phase 3 F-116 and F-117 (testing how agents behave), phase 4 F-118 to F-122 (smaller wins). One commit per item, a report after each phase.
 - [ ] F-102 (P2) A Release Engineer that explains and resolves what `factory integrate` finds: a conversation that walks the person through the order and offers each update as a button
 - [ ] F-099 (P3) A "who may do what" panel in the Team view, from the same table as `factory authority`
-- [ ] F-091 (P2) A visible Pause button for autopilot on every screen, and a desktop notification when she pauses or escalates
-- [ ] F-092 (P2) Person-intent proof: autopilot carries out a proposal only for ids the person named or just had added
 - [ ] F-093 (P2) Build M7 (settle a deadlock between roles after two rounds), M6 (split or re-scope a task) and M1 (Inbox duplicates)
 - [ ] F-094 (P3) Stack a task on its dependency's branch instead of waiting for it to be merged
 - [ ] F-095 (P3) A per-hour spending limit as a setting (today it is derived: about 40% of the day's limit)
@@ -66,6 +64,10 @@ Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Bui
   Today only by editing factory.config.json or the Models page (roles only); stage settings are set automatically when a stage moves.
 - [ ] F-050 (P3) Custom unattended checks beyond advisory
   Let a custom check block or be triggered by sensitive areas, with the same rules as the security gate.
+- [ ] F-124 (P1) Autopilot delivers to GitHub for people who do not know git: after the person approves a task, push it, open its pull request, wait for checks, merge in factory integrate order one at a time, sync, an
+  Asked by the person on 2026-11-18. Done by the factory code (vcs.ts), never a model; agents stay denied git and gh.
+  Stays the person's: approving a task, the yes after the Builder resolved a clash, deploying. Never merge failing checks or conflicts, never force-push, never touch branches other than factory/*.
+  A large clash goes to the person with one Rebuild it button, never discarded by itself.
 
 ## Ready
 
@@ -224,3 +226,5 @@ Plan from comparing with agent-skills (addyosmani/agent-skills), 2026-11-18. Bui
 - [x] F-090 (P2) Per-stage budget with --max-budget-usd, so one stage cannot overspend between the supervisor's checks
 - [x] F-018 Budget cap per stage with --max-budget-usd (closed: the same as F-090)
 - [x] F-016 Keep the user-level CLAUDE.md out of factory agents (project-only settings still load it)
+- [x] F-092 (P2) Person-intent proof: autopilot carries out a proposal only for ids the person named or just had added (1.4.0)
+- [x] F-091 (P2) A visible Pause button for autopilot on every screen, and a desktop notification when she pauses or escalates (1.4.0)
