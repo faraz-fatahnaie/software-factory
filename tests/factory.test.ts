@@ -1749,6 +1749,35 @@ test("a stage may run a named test runner on a path and read the registry, and t
   expect(ALLOW.filter((a) => a.startsWith("Bash(")).some((a) => "npm install left-pad".startsWith(a.slice(5, -3)))).toBe(false); // a dependency is the person's decision
 });
 
+test("dependencies: the spec names them, that is a risk, the factory installs exactly those, and any other package sends the build back", async () => {
+  const { depsOf, installDeps, undeclaredDeps, depsFeedback } = await import("../plugin/engine/deps");
+  const { risksOf, RISK_RULE } = await import("../plugin/engine/pipeline");
+  const spec = "# Spec\n\n## Change\nx\n\n## Dependencies\n- npm: left-pad@1.3.0 - pads strings\n- `npm`: @scope/pkg@2.0.1-beta.1 in @app/mobile (dev) - tests\n- pip: requests==2.0 - http\n- npm: evil name@latest - no\n\n## Tests\nz\n\nRisk: none";
+  const { deps, unsupported } = depsOf(spec);
+  expect(deps.map((d) => `${d.name}@${d.version}${d.workspace ? ` in ${d.workspace}` : ""}${d.dev ? " dev" : ""}`)).toEqual(["left-pad@1.3.0", "@scope/pkg@2.0.1-beta.1 in @app/mobile dev"]);
+  expect(unsupported).toHaveLength(2); // another ecosystem, and a version that is not exact: never installed
+  expect(depsOf("## Dependencies\n- none\n").deps).toEqual([]);
+  expect(risksOf(spec)).toContain("dependency"); // a risk whatever the Risk line says
+  expect(risksOf("Risk: none")).toEqual([]);
+  expect(RISK_RULE).toContain("dependency");
+  // The install: exactly the named package and version, scripts off, nothing else.
+  const dir = tmp();
+  Bun.spawnSync(["git", "init", "-q", "-b", "main"], { cwd: dir });
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "x", dependencies: { "already-here": "1.0.0" } }));
+  Bun.spawnSync(["git", "add", "-A"], { cwd: dir }); Bun.spawnSync(["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "init"], { cwd: dir });
+  const ran: string[][] = [];
+  const done = installDeps(dir, [...deps, { name: "already-here", version: "1.0.0", dev: false, line: "" }], (argv) => { ran.push(argv); return { code: 0, out: "" }; });
+  expect(done).toEqual(["left-pad@1.3.0", "@scope/pkg@2.0.1-beta.1"]); // the one already declared is not installed again
+  expect(ran[0]).toEqual(["npm", "install", "--save-exact", "--ignore-scripts", "--no-audit", "--no-fund", "left-pad@1.3.0"]);
+  expect(ran[1]).toContain("-w"); expect(ran[1]).toContain("--save-dev");
+  expect(() => installDeps(dir, deps, () => ({ code: 1, out: "404 not found" }))).toThrow(/blocked: the dependency left-pad@1\.3\.0 could not be installed/);
+  // A build that adds a package the spec did not name is found.
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "x", dependencies: { "already-here": "1.0.0", "left-pad": "1.3.0", sneaky: "9.9.9" } }));
+  expect(undeclaredDeps(dir, ["left-pad"])).toEqual(["sneaky"]);
+  expect(undeclaredDeps(dir, ["left-pad", "sneaky"])).toEqual([]);
+  expect(depsFeedback(["sneaky"])).toContain("BLOCKED: needs the dependency sneaky");
+});
+
 test("version control: approve keeps the branch and pushes nothing; push scans, pushes and opens a pull request; merge and sync act only on request", () => {
   const { dir, sh, section, cli } = repo();
   const bare = tmp(), { calls, prs, path } = fakeGh();

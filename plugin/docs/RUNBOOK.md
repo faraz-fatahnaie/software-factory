@@ -415,6 +415,16 @@ audit, a release check) and looks back at what kept going wrong; anything she pr
 Dina to promote. `factory manager report` prints the facts she works from: milestones, what stopped tasks, and
 what each role ran, failed and cost.
 
+### New packages (dependencies)
+
+No agent installs a package by itself: it is code from a stranger that runs on Dina's machine. When a task cannot be done
+without one, the architect lists it in the spec under `## Dependencies` (`- npm: name@1.2.3 - why`, exact version). That is a
+risk like a login or a payment, so the task stops for **Build it** before anything is built; read the package name and the
+reason first. After the yes, the factory itself (not a model) installs exactly those packages with install scripts off. A build
+that adds any other package is sent back, and a Builder that cannot do the work without another one stops with
+`BLOCKED: needs the dependency <name>`. Only npm is installed this way; for any other kind (pip, cargo) the spec still asks for
+the yes, and Dina installs it herself.
+
 ### Autopilot takes approved work to GitHub
 
 For people who do not use git, autopilot does the git work after Dina approves a task. It is the factory's own code, not a

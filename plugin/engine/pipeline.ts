@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { managerOf, type Config, type Role } from "./config";
+import { depsFeedback, depsOf, installDeps, undeclaredDeps } from "./deps";
 import { projectMap } from "./projectmap";
 import { changeSize, formatWeakenings, justified, protectedChanges, protectedFeedback, sizeLimit, weakeningFeedback, weakenings } from "./bar";
 import { readNotes } from "./chronicle";
@@ -31,6 +32,7 @@ export const RISKS: Record<string, string> = {
   payments: "charging, refunds or billing",
   secrets: "keys, tokens or credentials",
   deploy: "releasing, infrastructure or production settings",
+  dependency: "a new package installed from a registry (name it, with its exact version, under a `## Dependencies` heading: `- npm: name@1.2.3 - why`)",
 };
 /** What the spec writer is told: in the prompt, so it reaches role files written before it. */
 export const RISK_RULE = `End the spec with one line: \`Risk: none\`, or \`Risk:\` followed by each of these the change plans to touch: ${Object.entries(RISKS).map(([k, v]) => `${k} (${v})`).join(", ")}. The person is asked before anything risky is built, so name it when in doubt.`;
@@ -40,6 +42,7 @@ const RISK_WORDS: Record<string, RegExp> = {
   payments: /\bpayments?\b|\bbilling|\brefunds?\b|\bcharg\w*|\binvoic\w*/i,
   secrets: /\bsecrets?\b|\bcredentials?\b|\btokens?\b|\bapi[ -]?keys?\b/i,
   deploy: /\bdeploy\w*|\binfrastructure|\bproduction|\brelease\w*/i,
+  dependency: /\bdependenc\w*/i,
 };
 /** The risks a spec declares on its last `Risk:` line, read leniently (a missed risk is the costly mistake). `none` first, or no line at all, means none. */
 /** A change this small, with no risky area in the spec, is reviewed at medium effort even where the role is set higher (F-125): the review of a one-sentence change does not need the deepest reading. */
@@ -48,8 +51,10 @@ export const lightReview = (size: number, risks: string[], effort: string) => si
 
 export function risksOf(spec: string): string[] {
   const line = [...spec.matchAll(/^[\s*_#>-]*risks?[*_]*\s*:[*_]*\s*(.+)$/gim)].at(-1)?.[1]?.trim() ?? "";
-  if (!line || /^[*_`]*none\b/i.test(line)) return [];
-  return Object.keys(RISKS).filter((k) => RISK_WORDS[k]!.test(line));
+  const found = !line || /^[*_`]*none\b/i.test(line) ? [] : Object.keys(RISKS).filter((k) => RISK_WORDS[k]!.test(line));
+  // A named dependency is a risk whatever the Risk line says (F-126): the section is what the install is made from.
+  const named = depsOf(spec);
+  return named.deps.length || named.unsupported.length ? [...new Set([...found, "dependency"])] : found;
 }
 
 /** Why the second, doubting reviewer is asked (F-115). It replies in the Reviewer's own format, so the same rules read it. */
@@ -283,14 +288,19 @@ export async function runTask(
     else if (roleFor("triage")) { const why = unready(await stage("triage", roleFor("triage")!)); if (why) throw new Error(`not ready: ${why}`); }
     else emit("triage", "stage.skipped", { data: "triage is switched off in this team" });
     let risks = o.resume ? risksOf(o.resume.spec) : [];
+    let specText = o.resume?.spec ?? "";
     if (!o.resume) {
       const spec = await stage("spec", roleFor("spec")!);
+      specText = spec;
       stopIfBlocked("spec", spec);
       // Risky work waits for the person before anything is built (F-111). A send-back or an update has their attention already.
       risks = risksOf(spec);
       if (risks.length && !o.consent) throw new Error(`needs your yes: the spec plans ${risks.map((r) => `${r} (${RISKS[r]})`).join(", ")}. Read the spec, then build it with Build it on the page or \`factory run ${task.id} --anyway\``);
       if (risks.length) emit("spec", "risk.accepted", { data: risks });
     }
+    // New dependencies (F-126): the person said yes to the named packages, so this code, not a model, installs exactly those (scripts off).
+    const approvedDeps = depsOf(specText).deps;
+    if (approvedDeps.length && !o.resume?.update) { const done = installDeps(o.cwd, approvedDeps); if (done.length) emit("build", "deps.installed", { data: done }); }
     // Whether an attempt changed anything: two attempts in a row that changed nothing cannot end differently, so the second is the last.
     let before = fingerprint();
     let feedback = o.resume ? peopleFeedback(o.resume) : "";
@@ -310,7 +320,9 @@ export async function runTask(
       const weak = check.ok && !o.resume?.update ? weakenings(o.cwd) : [];
       // Protected code (F-121): a person's marked blocks are put back, whatever the reason. Checked here, so a change made through the shell is seen too.
       const guarded = check.ok && !o.resume?.update ? protectedChanges(o.cwd) : [];
-      const bar = guarded.length ? protectedFeedback(guarded) : weak.some((w) => !justified(build, w)) ? weakeningFeedback(weak.filter((w) => !justified(build, w))) : "";
+      // Any package the build added that the spec did not name is sent back (F-126).
+      const undeclared = check.ok && !o.resume?.update ? undeclaredDeps(o.cwd, approvedDeps.map((d) => d.name)) : [];
+      const bar = guarded.length ? protectedFeedback(guarded) : undeclared.length ? depsFeedback(undeclared) : weak.some((w) => !justified(build, w)) ? weakeningFeedback(weak.filter((w) => !justified(build, w))) : "";
       const lowered = bar ? [] : weak;
       emit("check", check.ok && !bar ? "stage.ok" : "stage.failed", { data: check.ok ? bar || undefined : check.output });
       if (lowered.length) emit("check", "check.lowered", { data: formatWeakenings(lowered) });
@@ -338,9 +350,10 @@ export async function runTask(
       stopIfBlocked("review", review);
       // High stakes (F-115): once the review approves risky work, a second reviewer in a fresh session tries to disprove it. Once per task, so the cost stays bounded.
       let doubt = "";
-      if (reviewApproves(review) && risks.length && !doubted) {
+      const doubtRisks = risks.filter((r) => r !== "dependency"); // a dependency is the person's decision before the build; it does not need a second reviewer
+      if (reviewApproves(review) && doubtRisks.length && !doubted) {
         doubted = true;
-        doubt = await stage("doubt", roleFor("review")!, "", `${DOUBT_WHY(risks)}\n\n${context}`, ["Review the build"]);
+        doubt = await stage("doubt", roleFor("review")!, "", `${DOUBT_WHY(doubtRisks)}\n\n${context}`, ["Review the build"]);
         stopIfBlocked("doubt", doubt);
       }
       // Anything other than APPROVE alone on the first line counts as changes requested.

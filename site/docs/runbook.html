@@ -41,6 +41,7 @@
 <a class="l2" href="#7-github-checks-and-undoing">7. GitHub, checks and undoing</a>
 <a class="l2" href="#8-release-and-deploy">8. Release and deploy</a>
 <a class="l2" href="#autopilot">Autopilot</a>
+<a class="l3" href="#new-packages-dependencies">New packages (dependencies)</a>
 <a class="l3" href="#autopilot-takes-approved-work-to-github">Autopilot takes approved work to GitHub</a>
 <a class="l3" href="#when-autopilot-stops-itself">When autopilot stops itself</a>
 <a class="l2" href="#updating-the-plugin">Updating the plugin</a>
@@ -420,6 +421,14 @@ or a task needs Dina.</p>
 audit, a release check) and looks back at what kept going wrong; anything she proposes lands in the Inbox for
 Dina to promote. <code>factory manager report</code> prints the facts she works from: milestones, what stopped tasks, and
 what each role ran, failed and cost.</p>
+<h3 id="new-packages-dependencies">New packages (dependencies)</h3>
+<p>No agent installs a package by itself: it is code from a stranger that runs on Dina's machine. When a task cannot be done
+without one, the architect lists it in the spec under <code>## Dependencies</code> (<code>- npm: name@1.2.3 - why</code>, exact version). That is a
+risk like a login or a payment, so the task stops for <strong>Build it</strong> before anything is built; read the package name and the
+reason first. After the yes, the factory itself (not a model) installs exactly those packages with install scripts off. A build
+that adds any other package is sent back, and a Builder that cannot do the work without another one stops with
+<code>BLOCKED: needs the dependency &lt;name&gt;</code>. Only npm is installed this way; for any other kind (pip, cargo) the spec still asks for
+the yes, and Dina installs it herself.</p>
 <h3 id="autopilot-takes-approved-work-to-github">Autopilot takes approved work to GitHub</h3>
 <p>For people who do not use git, autopilot does the git work after Dina approves a task. It is the factory's own code, not a
 model, and it works one step at a time: it brings the project's branch level with GitHub (taking in what GitHub has, then

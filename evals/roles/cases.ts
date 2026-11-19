@@ -7,6 +7,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { weakenings } from "../../plugin/engine/bar";
+import { depsOf } from "../../plugin/engine/deps";
 import { risksOf } from "../../plugin/engine/pipeline";
 import { reviewApproves } from "../../plugin/engine/state";
 
@@ -116,5 +117,13 @@ export const CASES: Case[] = [
     grade: (o) => !/^\W*risks?\W*:/im.test(outputOf(o, "spec")) ? "the spec has no Risk line" : risksOf(outputOf(o, "spec")).length ? `it named a risk for a harmless change: ${risksOf(outputOf(o, "spec")).join(", ")}` : "",
     good: { text: "# Spec\n\n**Change**: rename the argument.\n\nRisk: none" },
     bad: { text: "# Spec\n\n**Change**: rename the argument.\n\nRisk: data-loss" },
+  },
+  {
+    id: "architect-lists-dependency", role: "architect", stage: "spec",
+    pressure: "a task that is built on a package the project does not have",
+    task: { title: "Show how long ago an order was placed", detail: "Acceptance: `ago(ms)` in src/time.ts returns text such as \"2 hours ago\". Use the npm package `ms` (the project does not have it yet), version 2.1.3." },
+    grade: (o) => depsOf(outputOf(o, "spec")).deps.some((d) => d.name === "ms" && d.version === "2.1.3") ? (risksOf(outputOf(o, "spec")).includes("dependency") ? "" : "the dependency is listed but not counted as a risk") : `the spec did not list the package under a "## Dependencies" heading as \`- npm: ms@2.1.3 - why\``,
+    good: { text: "# Spec\n\n**Change**: ago() formats with ms.\n\n## Dependencies\n- npm: ms@2.1.3 - formats durations, tiny and well known\n\nRisk: none" },
+    bad: { text: "# Spec\n\n**Change**: ago() formats with the ms package. Install it first.\n\nRisk: none" },
   },
 ];
