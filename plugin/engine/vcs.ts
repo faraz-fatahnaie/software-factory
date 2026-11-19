@@ -315,3 +315,12 @@ export function ciWorkflow(stack: string, setup: string[], gate: string[]): stri
     step("uses: actions/checkout@v4"), ...runtime.map(step), ...[...setup, ...gate].map(run), "",
   ].join("\n");
 }
+
+/** Closes a task's open pull request and deletes its branch on GitHub (a rebuild starts from today's main). Nothing else on GitHub is touched. */
+export function closeTask(root: string, id: string): string | null {
+  const pr = listPrs(root)?.get(id);
+  if (!pr || pr.state !== "OPEN") return null;
+  const r = gh(root, "pr", "close", String(pr.number), "--delete-branch", "--comment", `Closed by the person using the software factory: ${id} is rebuilt on today's ${baseBranch(root)}.`);
+  if (r.code !== 0) throw new Error(`GitHub would not close pull request #${pr.number}: ${r.err}`);
+  return `pull request #${pr.number} closed`;
+}

@@ -89,8 +89,9 @@ function MergeBox(p: { id: string; pr: VcsPr; vcs: VcsData; busy: string; run: (
         <div className="conflict"><span className="big"><Icon name="x" /></span><span className="what-text"><b>This branch has conflicts that must be resolved</b>
           {p.combined
             ? <span className="note">Later work changed the same lines. Update the tasks that clash (the order below says which), then push them together again.</span>
-            : <span className="note">Later work changed the same lines. Update this branch: the Builder resolves the clash in the task's own folder and it comes back to you for a yes, then you push the update. Rebuilding it is the last resort.</span>}
+            : <span className="note">Later work changed the same lines. Update this branch: the Builder resolves the clash in the task's own folder and it comes back to you for a yes, then you push the update. When the clash is too big to update, Rebuild it builds the task again on today's main.</span>}
           {!p.combined && <button disabled={p.busy !== ""} onClick={() => p.run(`update-${p.id}`, "/api/update", { id: p.id })}>{p.busy === `update-${p.id}` ? "Updating…" : "Update this branch"}</button>}
+          {!p.combined && <button disabled={p.busy !== ""} title="Closes this pull request and builds the task again on today's main" onClick={async () => { await p.run(`rebuild-${p.id}`, "/api/rebuild", { id: p.id }); await p.run(`runs-${p.id}`, "/api/run", { ids: [p.id] }); }}>{p.busy === `rebuild-${p.id}` ? "Rebuilding…" : "Rebuild it"}</button>}
         </span></div>
       )}
       <div className="foot">

@@ -1591,6 +1591,8 @@ test("F-124: on autopilot, deliver pushes the next approved task, then merges it
     prs([ghPr(7, "F-001", "FAILURE")]);
     const failing = cli("deliver").out;
     expect(failing).toContain("checks on its pull request #7 are failing");
+    expect(failing).toContain("to your Inbox");
+    expect(readFileSync(join(dir, "BACKLOG.md"), "utf8")).toMatch(/Inbox[\s\S]*(?:check|CI|fail)/i);
     expect(calls()).not.toContain("pr merge");
     expect(cli("deliver").code).toBe(0);
     // Checks pass: it merges, and nothing else is pushed in the same step.
@@ -1603,6 +1605,28 @@ test("F-124: on autopilot, deliver pushes the next approved task, then merges it
     delete process.env.FACTORY_GH;
   }
 }, 120_000);
+
+test("rebuild: an approved task with an open pull request goes back to Ready, its pull request is closed, and the branch is gone", () => {
+  const { dir, sh, section, cli } = repo();
+  const bare = tmp(), { calls, prs, path } = fakeGh();
+  sh("git", "init", "-q", "--bare", bare);
+  sh("git", "remote", "add", "origin", bare);
+  process.env.FACTORY_GH = path;
+  try {
+    expect(cli("run", "F-001", "--stub").code).toBe(0);
+    expect(cli("approve", "F-001").code).toBe(0);
+    expect(cli("push", "F-001").code).toBe(0);
+    prs([ghPr(7, "F-001", "SUCCESS")]);
+    const r = cli("rebuild", "F-001");
+    expect(r.code).toBe(0);
+    expect(calls()).toContain("pr close 7 --delete-branch");
+    expect(section("F-001")).toBe("Ready");
+    expect(sh("git", "branch", "--list", "factory/F-001").out).toBe("");
+    expect(cli("rebuild", "F-001").code).toBe(1); // Ready is not something to rebuild
+  } finally {
+    delete process.env.FACTORY_GH;
+  }
+}, 60_000);
 
 test("version control: approve keeps the branch and pushes nothing; push scans, pushes and opens a pull request; merge and sync act only on request", () => {
   const { dir, sh, section, cli } = repo();

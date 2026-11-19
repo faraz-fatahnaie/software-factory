@@ -17,8 +17,7 @@ import { addCustom, changeTeam, moveSettings, offSettings, onSettings, removeCus
 import { runTask, shellGate, stopAll, stubRunner, type Resume, type Runner } from "./pipeline";
 import { addSkill, searchSkills, setSkill } from "./skills";
 import { deliverStep } from "./deliver";
-import { armAutoMerge, ciWorkflow, failingChecksItem, formatStatus, hasChecks, listPrs, mergeTask, pushTask, revertTask, runTexts, syncGithub, vcsStatus, BATCH, pushBatch } from "./vcs";
-import { baseBranch } from "./vcs";
+import { armAutoMerge, baseBranch, closeTask, remoteUrl, ciWorkflow, failingChecksItem, formatStatus, hasChecks, listPrs, mergeTask, pushTask, revertTask, runTexts, syncGithub, vcsStatus, BATCH, pushBatch } from "./vcs";
 import { uncommittedWork } from "./worktree";
 import { abortUpdate, APPROVED, behindBy, commitAll, ensureWorktree, land, mergeBase, removeWorktree, unresolved, worktreeOf, isLanded, branchOf, git } from "./worktree";
 
@@ -578,8 +577,14 @@ async function main([cmd, ...args]: string[]) {
       const r = deliverStep(root, readItems(), store);
       const text = r.did ?? r.needs;
       const same = (id: string) => !r.did && JSON.stringify(store.decisions(id, 1)[0]?.data ?? "").includes(JSON.stringify(text ?? "").slice(1, -1)); // a blocked message is said once
-      if (text) { const id = /^(F-\d+)/.exec(text)?.[1] ?? ""; if (!same(id)) store.emit({ run: store.lastRun(id) ?? "", task: id, stage: "manager", type: "manager.decision", data: { action: r.did ? "deliver" : "deliver-blocked", auto: true, text } }); }
-      return console.log(text ?? "nothing to deliver");
+      let text2 = text;
+      const failId = /^(F-\d+): the checks on its pull request/.exec(text ?? "")?.[1];
+      if (failId && !same(failId)) { // said once, with the fix waiting in the Inbox for the person's yes
+        const pr = listPrs(root)?.get(failId);
+        if (pr) { const { title, detail } = failingChecksItem(failId, pr); const added = add(readFileSync(backlogPath, "utf8"), title, "Inbox", { detail }); editBacklog(`add ${added.id}`, () => added.text); text2 = `${text} I added ${added.id} to your Inbox describing what failed: promote it and the team fixes it.`; }
+      }
+      if (text) { const id = /^(F-\d+)/.exec(text)?.[1] ?? ""; if (!same(id)) store.emit({ run: store.lastRun(id) ?? "", task: id, stage: "manager", type: "manager.decision", data: { action: r.did ? "deliver" : "deliver-blocked", auto: true, text: text2 } }); }
+      return console.log(text2 ?? "nothing to deliver");
     } catch (e) {
       const text = `Delivery to GitHub stopped: ${(e as Error).message.split("\n")[0]}. Nothing was lost; push or merge it yourself, or fix that and it goes on.`;
       store.emit({ run: "", task: "", stage: "manager", type: "manager.decision", data: { action: "deliver-blocked", auto: true, text } });
@@ -612,6 +617,19 @@ async function main([cmd, ...args]: string[]) {
       try { pushed = `\n${pushItem({ ...item, section: "Done" })}`; } catch (e) { pushed = `\nApproved, but not pushed: ${(e as Error).message}\nPush it yourself when that is fixed: factory push ${item.id}`; }
     }
     return console.log(`${item.id} → Done: ${where}${pushed}${notes.length ? `\nrecorded: ${notes.join(", ")}` : ""}${graph}`);
+  }
+
+  if (cmd === "rebuild") {
+    // The way out of a clash too large to update: the task goes back to Ready, its old branch (and open pull request) are dropped, and it is built again on today's main.
+    const item = find(args[0], "Awaiting approval", "Done", "Blocked");
+    let closed: string | null = null;
+    if (remoteUrl(root)) { try { closed = closeTask(root, item.id); } catch (e) { throw new Error(`${(e as Error).message}\nNothing was changed.`); } }
+    removeWorktree(root, item.id);
+    editBacklog(`${item.id} → Ready (rebuild)`, (t) => move(t, item.id, "Ready"));
+    const store = openEvents();
+    store.emit({ run: store.lastRun(item.id) ?? "", task: item.id, stage: "pr", type: "task.discarded", data: { rebuild: true } });
+    store.close();
+    return console.log(`${item.id} → Ready: the old branch${closed ? ` and ${closed}` : ""} are gone; run it again to build it on today's ${baseBranch(root)}`);
   }
 
   if (cmd === "discard") {

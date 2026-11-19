@@ -18,7 +18,7 @@ export function deliverStep(root: string, items: Item[], store: Parameters<typeo
   if (open.length) {
     const [id, pr] = open[0]!;
     if (pr.checks === "failing") return { needs: `${id}: the checks on its pull request #${pr.number} are failing, so it was not merged. Look at them, then Rebuild it or fix on GitHub.` };
-    if (!pr.mergeable) return { needs: `${id}: its pull request #${pr.number} conflicts with ${baseBranch(root)}, so it was not merged. Update this branch, or Rebuild it.` };
+    if (!pr.mergeable) return { needs: `${id}: its pull request #${pr.number} conflicts with ${baseBranch(root)}, so it was not merged. Press Update this branch (or Rebuild it if the clash is large) on its pull request.` };
     if (pr.checks === "pending") return {};
     mergeTask(root, id);
     return { did: `${id}: checks passed, pull request #${pr.number} merged and ${baseBranch(root)} brought up to date.` };

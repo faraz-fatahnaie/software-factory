@@ -263,7 +263,7 @@ export function supervisor(ctx: Ctx) {
       const { head, tasks } = ctx.clashing?.() ?? { head: "", tasks: [] };
       for (const c of tasks) {
         if (ctx.running.has(c.id) || !once(`update:${c.id}:${head}`)) continue;
-        if (c.files.length > MAX_AUTO_CLASH) { decide_(c.id, "hold", `${c.id} clashes with main in ${c.files.length} files (${c.files.slice(0, 4).join(", ")}${c.files.length > 4 ? " and more" : ""}). That many usually means two changes to the same feature, which is a decision, so I did not update it by myself. Look at it: press Update this branch, or discard it and build it again on today's main, which is often cheaper.`, { files: c.files }); continue; }
+        if (c.files.length > MAX_AUTO_CLASH) { decide_(c.id, "hold", `${c.id} clashes with main in ${c.files.length} files (${c.files.slice(0, 4).join(", ")}${c.files.length > 4 ? " and more" : ""}). That many usually means two changes to the same feature, which is a decision, so I did not update it by myself. Look at it: press Update this branch, or Rebuild it (it builds the task again on today's main, which is often cheaper).`, { files: c.files }); continue; }
         if (ctx.launch(c.id, ["update", c.id])) { updating.add(c.id); decide_(c.id, "update", `${c.id} clashes with main in ${c.files.slice(0, 4).join(", ")}${c.files.length > 4 ? " and more" : ""}, so I am updating it: the Builder resolves the clash in its own folder, and it comes back to you for a yes.`, { files: c.files }); room--; break; }
       }
     }
