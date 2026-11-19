@@ -166,6 +166,11 @@ async function runItems(config: ReturnType<typeof loadConfig>, runner: Runner, c
     }
     // An update that could not be finished puts the branch back as it was: nothing is lost.
     if (error && resume?.update) try { abortUpdate(worktreeOf(root, item.id)); } catch { /* already restored */ }
+    // Said plainly (F-125): a failed update used to show only as "the update failed; approved as it was" in the backlog's history.
+    if (error && resume?.update) {
+      const quota = /rate limited|usage limit/i.test(error);
+      store.emit({ run, task: item.id, stage: "manager", type: "manager.decision", data: { action: "update-failed", auto: true, text: `${item.id}: the update from main could not be finished${quota ? ", because the models ran out of quota" : ` (${error.replace(/^Error: /, "").split("\n")[0]!.slice(0, 160)})`}. Its branch is back as it was, so nothing is lost, and it still clashes with main. ${quota ? "Try Update this branch again when your quota is back" : "Try Update this branch again, or discard it and build it again on today's main"}.` } });
+    }
     const to: Section = error ? "Blocked" : "Awaiting approval";
     editBacklog(`${item.id} → ${to}`, (t) => followUps.reduce((text, f) => add(text, f, "Inbox", { detail: `Depends on: ${item.id}\nFound while building ${item.id}.` }).text, move(t, item.id, to)));
     console.log(error
@@ -633,12 +638,15 @@ async function main([cmd, ...args]: string[]) {
     const value = (flag: string) => { const i = args.indexOf(flag); return i < 0 ? undefined : args[i + 1] ?? (() => { throw new Error(`${flag} needs a value`); })(); };
     const feedback = (value("--feedback") ?? "").trim(), files = (value("--files") ?? "").split(",").map((f) => f.trim()).filter(Boolean);
     const id = args.find((a) => /^F-\d+$/.test(a));
-    const unknown = args.filter((a, i) => a !== id && a !== "--stub" && a !== "--feedback" && a !== "--files" && args[i - 1] !== "--feedback" && args[i - 1] !== "--files");
+    // --from manager: the guidance is the Technical Manager's (autopilot's recovery), and is labelled hers, never the person's.
+    const fromManager = args.includes("--from") && value("--from") === "manager";
+    if (args.includes("--from") && !fromManager) throw new Error("--from takes: manager");
+    const unknown = args.filter((a, i) => a !== id && a !== "--stub" && a !== "--feedback" && a !== "--files" && a !== "--from" && args[i - 1] !== "--feedback" && args[i - 1] !== "--files" && args[i - 1] !== "--from");
     if (unknown.length) throw new Error(`unknown argument: ${unknown.join(" ")}`);
     if (!feedback || feedback.length > 4000) throw new Error('usage: factory reject <F-id> --feedback "<what to change, up to 4000 characters>" [--files a,b] [--stub]');
     if (files.length > 20 || files.some((f) => f.length > 200 || /[\r\n]/.test(f))) throw new Error("--files: up to 20 paths of up to 200 characters");
     const item = find(id, "Awaiting approval", "Blocked");
-    const again = resumeFrom(item, feedback, files);
+    const again = { ...resumeFrom(item, feedback, files), ...(fromManager && { from: "manager" as const }) };
     if (item.section === "Blocked" && !again.spec) throw new Error(`${item.id} stopped before it had a spec, so there is nothing to continue: run it again (factory run ${item.id})`);
     return runItems(loadConfig(root), args.includes("--stub") ? stubRunner : claudeRunner(loadConfig(root).gate), [item], again);
   }

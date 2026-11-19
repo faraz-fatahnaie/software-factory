@@ -3,6 +3,29 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
+## Unreleased
+
+Autopilot made safe, after a review of everything it may do by itself and the lessons of a real project.
+
+- **The manager starts nothing you did not ask for.** On autopilot, a proposal in Talk is carried out at once only for the tasks your
+  message names, or a plain "yes" to the ones she just named. A question, "wait", "don't" or "stop" is never asking. Her own ideas
+  are buttons you press. A start you asked for still keeps the limits (the day's spending, the number running at once, approved tasks
+  not merged); past one, it waits for your press and says why.
+- **Her guidance is labelled as hers.** When autopilot sends the Builder guidance after failed builds, the Builder and the page show
+  it as the manager's, never as "You asked".
+- **Assist spends nothing by itself.** The look back at a finished milestone (a model call) now runs only on autopilot.
+- **Keeping branches up to date is cautious.** One update at a time; none while the models are short of quota (four updates once
+  started in two minutes and all failed on rate limits); and only a clash in at most two files. A bigger clash is handed to you, with
+  the advice that rebuilding is often cheaper. A failed update now says so plainly in the manager's feed.
+- **New work waits for what is not merged.** A task that names a file a finished task (waiting for you, or approved and not merged)
+  changes waits until that task is in main. The Planner gives tasks that change the same file a `Depends on:` line.
+- **Pause on every screen.** The side bar shows **Autopilot on · Pause**; one press pauses it, the same line turns it on again.
+  With **Notify me** on, a desktop notification says when autopilot pauses itself or a task needs you.
+- **The Release Engineer** can now run the read-only git commands this work needs (`git rev-list`, `merge-base`, `for-each-ref`,
+  `cherry`); asked to "merge everything" or "fix the conflicts", it gives the order and offers one step at a time as a button. Every
+  conversation is told that a refused command is refused on purpose, and never to ask you to loosen the permission mode or allow
+  `git` or `gh`.
+
 ## 1.3.0
 
 A larger release, inspired by comparing the factory with skill packs such as agent-skills: the bar a change must clear is

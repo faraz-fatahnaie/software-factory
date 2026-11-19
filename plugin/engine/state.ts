@@ -18,7 +18,7 @@ export type TaskRun = {
   /** 1 for a normal run; 2 after a person sent it back once. */
   round: number;
   /** What people said when they sent it back, oldest first (round is the round they commented on). */
-  feedback: { round: number; text: string; files: string[]; ts: string; update?: boolean }[];
+  feedback: { round: number; text: string; files: string[]; ts: string; update?: boolean; /** The Technical Manager's guidance, not the person's. */ manager?: boolean }[];
 };
 
 export const STAGES = ["triage", "spec", "build", "check", "security", "review", "document"];
@@ -31,7 +31,7 @@ export function summarize(events: Ev[]) {
     if (e.type === "agent.rate_limit") rateLimit = e.data;
     if (e.type === "command.failed") notice = e;
     if (e.type === "run.start") {
-      const before = tasks.get(e.task), said = e.data?.feedback ? [{ round: (e.data.round ?? 2) - 1, text: String(e.data.feedback), files: (e.data.files ?? []) as string[], ts: e.ts, ...(e.data.update === true ? { update: true } : {}) }] : [];
+      const before = tasks.get(e.task), said = e.data?.feedback ? [{ round: (e.data.round ?? 2) - 1, text: String(e.data.feedback), files: (e.data.files ?? []) as string[], ts: e.ts, ...(e.data.update === true ? { update: true } : {}), ...(e.data.from === "manager" ? { manager: true } : {}) }] : [];
       tasks.set(e.task, { run: e.run, started: e.ts, status: "running", stages: {}, outputs: {}, cost: 0, events: [], round: e.data?.round ?? 1, feedback: e.data?.round ? [...(before?.feedback ?? []), ...said] : [] });
     }
     const t = tasks.get(e.task);
@@ -338,6 +338,20 @@ export const ATTACH_MAX_FILES = 8, ATTACH_MAX_BYTES = 20 * 1024 * 1024;
 /** An action a conversation proposes. Only a button the person presses runs it. */
 export type Proposal = { kind: "push" | "batch" | "merge" | "sync" | "promote" | "run" | "retry" | "approve" | "update"; ids: string[] };
 /** Takes the one `PROPOSE:` line out of a reply. A line that does not fit its kind (a sync names no task, everything else one to eight) is not a proposal, and stays in the text. */
+const YES = /^\s*(yes|yep|yeah|ok(ay)?|sure|go( ahead)?|do it|please( do)?|start( it| them)?|build (it|them)|run (it|them)|sounds good|agreed|بله|آره|باشه|حتما|انجام بده)(?=[\s,.!،]|$)/i;
+const NOT = /\b(don'?t|do not|never|not yet|wait|hold|stop|cancel|no)\b|نه|نکن|صبر/i;
+/**
+ * The tasks a person asked for in this message (F-092): the ones it names, or, when it is a plain yes, the ones the manager's previous reply named. Nothing
+ * when it is a question or holds back ("don't", "wait", "stop"). On autopilot a proposal is carried out at once only for these: the manager may propose
+ * anything, but starting work is the person's word, not hers.
+ */
+export function personAsked(message: string, previousReply = ""): string[] {
+  const m = message.trim(), ids = (t: string) => [...new Set([...t.matchAll(/\bF-\d+\b/g)].map((x) => x[0]))];
+  if (!m || /[?؟]\s*$/.test(m) || NOT.test(m)) return [];
+  if (ids(m).length) return ids(m);
+  return YES.test(m) && m.length <= 80 ? ids(previousReply) : [];
+}
+
 export function parseProposal(text: string): { text: string; proposal?: Proposal } {
   const m = /^PROPOSE: (push|batch|merge|sync|promote|run|retry|approve|update)((?: (?:F-\d+|batch-\d+(?:-\d+)?))*)[ \t]*$/m.exec(text);
   if (!m) return { text };

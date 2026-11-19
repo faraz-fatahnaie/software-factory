@@ -59,6 +59,9 @@ export function openStore(path: string) {
     retries: (task: string) =>
       (db.query(`SELECT COUNT(*) AS n FROM events WHERE task = ? AND type = 'manager.decision' AND json_extract(data, '$.action') IN ('retry', 'guide')
         AND ts > COALESCE((SELECT MAX(ts) FROM events WHERE task = ? AND type IN ('run.done', 'task.landed', 'task.discarded')), '')`).get(task, task) as { n: number }).n,
+    /** Whether any model ran out of quota since a time: a stage hit a rate limit, or a run failed because every model was rate limited. */
+    quotaShort: (since: string) =>
+      (db.query("SELECT COUNT(*) AS n FROM events WHERE ts > ? AND (type = 'stage.rate_limited' OR (type = 'run.failed' AND data LIKE '%rate limited%'))").get(since) as { n: number }).n > 0,
     close: () => db.close(),
   };
 }

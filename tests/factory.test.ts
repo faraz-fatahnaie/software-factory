@@ -35,7 +35,7 @@ import { classifyCommit, commitDetail, fileDiff, graphInfo, layoutGraph, matches
 import { changeSize, findWeakenings, justified, removedLines, sizeLimit } from "../plugin/engine/bar";
 import { BAR_RULE, REVIEW_RULE, RISK_RULE, risksOf, STANDARD_DONE, blockedReason, doneNotes, followUps, needsTriage, unready, peopleFeedback, runTask, shellGate, verdictIs, type Runner } from "../plugin/engine/pipeline";
 import { serve } from "../plugin/engine/server";
-import { minorFindings, reviewApproves } from "../plugin/engine/state";
+import { minorFindings, personAsked, reviewApproves } from "../plugin/engine/state";
 import { badCommand, checkSetup, parseSetup, parseProposal, splitSuggestions, stepsSummary, costs, doing, elapsed, filesTouched, lastWork, liveOf, timelineOf, passRates, roster, series, summarize, toolLine, type Ev, contextOf, tokens, matchCommands } from "../plugin/engine/state";
 import { commandsFor, DASHBOARD_COMMANDS, projectCommands, reportedBy } from "../plugin/engine/commands";
 import { addSkill, attachSkill, detachSkill, parseFind, roleSkills, setSkill, skillProblems } from "../plugin/engine/skills";
@@ -1684,7 +1684,7 @@ test("version control over HTTP and in conversation: status is readable, actions
   const args = chatArgs({ topic: "git", message: "x" }, resolveTeam());
   const allowed = args.slice(args.indexOf("--allowedTools") + 1, args.indexOf("--disallowedTools")); // what is allowed, not what is denied after it
   expect(allowed).toContain("Bash(factory vcs)");
-  expect(allowed.some((a) => /push|merge|gh |auto-merge/.test(a))).toBe(false);
+  expect(allowed.some((a) => /push|merge(?!-base)|gh |auto-merge/.test(a))).toBe(false); // git merge-base only reads
   expect(args[args.indexOf("--append-system-prompt") + 1]).toContain("PROPOSE: push");
 }, 60_000);
 
@@ -2215,7 +2215,7 @@ esac
 // ---- Technical Manager, phase 3: the supervisor, its limits and its log ----
 const mItem = (id: string, section: string, detail = ""): Item => ({ id, section, title: id, detail });
 
-function manage(settings: Partial<ManagerSettings> = {}, items: Item[] = [], before?: (store: ReturnType<typeof openStore>) => void, guide?: () => Promise<string>, authority?: () => string[], integration?: { unmerged?: string[]; clashing?: { head: string; tasks: { id: string; files: string[] }[] } }) {
+function manage(settings: Partial<ManagerSettings> = {}, items: Item[] = [], before?: (store: ReturnType<typeof openStore>) => void, guide?: () => Promise<string>, authority?: () => string[], integration?: { unmerged?: string[]; clashing?: { head: string; tasks: { id: string; files: string[] }[] }; waitingFiles?: { id: string; files: string[] }[] }) {
   const store = openStore(":memory:");
   before?.(store);
   Bun.sleepSync(5); // the supervisor ignores what happened before it started
@@ -2227,7 +2227,7 @@ function manage(settings: Partial<ManagerSettings> = {}, items: Item[] = [], bef
   const unlanded = new Set<string>(), autonomy: string[] = [];
   const sup = supervisor({
     canTriage: () => canTriage.value, landed: (id) => !unlanded.has(id), setAutonomy: (a) => autonomy.push(a), authority,
-    ...(integration && { unmerged: () => integration.unmerged ?? [], clashing: () => integration.clashing ?? { head: "", tasks: [] } }),
+    ...(integration && { unmerged: () => integration.unmerged ?? [], clashing: () => integration.clashing ?? { head: "", tasks: [] }, waitingFiles: () => integration.waitingFiles ?? [] }),
     root: "/x", store, settings: () => ({ ...MANAGER_DEFAULTS, ...settings }), items: () => state.items, running, group: () => 1, every: 3_600_000, now: () => clock,
     launch: (id, argv) => { if (running.has(id)) return false; launched.push(argv); running.set(id, { kill: () => killed.push(id) }); return true; },
     retro: async () => "Builds kept failing on rounding.\n\n## Follow-ups\n- Add a rounding rule to the project's rules",
@@ -2428,8 +2428,8 @@ test("milestones, retrospective and team health (M12, M16, M17): counted from th
   expect(managerPrompt(resolveTeam({}))).toMatch(/factory manager report[\s\S]*Do not change the team yourself/); // she can do all three on request
   void dir;
 
-  // The supervisor: said once, on assist too, with a retrospective whose proposals go to the Inbox; old milestones are left alone.
-  for (const autonomy of ["autopilot", "assist"] as const) {
+  // The supervisor: said once, with a retrospective whose proposals go to the Inbox (on assist the announcement only: see "assist spends nothing"); old milestones are left alone.
+  for (const autonomy of ["autopilot"] as const) {
     const m = manage({ autonomy }, items.filter((i) => i.id !== "F-004" && i.id !== "F-003"), (s) => { s.emit({ run: "r1", task: "F-001", stage: "run", type: "run.done" }); });
     await m.tick(); await m.tick();
     await Bun.sleep(5);
@@ -2469,7 +2469,7 @@ test("supervisor: a stopped task is retried after a wait, guided after three fai
   const guide = manage({}, [mItem("F-001", "Blocked")]);
   failed(guide.store, "F-001", "Error: no approved build after 3 attempts");
   await guide.tick();
-  expect(guide.launched).toEqual([["reject", "F-001", "--feedback", "Use the existing helper for the rounding, and read the failing test before you change anything."]]);
+  expect(guide.launched).toEqual([["reject", "F-001", "--feedback", "Use the existing helper for the rounding, and read the failing test before you change anything.", "--from", "manager"]]);
   expect(guide.decisions()).toEqual(["guide"]);
   guide.stop();
 
@@ -2550,7 +2550,13 @@ test("manager over HTTP: settings are read and changed; on autopilot a proposal 
     await post("/api/manager", { autonomy: "autopilot" });
     expect((await post("/api/manager", { autonomy: "nope" })).status).toBe(400);
 
-    const done = (await (await post("/api/chat", { topic: "manager", message: "yes, go" })).json()) as any;
+    // F-092: her own idea is a button, never carried out: the person did not name F-003 (and a question is not asking).
+    const idea = (await (await post("/api/chat", { topic: "manager", message: "what should we build next?" })).json()) as any;
+    expect(idea.executed).toBeUndefined();
+    expect(idea.text).toBe("Yes.\n_You did not name F-003 yourself, so this waits for your press._\nPROPOSE: promote F-003");
+    expect(parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).find((i) => i.id === "F-003")!.section).toBe("Inbox");
+    // Naming it is asking for it: carried out at once.
+    const done = (await (await post("/api/chat", { topic: "manager", message: "please build F-003" })).json()) as any;
     expect(done.executed).toMatchObject({ ok: true, proposal: { kind: "promote", ids: ["F-003"] } });
     expect(done.text).toBe("Yes.");
     expect(parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).find((i) => i.id === "F-003")!.section).toBe("Ready");
@@ -2562,9 +2568,9 @@ test("manager over HTTP: settings are read and changed; on autopilot a proposal 
     expect(approving.text).toContain("PROPOSE: approve F-001");
     expect(parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).find((i) => i.id === "F-001")!.section).toBe("Ready"); // not approved, not touched
     // A second proposal for what has already moved is not a failure: it says where the task is.
-    const again = (await (await post("/api/chat", { topic: "manager", message: "yes, go again" })).json()) as any;
+    const again = (await (await post("/api/chat", { topic: "manager", message: "promote F-003 again" })).json()) as any;
     expect(again.executed).toMatchObject({ ok: true, note: "F-003 is already in Ready; nothing to move." });
-    expect(managerPrompt(resolveTeam({}), false, "autopilot")).toMatch(/\*\*autopilot\*\* on[\s\S]*carried out the moment you send it[\s\S]*never tell the person to press one[\s\S]*run `factory status`/);
+    expect(managerPrompt(resolveTeam({}), false, "autopilot")).toMatch(/\*\*autopilot\*\* on[\s\S]*carried out at once only when the person asked for those tasks[\s\S]*Never start work the person did not ask for[\s\S]*run `factory status`/);
     expect(managerPrompt(resolveTeam({}), false, "assist")).toMatch(/appear as buttons the person presses[\s\S]*run `factory status`/);
     expect(managerPrompt(resolveTeam({}), false, "assist")).not.toContain("carried out the moment");
 
@@ -3252,7 +3258,7 @@ test("safety: stuck gets one piece of guidance, and none when the manager has no
   const useful = manage({}, [mItem("F-001", "Blocked")]);
   failed(useful.store, "F-001", "Error: stuck: attempt 2 changed nothing since attempt 1, so another try cannot end differently.");
   await useful.tick();
-  expect(useful.launched).toEqual([["reject", "F-001", "--feedback", "Use the existing helper for the rounding, and read the failing test before you change anything."]]);
+  expect(useful.launched).toEqual([["reject", "F-001", "--feedback", "Use the existing helper for the rounding, and read the failing test before you change anything.", "--from", "manager"]]);
   expect(useful.decisions()).toEqual(["guide"]);
   useful.stop();
 
@@ -5282,4 +5288,95 @@ test("instructions: factory sessions load no CLAUDE.md by themselves and get the
   expect(claudeArgs({ role: "builder", model: "sonnet", effort: "low", stage: "build", prompt: "p", cwd: tmp() }, [])).not.toContain("--append-system-prompt");
   const chat = chatArgs({ topic: "brainstorm", message: "hi" } as never, resolveTeam({}), { project: text });
   expect(chat[chat.indexOf("--append-system-prompt") + 1]).toEndWith(`\n\n${text}`);
+});
+
+// F-092: what counts as the person asking.
+test("autopilot F-092: a proposal is carried out only for the tasks the person named, or a plain yes to the ones just proposed; never for a question or a hold-back", () => {
+  expect(personAsked("please build F-003 and F-004")).toEqual(["F-003", "F-004"]);
+  expect(personAsked("yes", "I suggest F-007 next.\nPROPOSE: promote F-007")).toEqual(["F-007"]);
+  expect(personAsked("ok, go ahead", "Shall I start F-007?")).toEqual(["F-007"]);
+  expect(personAsked("بله", "F-007?")).toEqual(["F-007"]);
+  expect(personAsked("yes")).toEqual([]); // a yes to nothing named
+  expect(personAsked("what is F-003?")).toEqual([]); // a question
+  expect(personAsked("چرا F-003 شروع نشده؟")).toEqual([]); // a question, in Persian
+  expect(personAsked("don't build F-003 yet")).toEqual([]);
+  expect(personAsked("wait, F-003 first needs a decision")).toEqual([]);
+  expect(personAsked("stop F-003")).toEqual([]);
+  expect(personAsked("no")).toEqual([]);
+  expect(personAsked("yes but first tell me more about the risks of the plan and the costs and everything else", "F-007")).toEqual([]); // not a plain yes
+  expect(personAsked("")).toEqual([]);
+});
+
+test("autopilot: the manager's guidance is told to the Builder, and shown on the page, as hers, never as the person's", () => {
+  const theirs = peopleFeedback({ feedback: "Use whole cents.", files: [], from: "manager" });
+  expect(theirs).toMatch(/^The earlier builds did not pass\. The Technical Manager read why and suggests the guidance below\. It is her reading of the failure, not a person's request/);
+  expect(theirs).not.toMatch(/A person reviewed/);
+  expect(peopleFeedback({ feedback: "Use whole cents.", files: [] })).toMatch(/^A person reviewed the earlier build/);
+  const ev = (data: unknown) => ({ seq: 1, ts: "2026-11-18T10:00:00Z", run: "r2", task: "F-001", stage: "run", type: "run.start", data }) as Ev;
+  expect(summarize([ev({ round: 2, feedback: "Use whole cents.", files: [], from: "manager" })]).tasks.get("F-001")!.feedback[0]).toMatchObject({ text: "Use whole cents.", manager: true });
+  expect(summarize([ev({ round: 2, feedback: "Use whole cents.", files: [] })]).tasks.get("F-001")!.feedback[0]!.manager).toBeUndefined();
+});
+
+test("autopilot: a start the person asked for in the conversation still keeps the day's limit; it waits for their press instead", async () => {
+  const { dir } = repo();
+  mkdirSync(join(dir, ".factory"), { recursive: true });
+  const events = openStore(join(dir, ".factory", "events.db"));
+  events.emit({ run: "r0", task: "F-009", stage: "build", type: "stage.ok", data: { usage: { costUsd: 30 } } }); // more than the day's $25 already spent today
+  const bin = join(tmp(), "bin");
+  mkdirSync(bin, { recursive: true });
+  const result = JSON.stringify({ type: "result", subtype: "success", is_error: false, result: "Starting it.\nPROPOSE: run F-001", session_id: "11111111-1111-1111-1111-111111111111", total_cost_usd: 0.01, usage: {} });
+  writeFileSync(join(bin, "claude"), `#!/bin/sh\nprintf '%s\\n' '${result}'\n`);
+  chmodSync(join(bin, "claude"), 0o755);
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  const server = await serve(dir, 0);
+  const base = `http://127.0.0.1:${server.port}`;
+  try {
+    const r = (await (await fetch(`${base}/api/chat`, { method: "POST", headers: { "content-type": "application/json", origin: base }, body: JSON.stringify({ topic: "manager", message: "run F-001" }) })).json()) as any;
+    expect(r.executed).toBeUndefined();
+    expect(r.text).toMatch(/_The day's limit \(\$25\) is reached, so I did not start it by myself; press to start it anyway\._\nPROPOSE: run F-001/);
+    expect(parse(readFileSync(join(dir, "BACKLOG.md"), "utf8")).find((i) => i.id === "F-001")!.section).toBe("Ready");
+  } finally { server.stop(); process.env.PATH = path; }
+}, 30_000);
+
+// The card game's lessons: autopilot keeps branches up to date cautiously, and new work waits for what is not merged yet.
+test("autopilot keep-up: one update at a time, none while quota is short, and a large clash goes to the person", async () => {
+  const two = manage({}, [], undefined, undefined, undefined, { clashing: { head: "h1", tasks: [{ id: "F-001", files: ["a.ts"] }, { id: "F-002", files: ["b.ts"] }] } });
+  await two.tick();
+  expect(two.launched).toEqual([["update", "F-001"]]);
+  await two.tick(); // F-001's update is still running: nothing more starts
+  expect(two.launched).toEqual([["update", "F-001"]]);
+  two.running.delete("F-001");
+  await two.tick(); // done: the next one may go
+  expect(two.launched).toEqual([["update", "F-001"], ["update", "F-002"]]);
+
+  const short = manage({}, [], (store) => store.emit({ run: "r", task: "F-009", stage: "build", type: "stage.rate_limited" }), undefined, undefined, { clashing: { head: "h1", tasks: [{ id: "F-001", files: ["a.ts"] }] } });
+  await short.tick();
+  expect(short.launched).toEqual([]); // four updates once failed on rate limits within two minutes
+
+  const big = manage({}, [], undefined, undefined, undefined, { clashing: { head: "h1", tasks: [{ id: "F-001", files: ["economy.ts", "store.ts", "Settings.tsx"] }] } });
+  await big.tick(); await big.tick();
+  expect(big.launched).toEqual([]);
+  expect(big.decisions()).toEqual(["hold"]); // said once
+  expect(String(big.store.decisions("F-001", 1)[0]!.data && (big.store.decisions("F-001", 1)[0]!.data as { text: string }).text)).toMatch(/clashes with main in 3 files .* a decision, so I did not update it by myself/);
+});
+
+test("autopilot: new work that names a file a task not yet in main changes waits for that task to be merged", async () => {
+  const m = manage({}, [mItem("F-010", "Ready", "Acceptance: the total shows in src/economy.ts")], undefined, undefined, undefined, { waitingFiles: [{ id: "F-003", files: ["src/economy.ts", "src/store.ts"] }] });
+  await m.tick();
+  expect(m.launched).toEqual([]);
+  expect((m.store.decisions("F-010", 1)[0]!.data as { text: string }).text).toBe("F-010 waits for F-003: both change src/economy.ts, and F-003 is not merged into main yet. Merge F-003 first (`factory integrate` gives the order), and I start F-010 after.");
+  const free = manage({}, [mItem("F-011", "Ready", "Acceptance: the README says hello")], undefined, undefined, undefined, { waitingFiles: [{ id: "F-003", files: ["src/economy.ts"] }] });
+  await free.tick();
+  expect(free.launched).toEqual([["run", "F-011"]]);
+});
+
+test("assist spends nothing by itself: a finished milestone is announced, but its retrospective (a model call) runs only on autopilot", async () => {
+  const ms = (id: string) => mItem(id, "Done", "Milestone: Orders online\nAcceptance: it works");
+  for (const [autonomy, retro] of [["assist", 0], ["autopilot", 1]] as const) {
+    const m = manage({ autonomy }, [ms("F-001"), ms("F-002")], (store) => store.emit({ run: "r", task: "F-001", stage: "build", type: "stage.ok" }));
+    await m.tick(); await Bun.sleep(10);
+    expect(m.decisions()).toContain("milestone");
+    expect({ autonomy, added: m.added.length }).toEqual({ autonomy, added: retro }); // the retrospective's one follow-up
+  }
 });

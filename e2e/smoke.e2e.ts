@@ -56,6 +56,8 @@ try {
     page.on("console", (m) => { if (m.type() === "error") problems.push(`${name}: console error ${m.text()}`); });
     await page.goto(`http://127.0.0.1:${server.port}/`);
     await page.locator(".link.live, .side .link").first().waitFor();
+    // Autopilot's state on every screen, with its one-press pause (F-091).
+    await page.getByRole("button", { name: /^Autopilot (on · Pause|paused · Resume|off · Turn on)$/ }).waitFor();
 
     // The Technical Manager's strip: her state, what she decided last, and the limits she works within.
     const strip = page.getByRole("article", { name: "Technical Manager" });
@@ -161,13 +163,14 @@ try {
     // Team: what she may do by herself, changed and saved.
     await open(page, "Team");
     await page.getByRole("region", { name: /may do by herself/ }).waitFor();
-    await page.getByLabel("Assist", { exact: false }).first().click();
+    const herself = page.getByRole("region", { name: /may do by herself/ });
+    await herself.getByLabel("Assist", { exact: false }).first().click();
     await page.waitForFunction(async () => (await (await fetch("/api/manager")).json()).settings.autonomy === "assist");
     await page.getByLabel(/Spend limit per day/).fill("40");
     await page.getByRole("button", { name: "Save limits" }).click();
     await page.getByText("Saved", { exact: true }).waitFor();
     await a11y(page, `${name} manager settings`);
-    await page.getByLabel("Autopilot", { exact: false }).first().click();
+    await herself.getByLabel("Autopilot", { exact: false }).first().click();
     await page.waitForFunction(async () => (await (await fetch("/api/manager")).json()).settings.autonomy === "autopilot");
     await page.evaluate(() => fetch("/api/manager", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ perDay: 25 }) })); // back to the default for the next width
 
@@ -265,7 +268,7 @@ try {
     assert.equal(await box.inputValue(), "a second thought", `${name}: the unsent message is still there too`);
     await box.fill("stop this one");
     await page.getByRole("button", { name: "Send", exact: true }).click();
-    await page.getByRole("button", { name: "Stop" }).click();
+    await page.getByRole("button", { name: "Stop", exact: true }).click();
     await page.locator(".bubble.team", { hasText: "Stopped." }).waitFor({ timeout: 5000 });
     await box.fill("/cl"); // Enter on a suggestion runs it: the typed command asks the same question as the Clear button
     await box.press("Enter");

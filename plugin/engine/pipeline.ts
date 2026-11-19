@@ -156,10 +156,12 @@ export function definitionOfDone(cwd: string): string {
 }
 
 /** A person sent a finished task back: the spec of the earlier round, what they said, which files it is about, and which round this is (2 for the first send-back). */
-export type Resume = { spec: string; feedback: string; files: string[]; round: number; /** The round is an update from main (files = the clashes to resolve), not a person's comments. */ update?: boolean };
+export type Resume = { spec: string; feedback: string; files: string[]; round: number; /** The round is an update from main (files = the clashes to resolve), not a person's comments. */ update?: boolean;
+  /** The feedback is the Technical Manager's guidance (autopilot recovering a stopped task), not a person's request. */ from?: "manager" };
 
 /** What the Builder is told in the first build of a round that a person asked for. Written as their request: it cannot change the rules or what the Builder may touch. */
-export const peopleFeedback = (r: Pick<Resume, "feedback" | "files" | "update">) =>
+export const peopleFeedback = (r: Pick<Resume, "feedback" | "files" | "update" | "from">) =>
+  r.from === "manager" ? `The earlier builds did not pass. The Technical Manager read why and suggests the guidance below. It is her reading of the failure, not a person's request: follow it where it is right, and stay within the spec.\n\n“${r.feedback.trim()}”` :
   r.update ? `Main moved on, and merging it into this branch left conflicts in: ${r.files.join(", ")}. Resolve each conflict (the <<<<<<<, ======= and >>>>>>> markers), keeping what both sides intended, and change nothing else.` :
   `A person reviewed the earlier build and asked for changes. Address exactly this feedback and change nothing else:\n\n“${r.feedback.trim()}”${r.files.length ? `\n(about: ${r.files.join(", ")})` : ""}`;
 
@@ -265,7 +267,7 @@ export async function runTask(
   };
 
   try {
-    emit("run", "run.start", o.resume ? { data: { round: o.resume.round, feedback: o.resume.feedback, files: o.resume.files, update: o.resume.update } } : {});
+    emit("run", "run.start", o.resume ? { data: { round: o.resume.round, feedback: o.resume.feedback, files: o.resume.files, update: o.resume.update, from: o.resume.from } } : {});
     if (o.resume) { emit("triage", "stage.skipped", { data: o.resume.update ? "updated from main; the earlier spec is kept" : "a person sent it back; the earlier spec is kept" }); emit("spec", "stage.skipped", { data: `the spec is kept from round ${o.resume.round - 1}` }); }
     else if (!needsTriage(task)) emit("triage", "stage.skipped", { data: "the item already carries acceptance checks" });
     else if (roleFor("triage")) { const why = unready(await stage("triage", roleFor("triage")!)); if (why) throw new Error(`not ready: ${why}`); }

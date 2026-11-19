@@ -87,7 +87,7 @@ function TaskCard(p: { openPerson?: (role: string) => void; behind?: number; ite
           <span><b>{active[1].role ? personaFor(active[1].role).name : "The gate"}</b><span className="note">{active[0] === "check" ? "Running the project's checks" : <>{live.verb} {live.what && <code>{live.what}</code>}</>}</span></span>
         </div>
       )}
-      {active && run && run.feedback.length > 0 && <p className="note said-line" title={run.feedback.at(-1)!.text}>You asked: “{run.feedback.at(-1)!.text}”</p>}
+      {active && run && run.feedback.length > 0 && <p className="note said-line" title={run.feedback.at(-1)!.text}>{run.feedback.at(-1)!.manager ? "The manager suggested" : "You asked"}: “{run.feedback.at(-1)!.text}”</p>}
       {(active || (run && sec === "Blocked")) && (
         <>
           <div className="track" role="img" aria-label={TRACK.map((s, i) => `${STATION[s]} ${track[i] ?? "waiting"}`).join(", ")}>
@@ -383,8 +383,8 @@ function Panel(p: { behind?: number; busy: boolean; item: Item; run?: TaskRun; e
                 );
               })()}
               {(run?.feedback ?? []).slice().reverse().map((f, i) => (
-                <section key={i} className="bk-card live" aria-label={`${f.update ? "Update from main" : "Your comments"}, round ${f.round}`}>
-                  <div className="row between"><h3>{f.update ? "Update from main" : "Your comments"} · round {f.round}</h3><span className="note">{f.update ? "started" : "sent"} {agoShort(f.ts)} ago</span></div>
+                <section key={i} className="bk-card live" aria-label={`${f.update ? "Update from main" : f.manager ? "The manager's guidance" : "Your comments"}, round ${f.round}`}>
+                  <div className="row between"><h3>{f.update ? "Update from main" : f.manager ? "The manager's guidance" : "Your comments"} · round {f.round}</h3><span className="note">{f.update ? "started" : "sent"} {agoShort(f.ts)} ago</span></div>
                   <p className="bk-detail">{f.text}</p>
                   {f.files.length > 0 && <p className="note">About: {f.files.map((x) => <code key={x}>{x}</code>)}</p>}
                 </section>

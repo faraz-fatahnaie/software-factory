@@ -1227,3 +1227,7 @@ button.icon:hover { color: var(--text); background: color-mix(in srgb, var(--tex
 .gh-batch { margin-inline-start: auto; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 400; font-size: 13px; }
 .gh-tasks { list-style: none; margin: 2px 0 4px; padding: 0; display: grid; gap: 1px; font-size: 13px; } .gh-tasks li::before { content: "·"; margin-inline-end: 6px; color: var(--muted); }
 .mgr-notice { display: grid; gap: 10px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--line)); border-radius: var(--r-md); background: var(--accent-soft); } .mgr-notice p { margin: 0; }
+
+/* Autopilot on every screen (F-091): a button that looks like the rail status lines next to it. */
+.autopilot-switch { background: none; border: 0; font: inherit; cursor: pointer; text-align: left; width: 100%; }
+.autopilot-switch:hover span { text-decoration: underline; }

@@ -13,8 +13,8 @@ export type ManagerSettings = { autonomy: Autonomy; parallel: number; recoveries
 export type ManagerInfo = { settings: ManagerSettings; spentToday: number; /** The one-time explanation that autopilot is on has not been answered yet. */ notice?: boolean };
 
 export const AUTONOMY_OPTIONS: { value: Autonomy; label: string; hint: string }[] = [
-  { value: "autopilot", label: "autopilot", hint: "Starts what you ask her to build, and recovers a stuck task, by itself, within the limits" },
-  { value: "assist", label: "assist", hint: "Diagnoses and proposes; you press the buttons" },
+  { value: "autopilot", label: "autopilot", hint: "Starts what is under Ready, in order (only what you promoted or named to her), tries a stopped task again or sends the Builder guidance, and updates a waiting branch with a small clash, all within the limits. It never approves, pushes, merges or deploys, never builds risky work without your yes, and never starts what you did not ask for" },
+  { value: "assist", label: "assist", hint: "Diagnoses and proposes; you press the buttons. Nothing starts and nothing is spent by itself" },
   { value: "off", label: "off", hint: "Does nothing by itself. You can still talk to the manager" },
 ];
 
@@ -38,6 +38,24 @@ export function useManager(events: Ev[]) {
     if (r.ok) { setInfo((i) => (i ? { ...i, settings: r.data.settings, notice: false } : i)); setProblem(""); } else setProblem(r.error);
   };
   return { info, set, dismiss, problem };
+}
+
+/**
+ * Autopilot's state on every screen, with one press to pause it (F-091). Pausing switches to assist: nothing starts or retries by itself, the manager only
+ * proposes. Resuming is the person's choice too, so it is the same one press back.
+ */
+export function AutopilotSwitch({ events }: { events: Ev[] }) {
+  const { info, set } = useManager(events);
+  if (!info) return null;
+  const on = info.settings.autonomy === "autopilot";
+  const text = on ? "Autopilot on · Pause" : info.settings.autonomy === "off" ? "Autopilot off · Turn on" : "Autopilot paused · Resume";
+  return (
+    // The label keeps the name where a narrow side bar hides the text and shows only the dot.
+    <button className={`link vcs ${on ? "ok" : "warn"} autopilot-switch`} aria-label={text} aria-pressed={on} onClick={() => set({ autonomy: on ? "assist" : "autopilot" })}
+      title={on ? "Autopilot is on: it starts what is under Ready and recovers stopped tasks, within the limits. Press to pause it (assist: it only proposes)." : `Autopilot is ${info.settings.autonomy === "off" ? "off" : "paused (assist)"}: nothing starts by itself. Press to turn it on again.`}>
+      <span>{text}</span>
+    </button>
+  );
 }
 
 /** Where things stand, in one sentence, from the backlog alone (no model). */
@@ -71,7 +89,7 @@ export function ManagerStrip({ events, items, role, talkTo, open, manager: { inf
       </header>
       {info.notice && s.autonomy === "autopilot" && (
         <section className="mgr-notice" role="region" aria-label="About autopilot">
-          <p><b>Autopilot is on.</b> {who} now starts what you ask her to build (an item you only add to the Inbox waits for your word), and tries a stopped task again, by herself. Her limits: {s.parallel} task{s.parallel === 1 ? "" : "s"} at a time, {s.recoveries} retries per task, ${s.perTask} per task and ${s.perDay} per day. She never approves, pushes, merges or deploys, and everything she decides is listed here.</p>
+          <p><b>Autopilot is on.</b> {who} now starts what is under Ready, in order (only what you promoted or named to her: an item only added to the Inbox waits for your word), tries a stopped task again or sends the Builder guidance, and updates a waiting branch with a small clash, all within the limits, by herself. The Pause in the side bar stops it at once. Her limits: {s.parallel} task{s.parallel === 1 ? "" : "s"} at a time, {s.recoveries} retries per task, ${s.perTask} per task and ${s.perDay} per day. She never approves, pushes, merges or deploys, never builds risky work without your yes, and everything she decides is listed here.</p>
           <div className="row gap"><button className="primary" onClick={() => dismiss()}>Keep autopilot</button><button onClick={() => dismiss({ autonomy: "assist" })}>Switch to assist</button><button onClick={() => dismiss({ autonomy: "off" })}>Turn it off</button></div>
         </section>
       )}

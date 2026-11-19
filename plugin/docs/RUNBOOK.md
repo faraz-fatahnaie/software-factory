@@ -394,8 +394,21 @@ task Dina stopped herself: Tess tells her, in plain words, and leaves it. She ne
 deploys, and stops starting new work when $25 has been spent in a day or three tasks wait for Dina. Every
 decision is in **Logs**.
 
-To take control: `factory manager assist` (Tess only proposes, Dina presses the buttons) or
-`factory manager off`, or the **Manager** menu in Talk. `factory manager set perDay 10` changes a limit.
+What Tess may start is narrow on purpose. Under Ready she starts only what Dina promoted, or named to her in Talk ("build F-012";
+a plain "yes" to a task Tess just named counts too; a question, "wait" or "don't" never does). Her own ideas are buttons Dina
+presses. A start Dina asked for in Talk still keeps the limits: past the day's spending, the number running at once or three approved
+tasks not merged, it waits for Dina's press. When Tess sends the Builder guidance, the Builder and the page show it as hers, never as
+Dina's. On assist nothing starts and nothing is spent by itself, not even the look back at a finished milestone.
+
+Main moving on is handled carefully: Tess updates one waiting branch at a time, not while the models are short of quota, and only
+when the clash is in at most two files. A bigger clash usually means two changes to the same feature, so it goes to Dina, with the
+advice that rebuilding is often cheaper. An update that fails says so in the manager's feed. A new task that names a file a finished,
+not-yet-merged task changes waits until that one is merged.
+
+To take control: the **Autopilot on · Pause** line in the side bar (on every screen) pauses it at once, and the same line turns it on
+again. Or `factory manager assist` (Tess only proposes, Dina presses the buttons), `factory manager off`, or the **Manager** menu in
+Talk. `factory manager set perDay 10` changes a limit. With **Notify me** on, a desktop notification says when autopilot pauses itself
+or a task needs Dina.
 
 When the last task of a milestone is finished, Tess says so, names what is due now (the documents, a security
 audit, a release check) and looks back at what kept going wrong; anything she proposes lands in the Inbox for

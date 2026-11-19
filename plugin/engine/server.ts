@@ -3,7 +3,7 @@ import { basename, join } from "node:path";
 import { parse } from "./backlog";
 import { chatArgs, chatTurn, managerTurn, resumeChat, stopChat, TOPICS, compactTurn, managerPrompt } from "./chat";
 import { loadConfig, managerOf, parseConfig, projectRoles, projectTeam } from "./config";
-import { parseProposal, type Context, checkSetup } from "./state";
+import { parseProposal, personAsked, type Context, checkSetup } from "./state";
 import { checkAuthority, checkRoleFile, checkLimits } from "./authority";
 import { trial, waiting } from "./integrate";
 import { VERSION } from "./upgrade";
@@ -136,6 +136,8 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
     store.emit({ run: "", task: "", stage: "chat", type: "chat.turn", data: { topic: "supervisor", usage: { costUsd: r.costUsd ?? 0 } } }); // counted in the day's spend like any other model call
     return r.ok ? r.text.replace(/^(ASK [a-z]+:|PROPOSE:) .*$/gm, "").trim() : "";
   };
+  /** Approved tasks whose branch is not in main yet: the pile autopilot keeps under its limit. */
+  const unmergedTasks = () => items().filter((i) => i.section === "Done" && Bun.spawnSync(["git", "rev-parse", "--verify", "--quiet", `refs/heads/factory/${i.id}`], { cwd: root }).exitCode === 0 && !isLanded(root, i.id)).map((i) => i.id);
   const sup = opts.supervisor && !process.env.FACTORY_NO_SUPERVISOR ? supervisor({
     root, store, running, items, launch: (id, argv) => launch([id], argv),
     settings: () => managerOf(loadConfig(root)),
@@ -147,7 +149,8 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
     retro: (name) => model("", `The milestone "${name}" is done. Hold a short retrospective from these facts, counted from the project's log:\n\n${report(items(), allEvents(store))}\n\nSay in plain words, in under 150 words: what went well, what kept going wrong and its likely cause, and whether one role fails or costs far more than the others. Only say what the facts show; with too little history, say so in one sentence. If a change to the project's rules, a role's notes or a skill would prevent a recurring cause, end with a "## Follow-ups" heading and at most three lines starting with "- ", each one a backlog item title a person could approve. Do not add them yourself.`),
     explain: (id, error) => model(id, `Task ${id} stopped with this error:\n${error.slice(0, 1500)}\n\nThe spec:\n${(store.output(id, "spec") ?? "(none)").slice(0, 2000)}\n\nThe reviewer's last findings:\n${(store.output(id, "review") ?? "(none)").slice(0, 2000)}\n\nSay in plain words, in under 100 words, what happened, why, and what the person should do. Reply with that explanation only.`),
     landed: (id) => isLanded(root, id),
-    unmerged: () => items().filter((i) => i.section === "Done" && Bun.spawnSync(["git", "rev-parse", "--verify", "--quiet", `refs/heads/factory/${i.id}`], { cwd: root }).exitCode === 0 && !isLanded(root, i.id)).map((i) => i.id),
+    unmerged: unmergedTasks,
+    waitingFiles: () => waiting(root, items()).map((w) => ({ id: w.id, files: w.files })),
     clashing: () => {
       const head = Bun.spawnSync(["git", "rev-parse", "HEAD"], { cwd: root, stdout: "pipe" }).stdout.toString().trim();
       return { head, tasks: waiting(root, items()).flatMap((w) => { const f = trial(root, "HEAD", w.branch); return f?.length ? [{ id: w.id, files: f }] : []; }) };
@@ -476,6 +479,15 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
           // On autopilot a proposal to promote, run or retry is carried out at once (the person asked for it in this conversation); on assist the page shows a button.
           const { proposal, text } = out.ok ? parseProposal(out.text) : { proposal: undefined, text: out.text };
           if (!proposal || !["promote", "run", "retry"].includes(proposal.kind) || managerOf(loadConfig(root)).autonomy !== "autopilot") return done(out);
+          // F-092: only what the person asked for in this message, and only within the limits autopilot keeps; anything else stays a button, with the reason.
+          const before = readChat(root, topic).messages, previous = [...before.slice(0, -1)].reverse().find((m) => m.who === "team")?.text ?? "";
+          const asked = personAsked(String(body.message ?? ""), previous), s = managerOf(loadConfig(root));
+          const held = !proposal.ids.every((id) => asked.includes(id)) ? `You did not name ${proposal.ids.filter((id) => !asked.includes(id)).join(", ")} yourself, so this waits for your press`
+            : proposal.kind !== "promote" && store.spent(new Date(new Date().setHours(0, 0, 0, 0)).toISOString()) >= s.perDay ? `The day's limit ($${s.perDay}) is reached, so I did not start it by myself; press to start it anyway`
+            : proposal.kind !== "promote" && running.size >= s.parallel ? `${running.size} task${running.size === 1 ? " is" : "s are"} running, the most at once, so I did not start it by myself; press to start it anyway`
+            : proposal.kind !== "promote" && unmergedTasks().length >= s.unmerged ? `${unmergedTasks().length} approved tasks are not merged into main yet, so I did not start more by myself; press to start it anyway`
+            : "";
+          if (held) return done({ ...out, text: out.text.replace(/^PROPOSE: .*$/m, (line) => `_${held}._\n${line}`) });
           let ok = true, note = "";
           const where = (id: string) => items().find((i) => i.id === id)?.section;
           if (proposal.kind === "promote") {

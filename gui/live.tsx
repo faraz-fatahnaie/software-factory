@@ -63,9 +63,13 @@ export function useNotify(events: Ev[], tasks: Map<string, TaskRun>) {
   useEffect(() => {
     if (!on) return;
     for (const e of events.slice(-20)) {
-      if ((e.type !== "run.done" && e.type !== "run.failed") || done.current.has(e.seq) || Date.now() - Date.parse(e.ts) > 30_000) continue;
+      // The manager pausing autopilot, handing a task to the person, or a failed update (F-091): each needs the person, so each is said.
+      const action = e.type === "manager.decision" ? String(e.data?.action ?? "") : "";
+      const managerNews = ["pause", "escalate", "update-failed"].includes(action);
+      if ((e.type !== "run.done" && e.type !== "run.failed" && !managerNews) || done.current.has(e.seq) || Date.now() - Date.parse(e.ts) > 30_000) continue;
       done.current.add(e.seq);
       if (!document.hidden) continue;
+      if (managerNews) { new Notification(action === "pause" ? "Autopilot paused itself" : `${e.task || "A task"} needs you`, { body: String(e.data?.text ?? "").slice(0, 160), tag: `${e.seq}` }); continue; }
       const stages = tasks.get(e.task)?.stages ?? {}, last = [...STAGES].reverse().find((s) => stages[s]?.role);
       const who = personaFor(last ? stages[last]!.role! : "builder").name;
       new Notification(e.type === "run.done" ? `${who} finished ${e.task}` : `${who} got stuck on ${e.task}`, { body: e.type === "run.done" ? "Ready for your review." : String(e.data ?? "").slice(0, 140), tag: `${e.run}-${e.type}` });
@@ -77,7 +81,7 @@ export function useNotify(events: Ev[], tasks: Map<string, TaskRun>) {
 export function NotifyToggle({ notify }: { notify: ReturnType<typeof useNotify> }) {
   if (!notify) return null;
   return (
-    <button className="quiet theme" aria-pressed={notify.on} onClick={notify.toggle} title="A desktop notification when someone finishes or gets stuck, while this tab is hidden">
+    <button className="quiet theme" aria-pressed={notify.on} onClick={notify.toggle} title="A desktop notification when someone finishes or gets stuck, or autopilot pauses itself or needs you, while this tab is hidden">
       <Icon name="bell" /><span>{notify.on ? "Notifications on" : "Notify me"}</span>
     </button>
   );

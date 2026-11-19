@@ -70,7 +70,9 @@ export function overlap(a: string[], b: string[]): string | undefined {
 }
 
 const RECENT = 7 * 24 * 3_600_000; // a milestone finished longer ago than this is history, not news
-const AWAITING_LIMIT = 3; // the person is the bottleneck: no new work while this many tasks wait for a decision
+const AWAITING_LIMIT = 3;
+/** The most files a clash may span for autopilot to update the task by itself (see the keep-up below). */
+const MAX_AUTO_CLASH = 2; // the person is the bottleneck: no new work while this many tasks wait for a decision
 const startOfDay = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString(); };
 
 /** Whether a guidance text is something to send the Builder: not empty, and not the manager saying she could not do her job. */
@@ -102,6 +104,8 @@ export type Ctx = {
   authority?: () => string[];
   /** Whether a finished task's work is in the project's main line, so a task that needs it can be built. */
   landed?: (id: string) => boolean;
+  /** Tasks not in main yet (waiting for a decision, or approved and not merged), with the files each changes: new work that touches one of them waits. */
+  waitingFiles?: () => { id: string; files: string[] }[];
   /** Changes what the manager may do by itself (the breaker switches autopilot to assist). */
   setAutonomy?: (a: Autonomy) => void;
   /** A model's retrospective when a milestone is done: what kept going wrong, with proposals under "## Follow-ups". May fail; the milestone is announced either way. */
@@ -117,7 +121,7 @@ export type Ctx = {
 export function supervisor(ctx: Ctx) {
   // Tasks that stopped before the supervisor started are left for the person: a restart must not set old work running again.
   const since = new Date().toISOString();
-  const retryAt = new Map<string, number>(), settled = new Set<string>(), stalled = new Set<string>(), overBudget = new Set<string>();
+  const retryAt = new Map<string, number>(), settled = new Set<string>(), stalled = new Set<string>(), overBudget = new Set<string>(), updating = new Set<string>();
   const decide_ = (task: string, action: string, text: string, extra: Record<string, unknown> = {}) =>
     ctx.store.emit({ run: ctx.store.lastRun(task) ?? "", task, stage: "manager", type: "manager.decision", data: { action, text, auto: true, ...extra } });
   const once = (key: string) => (settled.has(key) ? false : (settled.add(key), true));
@@ -146,7 +150,8 @@ export function supervisor(ctx: Ctx) {
       if (!last || now - Date.parse(last) > RECENT) continue;
       if (ctx.store.decisions("", 1000).some((e) => (e.data as { action?: string; milestone?: string } | undefined)?.action === "milestone" && (e.data as { milestone?: string }).milestone === m.name)) continue;
       decide_("", "milestone", `Milestone "${m.name}" is done: all ${m.ids.length} of its tasks are finished. This is the moment for the milestone work: bring the documents up to date, run a security audit and check that it is ready to release. Ask me in Talk and I will start each with the right person.`, { milestone: m.name });
-      if (dayCost() < s.perDay) ctx.retro?.(m.name).then(async (text) => {
+      // The retrospective is a model call: it costs money, so only autopilot runs it by itself. On assist the announcement is enough.
+      if (s.autonomy === "autopilot" && dayCost() < s.perDay) ctx.retro?.(m.name).then(async (text) => {
         if (!text.trim()) return;
         ctx.store.emit({ run: "", task: "", stage: "manager", type: "manager.note", data: { text: text.split(/^## Follow-ups\s*$/m)[0]!.trim(), milestone: m.name } });
         // Her proposals go to the Inbox like any agent's follow-up: a person promotes them, autopilot does not.
@@ -229,7 +234,7 @@ export function supervisor(ctx: Ctx) {
       if (step.action === "guide" && ctx.hasSpec(it.id)) {
         const text = await ctx.guide(it.id, error).catch(() => "");
         if (!usableGuidance(text)) { if (once(key)) decide_(it.id, "escalate", `${it.id} needs you. I could not write guidance for the Builder that I trust, and starting the same build again would only repeat it.`, { kind }); continue; }
-        if (ctx.launch(it.id, ["reject", it.id, "--feedback", text.trim().slice(0, 3900)])) { decide_(it.id, "guide", `${it.id}: ${step.text}`, { kind, guidance: text.trim().slice(0, 1500) }); continue; }
+        if (ctx.launch(it.id, ["reject", it.id, "--feedback", text.trim().slice(0, 3900), "--from", "manager"])) { decide_(it.id, "guide", `${it.id}: ${step.text}`, { kind, guidance: text.trim().slice(0, 1500) }); continue; }
       }
       // A task that needs another task's work waits for it instead of failing the same way again.
       const waits = waitingFor(it, ctx.items());
@@ -250,11 +255,16 @@ export function supervisor(ctx: Ctx) {
     let room = s.parallel - ctx.running.size;
     // Keep-up: a finished task whose branch clashes with main now is updated while that is cheap (the Builder resolves one clash in that task's own folder, and it comes
     // back for the person's yes), instead of when somebody is about to merge it. Once for each state of main: what a round could not resolve is not tried again at the same main.
-    if (room > 0 && dayCost() < s.perDay) {
+    // Cautious (learned on a real project): one update at a time; none while models are short of quota (four updates started in two minutes and all
+    // failed on rate limits); and only a small clash. A clash in many files is usually two changes to the same feature, which is a decision, not a merge.
+    for (const id of updating) if (!ctx.running.has(id)) updating.delete(id);
+    const quotaShort = ctx.store.quotaShort?.(new Date(now - 3_600_000).toISOString()) ?? false;
+    if (room > 0 && dayCost() < s.perDay && !updating.size && !quotaShort) {
       const { head, tasks } = ctx.clashing?.() ?? { head: "", tasks: [] };
       for (const c of tasks) {
         if (ctx.running.has(c.id) || !once(`update:${c.id}:${head}`)) continue;
-        if (ctx.launch(c.id, ["update", c.id])) { decide_(c.id, "update", `${c.id} clashes with main in ${c.files.slice(0, 4).join(", ")}${c.files.length > 4 ? " and more" : ""}, so I am updating it: the Builder resolves the clash in its own folder, and it comes back to you for a yes.`, { files: c.files }); room--; break; }
+        if (c.files.length > MAX_AUTO_CLASH) { decide_(c.id, "hold", `${c.id} clashes with main in ${c.files.length} files (${c.files.slice(0, 4).join(", ")}${c.files.length > 4 ? " and more" : ""}). That many usually means two changes to the same feature, which is a decision, so I did not update it by myself. Look at it: press Update this branch, or discard it and build it again on today's main, which is often cheaper.`, { files: c.files }); continue; }
+        if (ctx.launch(c.id, ["update", c.id])) { updating.add(c.id); decide_(c.id, "update", `${c.id} clashes with main in ${c.files.slice(0, 4).join(", ")}${c.files.length > 4 ? " and more" : ""}, so I am updating it: the Builder resolves the clash in its own folder, and it comes back to you for a yes.`, { files: c.files }); room--; break; }
       }
     }
     if (room <= 0 || awaiting >= AWAITING_LIMIT) return;
@@ -269,6 +279,7 @@ export function supervisor(ctx: Ctx) {
     const touching = (i: Item) => pathsIn(`${i.title}\n${i.detail}\n${ctx.store.output(i.id, "spec") ?? ""}`);
     const busyFiles = () => [...ctx.running.keys()].map((id) => ({ id, files: touching(fresh.find((i) => i.id === id) ?? mine(id)) }));
     const mine = (id: string): Item => ({ id, title: "", section: "", detail: "" });
+    let waiting: { id: string; files: string[] }[] | undefined; // read once per tick, and only when something could start
     for (const it of ready) {
       if (room <= 0) break;
       // A task that needs another task's work does not start before that work is in main: it would be built without it and fail the same way every time.
@@ -279,6 +290,9 @@ export function supervisor(ctx: Ctx) {
       const mineFiles = touching(it);
       const hit = busyFiles().map((b) => ({ id: b.id, file: overlap(mineFiles, b.files) })).find((h) => h.file);
       if (hit) { if (once(`clash:${it.id}:${hit.id}`)) decide_(it.id, "hold", `${it.id} waits for ${hit.id}: both are likely to change ${hit.file}.`, { with: hit.id }); continue; }
+      // A finished task that is not in main yet changes files too: new work on them would clash with it later, so it waits until that task is merged.
+      const pending = (waiting ??= ctx.waitingFiles?.() ?? []).map((w) => ({ id: w.id, file: overlap(mineFiles, w.files) })).find((h) => h.file && h.id !== it.id);
+      if (pending) { if (once(`pending:${it.id}:${pending.id}`)) decide_(it.id, "hold", `${it.id} waits for ${pending.id}: both change ${pending.file}, and ${pending.id} is not merged into main yet. Merge ${pending.id} first (\`factory integrate\` gives the order), and I start ${it.id} after.`, { with: pending.id }); continue; }
       if (ctx.launch(it.id, ["run", it.id])) { decide_(it.id, "start", `${it.id} was next in line, so I started it.`); room--; }
     }
   }
@@ -302,7 +316,7 @@ export function writeManager(root: string, patch: ManagerSettings): Required<Man
 }
 
 export const AUTONOMY_TEXT: Record<Autonomy, string> = {
-  autopilot: "Autopilot: the manager starts what you ask her to build, and recovers a stuck task, by itself, within the limits",
-  assist: "Assist: the manager diagnoses and proposes; you press the buttons",
+  autopilot: "Autopilot: the manager starts what is under Ready, in order (only what you promoted or named to her), tries a stopped task again or sends the Builder guidance, and updates a waiting branch with a small clash, all within the limits. It never approves, pushes, merges or deploys, never builds risky work without your yes, and never starts what you did not ask for",
+  assist: "Assist: the manager diagnoses and proposes; you press the buttons. Nothing starts and nothing is spent by itself",
   off: "Off: the manager does nothing by itself (you can still talk to it)",
 };

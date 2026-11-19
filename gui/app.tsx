@@ -8,7 +8,7 @@ import { BacklogView } from "./backlog";
 import { Studio } from "./studio";
 import { Agents, Logs, Worktrees } from "./views";
 import { sendChat, Talk, useQueueDrain, type Chats } from "./talk";
-import { ManagerStrip, useManager } from "./manager";
+import { AutopilotSwitch, ManagerStrip, useManager } from "./manager";
 import { fetchChats, merge } from "./chatstore";
 import { Palette } from "./palette";
 import { HealthStrip, healthChip } from "./health";
@@ -424,6 +424,7 @@ function App() {
           <a className={`link vcs ${chip.tone}`} href="#overview" title={chip.title}><span>{chip.text}</span></a>
           <button className="quiet theme pal-btn" onClick={() => setPalette(true)} aria-keyshortcuts="Control+K Meta+K"><Icon name="search" /><span>Search or run…</span><kbd>⌘K</kbd></button>
           <a className={`link vcs ${pulse.tone}`} href="#overview" title={pulse.title}><span>{pulse.text}</span></a>
+          <AutopilotSwitch events={events} />
           <NotifyToggle notify={notify} />
           {version && <span className="note version" title="The version of Software Factory this dashboard is running. After an update, /software-factory:open replaces an older dashboard.">Software Factory {version}</span>}
           <button className="quiet theme" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
