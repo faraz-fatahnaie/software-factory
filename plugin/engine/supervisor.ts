@@ -232,6 +232,8 @@ export function supervisor(ctx: Ctx) {
       const step = decide(kind, ctx.store.retries(it.id), ctx.store.spent("", it.id), s, error);
       if (step.action === "escalate") {
         if (!once(key)) continue;
+        // F-127: too large for one task is not the person's to solve by hand: triage already wrote the parts, so autopilot makes them smaller items.
+        if (kind === "unready" && /too large/.test(error) && s.autonomy === "autopilot" && ctx.launch(it.id, ["split", it.id])) continue;
         decide_(it.id, "escalate", `${it.id} needs you. ${step.text}`, { kind });
         if (kind === "stopped") stoppedByPerson = it.id;
         if (kind !== "stopped") ctx.explain(it.id, error).then((text) => text && ctx.store.emit({ run: fail.run, task: it.id, stage: "manager", type: "manager.note", data: { text } })).catch(() => {});

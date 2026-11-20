@@ -1599,6 +1599,8 @@ test("F-124: on autopilot, deliver pushes the next approved task, then merges it
     // Checks pass: it merges, and nothing else is pushed in the same step.
     prs([ghPr(7, "F-001", "SUCCESS")]);
     expect(cli("deliver").out).toContain("pull request #7 merged");
+    expect(cli("problems", "1").out).not.toContain("no-checks"); // advice, not a problem
+    expect(readFileSync(join(dir, ".factory", "events.db")).includes("no-checks")).toBe(true); // said once, when a pull request merged with nothing on GitHub to check it
     expect((calls().match(/pr create/g) ?? []).length).toBe(1);
     prs([]);
     expect(cli("deliver").out).toMatch(/F-002: pushed/);
@@ -3743,6 +3745,32 @@ test("the week's note: where the tokens and problems went, counted without a mod
   expect(weeklyNote([], 7, now)).toBe("");
   const m = manage({}, []);
   await m.tick();
+  m.stop();
+});
+
+test("split: triage's suggested parts become smaller items in order, the parent is closed with a note, and autopilot does it for a too-large item", async () => {
+  const { partsOf } = await import("../plugin/engine/split");
+  const triage = "**Triage F-001: Big**\n\n- **Type**: feature\n- **Size**: large. Suggested split, each part done in order:\n  1. **Data and progress.** Define it. Needs unit tests.\n  2. **Screen and flow.** Add the screen.\n  3. **Tutorial.** Extend it.\n- **Overlap**:\n  - none\n- **Acceptance**:\n  - x";
+  expect(partsOf(triage).map((p) => p.title)).toEqual(["Data and progress", "Screen and flow", "Tutorial"]);
+  expect(partsOf("no split here")).toEqual([]);
+  const { dir, cli, section } = repo();
+  const { openStore } = await import("../plugin/engine/events");
+  mkdirSync(join(dir, ".factory"), { recursive: true });
+  const st = openStore(join(dir, ".factory", "events.db"));
+  st.emit({ run: "r1", task: "F-001", stage: "triage", type: "stage.ok", data: { output: triage } });
+  st.close();
+  const r = cli("split", "F-001");
+  expect(r.code).toBe(0);
+  expect(r.out).toContain("split into");
+  expect(section("F-001")).toBe("Done");
+  const backlog = readFileSync(join(dir, "BACKLOG.md"), "utf8");
+  expect(backlog).toContain("part 1: Data and progress");
+  expect(backlog).toMatch(/Split from F-001: part 2 of 3\.\n\s+Depends on: F-00\d/);
+  expect(cli("split", "F-002").code).toBe(1); // no triage note to follow
+  const m = manage({}, [mItem("F-001", "Blocked")]);
+  failed(m.store, "F-001", "Error: not ready: triage found it too large for one task. Split it into smaller items");
+  await m.tick();
+  expect(m.launched).toEqual([["split", "F-001"]]);
   m.stop();
 });
 

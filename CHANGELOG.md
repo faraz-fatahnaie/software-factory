@@ -3,6 +3,12 @@
 Each release lists what changed and anything you need to do in your own project. How to update:
 [plugin/README.md](plugin/README.md#updating).
 
+## Unreleased
+
+- **A merge nothing checked is said once.** When autopilot merges a pull request in a project with no checks on GitHub, the manager says so once, explains what that means, and points to *Add checks (CI)* (`factory vcs ci`). It keeps merging either way.
+- **An item too large for one task is broken down by the factory.** Triage already wrote a suggested split; `factory split <F-id>` (autopilot runs it by itself) turns the parts into smaller items under Ready, each depending on the one before, and closes the parent with a note.
+- Stages may read their own run folder with `cat`, `grep` and `ls`.
+
 ## 1.5.0
 
 Autopilot takes approved work to GitHub, roles can recover and every problem is counted, the factory spends fewer tokens, and new dependencies have a workflow. **Update, then restart the dashboard (`/software-factory:open`).**

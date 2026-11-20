@@ -17,6 +17,7 @@ import { addCustom, changeTeam, moveSettings, offSettings, onSettings, removeCus
 import { runTask, shellGate, stopAll, stubRunner, type Resume, type Runner } from "./pipeline";
 import { addSkill, searchSkills, setSkill } from "./skills";
 import { preflight } from "./preflight";
+import { partsOf } from "./split";
 import { deliverStep, takeLock, type Step } from "./deliver";
 import { armAutoMerge, baseBranch, closeTask, remoteUrl, ciWorkflow, failingChecksItem, formatStatus, hasChecks, listPrs, mergeTask, pushTask, revertTask, runTexts, syncGithub, vcsStatus, BATCH, pushBatch } from "./vcs";
 import { uncommittedWork } from "./worktree";
@@ -517,6 +518,34 @@ async function main([cmd, ...args]: string[]) {
     return console.log(args.map((id) => `${id} → Ready`).join("\n"));
   }
 
+  if (cmd === "split") {
+    // F-127: an item triage found too large becomes smaller items, in order, each depending on the one before. No model: triage already wrote the parts.
+    const item = find(args[0], "Inbox", "Ready", "Blocked");
+    const store = openEvents(), triage = store.output(item.id, "triage") ?? "";
+    store.close();
+    const parts = partsOf(triage);
+    if (parts.length < 2) {
+      const e = openEvents(); e.emit({ run: "", task: item.id, stage: "manager", type: "manager.decision", data: { action: "escalate", auto: true, text: `${item.id} needs you. It is too large for one task and triage gave no parts to split it into. Ask me to break it down, or add the smaller items yourself.` } }); e.close();
+    }
+    if (parts.length < 2) throw new Error(`${item.id} has no suggested split to follow (triage wrote ${triage ? "none" : "nothing yet; run it once so triage can say how to split it"}). Ask the Technical Manager to break it down.`);
+    const ids: string[] = [];
+    const base = item.title.replace(/^\[[^\]]*\]\s*/, "").slice(0, 70);
+    const parentDep = dependsOn(item).join(", ");
+    editBacklog(`${item.id} split into ${parts.length} items`, (t) => {
+      let text = t;
+      parts.forEach((p, n) => {
+        const detail = [p.detail, `Split from ${item.id}: part ${n + 1} of ${parts.length}.`, n === 0 ? (parentDep && `Depends on: ${parentDep}`) : `Depends on: ${ids[n - 1]}`].filter(Boolean).join("\n");
+        const added = add(text, `${base} (part ${n + 1}: ${p.title})`, "Ready", { detail });
+        text = added.text; ids.push(added.id);
+      });
+      return move(text, item.id, "Done", `split into ${ids.join(", ")}`);
+    });
+    const store2 = openEvents();
+    store2.emit({ run: "", task: item.id, stage: "manager", type: "manager.decision", data: { action: "split", auto: true, text: `${item.id} was too large for one task, so it is now ${ids.length} smaller ones, built in order: ${ids.map((id, n) => `${id} (${parts[n]!.title})`).join(", ")}.` } });
+    store2.close();
+    return console.log(`${item.id} → split into ${ids.join(", ")} (under Ready, each waits for the one before)`);
+  }
+
   if (cmd === "consult") {
     // One question to one role, read-only: what the manager uses in a terminal session to ask the team.
     const { askable, chatTurn } = await import("./chat");
@@ -632,6 +661,10 @@ async function main([cmd, ...args]: string[]) {
           if (pr) { const { title, detail } = failingChecksItem(failId, pr); const added = add(readFileSync(backlogPath, "utf8"), title, "Inbox", { detail }); editBacklog(`add ${added.id}`, () => added.text); text2 = `${text} I added ${added.id} to your Inbox describing what failed: promote it and the team fixes it.`; }
         }
         if (text) { const id = /^(F-\d+)/.exec(text)?.[1] ?? ""; if (!same(id)) store.emit({ run: store.lastRun(id) ?? "", task: id, stage: "manager", type: "manager.decision", data: { action: r.did ? "deliver" : "deliver-blocked", auto: true, text: text2 } }); }
+        // Option B (F-128): a merge with nothing on GitHub to check it is said once, with the way to add a check. Autopilot goes on merging.
+        if (r.did && /pull request #\d+ merged/.test(r.did) && !hasChecks(root) && !store.decisions("", 400).some((e) => (e.data as { action?: string } | undefined)?.action === "no-checks")) {
+          store.emit({ run: "", task: "", stage: "manager", type: "manager.decision", data: { action: "no-checks", auto: true, text: "I merged a pull request that GitHub did not check: this project has no automatic checks there, so only the tests on this computer vouched for it. That is fine for one person on one machine; it matters once someone else or another machine builds it. Press Add checks (CI) in the Pull requests tile (or run factory vcs ci) and the same tests run on GitHub for every pull request. I keep merging either way." } });
+        }
         console.log(text2 ?? (r.waiting ? "waiting for checks" : "nothing to deliver"));
         return r;
       } catch (e) {
