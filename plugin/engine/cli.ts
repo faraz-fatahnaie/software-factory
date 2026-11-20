@@ -529,7 +529,7 @@ async function main([cmd, ...args]: string[]) {
     }
     if (parts.length < 2) throw new Error(`${item.id} has no suggested split to follow (triage wrote ${triage ? "none" : "nothing yet; run it once so triage can say how to split it"}). Ask the Technical Manager to break it down.`);
     const ids: string[] = [];
-    const base = item.title.replace(/^\[[^\]]*\]\s*/, "").slice(0, 70);
+    const whole = item.title.replace(/^\[[^\]]*\]\s*/, ""), base = whole.length > 60 ? `${whole.slice(0, 60).replace(/\s+\S*$/, "")}…` : whole;
     const parentDep = dependsOn(item).join(", ");
     editBacklog(`${item.id} split into ${parts.length} items`, (t) => {
       let text = t;
