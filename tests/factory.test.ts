@@ -3774,6 +3774,21 @@ test("split: triage's suggested parts become smaller items in order, the parent 
   m.stop();
 });
 
+test("a long title keeps its whole text, and runs that stop by design do not trip the breaker", async () => {
+  const long = `Optional turn timer, normal 15s / speed 5s. ${"On timeout auto-drop a card that captures nothing, else the best card. ".repeat(4)}3 timeouts in a row forfeit the match.`;
+  const { text, id } = add(BACKLOG, long);
+  const item = parse(text).find((i) => i.id === id)!;
+  expect(item.title.length).toBeLessThanOrEqual(171);
+  expect(item.title.endsWith("…")).toBe(true);
+  expect(item.detail.replace(/\s+/g, " ")).toContain("3 timeouts in a row forfeit the match.");
+  const m = manage({}, [mItem("F-001", "Blocked"), mItem("F-002", "Blocked")]);
+  failed(m.store, "F-001", "Error: needs your yes: the spec plans auth (login). Read the spec, then build it");
+  failed(m.store, "F-002", "Error: blocked: only a person can say what happens after 3 timeouts");
+  await m.tick();
+  expect(m.autonomy).toEqual([]); // nothing was built and nothing was spent: no loop
+  m.stop();
+});
+
 test("safety: what an earlier run spent does not stop a later run before it starts", async () => {
   const m = manage({}, [mItem("F-001", "In progress")]);
   m.store.emit({ run: "r0", task: "F-001", stage: "build", type: "stage.ok", data: { usage: { costUsd: 9 } } }); // a run from before

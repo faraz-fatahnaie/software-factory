@@ -56,10 +56,13 @@ export function move(text: string, id: string, to: Section, note = ""): string {
  * capped: every detail line is indented, which keeps it from ever being read as an item or a heading.
  */
 export function add(text: string, title: string, to: Section = "Inbox", opts: { detail?: string; prio?: string } = {}): { text: string; id: string } {
-  const clean = title.replace(/\s+/g, " ").trim().slice(0, 200);
+  const flat = title.replace(/\s+/g, " ").trim();
+  // A long title is shortened at a word, and its whole text goes under it: nothing the person wrote is lost (a title cut at 200 characters once dropped half of a requirement).
+  const clean = flat.length > 200 ? `${flat.slice(0, 170).replace(/\s+\S*$/, "")}…` : flat;
   if (!clean) throw new Error("backlog item needs a title");
+  const full = flat.length > 200 ? `Full text: ${flat}`.match(/.{1,380}(\s|$)/g)?.map((x) => x.trim()) ?? [] : [];
   if (opts.prio !== undefined && !/^P\d$/.test(opts.prio)) throw new Error(`priority must look like P1, got "${opts.prio}"`);
-  const detail = (opts.detail ?? "").split("\n").map((l) => l.replace(/\s+/g, " ").trim().slice(0, 400)).filter(Boolean).slice(0, 40).map((l) => `  ${l}`);
+  const detail = [...full, ...(opts.detail ?? "").split("\n")].map((l) => l.replace(/\s+/g, " ").trim().slice(0, 400)).filter(Boolean).slice(0, 40).map((l) => `  ${l}`);
   const max = Math.max(0, ...parse(text).map((i) => Number(i.id.slice(2))));
   const id = `F-${String(max + 1).padStart(3, "0")}`;
   const lines = text.split("\n");
