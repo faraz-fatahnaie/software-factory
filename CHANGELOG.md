@@ -7,6 +7,8 @@ Each release lists what changed and anything you need to do in your own project.
 
 - **A merge nothing checked is said once.** When autopilot merges a pull request in a project with no checks on GitHub, the manager says so once, explains what that means, and points to *Add checks (CI)* (`factory vcs ci`). It keeps merging either way.
 - **An item too large for one task is broken down by the factory.** Triage already wrote a suggested split; `factory split <F-id>` (autopilot runs it by itself) turns the parts into smaller items under Ready, each depending on the one before, and closes the parent with a note.
+- **Close as not needed** (`factory close <F-id>... --reason "why"`, and a button on every Inbox, Ready and Blocked item): takes items that no longer apply off the backlog without editing `BACKLOG.md` by hand; they go to Done with the reason. An item others wait for is refused, and a conversation may not close one that has work behind it.
+- A long backlog title is shortened at a word and keeps its whole text under it (a title cut at 200 characters once lost half of a requirement); a run that stops by design (needs your yes, not ready, blocked) no longer counts toward autopilot's two-failures breaker.
 - Stages may read their own run folder with `cat`, `grep` and `ls`.
 
 ## 1.5.0

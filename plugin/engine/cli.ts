@@ -518,6 +518,27 @@ async function main([cmd, ...args]: string[]) {
     return console.log(args.map((id) => `${id} → Ready`).join("\n"));
   }
 
+  if (cmd === "close") {
+    // F-129: take items off the backlog that no longer apply, without editing BACKLOG.md by hand: they go to Done with the reason. Nothing is built.
+    const ri = args.indexOf("--reason");
+    const reason = (ri >= 0 ? args[ri + 1] ?? "" : "").replace(/\s+/g, " ").trim().slice(0, 120) || "not needed";
+    const ids = args.filter((a, i) => /^F-\d+$/.test(a) && args[i - 1] !== "--reason");
+    if (!ids.length || args.some((a, i) => !/^F-\d+$/.test(a) && a !== "--reason" && args[i - 1] !== "--reason")) throw new Error('usage: factory close <F-id>... [--reason "why it is not needed"]');
+    const items = ids.map((id) => find(id, "Inbox", "Ready", "Blocked"));
+    // Another open item that waits for one of these would wait for ever: close it in the same call, or say what it is.
+    const waitingOn = readItems().filter((i) => i.section !== "Done" && !ids.includes(i.id) && dependsOn(i).some((d) => ids.includes(d)));
+    if (waitingOn.length) throw new Error(`${waitingOn.map((i) => i.id).join(", ")} wait${waitingOn.length === 1 ? "s" : ""} for ${waitingOn.flatMap((i) => dependsOn(i).filter((d) => ids.includes(d))).filter((d, n, a) => a.indexOf(d) === n).join(", ")}, so closing would leave ${waitingOn.length === 1 ? "it" : "them"} waiting for ever. Close ${waitingOn.length === 1 ? "it" : "them"} too, or remove the Depends on line.`);
+    // A task with work behind it (a stopped run's folder and branch) is a discard: a conversation may not do that, only a person.
+    const withWork = items.filter((i) => Bun.spawnSync(["git", "rev-parse", "--verify", "--quiet", `refs/heads/factory/${i.id}`], { cwd: root }).exitCode === 0 || existsSync(worktreeOf(root, i.id)));
+    if (withWork.length && process.env.FACTORY_SOURCE === "chat") throw new Error(`${withWork.map((i) => i.id).join(", ")} ${withWork.length === 1 ? "has" : "have"} work behind ${withWork.length === 1 ? "it" : "them"} that closing would throw away: only a person may do that (the Discard button).`);
+    for (const i of withWork) removeWorktree(root, i.id);
+    editBacklog(`close ${ids.join(", ")}`, (t) => ids.reduce((text, id) => move(text, id, "Done", `closed: ${reason}`), t));
+    const st = openEvents();
+    for (const i of items) st.emit({ run: st.lastRun(i.id) ?? "", task: i.id, stage: "pr", type: "task.closed", data: { reason } });
+    st.close();
+    return console.log(`${ids.join(", ")} → Done (closed: ${reason})${withWork.length ? `; the unfinished work on ${withWork.map((i) => i.id).join(", ")} was removed` : ""}`);
+  }
+
   if (cmd === "split") {
     // F-127: an item triage found too large becomes smaller items, in order, each depending on the one before. No model: triage already wrote the parts.
     const item = find(args[0], "Inbox", "Ready", "Blocked");

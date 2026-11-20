@@ -1780,6 +1780,23 @@ test("dependencies: the spec names them, that is a risk, the factory installs ex
   expect(depsFeedback(["sneaky"])).toContain("BLOCKED: needs the dependency sneaky");
 });
 
+test("close: items that no longer apply go to Done with the reason; one that others wait for, or has work behind it in a conversation, is refused", () => {
+  const { dir, cli, section } = repo();
+  writeFileSync(join(dir, "BACKLOG.md"), `${BACKLOG.replace("## Inbox\n", "## Inbox\n- [ ] F-010 Old question\n- [ ] F-011 Same old question\n- [ ] F-012 Waits for F-010\n  Depends on: F-010\n")}`);
+  Bun.spawnSync(["git", "add", "-A"], { cwd: dir }); Bun.spawnSync(["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "items"], { cwd: dir });
+  const blocked = cli("close", "F-010", "--reason", "moot");
+  expect(blocked.code).toBe(1);
+  expect(blocked.out).toContain("F-012 waits for F-010");
+  expect(cli("close").code).toBe(1);
+  expect(cli("close", "F-001", "oops").code).toBe(1); // odd words are refused, nothing is closed
+  expect(section("F-001")).toBe("Ready");
+  const r = cli("close", "F-011", "F-012", "--reason", "already done by F-039");
+  expect(r.code).toBe(0);
+  expect(section("F-011")).toBe("Done");
+  expect(readFileSync(join(dir, "BACKLOG.md"), "utf8")).toContain("(closed: already done by F-039)");
+  expect(cli("close", "F-011").code).toBe(1); // already Done
+});
+
 test("version control: approve keeps the branch and pushes nothing; push scans, pushes and opens a pull request; merge and sync act only on request", () => {
   const { dir, sh, section, cli } = repo();
   const bare = tmp(), { calls, prs, path } = fakeGh();

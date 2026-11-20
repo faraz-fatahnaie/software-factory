@@ -280,6 +280,7 @@ function Panel(p: { behind?: number; busy: boolean; item: Item; run?: TaskRun; e
   const [wide, setWide] = useState(false);
   const [asking, setAsking] = useState(false);
   const [sending, setSending] = useState(false);
+  const [closing, setClosing] = useState(false), [why, setWhy] = useState("");
   const [leaving, setLeaving] = useState(false);
   const [upTo, setUpTo] = useState<number | null>(null);
   const [replay, setReplay] = useState(false);
@@ -331,9 +332,11 @@ function Panel(p: { behind?: number; busy: boolean; item: Item; run?: TaskRun; e
               {sec === "Blocked" && ["ok", "skipped"].includes(run?.stages.spec?.state ?? "") && !sending && <button onClick={() => setSending(true)} title="Continue from the spec, with your guidance for the Builder">Send guidance</button>}
               {p.item.section === "In progress" && run?.status === "running" && <button className="danger" onClick={() => act("/api/stop", { id: item.id })}>Stop</button>}
               {sec === "Inbox" && <button onClick={() => act("/api/promote", { id: item.id })}>Promote to Ready</button>}
+              {["Inbox", "Ready", "Blocked"].includes(sec) && !closing && !asking && <button onClick={() => setClosing(true)} title="Takes it off the backlog without building it, and records why">Close as not needed</button>}
               {sec === "Blocked" && !asking && <button className="danger" onClick={() => setAsking(true)}>Discard</button>}
             </span>
           </div>
+          {closing && <div className="ask" role="group" aria-label={`Close ${item.id}`}><label className="grow"><b>Why is {item.id} not needed?</b><input value={why} onChange={(e) => setWhy(e.target.value)} placeholder="for example: already done by F-039" maxLength={120} /></label><span className="row gap"><button onClick={() => { setClosing(false); setWhy(""); }}>Keep it</button><button className="primary" onClick={async () => { await act("/api/close", { ids: [item.id], reason: why }); setClosing(false); setWhy(""); }}>Close it</button></span></div>}
           {asking && sec === "Blocked" && <div className="ask" role="alert"><b>Throw away the work on {item.id}?</b><span className="note">Its branch and worktree are deleted. This cannot be undone.</span><span className="row gap"><button onClick={() => setAsking(false)}>Keep it</button><button className="danger-btn" onClick={async () => { if (await act("/api/discard", { id: item.id })) close(); }}>Delete the work</button></span></div>}
         </header>
         {run && <Stepper run={then} facts={facts} pick={(s) => { setTab("Activity"); setFocus(s); }} />}

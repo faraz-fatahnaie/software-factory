@@ -559,6 +559,7 @@ export async function serve(root: string, port = 4400, opts: { supervisor?: bool
         if (running.has(id)) return json({ error: "already running" }, 409);
         return startOne(id, ["reject", id, "--feedback", feedback, ...(files.length ? ["--files", files.join(",")] : []), ...(body.stub === true ? ["--stub"] : [])]);
       }
+      if (route === "POST /api/close") return ids.length && ids.length <= 20 && !ids.some((id) => running.has(id)) ? cli("close", ...ids, ...(typeof body.reason === "string" && body.reason.trim() ? ["--reason", body.reason] : [])) : json({ error: "ids: 1 to 20 items that are not running" }, 400);
       if (route === "POST /api/rebuild") return ids.length === 1 && !running.has(ids[0]!) ? cli("rebuild", ids[0]!) : json({ error: "one id required, and it must not be running" }, 400);
       if (route === "POST /api/update") {
         // Bring a waiting task up to date with main: the same command a person would type.
