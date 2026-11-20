@@ -195,7 +195,7 @@
       "read"
     ],
     "title": "Triage an item",
-    "instruction": "Read `task.md` in the run directory and `BACKLOG.md`.\n\nWrite:\n- **Type**: feature, bug, chore or docs.\n- **Size**: small, medium or large. If large, say how to split it and stop.\n- **Overlap**: backlog items that duplicate or block this one, by id.\n- **Acceptance**: the checks that prove the task is done, as a short list.\n- **Open questions**: only ones a person must answer. None is a fine answer.\n\nDo not design or write code."
+    "instruction": "Read `task.md` in the run directory and `BACKLOG.md`.\n\nWrite:\n- **Type**: feature, bug, chore or docs.\n- **Size**: small, medium or large. If large, write `Suggested split:` and then a numbered list of two to six parts in build order, each as `1. **Short name.** what it covers`, each small enough for one task and checkable on its own, then stop. The factory turns that list into the smaller items, so keep exactly that shape.\n- **Overlap**: backlog items that duplicate or block this one, by id.\n- **Acceptance**: the checks that prove the task is done, as a short list.\n- **Open questions**: only ones a person must answer. None is a fine answer.\n\nDo not design or write code."
   },
   {
     "id": "F1",

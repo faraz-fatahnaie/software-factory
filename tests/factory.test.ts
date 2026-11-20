@@ -3753,6 +3753,7 @@ test("split: triage's suggested parts become smaller items in order, the parent 
   const triage = "**Triage F-001: Big**\n\n- **Type**: feature\n- **Size**: large. Suggested split, each part done in order:\n  1. **Data and progress.** Define it. Needs unit tests.\n  2. **Screen and flow.** Add the screen.\n  3. **Tutorial.** Extend it.\n- **Overlap**:\n  - none\n- **Acceptance**:\n  - x";
   expect(partsOf(triage).map((p) => p.title)).toEqual(["Data and progress", "Screen and flow", "Tutorial"]);
   expect(partsOf("no split here")).toEqual([]);
+  expect(partsOf("**Size**: large.\n\nProposed split, each part a separate item:\n1. **F-008a, stage data.** Define stages.\n2. **F-008b, coin prize.** Pay once.\n\n**Acceptance**:\n- x").map((p) => p.title)).toEqual(["stage data", "coin prize"]);
   const { dir, cli, section } = repo();
   const { openStore } = await import("../plugin/engine/events");
   mkdirSync(join(dir, ".factory"), { recursive: true });
